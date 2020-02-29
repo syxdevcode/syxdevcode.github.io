@@ -1,0 +1,603 @@
+
+ <!DOCTYPE HTML>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  
+    <title>DotNet 单例模式 | syxdevcode博客</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="syxdevcode">
+    
+    <meta name="description" content="DotNet 单例模式单例模式涉及到的基础知识，包括静态构造函数，私有构造函数，锁，延时创建对象, readonly/const等等。
+单例的优点：1.保证了所有的对象访问的都是同一个实例2.由于类是由自己类控制实例化的，所以有相应的伸缩性
+单例的缺点：1.额外的系统开销，因为每次使用类的实例的时候">
+    
+    
+    
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+  <body>
+    <header>
+      <div>
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="syxdevcode博客" title="syxdevcode博客"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="syxdevcode博客">syxdevcode博客</a></h1>
+				<h2 class="blog-motto"></h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+						<li><a href="/tags">tags</a></li>
+					
+						<li><a href="/categories">categories</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:syxdevcode.github.com">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>			
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2019/03/21/DotNet-单例模式/" title="DotNet 单例模式" itemprop="url">DotNet 单例模式</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="https://syxdevcode.github.com" title="syxdevcode">syxdevcode</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2019-03-21T08:33:10.000Z" itemprop="datePublished">2019-03-21</time>
+    更新日期:<time datetime="2020-02-29T10:34:53.184Z" itemprop="dateModified">2020-02-29</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#DotNet-单例模式"><span class="toc-number">1.</span> <span class="toc-text">DotNet 单例模式</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#版本1"><span class="toc-number">1.1.</span> <span class="toc-text">版本1</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#版本2"><span class="toc-number">1.2.</span> <span class="toc-text">版本2</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#版本3"><span class="toc-number">1.3.</span> <span class="toc-text">版本3</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#版本4"><span class="toc-number">1.4.</span> <span class="toc-text">版本4</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#版本5"><span class="toc-number">1.5.</span> <span class="toc-text">版本5</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#版本6"><span class="toc-number">1.6.</span> <span class="toc-text">版本6</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#泛型单例"><span class="toc-number">1.7.</span> <span class="toc-text">泛型单例</span></a></li></ol></li></ol>
+		</div>
+		
+		<h1 id="DotNet-单例模式"><a href="#DotNet-单例模式" class="headerlink" title="DotNet 单例模式"></a>DotNet 单例模式</h1><p>单例模式涉及到的基础知识，包括静态构造函数，私有构造函数，锁，延时创建对象, readonly/const等等。</p>
+<p>单例的优点：<br>1.保证了所有的对象访问的都是同一个实例<br>2.由于类是由自己类控制实例化的，所以有相应的伸缩性</p>
+<p>单例的缺点：<br>1.额外的系统开销，因为每次使用类的实例的时候，都要检查实例是否存在，可以通过静态实例该解决。<br>2.无法销毁对象，单例模式的特性决定了只有他自己才能销毁对象实例，但是一般情况下我们都没做这个事情。</p>
+<h2 id="版本1"><a href="#版本1" class="headerlink" title="版本1"></a>版本1</h2><p>主要问题，就是线程安全的问题，当2个请求同时方式这个类的实例的时候，可以会在同一时间点上都创建一个实例。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">sealed</span> <span class="keyword">class</span> <span class="title">Singleton</span></span><br><span class="line">&#123;</span><br><span class="line">   <span class="keyword">private</span> <span class="keyword">static</span> Singleton instance;</span><br><span class="line"></span><br><span class="line">   <span class="comment">// 私有构造函数，确保用户在外部不能实例化新的实例</span></span><br><span class="line">   <span class="function"><span class="keyword">private</span> <span class="title">Singleton</span>(<span class="params"></span>)</span> &#123;&#125;</span><br><span class="line"></span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> Singleton Instance</span><br><span class="line">   &#123;</span><br><span class="line">      <span class="keyword">get</span></span><br><span class="line">      &#123;</span><br><span class="line">         <span class="keyword">if</span> (instance == <span class="literal">null</span>)</span><br><span class="line">         &#123;</span><br><span class="line">            instance = <span class="keyword">new</span> Singleton();</span><br><span class="line">         &#125;</span><br><span class="line">         <span class="keyword">return</span> instance;</span><br><span class="line">      &#125;</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="版本2"><a href="#版本2" class="headerlink" title="版本2"></a>版本2</h2><p>标记类为sealed是好的，可以防止被集成;<br>在首次访问静态成员之前以及在调用构造函数（如果有）之前，会初始化静态成员。</p>
+<p>静态私有字段上通过new的形式，来保证在该类第一次被调用的时候创建实例,但是，C#其实并不保证实例创建的时机，因为C#规范只是在IL里标记该静态字段是<code>BeforeFieldInit</code>，也就是说静态字段可能在第一次被使用的时候创建，也可能你没使用了，它也帮你创建了。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">sealed</span> <span class="keyword">class</span> <span class="title">Singleton</span></span><br><span class="line">&#123;</span><br><span class="line">   <span class="comment">// 在静态私有字段上声明单例</span></span><br><span class="line">   <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">readonly</span> Singleton instance = <span class="keyword">new</span> Singleton();</span><br><span class="line"></span><br><span class="line">   <span class="comment">// 私有构造函数，确保用户在外部不能实例化新的实例</span></span><br><span class="line">   <span class="function"><span class="keyword">private</span> <span class="title">Singleton</span>(<span class="params"></span>)</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">   <span class="comment">// 只读属性返回静态字段</span></span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> Singleton Instance</span><br><span class="line">   &#123;</span><br><span class="line">      <span class="keyword">get</span></span><br><span class="line">      &#123;</span><br><span class="line">         <span class="keyword">return</span> instance;</span><br><span class="line">      &#125;</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="版本3"><a href="#版本3" class="headerlink" title="版本3"></a>版本3</h2><p>volatile 关键字表示字段可能被多个并发执行线程修改。声明为 <code>volatile</code> 的字段不受编译器优化（假定由单个线程访问）的限制。这样可以确保该字段在任何时间呈现的都是最新的值。</p>
+<p><font color=#ff0000 size=4 face="黑体">常见的实现方法，推荐使用</font></p>
+<p>每个线程都会对线程辅助对象locker加锁之后再判断实例是否存在，对于这个操作完全没有必要的，因为当第一个线程创建了该类的实例之后，后面的线程此时只需要直接判断（instance==null）为假，此时完全没必要对线程辅助对象加锁之后再去判断，所以上面的实现方式增加了额外的开销，损失了性能，为了改进上面实现方式的缺陷，我们只需要在lock语句前面加一句（instance==null）的判断就可以避免锁所增加的额外开销，这种实现方式我们就叫它 “双重锁定”。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">sealed</span> <span class="keyword">class</span> <span class="title">Singleton</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">volatile</span> Singleton instance = <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Lock对象，线程安全所用</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">object</span> syncRoot = <span class="keyword">new</span> Object();</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">Singleton</span>(<span class="params"></span>)</span> &#123; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> Singleton Instance</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (instance == <span class="literal">null</span>)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">lock</span> (syncRoot)</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="keyword">if</span> (instance == <span class="literal">null</span>)</span><br><span class="line">                        instance = <span class="keyword">new</span> Singleton();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">return</span> instance;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="版本4"><a href="#版本4" class="headerlink" title="版本4"></a>版本4</h2><p>通过加静态构造函数，确保是个延迟初始化的单例。</p>
+<p>静态构造函数：用于初始化任何静态数据，或执行仅需执行一次的特定操作。<br><font color=#ff0000 size=4 face="黑体">在创建第一个实例或引用任何静态成员之前自动调用静态构造函数。</font></p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Singleton</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 因为下面声明了静态构造函数，所以在第一次访问该类之前，new Singleton()语句不会执行</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">readonly</span> Singleton _instance = <span class="keyword">new</span> Singleton();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> Singleton Instance</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span> &#123; <span class="keyword">return</span> _instance; &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">Singleton</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 声明静态构造函数就是为了删除IL里的BeforeFieldInit标记</span></span><br><span class="line">    <span class="comment">// 以掉静态字段在使用之前被初始化</span></span><br><span class="line">    <span class="function"><span class="keyword">static</span> <span class="title">Singleton</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="版本5"><a href="#版本5" class="headerlink" title="版本5"></a>版本5</h2><p>版本4的变体</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">sealed</span> <span class="keyword">class</span> <span class="title">Singleton</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">Singleton</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> Singleton Instance &#123; <span class="keyword">get</span> &#123; <span class="keyword">return</span> Nested._instance; &#125; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">class</span> <span class="title">Nested</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">static</span> <span class="title">Nested</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">internal</span> <span class="keyword">static</span> <span class="keyword">readonly</span> Singleton _instance = <span class="keyword">new</span> Singleton();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="版本6"><a href="#版本6" class="headerlink" title="版本6"></a>版本6</h2><p><code>Lazy&lt;T&gt;</code>默认的设置就是线程安全。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Singleton</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 因为构造函数是私有的，所以需要使用lambda</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">readonly</span> Lazy&lt;Singleton&gt; _instance =</span><br><span class="line">        <span class="keyword">new</span> Lazy&lt;Singleton&gt;(() =&gt; <span class="keyword">new</span> Singleton());</span><br><span class="line">    <span class="comment">// new Lazy&lt;Singleton&gt;(() =&gt; new Singleton(), LazyThreadSafetyMode.ExecutionAndPublication);</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">Singleton</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> Singleton Instance</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> _instance.Value;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="泛型单例"><a href="#泛型单例" class="headerlink" title="泛型单例"></a>泛型单例</h2><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title">Singleton</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">readonly</span> Lazy&lt;T&gt; _instance</span><br><span class="line">      = <span class="keyword">new</span> Lazy&lt;T&gt;(() =&gt;</span><br><span class="line">      &#123;</span><br><span class="line">          <span class="keyword">var</span> ctors = <span class="keyword">typeof</span>(T).GetConstructors(</span><br><span class="line">              BindingFlags.Instance</span><br><span class="line">              | BindingFlags.NonPublic</span><br><span class="line">              | BindingFlags.Public);</span><br><span class="line">          <span class="keyword">if</span> (ctors.Count() != <span class="number">1</span>)</span><br><span class="line">              <span class="keyword">throw</span> <span class="keyword">new</span> InvalidOperationException(String.Format(<span class="string">"Type &#123;0&#125; must have exactly one constructor."</span>, <span class="keyword">typeof</span>(T)));</span><br><span class="line">          <span class="keyword">var</span> ctor = ctors.SingleOrDefault(c =&gt; c.GetParameters().Count() == <span class="number">0</span> &amp;&amp; c.IsPrivate);</span><br><span class="line">          <span class="keyword">if</span> (ctor == <span class="literal">null</span>)</span><br><span class="line">              <span class="keyword">throw</span> <span class="keyword">new</span> InvalidOperationException(String.Format(<span class="string">"The constructor for &#123;0&#125; must be private and take no parameters."</span>, <span class="keyword">typeof</span>(T)));</span><br><span class="line">          <span class="keyword">return</span> (T)ctor.Invoke(<span class="literal">null</span>);</span><br><span class="line">      &#125;);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> T Instance</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span> &#123; <span class="keyword">return</span> _instance.Value; &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>泛型单例类的实现：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">class MySingleton : Singleton&lt;MySingleton&gt;</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">int</span> _counter;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">int</span> Counter</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span> &#123; <span class="keyword">return</span> _counter; &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">MySingleton</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        _counter = <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">IncrementCounter</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        ++_counter;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 线程安全</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">IncrementCounterLock</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        Interlocked.Increment(<span class="keyword">ref</span> _counter);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>泛型版本的代码使用的<code>Lazy&lt;T&gt;</code>能确保我们在创建单例实例的时候是线程安全的，但是不意味着单例本身是线程安全的，例如：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="keyword">string</span>[] args</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    Parallel.For(<span class="number">0</span>, <span class="number">100</span>, i =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> j = <span class="number">0</span>; j &lt; <span class="number">1000</span>; ++j)</span><br><span class="line">            MySingleton.Instance.IncrementCounter();</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Counter的结果是小于100000的</span></span><br><span class="line">    Console.WriteLine(<span class="string">"Counter=&#123;0&#125;."</span>, MySingleton.Instance.Counter);</span><br><span class="line">    Console.ReadLine();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a href="http://www.cnblogs.com/TomXu/archive/2011/12/19/2291448.html" target="_blank" rel="noopener">大叔手记（10）：别再让面试官问你单例（暨6种实现方式让你堵住面试官的嘴）</a></p>
+<p><a href="https://blog.csdn.net/daguanjia11/article/details/74612674" target="_blank" rel="noopener">.NET线程同步之Volatile构造</a></p>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/CSharp基础/">CSharp基础</a><a href="/tags/DotNet面试题解析/">DotNet面试题解析</a><a href="/tags/单例模式/">单例模式</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/">设计模式</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="https://syxdevcode.github.com/2019/03/21/DotNet-%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F/" data-title="DotNet 单例模式 | syxdevcode博客" data-tsina="" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2019/03/21/CSharp算法实现-冒泡算法/" title="CSharp算法实现-冒泡算法">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  CSharp算法实现-冒泡算法</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2019/03/19/OpenID-Connect-协议/"  title="OpenID Connect 协议">
+ <strong>NEXT:</strong><br/> 
+ <span>OpenID Connect 协议
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#DotNet-单例模式"><span class="toc-number">1.</span> <span class="toc-text">DotNet 单例模式</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#版本1"><span class="toc-number">1.1.</span> <span class="toc-text">版本1</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#版本2"><span class="toc-number">1.2.</span> <span class="toc-text">版本2</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#版本3"><span class="toc-number">1.3.</span> <span class="toc-text">版本3</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#版本4"><span class="toc-number">1.4.</span> <span class="toc-text">版本4</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#版本5"><span class="toc-number">1.5.</span> <span class="toc-text">版本5</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#版本6"><span class="toc-number">1.6.</span> <span class="toc-text">版本6</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#泛型单例"><span class="toc-number">1.7.</span> <span class="toc-text">泛型单例</span></a></li></ol></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/Net-Standard/" title=".Net Standard">.Net Standard<sup>2</sup></a></li>
+		
+			<li><a href="/categories/net异步与并行/" title=".net异步与并行">.net异步与并行<sup>10</sup></a></li>
+		
+			<li><a href="/categories/ABP/" title="ABP">ABP<sup>27</sup></a></li>
+		
+			<li><a href="/categories/ASP-NET-IIS请求处理管道/" title="ASP.NET/IIS请求处理管道">ASP.NET/IIS请求处理管道<sup>2</sup></a></li>
+		
+			<li><a href="/categories/ApplicationPoolIdentify/" title="ApplicationPoolIdentify">ApplicationPoolIdentify<sup>1</sup></a></li>
+		
+			<li><a href="/categories/CSharp基础/" title="CSharp基础">CSharp基础<sup>11</sup></a></li>
+		
+			<li><a href="/categories/CentOS7/" title="CentOS7">CentOS7<sup>5</sup></a></li>
+		
+			<li><a href="/categories/Chrome/" title="Chrome">Chrome<sup>1</sup></a></li>
+		
+			<li><a href="/categories/CodeDOM/" title="CodeDOM">CodeDOM<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Consul/" title="Consul">Consul<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Docker/" title="Docker">Docker<sup>7</sup></a></li>
+		
+			<li><a href="/categories/Docker-Compose/" title="Docker Compose">Docker Compose<sup>3</sup></a></li>
+		
+			<li><a href="/categories/DotNetCore/" title="DotNetCore">DotNetCore<sup>3</sup></a></li>
+		
+			<li><a href="/categories/DotNet面试题解析/" title="DotNet面试题解析">DotNet面试题解析<sup>8</sup></a></li>
+		
+			<li><a href="/categories/EasyNetQ/" title="EasyNetQ">EasyNetQ<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Elasticsearch/" title="Elasticsearch">Elasticsearch<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Emit-反射发出/" title="Emit(反射发出)">Emit(反射发出)<sup>6</sup></a></li>
+		
+			<li><a href="/categories/Expression-Tree/" title="Expression Tree">Expression Tree<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Git/" title="Git">Git<sup>2</sup></a></li>
+		
+			<li><a href="/categories/HostService/" title="HostService">HostService<sup>1</sup></a></li>
+		
+			<li><a href="/categories/JavaScript-JQuery/" title="JavaScript/JQuery">JavaScript/JQuery<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Jenkins/" title="Jenkins">Jenkins<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Jexus/" title="Jexus">Jexus<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Json-Net/" title="Json.Net">Json.Net<sup>1</sup></a></li>
+		
+			<li><a href="/categories/LINQ/" title="LINQ">LINQ<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Let’s-Encrypt/" title="Let’s Encrypt">Let’s Encrypt<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Linux基础命令/" title="Linux基础命令">Linux基础命令<sup>6</sup></a></li>
+		
+			<li><a href="/categories/MSIL指令/" title="MSIL指令">MSIL指令<sup>2</sup></a></li>
+		
+			<li><a href="/categories/MVC-Web-API/" title="MVC/Web API">MVC/Web API<sup>2</sup></a></li>
+		
+			<li><a href="/categories/MariaDB/" title="MariaDB">MariaDB<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MarkDown/" title="MarkDown">MarkDown<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MongoDB/" title="MongoDB">MongoDB<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Moq/" title="Moq">Moq<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MySql/" title="MySql">MySql<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Naudio/" title="Naudio">Naudio<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Nginx/" title="Nginx">Nginx<sup>2</sup></a></li>
+		
+			<li><a href="/categories/OAuth2-0/" title="OAuth2.0">OAuth2.0<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Ocelot/" title="Ocelot">Ocelot<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Openssl/" title="Openssl">Openssl<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Polly/" title="Polly">Polly<sup>2</sup></a></li>
+		
+			<li><a href="/categories/PostGresqlSql/" title="PostGresqlSql">PostGresqlSql<sup>1</sup></a></li>
+		
+			<li><a href="/categories/RESTful/" title="RESTful">RESTful<sup>2</sup></a></li>
+		
+			<li><a href="/categories/RabbitMQ/" title="RabbitMQ">RabbitMQ<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Redis/" title="Redis">Redis<sup>5</sup></a></li>
+		
+			<li><a href="/categories/Resharper/" title="Resharper">Resharper<sup>1</sup></a></li>
+		
+			<li><a href="/categories/SSH/" title="SSH">SSH<sup>1</sup></a></li>
+		
+			<li><a href="/categories/SSL-TLS/" title="SSL/TLS">SSL/TLS<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Skywalking/" title="Skywalking">Skywalking<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Sql/" title="Sql">Sql<sup>5</sup></a></li>
+		
+			<li><a href="/categories/TDD/" title="TDD">TDD<sup>1</sup></a></li>
+		
+			<li><a href="/categories/TPL-DataFlow/" title="TPL DataFlow">TPL DataFlow<sup>2</sup></a></li>
+		
+			<li><a href="/categories/WCF时间类型序列化/" title="WCF时间类型序列化">WCF时间类型序列化<sup>1</sup></a></li>
+		
+			<li><a href="/categories/WebForm/" title="WebForm">WebForm<sup>2</sup></a></li>
+		
+			<li><a href="/categories/WinDbg/" title="WinDbg">WinDbg<sup>1</sup></a></li>
+		
+			<li><a href="/categories/WinSCP/" title="WinSCP">WinSCP<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Windows子系统/" title="Windows子系统">Windows子系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Windows系统/" title="Windows系统">Windows系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/ab/" title="ab">ab<sup>1</sup></a></li>
+		
+			<li><a href="/categories/hexo/" title="hexo">hexo<sup>2</sup></a></li>
+		
+			<li><a href="/categories/shadowsocks/" title="shadowsocks">shadowsocks<sup>1</sup></a></li>
+		
+			<li><a href="/categories/zookeeper/" title="zookeeper">zookeeper<sup>1</sup></a></li>
+		
+			<li><a href="/categories/内存泄漏/" title="内存泄漏">内存泄漏<sup>1</sup></a></li>
+		
+			<li><a href="/categories/分布式/" title="分布式">分布式<sup>1</sup></a></li>
+		
+			<li><a href="/categories/分布式事务/" title="分布式事务">分布式事务<sup>1</sup></a></li>
+		
+			<li><a href="/categories/单词收录/" title="单词收录">单词收录<sup>14</sup></a></li>
+		
+			<li><a href="/categories/反射/" title="反射">反射<sup>4</sup></a></li>
+		
+			<li><a href="/categories/委托与事件/" title="委托与事件">委托与事件<sup>4</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>1</sup></a></li>
+		
+			<li><a href="/categories/并发模型/" title="并发模型">并发模型<sup>1</sup></a></li>
+		
+			<li><a href="/categories/插件/" title="插件">插件<sup>1</sup></a></li>
+		
+			<li><a href="/categories/时间-时间戳转换/" title="时间/时间戳转换">时间/时间戳转换<sup>1</sup></a></li>
+		
+			<li><a href="/categories/消息队列/" title="消息队列">消息队列<sup>1</sup></a></li>
+		
+			<li><a href="/categories/程序集/" title="程序集">程序集<sup>2</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>3</sup></a></li>
+		
+			<li><a href="/categories/线性表/" title="线性表">线性表<sup>1</sup></a></li>
+		
+			<li><a href="/categories/线程池/" title="线程池">线程池<sup>1</sup></a></li>
+		
+			<li><a href="/categories/缓存/" title="缓存">缓存<sup>3</sup></a></li>
+		
+			<li><a href="/categories/计算机基础/" title="计算机基础">计算机基础<sup>2</sup></a></li>
+		
+			<li><a href="/categories/认证与授权/" title="认证与授权">认证与授权<sup>1</sup></a></li>
+		
+			<li><a href="/categories/设计模式/" title="设计模式">设计模式<sup>3</sup></a></li>
+		
+			<li><a href="/categories/链表/" title="链表">链表<sup>2</sup></a></li>
+		
+			<li><a href="/categories/集合与泛型/" title="集合与泛型">集合与泛型<sup>3</sup></a></li>
+		
+			<li><a href="/categories/音频-视频/" title="音频/视频">音频/视频<sup>1</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist" style="clear:both;">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/Net-Standard/" title=".Net Standard">.Net Standard<sup>2</sup></a></li>
+		
+			<li><a href="/tags/net异步与并行/" title=".net异步与并行">.net异步与并行<sup>12</sup></a></li>
+		
+			<li><a href="/tags/ABP/" title="ABP">ABP<sup>27</sup></a></li>
+		
+			<li><a href="/tags/ASP-NET-IIS请求处理管道/" title="ASP.NET/IIS请求处理管道">ASP.NET/IIS请求处理管道<sup>7</sup></a></li>
+		
+			<li><a href="/tags/AWS/" title="AWS">AWS<sup>7</sup></a></li>
+		
+			<li><a href="/tags/ApplicationPoolIdentify/" title="ApplicationPoolIdentify">ApplicationPoolIdentify<sup>1</sup></a></li>
+		
+			<li><a href="/tags/CSharp/" title="CSharp">CSharp<sup>101</sup></a></li>
+		
+			<li><a href="/tags/CSharp基础/" title="CSharp基础">CSharp基础<sup>44</sup></a></li>
+		
+			<li><a href="/tags/CentOS7/" title="CentOS7">CentOS7<sup>24</sup></a></li>
+		
+			<li><a href="/tags/Chrome/" title="Chrome">Chrome<sup>1</sup></a></li>
+		
+			<li><a href="/tags/CodeDOM/" title="CodeDOM">CodeDOM<sup>3</sup></a></li>
+		
+			<li><a href="/tags/Consul/" title="Consul">Consul<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Docker/" title="Docker">Docker<sup>23</sup></a></li>
+		
+			<li><a href="/tags/Docker-Compose/" title="Docker Compose">Docker Compose<sup>5</sup></a></li>
+		
+			<li><a href="/tags/DotNet/" title="DotNet">DotNet<sup>106</sup></a></li>
+		
+			<li><a href="/tags/DotNetCore/" title="DotNetCore">DotNetCore<sup>16</sup></a></li>
+		
+			<li><a href="/tags/DotNet面试题解析/" title="DotNet面试题解析">DotNet面试题解析<sup>10</sup></a></li>
+		
+			<li><a href="/tags/Elasticsearch/" title="Elasticsearch">Elasticsearch<sup>2</sup></a></li>
+		
+			<li><a href="/tags/Emit-反射发出/" title="Emit(反射发出)">Emit(反射发出)<sup>8</sup></a></li>
+		
+			<li><a href="/tags/Expression-Tree/" title="Expression Tree">Expression Tree<sup>3</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+<div style="display: none;" id="rocket-to-top">
+  <div style="opacity: 0; display: block;" class="level-2"></div>
+  <div class="level-3"></div>
+</div>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<div class="social-font clearfix">
+		
+		
+		
+		<a href="https://github.com/syxdevcode" target="_blank" title="github"></a>
+		
+		
+		
+	</div>
+		<p class="copyright">Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/syxdevcode/pacman" target="_blank" title="Pacman">Pacman</a> © 2020 
+		
+		<a href="https://syxdevcode.github.com" target="_blank" title="syxdevcode">syxdevcode</a>
+		
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    $('.navbar').click(function () {
+      $('header nav').toggleClass('shownav');
+    });
+    var myWidth = 0;
+    function getSize() {
+      if (typeof (window.innerWidth) == 'number') {
+        myWidth = window.innerWidth;
+      } else if (document.documentElement && document.documentElement.clientWidth) {
+        myWidth = document.documentElement.clientWidth;
+      };
+    };
+    var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+    $(window).resize(function () {
+      getSize();
+      if (myWidth >= 1024) {
+        $('header nav').removeClass('shownav');
+      } else {
+        m.removeClass('moveMain');
+        a.css('display', 'block').removeClass('fadeOut');
+        o.css('display', 'none');
+      
+          $('#toc.toc-aside').css('display', 'none');
+        
+    }
+    });
+    c.click(function () {
+      a.addClass('fadeOut').css('display', 'none');
+      o.css('display', 'block').addClass('fadeIn');
+      m.addClass('moveMain');
+    });
+    o.click(function () {
+      o.css('display', 'none').removeClass('beforeFadeIn');
+      a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');
+      m.removeClass('moveMain');
+    });
+    $(window).scroll(function () {
+      o.css("top", Math.max(80, 260 - $(this).scrollTop()));
+    });
+  });
+  //判断访问终端
+  var browser = {
+    versions: function () {
+      var u = navigator.userAgent,
+        app = navigator.appVersion;
+      return {
+        trident: u.indexOf('Trident') > -1, //IE内核
+        presto: u.indexOf('Presto') > -1, //opera内核
+        webKit: u.indexOf('AppleWebKit') > -1, //苹果、谷歌内核
+        gecko: u.indexOf('Gecko') > -1 && u.indexOf('KHTML') == -1,//火狐内核
+        mobile: !!u.match(/AppleWebKit.*Mobile.*/), //是否为移动终端
+        ios: !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/), //ios终端
+        android: u.indexOf('Android') > -1 || u.indexOf('Adr') > -1, //android终端
+        iPhone: u.indexOf('iPhone') > -1, //是否为iPhone或者QQHD浏览器
+        iPad: u.indexOf('iPad') > -1, //是否iPad
+        webApp: u.indexOf('Safari') == -1, //是否web应该程序，没有头部与底部
+        weixin: u.indexOf('MicroMessenger') > -1, //是否微信 （2015-01-22新增）
+        qq: u.match(/\sQQ/i) == " qq" //是否QQ
+      };
+    }(),
+    language: (navigator.browserLanguage || navigator.language).toLowerCase()
+  }
+</script>
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t = $('#toc'),
+      h = $('article h2')
+    ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o = $('.openaside'),
+      c = $('.closeaside');
+    if (ai.length > 0) {
+      ai.wrap('<div class="video-container" />');
+    };
+    if (ae.length > 0) {
+      ae.wrap('<div class="video-container" />');
+    };
+    if (ah.length == 0) {
+      t.css('display', 'none');
+    } else {
+      c.click(function () {
+        ta.css('display', 'block').addClass('fadeIn');
+      });
+      o.click(function () {
+        ta.css('display', 'none');
+      });
+      $(window).scroll(function () {
+        ta.css("top", Math.max(140, 320 - $(this).scrollTop()));
+      });
+    };
+  });
+</script>
+
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    var $this = $('.share'),
+      //url = $this.attr('data-url'),
+      url = window.location.href,
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+    var html = [
+      '<a href="#" class="overlay" id="qrcode"></a>',
+      '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://mobile.qq.com/qrcode?url=' + encodedUrl + '"/></div>',
+      '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+      '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+      '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+      '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+      '<a href="http://service.weibo.com/share/share.php?title=' + title + '&url=' + encodedUrl + '&ralateUid=' + tsina + '&searchPic=true&style=number' + '" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+      '<span title="Share to"></span>'
+    ].join('');
+    $this.append(html);
+    viewqrCode();
+    $('.article-share-qrcode').click(viewqrCode()
+    );
+
+  });
+  function viewqrCode() {
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function () {
+      $('.qrcode strong').text(' ');
+    });
+  }
+</script>
+<script type="text/javascript">  
+  //判断是否移动端 
+  if (!browser.versions.mobile) {
+    $(function () {
+      var c, a = $("#rocket-to-top"), e = ($(document).scrollTop(), !0);
+      $(window).scroll(function () {
+        var b = $(document).scrollTop(); 0 == b ? "0px 0px" == a.css("background-position") ? a.fadeOut("slow") : e && (e = !1, $(".level-2").css("opacity", 1), a.delay(100).animate({ marginTop: "-1000px" }, "normal", function () { a.css({ "margin-top": "-125px", display: "none" }), e = !0 })) : a.fadeIn("slow")
+      }), a.hover(function () { $(".level-2").stop(!0).animate({ opacity: 1 }) }, function () { $(".level-2").stop(!0).animate({ opacity: 0 }) }), $(".level-3").click(function () { function b() { var b = a.css("background-position"); if ("none" == a.css("display") || 0 == e) return clearInterval(c), a.css("background-position", "0px 0px"), void 0; switch (b) { case "0px 0px": a.css("background-position", "-298px 0px"); break; case "-298px 0px": a.css("background-position", "-447px 0px"); break; case "-447px 0px": a.css("background-position", "-596px 0px"); break; case "-596px 0px": a.css("background-position", "-745px 0px"); break; case "-745px 0px": a.css("background-position", "-298px 0px") } } e && (c = setInterval(b, 50), $("html,body").animate({ scrollTop: 0 }, "slow")) })
+    });
+  }
+</script>
+
+
+
+
+
+  </body>
+</html>

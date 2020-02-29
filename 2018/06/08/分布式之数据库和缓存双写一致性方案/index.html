@@ -1,0 +1,671 @@
+
+ <!DOCTYPE HTML>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  
+    <title>分布式之数据库和缓存双写一致性方案 | syxdevcode博客</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="syxdevcode">
+    
+    <meta name="description" content="分布式之数据库和缓存双写一致性方案本文参考【原创】分布式之数据库和缓存双写一致性方案解析,做的进一步整理笔记。
+在这里，我们讨论三种更新策略：
+1.先更新数据库，再更新缓存
+2.先删除缓存，再更新数据库
+3.先更新数据库，再删除缓存
+(1)先更新数据库，再更新缓存这套方案，大家是普遍反对的。为什么呢">
+    
+    
+    
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+  <body>
+    <header>
+      <div>
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="syxdevcode博客" title="syxdevcode博客"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="syxdevcode博客">syxdevcode博客</a></h1>
+				<h2 class="blog-motto"></h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+						<li><a href="/tags">tags</a></li>
+					
+						<li><a href="/categories">categories</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:syxdevcode.github.com">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>			
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2018/06/08/分布式之数据库和缓存双写一致性方案/" title="分布式之数据库和缓存双写一致性方案" itemprop="url">分布式之数据库和缓存双写一致性方案</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="https://syxdevcode.github.com" title="syxdevcode">syxdevcode</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2018-06-08T17:14:48.000Z" itemprop="datePublished">2018-06-08</time>
+    更新日期:<time datetime="2020-02-29T10:34:53.188Z" itemprop="dateModified">2020-02-29</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#分布式之数据库和缓存双写一致性方案"><span class="toc-number">1.</span> <span class="toc-text">分布式之数据库和缓存双写一致性方案</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-先更新数据库，再更新缓存"><span class="toc-number">1.1.</span> <span class="toc-text">(1)先更新数据库，再更新缓存</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-先删缓存，再更新数据库"><span class="toc-number">1.2.</span> <span class="toc-text">(2)先删缓存，再更新数据库</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-先更新数据库，再删缓存"><span class="toc-number">1.3.</span> <span class="toc-text">(3)先更新数据库，再删缓存</span></a></li></ol></li></ol>
+		</div>
+		
+		<h1 id="分布式之数据库和缓存双写一致性方案"><a href="#分布式之数据库和缓存双写一致性方案" class="headerlink" title="分布式之数据库和缓存双写一致性方案"></a>分布式之数据库和缓存双写一致性方案</h1><p>本文参考<a href="https://www.cnblogs.com/rjzheng/p/9041659.html" target="_blank" rel="noopener">【原创】分布式之数据库和缓存双写一致性方案解析</a>,做的进一步整理笔记。</p>
+<p>在这里，我们讨论三种更新策略：</p>
+<p>1.先更新数据库，再更新缓存</p>
+<p>2.先删除缓存，再更新数据库</p>
+<p>3.先更新数据库，再删除缓存</p>
+<h2 id="1-先更新数据库，再更新缓存"><a href="#1-先更新数据库，再更新缓存" class="headerlink" title="(1)先更新数据库，再更新缓存"></a>(1)先更新数据库，再更新缓存</h2><p>这套方案，大家是普遍反对的。为什么呢？有如下两点原因。</p>
+<p>** 原因一（线程安全角度）**</p>
+<p>同时有请求A和请求B进行更新操作，那么会出现</p>
+<p>（1）线程A更新了数据库</p>
+<p>（2）线程B更新了数据库</p>
+<p>（3）线程B更新了缓存</p>
+<p>（4）线程A更新了缓存</p>
+<p>这就出现请求A更新缓存应该比请求B更新缓存早才对，但是因为网络等原因，B却比A更早更新了缓存。这就导致了脏数据，因此不考虑。</p>
+<p>** 原因二（业务场景角度）**</p>
+<p>有如下两点：</p>
+<p>（1）如果你是一个写数据库场景比较多，而读数据场景比较少的业务需求，采用这种方案就会导致，数据压根还没读到，缓存就被频繁的更新，浪费性能。</p>
+<p>（2）如果你写入数据库的值，并不是直接写入缓存的，而是要经过一系列复杂的计算再写入缓存。那么，每次写入数据库后，都再次计算写入缓存的值，无疑是浪费性能的。显然，删除缓存更为适合。</p>
+<p>接下来讨论的就是争议最大的，先删缓存，再更新数据库。还是先更新数据库，再删缓存的问题。</p>
+<h2 id="2-先删缓存，再更新数据库"><a href="#2-先删缓存，再更新数据库" class="headerlink" title="(2)先删缓存，再更新数据库"></a>(2)先删缓存，再更新数据库</h2><p>该方案会导致不一致的原因是。同时有一个请求A进行更新操作，另一个请求B进行查询操作。那么会出现如下情形:</p>
+<p>（1）请求A进行写操作，删除缓存</p>
+<p>（2）请求B查询发现缓存不存在</p>
+<p>（3）请求B去数据库查询得到旧值</p>
+<p>（4）请求B将旧值写入缓存</p>
+<p>（5）请求A将新值写入数据库</p>
+<p>上述情况就会导致不一致的情形出现。而且，如果不采用给缓存设置过期时间策略，该数据永远都是脏数据。<br>那么，如何解决呢？采用延时双删策略</p>
+<p>伪代码如下</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">public void write(string key,object data)</span><br><span class="line">&#123;</span><br><span class="line">    redis.delKey(key);</span><br><span class="line">    db.updateData(data);</span><br><span class="line">    Thread.sleep(1000);</span><br><span class="line">    redis.delKey(key);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>转化为中文描述就是</p>
+<p>（1）先淘汰缓存</p>
+<p>（2）再写数据库（这两步和原来一样）</p>
+<p>（3）休眠1秒，再次淘汰缓存</p>
+<p>这么做，可以将1秒内所造成的缓存脏数据，再次删除。</p>
+<p>** 那么，这个1秒怎么确定的，具体该休眠多久呢？**</p>
+<p>针对上面的情形，读者应该自行评估自己的项目的读数据业务逻辑的耗时。然后写数据的休眠时间则在读数据业务逻辑的耗时基础上，加几百ms即可。这么做的目的，就是确保读请求结束，写请求可以删除读请求造成的缓存脏数据。</p>
+<p>** 如果你用了mysql的读写分离架构怎么办？**</p>
+<p>ok，在这种情况下，造成数据不一致的原因如下，还是两个请求，一个请求A进行更新操作，另一个请求B进行查询操作。</p>
+<p>（1）请求A进行写操作，删除缓存</p>
+<p>（2）请求A将数据写入数据库了</p>
+<p>（3）请求B查询缓存发现，缓存没有值</p>
+<p>（4）请求B去从库查询，这时，还没有完成主从同步，因此查询到的是旧值</p>
+<p>（5）请求B将旧值写入缓存</p>
+<p>（6）数据库完成主从同步，从库变为新值</p>
+<p>上述情形，就是数据不一致的原因。还是使用双删延时策略。只是，睡眠时间修改为在主从同步的延时时间基础上，加几百ms。</p>
+<p>** 采用这种同步淘汰策略，吞吐量降低怎么办？**</p>
+<p>ok，那就将第二次删除作为异步的。自己起一个线程，异步删除。这样，写的请求就不用沉睡一段时间后了，再返回。这么做，加大吞吐量。</p>
+<p>** 第二次删除,如果删除失败怎么办？**</p>
+<p>这是个非常好的问题，因为第二次删除失败，就会出现如下情形。还是有两个请求，一个请求A进行更新操作，另一个请求B进行查询操作，为了方便，假设是单库：</p>
+<p>（1）请求A进行写操作，删除缓存</p>
+<p>（2）请求B查询发现缓存不存在</p>
+<p>（3）请求B去数据库查询得到旧值</p>
+<p>（4）请求B将旧值写入缓存</p>
+<p>（5）请求A将新值写入数据库</p>
+<p>（6）请求A试图去删除请求B写入对缓存值，结果失败了。</p>
+<p>ok,这也就是说。如果第二次删除缓存失败，会再次出现缓存和数据库不一致的问题。</p>
+<p>如何解决呢？<br>具体解决方案，且看对第(3)种更新策略的解析。</p>
+<h2 id="3-先更新数据库，再删缓存"><a href="#3-先更新数据库，再删缓存" class="headerlink" title="(3)先更新数据库，再删缓存"></a>(3)先更新数据库，再删缓存</h2><p>** Cache Aside Pattern **</p>
+<p>这是最常用最常用的pattern了。其具体逻辑如下：</p>
+<p>** 失效**：应用程序先从cache取数据，没有得到，则从数据库中取数据，成功后，放到缓存中。</p>
+<p>** 命中**：应用程序从cache中取数据，取到后返回。</p>
+<p>** 更新**：先把数据存到数据库中，成功后，再让缓存失效。</p>
+<p>注意，我们的更新是先更新数据库，成功后，让缓存失效。</p>
+<p>** 这种情况不存在并发问题么？**</p>
+<p>不是的。假设这会有两个请求，一个请求A做查询操作，一个请求B做更新操作，那么会有如下情形产生</p>
+<p>（1）缓存刚好失效</p>
+<p>（2）请求A查询数据库，得一个旧值</p>
+<p>（3）请求B将新值写入数据库</p>
+<p>（4）请求B删除缓存</p>
+<p>（5）请求A将查到的旧值写入缓存</p>
+<p>ok，如果发生上述情况，确实是会发生脏数据。</p>
+<p>** 然而，发生这种情况的概率又有多少呢？**</p>
+<p>发生上述情况有一个先天性条件，就是步骤（3）的写数据库操作比步骤（2）的读数据库操作耗时更短，才有可能使得步骤（4）先于步骤（5）。可是，大家想想，数据库的读操作的速度远快于写操作的（不然做读写分离干嘛，做读写分离的意义就是因为读操作比较快，耗资源少），因此步骤（3）耗时比步骤（2）更短，这一情形很难出现。</p>
+<p>** 如何解决上述并发问题？**</p>
+<p>首先，给缓存设有效时间是一种方案。其次，采用策略（2）里给出的异步延时删除策略，保证读请求完成以后，再进行删除操作。</p>
+<p>** 还有其他造成不一致的原因么？**</p>
+<p>有的，这也是缓存更新策略（2）和缓存更新策略（3）都存在的一个问题，如果删缓存失败了怎么办，那不是会有不一致的情况出现么。比如一个写数据请求，然后写入数据库了，删缓存失败了，这会就出现不一致的情况了。这也是缓存更新策略（2）里留下的最后一个疑问。</p>
+<p>** 如何解决？**</p>
+<p>提供一个保障的重试机制即可，这里给出两套方案。</p>
+<p>** 方案一：**</p>
+<p>流程如下所示</p>
+<p><img src="/img/o_update1.png" alt="o_update1.png"></p>
+<p>（1）更新数据库数据；</p>
+<p>（2）缓存因为种种问题删除失败</p>
+<p>（3）将需要删除的key发送至消息队列</p>
+<p>（4）自己消费消息，获得需要删除的key</p>
+<p>（5）继续重试删除操作，直到成功</p>
+<p>** 方案二：**</p>
+<p>流程如下所示：</p>
+<p><img src="/img/o_update2.png" alt="o_update2.png"></p>
+<p>（1）更新数据库数据</p>
+<p>（2）数据库会将操作信息写入binlog日志当中</p>
+<p>（3）订阅程序提取出所需要的数据以及key</p>
+<p>（4）另起一段非业务代码，获得该信息</p>
+<p>（5）尝试删除缓存操作，发现删除失败</p>
+<p>（6）将这些信息发送至消息队列</p>
+<p>（7）重新从消息队列中获得该数据，重试操作。</p>
+<p>备注说明：上述的订阅binlog程序在mysql中有现成的中间件叫canal，可以完成订阅binlog日志的功能。另外，重试机制，可以采用的是消息队列的方式。如果对一致性要求不是很高，直接在程序中另起一个线程，每隔一段时间去重试即可。</p>
+<p>参考：</p>
+<p><a href="https://www.cnblogs.com/rjzheng/p/9041659.html" target="_blank" rel="noopener">【原创】分布式之数据库和缓存双写一致性方案解析</a></p>
+<p><a href="https://coolshell.cn/articles/17416.html" target="_blank" rel="noopener">缓存更新的套路</a></p>
+<p><a href="https://mp.weixin.qq.com/s?__biz=MjM5ODYxMDA5OQ==&mid=404308725&idx=1&sn=1a25ce76dd1956014ceb8a011855268e&scene=21#wechat_redirect" target="_blank" rel="noopener">主从DB与cache一致性</a></p>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/分布式/">分布式</a><a href="/tags/Redis/">Redis</a><a href="/tags/缓存/">缓存</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/%E7%BC%93%E5%AD%98/">缓存</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="https://syxdevcode.github.com/2018/06/08/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B9%8B%E6%95%B0%E6%8D%AE%E5%BA%93%E5%92%8C%E7%BC%93%E5%AD%98%E5%8F%8C%E5%86%99%E4%B8%80%E8%87%B4%E6%80%A7%E6%96%B9%E6%A1%88/" data-title="分布式之数据库和缓存双写一致性方案 | syxdevcode博客" data-tsina="" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2018/06/11/Redis内存模型/" title="Redis内存模型">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  Redis内存模型</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2018/06/08/Redis详解/"  title="Redis详解">
+ <strong>NEXT:</strong><br/> 
+ <span>Redis详解
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#分布式之数据库和缓存双写一致性方案"><span class="toc-number">1.</span> <span class="toc-text">分布式之数据库和缓存双写一致性方案</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-先更新数据库，再更新缓存"><span class="toc-number">1.1.</span> <span class="toc-text">(1)先更新数据库，再更新缓存</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-先删缓存，再更新数据库"><span class="toc-number">1.2.</span> <span class="toc-text">(2)先删缓存，再更新数据库</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-先更新数据库，再删缓存"><span class="toc-number">1.3.</span> <span class="toc-text">(3)先更新数据库，再删缓存</span></a></li></ol></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/Net-Standard/" title=".Net Standard">.Net Standard<sup>2</sup></a></li>
+		
+			<li><a href="/categories/net异步与并行/" title=".net异步与并行">.net异步与并行<sup>10</sup></a></li>
+		
+			<li><a href="/categories/ABP/" title="ABP">ABP<sup>27</sup></a></li>
+		
+			<li><a href="/categories/ASP-NET-IIS请求处理管道/" title="ASP.NET/IIS请求处理管道">ASP.NET/IIS请求处理管道<sup>2</sup></a></li>
+		
+			<li><a href="/categories/ApplicationPoolIdentify/" title="ApplicationPoolIdentify">ApplicationPoolIdentify<sup>1</sup></a></li>
+		
+			<li><a href="/categories/CSharp基础/" title="CSharp基础">CSharp基础<sup>11</sup></a></li>
+		
+			<li><a href="/categories/CentOS7/" title="CentOS7">CentOS7<sup>5</sup></a></li>
+		
+			<li><a href="/categories/Chrome/" title="Chrome">Chrome<sup>1</sup></a></li>
+		
+			<li><a href="/categories/CodeDOM/" title="CodeDOM">CodeDOM<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Consul/" title="Consul">Consul<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Docker/" title="Docker">Docker<sup>7</sup></a></li>
+		
+			<li><a href="/categories/Docker-Compose/" title="Docker Compose">Docker Compose<sup>3</sup></a></li>
+		
+			<li><a href="/categories/DotNetCore/" title="DotNetCore">DotNetCore<sup>3</sup></a></li>
+		
+			<li><a href="/categories/DotNet面试题解析/" title="DotNet面试题解析">DotNet面试题解析<sup>8</sup></a></li>
+		
+			<li><a href="/categories/EasyNetQ/" title="EasyNetQ">EasyNetQ<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Elasticsearch/" title="Elasticsearch">Elasticsearch<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Emit-反射发出/" title="Emit(反射发出)">Emit(反射发出)<sup>6</sup></a></li>
+		
+			<li><a href="/categories/Expression-Tree/" title="Expression Tree">Expression Tree<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Git/" title="Git">Git<sup>2</sup></a></li>
+		
+			<li><a href="/categories/HostService/" title="HostService">HostService<sup>1</sup></a></li>
+		
+			<li><a href="/categories/JavaScript-JQuery/" title="JavaScript/JQuery">JavaScript/JQuery<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Jenkins/" title="Jenkins">Jenkins<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Jexus/" title="Jexus">Jexus<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Json-Net/" title="Json.Net">Json.Net<sup>1</sup></a></li>
+		
+			<li><a href="/categories/LINQ/" title="LINQ">LINQ<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Let’s-Encrypt/" title="Let’s Encrypt">Let’s Encrypt<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Linux基础命令/" title="Linux基础命令">Linux基础命令<sup>6</sup></a></li>
+		
+			<li><a href="/categories/MSIL指令/" title="MSIL指令">MSIL指令<sup>2</sup></a></li>
+		
+			<li><a href="/categories/MVC-Web-API/" title="MVC/Web API">MVC/Web API<sup>2</sup></a></li>
+		
+			<li><a href="/categories/MariaDB/" title="MariaDB">MariaDB<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MarkDown/" title="MarkDown">MarkDown<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MongoDB/" title="MongoDB">MongoDB<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Moq/" title="Moq">Moq<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MySql/" title="MySql">MySql<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Naudio/" title="Naudio">Naudio<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Nginx/" title="Nginx">Nginx<sup>2</sup></a></li>
+		
+			<li><a href="/categories/OAuth2-0/" title="OAuth2.0">OAuth2.0<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Ocelot/" title="Ocelot">Ocelot<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Openssl/" title="Openssl">Openssl<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Polly/" title="Polly">Polly<sup>2</sup></a></li>
+		
+			<li><a href="/categories/PostGresqlSql/" title="PostGresqlSql">PostGresqlSql<sup>1</sup></a></li>
+		
+			<li><a href="/categories/RESTful/" title="RESTful">RESTful<sup>2</sup></a></li>
+		
+			<li><a href="/categories/RabbitMQ/" title="RabbitMQ">RabbitMQ<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Redis/" title="Redis">Redis<sup>5</sup></a></li>
+		
+			<li><a href="/categories/Resharper/" title="Resharper">Resharper<sup>1</sup></a></li>
+		
+			<li><a href="/categories/SSH/" title="SSH">SSH<sup>1</sup></a></li>
+		
+			<li><a href="/categories/SSL-TLS/" title="SSL/TLS">SSL/TLS<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Skywalking/" title="Skywalking">Skywalking<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Sql/" title="Sql">Sql<sup>5</sup></a></li>
+		
+			<li><a href="/categories/TDD/" title="TDD">TDD<sup>1</sup></a></li>
+		
+			<li><a href="/categories/TPL-DataFlow/" title="TPL DataFlow">TPL DataFlow<sup>2</sup></a></li>
+		
+			<li><a href="/categories/WCF时间类型序列化/" title="WCF时间类型序列化">WCF时间类型序列化<sup>1</sup></a></li>
+		
+			<li><a href="/categories/WebForm/" title="WebForm">WebForm<sup>2</sup></a></li>
+		
+			<li><a href="/categories/WinDbg/" title="WinDbg">WinDbg<sup>1</sup></a></li>
+		
+			<li><a href="/categories/WinSCP/" title="WinSCP">WinSCP<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Windows子系统/" title="Windows子系统">Windows子系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Windows系统/" title="Windows系统">Windows系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/ab/" title="ab">ab<sup>1</sup></a></li>
+		
+			<li><a href="/categories/hexo/" title="hexo">hexo<sup>2</sup></a></li>
+		
+			<li><a href="/categories/shadowsocks/" title="shadowsocks">shadowsocks<sup>1</sup></a></li>
+		
+			<li><a href="/categories/zookeeper/" title="zookeeper">zookeeper<sup>1</sup></a></li>
+		
+			<li><a href="/categories/内存泄漏/" title="内存泄漏">内存泄漏<sup>1</sup></a></li>
+		
+			<li><a href="/categories/分布式/" title="分布式">分布式<sup>1</sup></a></li>
+		
+			<li><a href="/categories/分布式事务/" title="分布式事务">分布式事务<sup>1</sup></a></li>
+		
+			<li><a href="/categories/单词收录/" title="单词收录">单词收录<sup>14</sup></a></li>
+		
+			<li><a href="/categories/反射/" title="反射">反射<sup>4</sup></a></li>
+		
+			<li><a href="/categories/委托与事件/" title="委托与事件">委托与事件<sup>4</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>1</sup></a></li>
+		
+			<li><a href="/categories/并发模型/" title="并发模型">并发模型<sup>1</sup></a></li>
+		
+			<li><a href="/categories/插件/" title="插件">插件<sup>1</sup></a></li>
+		
+			<li><a href="/categories/时间-时间戳转换/" title="时间/时间戳转换">时间/时间戳转换<sup>1</sup></a></li>
+		
+			<li><a href="/categories/消息队列/" title="消息队列">消息队列<sup>1</sup></a></li>
+		
+			<li><a href="/categories/程序集/" title="程序集">程序集<sup>2</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>3</sup></a></li>
+		
+			<li><a href="/categories/线性表/" title="线性表">线性表<sup>1</sup></a></li>
+		
+			<li><a href="/categories/线程池/" title="线程池">线程池<sup>1</sup></a></li>
+		
+			<li><a href="/categories/缓存/" title="缓存">缓存<sup>3</sup></a></li>
+		
+			<li><a href="/categories/计算机基础/" title="计算机基础">计算机基础<sup>2</sup></a></li>
+		
+			<li><a href="/categories/认证与授权/" title="认证与授权">认证与授权<sup>1</sup></a></li>
+		
+			<li><a href="/categories/设计模式/" title="设计模式">设计模式<sup>3</sup></a></li>
+		
+			<li><a href="/categories/链表/" title="链表">链表<sup>2</sup></a></li>
+		
+			<li><a href="/categories/集合与泛型/" title="集合与泛型">集合与泛型<sup>3</sup></a></li>
+		
+			<li><a href="/categories/音频-视频/" title="音频/视频">音频/视频<sup>1</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist" style="clear:both;">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/Net-Standard/" title=".Net Standard">.Net Standard<sup>2</sup></a></li>
+		
+			<li><a href="/tags/net异步与并行/" title=".net异步与并行">.net异步与并行<sup>12</sup></a></li>
+		
+			<li><a href="/tags/ABP/" title="ABP">ABP<sup>27</sup></a></li>
+		
+			<li><a href="/tags/ASP-NET-IIS请求处理管道/" title="ASP.NET/IIS请求处理管道">ASP.NET/IIS请求处理管道<sup>7</sup></a></li>
+		
+			<li><a href="/tags/AWS/" title="AWS">AWS<sup>7</sup></a></li>
+		
+			<li><a href="/tags/ApplicationPoolIdentify/" title="ApplicationPoolIdentify">ApplicationPoolIdentify<sup>1</sup></a></li>
+		
+			<li><a href="/tags/CSharp/" title="CSharp">CSharp<sup>101</sup></a></li>
+		
+			<li><a href="/tags/CSharp基础/" title="CSharp基础">CSharp基础<sup>44</sup></a></li>
+		
+			<li><a href="/tags/CentOS7/" title="CentOS7">CentOS7<sup>24</sup></a></li>
+		
+			<li><a href="/tags/Chrome/" title="Chrome">Chrome<sup>1</sup></a></li>
+		
+			<li><a href="/tags/CodeDOM/" title="CodeDOM">CodeDOM<sup>3</sup></a></li>
+		
+			<li><a href="/tags/Consul/" title="Consul">Consul<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Docker/" title="Docker">Docker<sup>23</sup></a></li>
+		
+			<li><a href="/tags/Docker-Compose/" title="Docker Compose">Docker Compose<sup>5</sup></a></li>
+		
+			<li><a href="/tags/DotNet/" title="DotNet">DotNet<sup>106</sup></a></li>
+		
+			<li><a href="/tags/DotNetCore/" title="DotNetCore">DotNetCore<sup>16</sup></a></li>
+		
+			<li><a href="/tags/DotNet面试题解析/" title="DotNet面试题解析">DotNet面试题解析<sup>10</sup></a></li>
+		
+			<li><a href="/tags/Elasticsearch/" title="Elasticsearch">Elasticsearch<sup>2</sup></a></li>
+		
+			<li><a href="/tags/Emit-反射发出/" title="Emit(反射发出)">Emit(反射发出)<sup>8</sup></a></li>
+		
+			<li><a href="/tags/Expression-Tree/" title="Expression Tree">Expression Tree<sup>3</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+<div style="display: none;" id="rocket-to-top">
+  <div style="opacity: 0; display: block;" class="level-2"></div>
+  <div class="level-3"></div>
+</div>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<div class="social-font clearfix">
+		
+		
+		
+		<a href="https://github.com/syxdevcode" target="_blank" title="github"></a>
+		
+		
+		
+	</div>
+		<p class="copyright">Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/syxdevcode/pacman" target="_blank" title="Pacman">Pacman</a> © 2020 
+		
+		<a href="https://syxdevcode.github.com" target="_blank" title="syxdevcode">syxdevcode</a>
+		
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    $('.navbar').click(function () {
+      $('header nav').toggleClass('shownav');
+    });
+    var myWidth = 0;
+    function getSize() {
+      if (typeof (window.innerWidth) == 'number') {
+        myWidth = window.innerWidth;
+      } else if (document.documentElement && document.documentElement.clientWidth) {
+        myWidth = document.documentElement.clientWidth;
+      };
+    };
+    var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+    $(window).resize(function () {
+      getSize();
+      if (myWidth >= 1024) {
+        $('header nav').removeClass('shownav');
+      } else {
+        m.removeClass('moveMain');
+        a.css('display', 'block').removeClass('fadeOut');
+        o.css('display', 'none');
+      
+          $('#toc.toc-aside').css('display', 'none');
+        
+    }
+    });
+    c.click(function () {
+      a.addClass('fadeOut').css('display', 'none');
+      o.css('display', 'block').addClass('fadeIn');
+      m.addClass('moveMain');
+    });
+    o.click(function () {
+      o.css('display', 'none').removeClass('beforeFadeIn');
+      a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');
+      m.removeClass('moveMain');
+    });
+    $(window).scroll(function () {
+      o.css("top", Math.max(80, 260 - $(this).scrollTop()));
+    });
+  });
+  //判断访问终端
+  var browser = {
+    versions: function () {
+      var u = navigator.userAgent,
+        app = navigator.appVersion;
+      return {
+        trident: u.indexOf('Trident') > -1, //IE内核
+        presto: u.indexOf('Presto') > -1, //opera内核
+        webKit: u.indexOf('AppleWebKit') > -1, //苹果、谷歌内核
+        gecko: u.indexOf('Gecko') > -1 && u.indexOf('KHTML') == -1,//火狐内核
+        mobile: !!u.match(/AppleWebKit.*Mobile.*/), //是否为移动终端
+        ios: !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/), //ios终端
+        android: u.indexOf('Android') > -1 || u.indexOf('Adr') > -1, //android终端
+        iPhone: u.indexOf('iPhone') > -1, //是否为iPhone或者QQHD浏览器
+        iPad: u.indexOf('iPad') > -1, //是否iPad
+        webApp: u.indexOf('Safari') == -1, //是否web应该程序，没有头部与底部
+        weixin: u.indexOf('MicroMessenger') > -1, //是否微信 （2015-01-22新增）
+        qq: u.match(/\sQQ/i) == " qq" //是否QQ
+      };
+    }(),
+    language: (navigator.browserLanguage || navigator.language).toLowerCase()
+  }
+</script>
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t = $('#toc'),
+      h = $('article h2')
+    ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o = $('.openaside'),
+      c = $('.closeaside');
+    if (ai.length > 0) {
+      ai.wrap('<div class="video-container" />');
+    };
+    if (ae.length > 0) {
+      ae.wrap('<div class="video-container" />');
+    };
+    if (ah.length == 0) {
+      t.css('display', 'none');
+    } else {
+      c.click(function () {
+        ta.css('display', 'block').addClass('fadeIn');
+      });
+      o.click(function () {
+        ta.css('display', 'none');
+      });
+      $(window).scroll(function () {
+        ta.css("top", Math.max(140, 320 - $(this).scrollTop()));
+      });
+    };
+  });
+</script>
+
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    var $this = $('.share'),
+      //url = $this.attr('data-url'),
+      url = window.location.href,
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+    var html = [
+      '<a href="#" class="overlay" id="qrcode"></a>',
+      '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://mobile.qq.com/qrcode?url=' + encodedUrl + '"/></div>',
+      '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+      '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+      '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+      '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+      '<a href="http://service.weibo.com/share/share.php?title=' + title + '&url=' + encodedUrl + '&ralateUid=' + tsina + '&searchPic=true&style=number' + '" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+      '<span title="Share to"></span>'
+    ].join('');
+    $this.append(html);
+    viewqrCode();
+    $('.article-share-qrcode').click(viewqrCode()
+    );
+
+  });
+  function viewqrCode() {
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function () {
+      $('.qrcode strong').text(' ');
+    });
+  }
+</script>
+<script type="text/javascript">  
+  //判断是否移动端 
+  if (!browser.versions.mobile) {
+    $(function () {
+      var c, a = $("#rocket-to-top"), e = ($(document).scrollTop(), !0);
+      $(window).scroll(function () {
+        var b = $(document).scrollTop(); 0 == b ? "0px 0px" == a.css("background-position") ? a.fadeOut("slow") : e && (e = !1, $(".level-2").css("opacity", 1), a.delay(100).animate({ marginTop: "-1000px" }, "normal", function () { a.css({ "margin-top": "-125px", display: "none" }), e = !0 })) : a.fadeIn("slow")
+      }), a.hover(function () { $(".level-2").stop(!0).animate({ opacity: 1 }) }, function () { $(".level-2").stop(!0).animate({ opacity: 0 }) }), $(".level-3").click(function () { function b() { var b = a.css("background-position"); if ("none" == a.css("display") || 0 == e) return clearInterval(c), a.css("background-position", "0px 0px"), void 0; switch (b) { case "0px 0px": a.css("background-position", "-298px 0px"); break; case "-298px 0px": a.css("background-position", "-447px 0px"); break; case "-447px 0px": a.css("background-position", "-596px 0px"); break; case "-596px 0px": a.css("background-position", "-745px 0px"); break; case "-745px 0px": a.css("background-position", "-298px 0px") } } e && (c = setInterval(b, 50), $("html,body").animate({ scrollTop: 0 }, "slow")) })
+    });
+  }
+</script>
+
+
+
+
+
+  </body>
+</html>

@@ -1,0 +1,624 @@
+
+ <!DOCTYPE HTML>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  
+    <title>ASP.NET请求处理管道 | syxdevcode博客</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="syxdevcode">
+    
+    <meta name="description" content="ASP.NET请求处理管道
+IIS 6.X和IIS7经典模式，采用aspnet_isapi.dll来响应请求；IIS7集成模式则执行单独的管道；
+注：ASP.NET WebForm和ASP.NET MVC 同用一套请求处理管道。
+创建HttpApplication创建 HttpApplication">
+    
+    
+    
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+  <body>
+    <header>
+      <div>
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="syxdevcode博客" title="syxdevcode博客"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="syxdevcode博客">syxdevcode博客</a></h1>
+				<h2 class="blog-motto"></h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+						<li><a href="/tags">tags</a></li>
+					
+						<li><a href="/categories">categories</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:syxdevcode.github.com">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>			
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2019/02/17/ASP-NET请求处理管道/" title="ASP.NET请求处理管道" itemprop="url">ASP.NET请求处理管道</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="https://syxdevcode.github.com" title="syxdevcode">syxdevcode</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2019-02-17T09:49:32.000Z" itemprop="datePublished">2019-02-17</time>
+    更新日期:<time datetime="2020-02-29T10:34:53.180Z" itemprop="dateModified">2020-02-29</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#ASP-NET请求处理管道"><span class="toc-number">1.</span> <span class="toc-text">ASP.NET请求处理管道</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#创建HttpApplication"><span class="toc-number">1.1.</span> <span class="toc-text">创建HttpApplication</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#HttpModules-amp-HttpHandlers"><span class="toc-number">1.1.1.</span> <span class="toc-text">HttpModules &amp; HttpHandlers</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Asp-Net请求处理事件"><span class="toc-number">1.2.</span> <span class="toc-text">Asp.Net请求处理事件</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#WebForm-管道事件摘要"><span class="toc-number">1.3.</span> <span class="toc-text">WebForm 管道事件摘要</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MVC-管道事件摘要"><span class="toc-number">1.4.</span> <span class="toc-text">MVC 管道事件摘要</span></a></li></ol></li></ol>
+		</div>
+		
+		<h1 id="ASP-NET请求处理管道"><a href="#ASP-NET请求处理管道" class="headerlink" title="ASP.NET请求处理管道"></a>ASP.NET请求处理管道</h1><p><img src="/img/2012071209470854.png" alt="2012071209470854.png"></p>
+<p>IIS 6.X和IIS7经典模式，采用aspnet_isapi.dll来响应请求；<br>IIS7集成模式则执行单独的管道；</p>
+<p>注：<font color=#ff0000 size=4 face="黑体">ASP.NET WebForm和ASP.NET MVC 同用一套请求处理管道。</font></p>
+<h2 id="创建HttpApplication"><a href="#创建HttpApplication" class="headerlink" title="创建HttpApplication"></a>创建HttpApplication</h2><p>创建 <code>HttpApplication</code>（即w3wp.exe）对象的时候，先去对象池中查找，没有则创建（编译Global.asax,创建HttpApplication对象），找到则直接返回对象。</p>
+<p>HttpApplication的工作包括：</p>
+<p>● 初始化的时候加载全部的HttpModule<br>● 接收请求<br>● 在不同阶段引发不同的事件，使得HttpModule通过订阅事件的方式加入到请求的处理过程中<br>● 在一个特定阶段获取一个IHttpHandler实例，最终将请求交给具体的IHttpHandler来实现</p>
+<p><code>HttpApplication</code> 创建之后，则是ASP.NET请求处理管道。</p>
+<h3 id="HttpModules-amp-HttpHandlers"><a href="#HttpModules-amp-HttpHandlers" class="headerlink" title="HttpModules &amp; HttpHandlers"></a>HttpModules &amp; HttpHandlers</h3><p>** HttpModules**</p>
+<p>所有的HttpModules都实现了IHttpModule接口,可以实现 <code>IHttpModule</code> 接口自定义 <code>HttpModule</code>。</p>
+<p>** HttpHandlers**</p>
+<p>当某个请求与一个规则匹配后，ASP.NET会调用匹配的HttpHandlerFactory的GetHandler方法来获取一个HttpHandler实例， 最后由一个HttpHandler实例来处理当前请求，生成响应内容</p>
+<p>所有的 <code>HttpHandlers</code> 都实现了 <code>IHttpHandler</code> 接口,可以实现 <code>IHttpHandler</code> 接口自定义 <code>HttpHandler</code>。</p>
+<p>如图：</p>
+<p><img src="/img/190047183794497.png" alt="190047183794497.png"></p>
+<h2 id="Asp-Net请求处理事件"><a href="#Asp-Net请求处理事件" class="headerlink" title="Asp.Net请求处理事件"></a>Asp.Net请求处理事件</h2><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>、BeginRequest：HTTP管道开始处理请求时，会触发BeginRequest事件</span><br><span class="line"></span><br><span class="line"><span class="number">2</span>、AuthenticateRequest：安全模块对请求进行身份验证时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">3</span>、PostAuthenticateRequest：安全模块对请求进行身份验证后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">4</span>、AuthorizeRequest：安全模块对请求进程授权时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">5</span>、PostAuthorizeRequest：安全模块对请求进程授权后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">6</span>、ResolveRequestCache：缓存模块利用缓存直接对请求进程响应时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">7</span>、PostResolveRequestCache：缓存模块利用缓存直接对请求进程响应后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">8</span>、PostMapRequestHandler：对于访问不同的资源类型，ASP.NET具有不同的HttpHandler对其进程处理。</span><br><span class="line">对于每个请求，ASP.NET会根据扩展名选择匹配相应的HttpHandler类型，成功匹配后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">9</span>、AcquireRequestState：状态管理模块获取基于当前请求相应的状态(比如SessionState)时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">10</span>、PostAcquireRequestState：状态管理模块获取基于当前请求相应的状态(比如SessionState)后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">11</span>、PreRequestHandlerExecute：在实行HttpHandler前触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">12</span>、PostRequestHandlerExecute：在实行HttpHandler后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">13</span>、ReleaseRequestState：状态管理模块释放基于当前请求相应的状态时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">14</span>、PostReleaseRequestState：状态管理模块释放基于当前请求相应的状态后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">15</span>、UpdateRequestCache：缓存模块将HttpHandler处理请求得到的相应保存到输出缓存时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">16</span>、PostUpdateRequestCache：缓存模块将HttpHandler处理请求得到的相应保存到输出缓存后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">17</span>、LogRequest：为当前请求进程日志记录时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">18</span>、PostLogReques：为当前请求进程日志记录后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">19</span>、EndRequest：整个请求处理完成后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">20</span>、PreSendRequestHeaders：.Net4<span class="number">.0</span>新增，可以根据发送的Header设置一些参数，</span><br><span class="line">例如，设置一个特殊的Header通知浏览器启用压缩来提高网络传输速度</span><br><span class="line"></span><br><span class="line"><span class="number">21</span>、PreSendRequestContent：.Net4<span class="number">.0</span>新增，恰好在 ASP.NET 向客户端发送内容之前发生。</span><br><span class="line">例如，在此事件压缩输出到浏览器的流。</span><br></pre></td></tr></table></figure>
+
+<p><font color=##ff0000 size=4 face="黑体">webform 和 mvc 共用一套管道，在第7个事件 <code>PostResolveRequestCache</code> 会根据Url去路由表匹配所有的路由规则，<br>如果匹配到了路由，则证明请求是MVC程序,反之，则是WebForm。</font></p>
+<h2 id="WebForm-管道事件摘要"><a href="#WebForm-管道事件摘要" class="headerlink" title="WebForm 管道事件摘要"></a>WebForm 管道事件摘要</h2><p>1，第八个事件 <code>PostMapRequestHandler</code> 创建Page类对象并转换为IHttpHandler接口。</p>
+<p>在这个事件中，对于访问不同的资源类型，ASP.NET具有不同的HttpHandler对其进程处理。对于每个请求，ASP.NET会通过扩展名选择匹配相应的HttpHandler类型，成功匹配后，该实现被触发。因此，如果请求的扩展名是.aspx，便会生成Page类对象，而Page类对象是实现了IHttpHandler接口的。</p>
+<p>2，在第九个到第十事件之间根据SessionId获取Session</p>
+<p>第九到第十个事件是：<code>AcquireRequestState</code>，<code>PostAcquireRequestState</code>。</p>
+<p>这期间首先会接收到浏览器发过来的SessionId，然后先会将IHttpHandler接口尝试转换为IRequiresSessionState接口，如果转换成功，ASP.NET会根据这个SessionId到服务器的Session池中去查找所对应的Session对象，并将这个Session对象赋值到HttpContext对象的Session属性。如果尝试转换为IRequiresSessionState接口不成功，则不加载Session。</p>
+<p>3，在第十一个事件与第十二个事件之间执行页面生命周期</p>
+<p>第十一和第十二个事件是：<code>PreRequestHandlerExecute</code>，<code>PostRequestHandlerExecute</code>。在这两个事件之间，ASP.NET最终通过请求资源类型相对应的HttpHandler实现对请求的处理，其实现方式是调用在第八个事件创建的页面对象的ProcessRequest方法。</p>
+<p><img src="/img/051837105625665.jpg" alt="051837105625665.jpg"></p>
+<p>在 <code>FrameworkInitialize()</code> 这个方法内部就开始打造WebForm的页面控件树，在其中调用了ProcessRequestMain方法，在这个方法里面就执行了整个ASP.NET WebFom页面生命周期。</p>
+<h2 id="MVC-管道事件摘要"><a href="#MVC-管道事件摘要" class="headerlink" title="MVC 管道事件摘要"></a>MVC 管道事件摘要</h2><p>在ASP.NET MVC中，最核心的当属“路由系统”，而路由系统的核心则源于一个强大的 <code>System.Web.Routing.dll</code> 组件。</p>
+<p><font color=##ff0000 size=4 face="黑体">在这个System.Web.Routing.dll中，有一个最重要的类叫做UrlRoutingModule , ASP.NET MVC的入口在 <code>UrlRoutingModule</code>，它是一个实现了<code>IHttpModule</code> 接口的类,订阅了 <code>HttpApplication</code> 的第7个管道事件 <code>PostResolveRequestCahce</code> 对请求进行了拦截。</font></p>
+<p>1,IIS网站的配置可以分为两个块：全局 Web.config 和本站 Web.config。Asp.Net Routing属于全局性的，所以它配置在全局Web.Config 中，我们可以在如下路径中找到：“$\Windows\Microsoft.NET\Framework\版本号\Config\Web.config“</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version=<span class="string">"1.0"</span> encoding=<span class="string">"utf-8"</span>?&gt;</span><br><span class="line"> &lt;!-- the root web configuration file --&gt;</span><br><span class="line"> &lt;configuration&gt;</span><br><span class="line">     &lt;system.web&gt;</span><br><span class="line">         &lt;httpModules&gt;</span><br><span class="line">             &lt;<span class="keyword">add</span> name=<span class="string">"UrlRoutingModule-4.0"</span> type=<span class="string">"System.Web.Routing.UrlRoutingModule"</span> /&gt;</span><br><span class="line">         &lt;/httpModules&gt;</span><br><span class="line">    &lt;/system.web&gt;</span><br><span class="line"> &lt;/configuration&gt;</span><br></pre></td></tr></table></figure>
+
+<p>2,通过在全局Web.Config中注册 <code>System.Web.Routing.UrlRoutingModule</code>，IIS请求处理管道接到请求后，就会加载 UrlRoutingModule类型的Init()方法，第7个管道事件 <code>PostResolveRequestCahce</code> 对请求进行了拦截。</p>
+<p>3,在第七个事件中创建实现了IHttpHandler接口的MvcHandler</p>
+<p>第七个事件：<code>PostResolveRequestCache</code></p>
+<p>当请求到达 <code>UrlRoutingModule</code> 的时候，<code>UrlRoutingModule</code> 取出请求中的 Controller、Action等RouteData信息，与路由表中的所有规则进行匹配，若匹配，把请求交给 <code>IRouteHandler</code>，即 <code>MVCRouteHandler</code>。我们可以看下<code>UrlRoutingModule</code> 的源码来看看，以下是几句核心的代码：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">PostResolveRequestCache</span>(<span class="params">HttpContextBase context</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">// 通过RouteCollection的静态方法GetRouteData获取到封装路由信息的RouteData实例</span></span><br><span class="line">    RouteData routeData = <span class="keyword">this</span>.RouteCollection.GetRouteData(context);</span><br><span class="line">    <span class="keyword">if</span> (routeData != <span class="literal">null</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// 再从RouteData中获取MVCRouteHandler</span></span><br><span class="line">        IRouteHandler routeHandler = routeData.RouteHandler;</span><br><span class="line">        ......</span><br><span class="line">        <span class="keyword">if</span> (!(routeHandler <span class="keyword">is</span> StopRoutingHandler))</span><br><span class="line">        &#123;</span><br><span class="line">            ......</span><br><span class="line">            <span class="comment">// 调用 IRouteHandler.GetHttpHandler()，获取的IHttpHandler 类型实例，它是由 IRouteHandler.GetHttpHandler获取的</span></span><br><span class="line">            IHttpHandler httpHandler = routeHandler.GetHttpHandler(requestContext);</span><br><span class="line">            ......</span><br><span class="line">            <span class="comment">// 合适条件下，把之前将获取的IHttpHandler 类型实例 映射到IIS HTTP处理管道中</span></span><br><span class="line">            context.RemapHandler(httpHandler);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>MVCRouteHandler</code> 的作用是用来生成实现 <code>IHttpHandler</code> 接口的 <code>MvcHandler</code>：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">namespace</span> <span class="title">System.Web.Routing</span></span><br><span class="line">&#123;  </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">interface</span> <span class="title">IRouteHandler</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function">IHttpHandler <span class="title">GetHttpHandler</span>(<span class="params">RequestContext requestContext</span>)</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>获取 <code>MvcRouteHadnler</code> :</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 继承HttpApplication</span></span><br><span class="line">public class MvcApplication : System.Web.HttpApplication</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 第一个管道事件</span></span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">Application_Start</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        ......</span><br><span class="line">        <span class="comment">//注册路由</span></span><br><span class="line">        RouteConfig.RegisterRoutes(RouteTable.Routes);</span><br><span class="line">        BundleConfig.RegisterBundles(BundleTable.Bundles);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">RouteConfig</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">RegisterRoutes</span>(<span class="params">RouteCollection routes</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        routes.IgnoreRoute(<span class="string">"&#123;resource&#125;.axd/&#123;*pathInfo&#125;"</span>);</span><br><span class="line">        <span class="comment">// MapRoute位于System.Web.Mvc.RouteCollectionExtensions</span></span><br><span class="line">        routes.MapRoute(</span><br><span class="line">            name: <span class="string">"Default"</span>,</span><br><span class="line">            url: <span class="string">"&#123;controller&#125;/&#123;action&#125;/&#123;id&#125;"</span>,</span><br><span class="line">            defaults: <span class="keyword">new</span> &#123; controller = <span class="string">"Home"</span>, action = <span class="string">"Index"</span>, id = UrlParameter.Optional &#125;</span><br><span class="line">        );</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// System.Web.Mvc.RouteCollectionExtensions 扩展方法</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Route <span class="title">MapRoute</span>(<span class="params"><span class="keyword">this</span> RouteCollection routes, <span class="keyword">string</span> name, <span class="keyword">string</span> url, <span class="keyword">object</span> defaults, <span class="keyword">object</span> constraints, <span class="keyword">string</span>[] namespaces</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    ......</span><br><span class="line">　　　<span class="comment">// 通过Route类的构造函数把 MvcRouteHandler 注入到路由中</span></span><br><span class="line">    Route route = <span class="keyword">new</span> Route(url, <span class="keyword">new</span> MvcRouteHandler())             &#123;</span><br><span class="line">        Defaults = <span class="keyword">new</span> RouteValueDictionary(defaults),</span><br><span class="line">        Constraints = <span class="keyword">new</span> RouteValueDictionary(constraints),</span><br><span class="line">        DataTokens = <span class="keyword">new</span> RouteValueDictionary()</span><br><span class="line">    &#125;;</span><br><span class="line">    ......</span><br><span class="line">    <span class="keyword">return</span> route;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在第11和第12个事件之间调用了 <code>MvcHandler</code> 的 <code>ProcessRequest</code> 方法处理ASP.NET MVC。</p>
+<p>第十一和第十二个事件是：<code>PreRequestHandlerExecute</code>，<code>PostRequestHandlerExecute</code>。</p>
+<p>获取 <code>MvcHandler</code>:</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">IHttpHandler httpHandler = routeHandler.GetHttpHandler(requestContext);</span><br><span class="line">context.RemapHandler(httpHandler);</span><br><span class="line"></span><br><span class="line"><span class="comment">// MvcHandlerd的实现</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">virtual</span> IHttpHandler <span class="title">GetHttpHandler</span>(<span class="params">RequestContext requestContext</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">　　requestContext.HttpContext.SetSessionStateBehavior(GetSessionStateBehavior(requestContext));</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> MvcHandler(requestContext);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如图：</p>
+<p><img src="/img/190104512548523.png" alt="190104512548523.png"></p>
+<p>参考：</p>
+<p><a href="https://www.cnblogs.com/artech/archive/2009/06/20/1507165.html" target="_blank" rel="noopener">再谈IIS与ASP.NET管道</a></p>
+<p><a href="https://www.cnblogs.com/zhangyihui/p/5082394.html" target="_blank" rel="noopener">【深入ASP.NET原理系列】–ASP.NET请求管道、应用程序生命周期、整体运行机制</a></p>
+<p><a href="http://www.cnblogs.com/darrenji/p/3795661.html" target="_blank" rel="noopener">ASP.NET MVC请求处理管道生命周期的19个关键环节(1-6)</a></p>
+<p><a href="http://www.cnblogs.com/darrenji/p/3795676.html" target="_blank" rel="noopener">ASP.NET MVC请求处理管道生命周期的19个关键环节(7-12)</a></p>
+<p><a href="http://www.cnblogs.com/edisonchou/p/4201855.html" target="_blank" rel="noopener">ASP.Net请求处理机制初步探索之旅 - Part 3 管道</a></p>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/DotNet/">DotNet</a><a href="/tags/ASP-NET-IIS请求处理管道/">ASP.NET/IIS请求处理管道</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/ASP-NET-IIS%E8%AF%B7%E6%B1%82%E5%A4%84%E7%90%86%E7%AE%A1%E9%81%93/">ASP.NET/IIS请求处理管道</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="https://syxdevcode.github.com/2019/02/17/ASP-NET%E8%AF%B7%E6%B1%82%E5%A4%84%E7%90%86%E7%AE%A1%E9%81%93/" data-title="ASP.NET请求处理管道 | syxdevcode博客" data-tsina="" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2019/02/18/ASP-NET-WebForm页面生命周期/" title="ASP.NET WebForm页面生命周期">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  ASP.NET WebForm页面生命周期</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2019/02/15/ASP-NET在IIS运行模式/"  title="ASP.NET在IIS运行模式">
+ <strong>NEXT:</strong><br/> 
+ <span>ASP.NET在IIS运行模式
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#ASP-NET请求处理管道"><span class="toc-number">1.</span> <span class="toc-text">ASP.NET请求处理管道</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#创建HttpApplication"><span class="toc-number">1.1.</span> <span class="toc-text">创建HttpApplication</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#HttpModules-amp-HttpHandlers"><span class="toc-number">1.1.1.</span> <span class="toc-text">HttpModules &amp; HttpHandlers</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Asp-Net请求处理事件"><span class="toc-number">1.2.</span> <span class="toc-text">Asp.Net请求处理事件</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#WebForm-管道事件摘要"><span class="toc-number">1.3.</span> <span class="toc-text">WebForm 管道事件摘要</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MVC-管道事件摘要"><span class="toc-number">1.4.</span> <span class="toc-text">MVC 管道事件摘要</span></a></li></ol></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/Net-Standard/" title=".Net Standard">.Net Standard<sup>2</sup></a></li>
+		
+			<li><a href="/categories/net异步与并行/" title=".net异步与并行">.net异步与并行<sup>10</sup></a></li>
+		
+			<li><a href="/categories/ABP/" title="ABP">ABP<sup>27</sup></a></li>
+		
+			<li><a href="/categories/ASP-NET-IIS请求处理管道/" title="ASP.NET/IIS请求处理管道">ASP.NET/IIS请求处理管道<sup>2</sup></a></li>
+		
+			<li><a href="/categories/ApplicationPoolIdentify/" title="ApplicationPoolIdentify">ApplicationPoolIdentify<sup>1</sup></a></li>
+		
+			<li><a href="/categories/CSharp基础/" title="CSharp基础">CSharp基础<sup>11</sup></a></li>
+		
+			<li><a href="/categories/CentOS7/" title="CentOS7">CentOS7<sup>5</sup></a></li>
+		
+			<li><a href="/categories/Chrome/" title="Chrome">Chrome<sup>1</sup></a></li>
+		
+			<li><a href="/categories/CodeDOM/" title="CodeDOM">CodeDOM<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Consul/" title="Consul">Consul<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Docker/" title="Docker">Docker<sup>7</sup></a></li>
+		
+			<li><a href="/categories/Docker-Compose/" title="Docker Compose">Docker Compose<sup>3</sup></a></li>
+		
+			<li><a href="/categories/DotNetCore/" title="DotNetCore">DotNetCore<sup>3</sup></a></li>
+		
+			<li><a href="/categories/DotNet面试题解析/" title="DotNet面试题解析">DotNet面试题解析<sup>8</sup></a></li>
+		
+			<li><a href="/categories/EasyNetQ/" title="EasyNetQ">EasyNetQ<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Elasticsearch/" title="Elasticsearch">Elasticsearch<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Emit-反射发出/" title="Emit(反射发出)">Emit(反射发出)<sup>6</sup></a></li>
+		
+			<li><a href="/categories/Expression-Tree/" title="Expression Tree">Expression Tree<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Git/" title="Git">Git<sup>2</sup></a></li>
+		
+			<li><a href="/categories/HostService/" title="HostService">HostService<sup>1</sup></a></li>
+		
+			<li><a href="/categories/JavaScript-JQuery/" title="JavaScript/JQuery">JavaScript/JQuery<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Jenkins/" title="Jenkins">Jenkins<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Jexus/" title="Jexus">Jexus<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Json-Net/" title="Json.Net">Json.Net<sup>1</sup></a></li>
+		
+			<li><a href="/categories/LINQ/" title="LINQ">LINQ<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Let’s-Encrypt/" title="Let’s Encrypt">Let’s Encrypt<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Linux基础命令/" title="Linux基础命令">Linux基础命令<sup>6</sup></a></li>
+		
+			<li><a href="/categories/MSIL指令/" title="MSIL指令">MSIL指令<sup>2</sup></a></li>
+		
+			<li><a href="/categories/MVC-Web-API/" title="MVC/Web API">MVC/Web API<sup>2</sup></a></li>
+		
+			<li><a href="/categories/MariaDB/" title="MariaDB">MariaDB<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MarkDown/" title="MarkDown">MarkDown<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MongoDB/" title="MongoDB">MongoDB<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Moq/" title="Moq">Moq<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MySql/" title="MySql">MySql<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Naudio/" title="Naudio">Naudio<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Nginx/" title="Nginx">Nginx<sup>2</sup></a></li>
+		
+			<li><a href="/categories/OAuth2-0/" title="OAuth2.0">OAuth2.0<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Ocelot/" title="Ocelot">Ocelot<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Openssl/" title="Openssl">Openssl<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Polly/" title="Polly">Polly<sup>2</sup></a></li>
+		
+			<li><a href="/categories/PostGresqlSql/" title="PostGresqlSql">PostGresqlSql<sup>1</sup></a></li>
+		
+			<li><a href="/categories/RESTful/" title="RESTful">RESTful<sup>2</sup></a></li>
+		
+			<li><a href="/categories/RabbitMQ/" title="RabbitMQ">RabbitMQ<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Redis/" title="Redis">Redis<sup>5</sup></a></li>
+		
+			<li><a href="/categories/Resharper/" title="Resharper">Resharper<sup>1</sup></a></li>
+		
+			<li><a href="/categories/SSH/" title="SSH">SSH<sup>1</sup></a></li>
+		
+			<li><a href="/categories/SSL-TLS/" title="SSL/TLS">SSL/TLS<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Skywalking/" title="Skywalking">Skywalking<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Sql/" title="Sql">Sql<sup>5</sup></a></li>
+		
+			<li><a href="/categories/TDD/" title="TDD">TDD<sup>1</sup></a></li>
+		
+			<li><a href="/categories/TPL-DataFlow/" title="TPL DataFlow">TPL DataFlow<sup>2</sup></a></li>
+		
+			<li><a href="/categories/WCF时间类型序列化/" title="WCF时间类型序列化">WCF时间类型序列化<sup>1</sup></a></li>
+		
+			<li><a href="/categories/WebForm/" title="WebForm">WebForm<sup>2</sup></a></li>
+		
+			<li><a href="/categories/WinDbg/" title="WinDbg">WinDbg<sup>1</sup></a></li>
+		
+			<li><a href="/categories/WinSCP/" title="WinSCP">WinSCP<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Windows子系统/" title="Windows子系统">Windows子系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Windows系统/" title="Windows系统">Windows系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/ab/" title="ab">ab<sup>1</sup></a></li>
+		
+			<li><a href="/categories/hexo/" title="hexo">hexo<sup>2</sup></a></li>
+		
+			<li><a href="/categories/shadowsocks/" title="shadowsocks">shadowsocks<sup>1</sup></a></li>
+		
+			<li><a href="/categories/zookeeper/" title="zookeeper">zookeeper<sup>1</sup></a></li>
+		
+			<li><a href="/categories/内存泄漏/" title="内存泄漏">内存泄漏<sup>1</sup></a></li>
+		
+			<li><a href="/categories/分布式/" title="分布式">分布式<sup>1</sup></a></li>
+		
+			<li><a href="/categories/分布式事务/" title="分布式事务">分布式事务<sup>1</sup></a></li>
+		
+			<li><a href="/categories/单词收录/" title="单词收录">单词收录<sup>14</sup></a></li>
+		
+			<li><a href="/categories/反射/" title="反射">反射<sup>4</sup></a></li>
+		
+			<li><a href="/categories/委托与事件/" title="委托与事件">委托与事件<sup>4</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>1</sup></a></li>
+		
+			<li><a href="/categories/并发模型/" title="并发模型">并发模型<sup>1</sup></a></li>
+		
+			<li><a href="/categories/插件/" title="插件">插件<sup>1</sup></a></li>
+		
+			<li><a href="/categories/时间-时间戳转换/" title="时间/时间戳转换">时间/时间戳转换<sup>1</sup></a></li>
+		
+			<li><a href="/categories/消息队列/" title="消息队列">消息队列<sup>1</sup></a></li>
+		
+			<li><a href="/categories/程序集/" title="程序集">程序集<sup>2</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>3</sup></a></li>
+		
+			<li><a href="/categories/线性表/" title="线性表">线性表<sup>1</sup></a></li>
+		
+			<li><a href="/categories/线程池/" title="线程池">线程池<sup>1</sup></a></li>
+		
+			<li><a href="/categories/缓存/" title="缓存">缓存<sup>3</sup></a></li>
+		
+			<li><a href="/categories/计算机基础/" title="计算机基础">计算机基础<sup>2</sup></a></li>
+		
+			<li><a href="/categories/认证与授权/" title="认证与授权">认证与授权<sup>1</sup></a></li>
+		
+			<li><a href="/categories/设计模式/" title="设计模式">设计模式<sup>3</sup></a></li>
+		
+			<li><a href="/categories/链表/" title="链表">链表<sup>2</sup></a></li>
+		
+			<li><a href="/categories/集合与泛型/" title="集合与泛型">集合与泛型<sup>3</sup></a></li>
+		
+			<li><a href="/categories/音频-视频/" title="音频/视频">音频/视频<sup>1</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist" style="clear:both;">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/Net-Standard/" title=".Net Standard">.Net Standard<sup>2</sup></a></li>
+		
+			<li><a href="/tags/net异步与并行/" title=".net异步与并行">.net异步与并行<sup>12</sup></a></li>
+		
+			<li><a href="/tags/ABP/" title="ABP">ABP<sup>27</sup></a></li>
+		
+			<li><a href="/tags/ASP-NET-IIS请求处理管道/" title="ASP.NET/IIS请求处理管道">ASP.NET/IIS请求处理管道<sup>7</sup></a></li>
+		
+			<li><a href="/tags/AWS/" title="AWS">AWS<sup>7</sup></a></li>
+		
+			<li><a href="/tags/ApplicationPoolIdentify/" title="ApplicationPoolIdentify">ApplicationPoolIdentify<sup>1</sup></a></li>
+		
+			<li><a href="/tags/CSharp/" title="CSharp">CSharp<sup>101</sup></a></li>
+		
+			<li><a href="/tags/CSharp基础/" title="CSharp基础">CSharp基础<sup>44</sup></a></li>
+		
+			<li><a href="/tags/CentOS7/" title="CentOS7">CentOS7<sup>24</sup></a></li>
+		
+			<li><a href="/tags/Chrome/" title="Chrome">Chrome<sup>1</sup></a></li>
+		
+			<li><a href="/tags/CodeDOM/" title="CodeDOM">CodeDOM<sup>3</sup></a></li>
+		
+			<li><a href="/tags/Consul/" title="Consul">Consul<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Docker/" title="Docker">Docker<sup>23</sup></a></li>
+		
+			<li><a href="/tags/Docker-Compose/" title="Docker Compose">Docker Compose<sup>5</sup></a></li>
+		
+			<li><a href="/tags/DotNet/" title="DotNet">DotNet<sup>106</sup></a></li>
+		
+			<li><a href="/tags/DotNetCore/" title="DotNetCore">DotNetCore<sup>16</sup></a></li>
+		
+			<li><a href="/tags/DotNet面试题解析/" title="DotNet面试题解析">DotNet面试题解析<sup>10</sup></a></li>
+		
+			<li><a href="/tags/Elasticsearch/" title="Elasticsearch">Elasticsearch<sup>2</sup></a></li>
+		
+			<li><a href="/tags/Emit-反射发出/" title="Emit(反射发出)">Emit(反射发出)<sup>8</sup></a></li>
+		
+			<li><a href="/tags/Expression-Tree/" title="Expression Tree">Expression Tree<sup>3</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+<div style="display: none;" id="rocket-to-top">
+  <div style="opacity: 0; display: block;" class="level-2"></div>
+  <div class="level-3"></div>
+</div>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<div class="social-font clearfix">
+		
+		
+		
+		<a href="https://github.com/syxdevcode" target="_blank" title="github"></a>
+		
+		
+		
+	</div>
+		<p class="copyright">Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/syxdevcode/pacman" target="_blank" title="Pacman">Pacman</a> © 2020 
+		
+		<a href="https://syxdevcode.github.com" target="_blank" title="syxdevcode">syxdevcode</a>
+		
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    $('.navbar').click(function () {
+      $('header nav').toggleClass('shownav');
+    });
+    var myWidth = 0;
+    function getSize() {
+      if (typeof (window.innerWidth) == 'number') {
+        myWidth = window.innerWidth;
+      } else if (document.documentElement && document.documentElement.clientWidth) {
+        myWidth = document.documentElement.clientWidth;
+      };
+    };
+    var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+    $(window).resize(function () {
+      getSize();
+      if (myWidth >= 1024) {
+        $('header nav').removeClass('shownav');
+      } else {
+        m.removeClass('moveMain');
+        a.css('display', 'block').removeClass('fadeOut');
+        o.css('display', 'none');
+      
+          $('#toc.toc-aside').css('display', 'none');
+        
+    }
+    });
+    c.click(function () {
+      a.addClass('fadeOut').css('display', 'none');
+      o.css('display', 'block').addClass('fadeIn');
+      m.addClass('moveMain');
+    });
+    o.click(function () {
+      o.css('display', 'none').removeClass('beforeFadeIn');
+      a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');
+      m.removeClass('moveMain');
+    });
+    $(window).scroll(function () {
+      o.css("top", Math.max(80, 260 - $(this).scrollTop()));
+    });
+  });
+  //判断访问终端
+  var browser = {
+    versions: function () {
+      var u = navigator.userAgent,
+        app = navigator.appVersion;
+      return {
+        trident: u.indexOf('Trident') > -1, //IE内核
+        presto: u.indexOf('Presto') > -1, //opera内核
+        webKit: u.indexOf('AppleWebKit') > -1, //苹果、谷歌内核
+        gecko: u.indexOf('Gecko') > -1 && u.indexOf('KHTML') == -1,//火狐内核
+        mobile: !!u.match(/AppleWebKit.*Mobile.*/), //是否为移动终端
+        ios: !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/), //ios终端
+        android: u.indexOf('Android') > -1 || u.indexOf('Adr') > -1, //android终端
+        iPhone: u.indexOf('iPhone') > -1, //是否为iPhone或者QQHD浏览器
+        iPad: u.indexOf('iPad') > -1, //是否iPad
+        webApp: u.indexOf('Safari') == -1, //是否web应该程序，没有头部与底部
+        weixin: u.indexOf('MicroMessenger') > -1, //是否微信 （2015-01-22新增）
+        qq: u.match(/\sQQ/i) == " qq" //是否QQ
+      };
+    }(),
+    language: (navigator.browserLanguage || navigator.language).toLowerCase()
+  }
+</script>
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t = $('#toc'),
+      h = $('article h2')
+    ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o = $('.openaside'),
+      c = $('.closeaside');
+    if (ai.length > 0) {
+      ai.wrap('<div class="video-container" />');
+    };
+    if (ae.length > 0) {
+      ae.wrap('<div class="video-container" />');
+    };
+    if (ah.length == 0) {
+      t.css('display', 'none');
+    } else {
+      c.click(function () {
+        ta.css('display', 'block').addClass('fadeIn');
+      });
+      o.click(function () {
+        ta.css('display', 'none');
+      });
+      $(window).scroll(function () {
+        ta.css("top", Math.max(140, 320 - $(this).scrollTop()));
+      });
+    };
+  });
+</script>
+
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    var $this = $('.share'),
+      //url = $this.attr('data-url'),
+      url = window.location.href,
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+    var html = [
+      '<a href="#" class="overlay" id="qrcode"></a>',
+      '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://mobile.qq.com/qrcode?url=' + encodedUrl + '"/></div>',
+      '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+      '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+      '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+      '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+      '<a href="http://service.weibo.com/share/share.php?title=' + title + '&url=' + encodedUrl + '&ralateUid=' + tsina + '&searchPic=true&style=number' + '" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+      '<span title="Share to"></span>'
+    ].join('');
+    $this.append(html);
+    viewqrCode();
+    $('.article-share-qrcode').click(viewqrCode()
+    );
+
+  });
+  function viewqrCode() {
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function () {
+      $('.qrcode strong').text(' ');
+    });
+  }
+</script>
+<script type="text/javascript">  
+  //判断是否移动端 
+  if (!browser.versions.mobile) {
+    $(function () {
+      var c, a = $("#rocket-to-top"), e = ($(document).scrollTop(), !0);
+      $(window).scroll(function () {
+        var b = $(document).scrollTop(); 0 == b ? "0px 0px" == a.css("background-position") ? a.fadeOut("slow") : e && (e = !1, $(".level-2").css("opacity", 1), a.delay(100).animate({ marginTop: "-1000px" }, "normal", function () { a.css({ "margin-top": "-125px", display: "none" }), e = !0 })) : a.fadeIn("slow")
+      }), a.hover(function () { $(".level-2").stop(!0).animate({ opacity: 1 }) }, function () { $(".level-2").stop(!0).animate({ opacity: 0 }) }), $(".level-3").click(function () { function b() { var b = a.css("background-position"); if ("none" == a.css("display") || 0 == e) return clearInterval(c), a.css("background-position", "0px 0px"), void 0; switch (b) { case "0px 0px": a.css("background-position", "-298px 0px"); break; case "-298px 0px": a.css("background-position", "-447px 0px"); break; case "-447px 0px": a.css("background-position", "-596px 0px"); break; case "-596px 0px": a.css("background-position", "-745px 0px"); break; case "-745px 0px": a.css("background-position", "-298px 0px") } } e && (c = setInterval(b, 50), $("html,body").animate({ scrollTop: 0 }, "slow")) })
+    });
+  }
+</script>
+
+
+
+
+
+  </body>
+</html>

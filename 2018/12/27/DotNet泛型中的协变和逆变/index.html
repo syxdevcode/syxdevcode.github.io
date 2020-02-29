@@ -1,0 +1,610 @@
+
+ <!DOCTYPE HTML>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  
+    <title>DotNet泛型中的协变和逆变 | syxdevcode博客</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="syxdevcode">
+    
+    <meta name="description" content="协变和逆变都是术语，协变指能够使用比原始指定的派生类型的派生程度更大（更具体的）的类型，逆变指能够使用比原始指定的派生类型的派生程度更小（不太具体的）的类型。
+规律总结：
+“子类”向“父类”转换，即协变；（可以使用的范围变大）“父类”向“子类”转换，即逆变；（可以使用的范围变小）
+变体协变和逆变统称">
+    
+    
+    
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+  <body>
+    <header>
+      <div>
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="syxdevcode博客" title="syxdevcode博客"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="syxdevcode博客">syxdevcode博客</a></h1>
+				<h2 class="blog-motto"></h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+						<li><a href="/tags">tags</a></li>
+					
+						<li><a href="/categories">categories</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:syxdevcode.github.com">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>			
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2018/12/27/DotNet泛型中的协变和逆变/" title="DotNet泛型中的协变和逆变" itemprop="url">DotNet泛型中的协变和逆变</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="https://syxdevcode.github.com" title="syxdevcode">syxdevcode</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2018-12-27T11:31:55.000Z" itemprop="datePublished">2018-12-27</time>
+    更新日期:<time datetime="2020-02-29T10:34:53.184Z" itemprop="dateModified">2020-02-29</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#变体"><span class="toc-number">1.</span> <span class="toc-text">变体</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#关键字"><span class="toc-number">1.1.</span> <span class="toc-text">关键字</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#协变"><span class="toc-number">1.2.</span> <span class="toc-text">协变</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#逆变"><span class="toc-number">1.3.</span> <span class="toc-text">逆变</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#泛型接口中的变体"><span class="toc-number">2.</span> <span class="toc-text">泛型接口中的变体</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#具有协变类型参数的泛型接口"><span class="toc-number">2.1.</span> <span class="toc-text">具有协变类型参数的泛型接口</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#具有逆变泛型类型参数的泛型接口"><span class="toc-number">2.2.</span> <span class="toc-text">具有逆变泛型类型参数的泛型接口</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#泛型委托中的变体"><span class="toc-number">3.</span> <span class="toc-text">泛型委托中的变体</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Variant-泛型接口和委托类型的列表"><span class="toc-number">4.</span> <span class="toc-text">Variant 泛型接口和委托类型的列表</span></a></li></ol>
+		</div>
+		
+		<p>协变和逆变都是术语，协变指能够使用比原始指定的派生类型的派生程度更大（更具体的）的类型，逆变指能够使用比原始指定的派生类型的派生程度更小（不太具体的）的类型。</p>
+<p>规律总结：</p>
+<p><font color=#ff0000 size=4 face="黑体">“子类”向“父类”转换，即协变；（可以使用的范围变大）<br>“父类”向“子类”转换，即逆变；（可以使用的范围变小）</font></p>
+<h2 id="变体"><a href="#变体" class="headerlink" title="变体"></a>变体</h2><p><font color=#0099ff size=4 face="黑体">协变和逆变统称为“变体”（Variant）。 未标记为协变或逆变的泛型类型参数称为“固定参数” 。</font></p>
+<p>规则：</p>
+<p><font color=#ff0000 size=4 face="黑体">通常，协变类型参数可用作委托的返回类型，而逆变类型参数可用作参数类型。<br>对于接口，协变类型参数可用作接口的方法的返回类型，而逆变类型参数可用作接口的方法的参数类型。</font></p>
+<p>有关公共语言运行时中变体的事项的简短摘要：</p>
+<ul>
+<li>在 .NET Framework 4中，<code>Variant</code> 类型参数仅限于泛型接口和泛型委托类型。</li>
+<li>泛型接口或泛型委托类型可以同时具有协变和逆变类型参数。</li>
+<li>变体仅适用于引用类型；如果为 <code>Variant</code> 类型参数指定值类型，则该类型参数对于生成的构造类型是不变的。</li>
+<li>变体不适用于委托组合。 也就是说，在给定类型 <code>Action&lt;Derived&gt;</code> 和 <code>Action&lt;Base&gt;</code> 的两个委托的情况下，无法将第二个委托与第一个委托结合起来，尽管结果将是类型安全的。 变体允许将第二个委托分配给类型 Action<Derived>的变量，但只能在这两个委托的类型完全匹配的情况下对它们进行组合。</li>
+</ul>
+<p>** Covariance:协变 **<br>使你能够使用比原始指定的类型派生程度更大的类型。</p>
+<p>** Contravariance：逆变**<br>使你能够使用比原始指定的类型更泛型（派生程度更小）的类型。</p>
+<p>** Invariance：不变**<br>这意味着，你只能使用原始指定的类型；固定泛型类型参数既不是协变类型，也不是逆变类型。</p>
+<h3 id="关键字"><a href="#关键字" class="headerlink" title="关键字"></a>关键字</h3><p>** 协变类型参数用<code>out</code>关键字 **</p>
+<p>可以将协变类型参数用作属于接口的方法的返回值，或用作委托的返回类型。 但不能将协变类型参数用作接口方法的泛型类型约束。如果接口的方法具有泛型委托类型的参数，则接口类型的协变类型参数可用于指定委托类型的逆变类型参数。</p>
+<p>** 逆变类型参数用 <code>in</code> 关键字**</p>
+<p>可以将逆变类型参数用作属于接口的方法的参数类型，或用作委托的参数类型。 也可以将逆变类型参数用作接口方法的泛型类型约束。</p>
+<p><font color=#ff0000 size=4 face="黑体">注意，只有接口类型和委托类型才能具有 变体（Variant） 类型参数。 接口或委托类型可以同时具有协变和逆变类型参数。</font></p>
+<p>C# 不允许违反协变和逆变类型参数的使用规则，也不允许将协变和逆变批注添加到接口和委托类型之外的类型参数中。 MSIL 汇编程序 不执行此类检查，但如果你尝试加载违反规则的类型，则会引发 TypeLoadException 。</p>
+<h3 id="协变"><a href="#协变" class="headerlink" title="协变"></a>协变</h3><p>利用协变类型参数，你可以执行非常类似于普通的多态性的分配</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">IEnumerable&lt;Derived&gt; d = <span class="keyword">new</span> List&lt;Derived&gt;();</span><br><span class="line">IEnumerable&lt;Base&gt; b = d;</span><br></pre></td></tr></table></figure>
+
+<h3 id="逆变"><a href="#逆变" class="headerlink" title="逆变"></a>逆变</h3><p>由于 lambda 表达式与其自身所分配到的委托相匹配，因此它会定义一个方法，此方法采用一个类型 Base 的参数且没有返回值。 可以将结果委托分配给类型类型 <code>Action&lt;Derived&gt;</code> 的变量，因为 T 委托的类型参数 <code>Action&lt;T&gt;</code> 是逆变类型参数。 由于 T 指定了一个参数类型，因此该代码是类型安全代码。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Action&lt;Base&gt; b = (target) =&gt; &#123; Console.WriteLine(target.GetType().Name); &#125;;</span><br><span class="line">Action&lt;Derived&gt; d = b;</span><br><span class="line">d(<span class="keyword">new</span> Derived());</span><br></pre></td></tr></table></figure>
+
+<h2 id="泛型接口中的变体"><a href="#泛型接口中的变体" class="headerlink" title="泛型接口中的变体"></a>泛型接口中的变体</h2><h3 id="具有协变类型参数的泛型接口"><a href="#具有协变类型参数的泛型接口" class="headerlink" title="具有协变类型参数的泛型接口"></a>具有协变类型参数的泛型接口</h3><p>从 .NET Framework 4开始，某些泛型接口具有协变类型参数；例如： <code>IEnumerable&lt;T&gt;</code>、 <code>IEnumerator&lt;T&gt;</code>、 <code>IQueryable&lt;T&gt;</code> 和 <code>IGrouping&lt;TKey,TElement&gt;</code>。 由于这些接口的所有类型参数都是协变类型参数，因此这些类型参数只用于成员的返回类型。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Collections.Generic;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title">Base</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">PrintBases</span>(<span class="params">IEnumerable&lt;Base&gt; bases</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">foreach</span>(Base b <span class="keyword">in</span> bases)</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(b);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title">Derived</span> : <span class="title">Base</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        List&lt;Derived&gt; dlist = <span class="keyword">new</span> List&lt;Derived&gt;();</span><br><span class="line"></span><br><span class="line">        Derived.PrintBases(dlist);</span><br><span class="line">        IEnumerable&lt;Base&gt; bIEnum = dlist;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="具有逆变泛型类型参数的泛型接口"><a href="#具有逆变泛型类型参数的泛型接口" class="headerlink" title="具有逆变泛型类型参数的泛型接口"></a>具有逆变泛型类型参数的泛型接口</h3><p>从 .NET Framework 4开始，某些泛型接口具有逆变类型参数；例如： <code>IComparer&lt;T&gt;</code>、 <code>IComparable&lt;T&gt;</code>和 <code>IEqualityComparer&lt;T&gt;</code>。 由于这些接口只具有逆变类型参数，因此这些类型参数只用作接口成员中的参数类型。</p>
+<p><code>IComparer&lt;T&gt;.Compare</code> 方法的实现基于 Area 属性的值，所以 <code>ShapeAreaComparer</code> 可用于按区域对 Shape 对象排序。<br>该示例创建 <code>SortedSet&lt;T&gt;</code> 对象的 <code>Circle</code> ，使用采用 <code>IComparer&lt;Circle&gt;</code> 的构造函数。 但是，该对象不传递 <code>IComparer&lt;Circle&gt;</code>，而是传递一个用于实现 <code>ShapeAreaComparer</code> 的 <code>IComparer&lt;Shape&gt;</code> 对象。 当代码需要派生程度较大的类型的比较器 <code>(Shape)</code> 时，该示例可以传递派生程度较小的类型的比较器 <code>(Circle)</code>，因为 <code>IComparer&lt;T&gt;</code> 泛型接口的类型参数是逆变参数。</p>
+<p>向 <code>Circle</code> 中添加新 <code>SortedSet&lt;Circle&gt;</code>对象时，每次将新元素与现有元素进行比较时，都会调用 <code>IComparer&lt;Shape&gt;.Compare</code> 对象的<code>IComparer(Of Shape).Compare</code> 方法。 方法 (Shape) 的参数类型比被传递的类型 (Circle) 的派生程度小，所以调用是类型安全的。 逆变使 <code>ShapeAreaComparer</code> 可以对派生自 Shape的任意单个类型的集合以及混合类型的集合排序。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Collections.Generic;</span><br><span class="line"></span><br><span class="line"><span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title">Shape</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">virtual</span> <span class="keyword">double</span> Area &#123; <span class="keyword">get</span> &#123; <span class="keyword">return</span> <span class="number">0</span>; &#125;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title">Circle</span> : <span class="title">Shape</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">double</span> r;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Circle</span>(<span class="params"><span class="keyword">double</span> radius</span>)</span> &#123; r = radius; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">double</span> Radius &#123; <span class="keyword">get</span> &#123; <span class="keyword">return</span> r; &#125;&#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">override</span> <span class="keyword">double</span> Area &#123; <span class="keyword">get</span> &#123; <span class="keyword">return</span> Math.PI * r * r; &#125;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">class ShapeAreaComparer : System.Collections.Generic.IComparer&lt;Shape&gt;</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">int</span> IComparer&lt;Shape&gt;.Compare(Shape a, Shape b)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (a == <span class="literal">null</span>) <span class="keyword">return</span> b == <span class="literal">null</span> ? <span class="number">0</span> : <span class="number">-1</span>;</span><br><span class="line">        <span class="keyword">return</span> b == <span class="literal">null</span> ? <span class="number">1</span> : a.Area.CompareTo(b.Area);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="comment">// You can pass ShapeAreaComparer, which implements IComparer&lt;Shape&gt;,</span></span><br><span class="line">        <span class="comment">// even though the constructor for SortedSet&lt;Circle&gt; expects </span></span><br><span class="line">        <span class="comment">// IComparer&lt;Circle&gt;, because type parameter T of IComparer&lt;T&gt; is</span></span><br><span class="line">        <span class="comment">// contravariant.</span></span><br><span class="line">        SortedSet&lt;Circle&gt; circlesByArea = </span><br><span class="line">            <span class="keyword">new</span> SortedSet&lt;Circle&gt;(<span class="keyword">new</span> ShapeAreaComparer()) </span><br><span class="line">                &#123; <span class="keyword">new</span> Circle(<span class="number">7.2</span>), <span class="keyword">new</span> Circle(<span class="number">100</span>), <span class="literal">null</span>, <span class="keyword">new</span> Circle(<span class="number">.01</span>) &#125;;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">foreach</span> (Circle c <span class="keyword">in</span> circlesByArea)</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(c == <span class="literal">null</span> ? <span class="string">"null"</span> : <span class="string">"Circle with area "</span> + c.Area);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* This code example produces the following output:</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">null</span></span><br><span class="line"><span class="comment">Circle with area 0.000314159265358979</span></span><br><span class="line"><span class="comment">Circle with area 162.860163162095</span></span><br><span class="line"><span class="comment">Circle with area 31415.9265358979</span></span><br><span class="line"><span class="comment"> */</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="泛型委托中的变体"><a href="#泛型委托中的变体" class="headerlink" title="泛型委托中的变体"></a>泛型委托中的变体</h2><p>在 .NET Framework 4中， <code>Func</code> 泛型委托（如 <code>Func&lt;T,TResult&gt;</code>）具有协变返回类型和逆变参数类型。 <code>Action</code> 泛型委托（如 <code>Action&lt;T1,T2&gt;</code>）具有逆变参数类型。 这意味着，可以将委托指派给具有派生程度较高的参数类型和（对于 <code>Func</code> 泛型委托）派生程度较低的返回类型的变量。</p>
+<p>备注：</p>
+<p><code>Func</code> 泛型委托的最后一个泛型类型参数指定委托签名中返回值的类型。 该参数是协变的（<code>out</code> 关键字），而其他泛型类型参数是逆变的（<code>in</code> 关键字）。</p>
+<h2 id="Variant-泛型接口和委托类型的列表"><a href="#Variant-泛型接口和委托类型的列表" class="headerlink" title="Variant 泛型接口和委托类型的列表"></a>Variant 泛型接口和委托类型的列表</h2><p>参考：<a href="https://docs.microsoft.com/zh-cn/dotnet/standard/generics/covariance-and-contravariance#list-of-variant-generic-interface-and-delegate-types" target="_blank" rel="noopener">Variant 泛型接口和委托类型的列表</a></p>
+<p>参考：</p>
+<p><a href="https://docs.microsoft.com/zh-cn/dotnet/standard/generics/covariance-and-contravariance" target="_blank" rel="noopener">泛型中的协变和逆变</a></p>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/DotNet/">DotNet</a><a href="/tags/CSharp/">CSharp</a><a href="/tags/CSharp基础/">CSharp基础</a><a href="/tags/集合与泛型/">集合与泛型</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/%E9%9B%86%E5%90%88%E4%B8%8E%E6%B3%9B%E5%9E%8B/">集合与泛型</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="https://syxdevcode.github.com/2018/12/27/DotNet%E6%B3%9B%E5%9E%8B%E4%B8%AD%E7%9A%84%E5%8D%8F%E5%8F%98%E5%92%8C%E9%80%86%E5%8F%98/" data-title="DotNet泛型中的协变和逆变 | syxdevcode博客" data-tsina="" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2018/12/28/CSharp基础-LINQ/" title="CSharp基础-LINQ">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  CSharp基础-LINQ</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2018/12/27/CSharp基础-集合/"  title="CSharp基础-集合">
+ <strong>NEXT:</strong><br/> 
+ <span>CSharp基础-集合
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#变体"><span class="toc-number">1.</span> <span class="toc-text">变体</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#关键字"><span class="toc-number">1.1.</span> <span class="toc-text">关键字</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#协变"><span class="toc-number">1.2.</span> <span class="toc-text">协变</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#逆变"><span class="toc-number">1.3.</span> <span class="toc-text">逆变</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#泛型接口中的变体"><span class="toc-number">2.</span> <span class="toc-text">泛型接口中的变体</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#具有协变类型参数的泛型接口"><span class="toc-number">2.1.</span> <span class="toc-text">具有协变类型参数的泛型接口</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#具有逆变泛型类型参数的泛型接口"><span class="toc-number">2.2.</span> <span class="toc-text">具有逆变泛型类型参数的泛型接口</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#泛型委托中的变体"><span class="toc-number">3.</span> <span class="toc-text">泛型委托中的变体</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Variant-泛型接口和委托类型的列表"><span class="toc-number">4.</span> <span class="toc-text">Variant 泛型接口和委托类型的列表</span></a></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/Net-Standard/" title=".Net Standard">.Net Standard<sup>2</sup></a></li>
+		
+			<li><a href="/categories/net异步与并行/" title=".net异步与并行">.net异步与并行<sup>10</sup></a></li>
+		
+			<li><a href="/categories/ABP/" title="ABP">ABP<sup>27</sup></a></li>
+		
+			<li><a href="/categories/ASP-NET-IIS请求处理管道/" title="ASP.NET/IIS请求处理管道">ASP.NET/IIS请求处理管道<sup>2</sup></a></li>
+		
+			<li><a href="/categories/ApplicationPoolIdentify/" title="ApplicationPoolIdentify">ApplicationPoolIdentify<sup>1</sup></a></li>
+		
+			<li><a href="/categories/CSharp基础/" title="CSharp基础">CSharp基础<sup>11</sup></a></li>
+		
+			<li><a href="/categories/CentOS7/" title="CentOS7">CentOS7<sup>5</sup></a></li>
+		
+			<li><a href="/categories/Chrome/" title="Chrome">Chrome<sup>1</sup></a></li>
+		
+			<li><a href="/categories/CodeDOM/" title="CodeDOM">CodeDOM<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Consul/" title="Consul">Consul<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Docker/" title="Docker">Docker<sup>7</sup></a></li>
+		
+			<li><a href="/categories/Docker-Compose/" title="Docker Compose">Docker Compose<sup>3</sup></a></li>
+		
+			<li><a href="/categories/DotNetCore/" title="DotNetCore">DotNetCore<sup>3</sup></a></li>
+		
+			<li><a href="/categories/DotNet面试题解析/" title="DotNet面试题解析">DotNet面试题解析<sup>8</sup></a></li>
+		
+			<li><a href="/categories/EasyNetQ/" title="EasyNetQ">EasyNetQ<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Elasticsearch/" title="Elasticsearch">Elasticsearch<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Emit-反射发出/" title="Emit(反射发出)">Emit(反射发出)<sup>6</sup></a></li>
+		
+			<li><a href="/categories/Expression-Tree/" title="Expression Tree">Expression Tree<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Git/" title="Git">Git<sup>2</sup></a></li>
+		
+			<li><a href="/categories/HostService/" title="HostService">HostService<sup>1</sup></a></li>
+		
+			<li><a href="/categories/JavaScript-JQuery/" title="JavaScript/JQuery">JavaScript/JQuery<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Jenkins/" title="Jenkins">Jenkins<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Jexus/" title="Jexus">Jexus<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Json-Net/" title="Json.Net">Json.Net<sup>1</sup></a></li>
+		
+			<li><a href="/categories/LINQ/" title="LINQ">LINQ<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Let’s-Encrypt/" title="Let’s Encrypt">Let’s Encrypt<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Linux基础命令/" title="Linux基础命令">Linux基础命令<sup>6</sup></a></li>
+		
+			<li><a href="/categories/MSIL指令/" title="MSIL指令">MSIL指令<sup>2</sup></a></li>
+		
+			<li><a href="/categories/MVC-Web-API/" title="MVC/Web API">MVC/Web API<sup>2</sup></a></li>
+		
+			<li><a href="/categories/MariaDB/" title="MariaDB">MariaDB<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MarkDown/" title="MarkDown">MarkDown<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MongoDB/" title="MongoDB">MongoDB<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Moq/" title="Moq">Moq<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MySql/" title="MySql">MySql<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Naudio/" title="Naudio">Naudio<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Nginx/" title="Nginx">Nginx<sup>2</sup></a></li>
+		
+			<li><a href="/categories/OAuth2-0/" title="OAuth2.0">OAuth2.0<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Ocelot/" title="Ocelot">Ocelot<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Openssl/" title="Openssl">Openssl<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Polly/" title="Polly">Polly<sup>2</sup></a></li>
+		
+			<li><a href="/categories/PostGresqlSql/" title="PostGresqlSql">PostGresqlSql<sup>1</sup></a></li>
+		
+			<li><a href="/categories/RESTful/" title="RESTful">RESTful<sup>2</sup></a></li>
+		
+			<li><a href="/categories/RabbitMQ/" title="RabbitMQ">RabbitMQ<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Redis/" title="Redis">Redis<sup>5</sup></a></li>
+		
+			<li><a href="/categories/Resharper/" title="Resharper">Resharper<sup>1</sup></a></li>
+		
+			<li><a href="/categories/SSH/" title="SSH">SSH<sup>1</sup></a></li>
+		
+			<li><a href="/categories/SSL-TLS/" title="SSL/TLS">SSL/TLS<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Skywalking/" title="Skywalking">Skywalking<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Sql/" title="Sql">Sql<sup>5</sup></a></li>
+		
+			<li><a href="/categories/TDD/" title="TDD">TDD<sup>1</sup></a></li>
+		
+			<li><a href="/categories/TPL-DataFlow/" title="TPL DataFlow">TPL DataFlow<sup>2</sup></a></li>
+		
+			<li><a href="/categories/WCF时间类型序列化/" title="WCF时间类型序列化">WCF时间类型序列化<sup>1</sup></a></li>
+		
+			<li><a href="/categories/WebForm/" title="WebForm">WebForm<sup>2</sup></a></li>
+		
+			<li><a href="/categories/WinDbg/" title="WinDbg">WinDbg<sup>1</sup></a></li>
+		
+			<li><a href="/categories/WinSCP/" title="WinSCP">WinSCP<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Windows子系统/" title="Windows子系统">Windows子系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Windows系统/" title="Windows系统">Windows系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/ab/" title="ab">ab<sup>1</sup></a></li>
+		
+			<li><a href="/categories/hexo/" title="hexo">hexo<sup>2</sup></a></li>
+		
+			<li><a href="/categories/shadowsocks/" title="shadowsocks">shadowsocks<sup>1</sup></a></li>
+		
+			<li><a href="/categories/zookeeper/" title="zookeeper">zookeeper<sup>1</sup></a></li>
+		
+			<li><a href="/categories/内存泄漏/" title="内存泄漏">内存泄漏<sup>1</sup></a></li>
+		
+			<li><a href="/categories/分布式/" title="分布式">分布式<sup>1</sup></a></li>
+		
+			<li><a href="/categories/分布式事务/" title="分布式事务">分布式事务<sup>1</sup></a></li>
+		
+			<li><a href="/categories/单词收录/" title="单词收录">单词收录<sup>14</sup></a></li>
+		
+			<li><a href="/categories/反射/" title="反射">反射<sup>4</sup></a></li>
+		
+			<li><a href="/categories/委托与事件/" title="委托与事件">委托与事件<sup>4</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>1</sup></a></li>
+		
+			<li><a href="/categories/并发模型/" title="并发模型">并发模型<sup>1</sup></a></li>
+		
+			<li><a href="/categories/插件/" title="插件">插件<sup>1</sup></a></li>
+		
+			<li><a href="/categories/时间-时间戳转换/" title="时间/时间戳转换">时间/时间戳转换<sup>1</sup></a></li>
+		
+			<li><a href="/categories/消息队列/" title="消息队列">消息队列<sup>1</sup></a></li>
+		
+			<li><a href="/categories/程序集/" title="程序集">程序集<sup>2</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>3</sup></a></li>
+		
+			<li><a href="/categories/线性表/" title="线性表">线性表<sup>1</sup></a></li>
+		
+			<li><a href="/categories/线程池/" title="线程池">线程池<sup>1</sup></a></li>
+		
+			<li><a href="/categories/缓存/" title="缓存">缓存<sup>3</sup></a></li>
+		
+			<li><a href="/categories/计算机基础/" title="计算机基础">计算机基础<sup>2</sup></a></li>
+		
+			<li><a href="/categories/认证与授权/" title="认证与授权">认证与授权<sup>1</sup></a></li>
+		
+			<li><a href="/categories/设计模式/" title="设计模式">设计模式<sup>3</sup></a></li>
+		
+			<li><a href="/categories/链表/" title="链表">链表<sup>2</sup></a></li>
+		
+			<li><a href="/categories/集合与泛型/" title="集合与泛型">集合与泛型<sup>3</sup></a></li>
+		
+			<li><a href="/categories/音频-视频/" title="音频/视频">音频/视频<sup>1</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist" style="clear:both;">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/Net-Standard/" title=".Net Standard">.Net Standard<sup>2</sup></a></li>
+		
+			<li><a href="/tags/net异步与并行/" title=".net异步与并行">.net异步与并行<sup>12</sup></a></li>
+		
+			<li><a href="/tags/ABP/" title="ABP">ABP<sup>27</sup></a></li>
+		
+			<li><a href="/tags/ASP-NET-IIS请求处理管道/" title="ASP.NET/IIS请求处理管道">ASP.NET/IIS请求处理管道<sup>7</sup></a></li>
+		
+			<li><a href="/tags/AWS/" title="AWS">AWS<sup>7</sup></a></li>
+		
+			<li><a href="/tags/ApplicationPoolIdentify/" title="ApplicationPoolIdentify">ApplicationPoolIdentify<sup>1</sup></a></li>
+		
+			<li><a href="/tags/CSharp/" title="CSharp">CSharp<sup>101</sup></a></li>
+		
+			<li><a href="/tags/CSharp基础/" title="CSharp基础">CSharp基础<sup>44</sup></a></li>
+		
+			<li><a href="/tags/CentOS7/" title="CentOS7">CentOS7<sup>24</sup></a></li>
+		
+			<li><a href="/tags/Chrome/" title="Chrome">Chrome<sup>1</sup></a></li>
+		
+			<li><a href="/tags/CodeDOM/" title="CodeDOM">CodeDOM<sup>3</sup></a></li>
+		
+			<li><a href="/tags/Consul/" title="Consul">Consul<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Docker/" title="Docker">Docker<sup>23</sup></a></li>
+		
+			<li><a href="/tags/Docker-Compose/" title="Docker Compose">Docker Compose<sup>5</sup></a></li>
+		
+			<li><a href="/tags/DotNet/" title="DotNet">DotNet<sup>106</sup></a></li>
+		
+			<li><a href="/tags/DotNetCore/" title="DotNetCore">DotNetCore<sup>16</sup></a></li>
+		
+			<li><a href="/tags/DotNet面试题解析/" title="DotNet面试题解析">DotNet面试题解析<sup>10</sup></a></li>
+		
+			<li><a href="/tags/Elasticsearch/" title="Elasticsearch">Elasticsearch<sup>2</sup></a></li>
+		
+			<li><a href="/tags/Emit-反射发出/" title="Emit(反射发出)">Emit(反射发出)<sup>8</sup></a></li>
+		
+			<li><a href="/tags/Expression-Tree/" title="Expression Tree">Expression Tree<sup>3</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+<div style="display: none;" id="rocket-to-top">
+  <div style="opacity: 0; display: block;" class="level-2"></div>
+  <div class="level-3"></div>
+</div>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<div class="social-font clearfix">
+		
+		
+		
+		<a href="https://github.com/syxdevcode" target="_blank" title="github"></a>
+		
+		
+		
+	</div>
+		<p class="copyright">Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/syxdevcode/pacman" target="_blank" title="Pacman">Pacman</a> © 2020 
+		
+		<a href="https://syxdevcode.github.com" target="_blank" title="syxdevcode">syxdevcode</a>
+		
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    $('.navbar').click(function () {
+      $('header nav').toggleClass('shownav');
+    });
+    var myWidth = 0;
+    function getSize() {
+      if (typeof (window.innerWidth) == 'number') {
+        myWidth = window.innerWidth;
+      } else if (document.documentElement && document.documentElement.clientWidth) {
+        myWidth = document.documentElement.clientWidth;
+      };
+    };
+    var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+    $(window).resize(function () {
+      getSize();
+      if (myWidth >= 1024) {
+        $('header nav').removeClass('shownav');
+      } else {
+        m.removeClass('moveMain');
+        a.css('display', 'block').removeClass('fadeOut');
+        o.css('display', 'none');
+      
+          $('#toc.toc-aside').css('display', 'none');
+        
+    }
+    });
+    c.click(function () {
+      a.addClass('fadeOut').css('display', 'none');
+      o.css('display', 'block').addClass('fadeIn');
+      m.addClass('moveMain');
+    });
+    o.click(function () {
+      o.css('display', 'none').removeClass('beforeFadeIn');
+      a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');
+      m.removeClass('moveMain');
+    });
+    $(window).scroll(function () {
+      o.css("top", Math.max(80, 260 - $(this).scrollTop()));
+    });
+  });
+  //判断访问终端
+  var browser = {
+    versions: function () {
+      var u = navigator.userAgent,
+        app = navigator.appVersion;
+      return {
+        trident: u.indexOf('Trident') > -1, //IE内核
+        presto: u.indexOf('Presto') > -1, //opera内核
+        webKit: u.indexOf('AppleWebKit') > -1, //苹果、谷歌内核
+        gecko: u.indexOf('Gecko') > -1 && u.indexOf('KHTML') == -1,//火狐内核
+        mobile: !!u.match(/AppleWebKit.*Mobile.*/), //是否为移动终端
+        ios: !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/), //ios终端
+        android: u.indexOf('Android') > -1 || u.indexOf('Adr') > -1, //android终端
+        iPhone: u.indexOf('iPhone') > -1, //是否为iPhone或者QQHD浏览器
+        iPad: u.indexOf('iPad') > -1, //是否iPad
+        webApp: u.indexOf('Safari') == -1, //是否web应该程序，没有头部与底部
+        weixin: u.indexOf('MicroMessenger') > -1, //是否微信 （2015-01-22新增）
+        qq: u.match(/\sQQ/i) == " qq" //是否QQ
+      };
+    }(),
+    language: (navigator.browserLanguage || navigator.language).toLowerCase()
+  }
+</script>
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t = $('#toc'),
+      h = $('article h2')
+    ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o = $('.openaside'),
+      c = $('.closeaside');
+    if (ai.length > 0) {
+      ai.wrap('<div class="video-container" />');
+    };
+    if (ae.length > 0) {
+      ae.wrap('<div class="video-container" />');
+    };
+    if (ah.length == 0) {
+      t.css('display', 'none');
+    } else {
+      c.click(function () {
+        ta.css('display', 'block').addClass('fadeIn');
+      });
+      o.click(function () {
+        ta.css('display', 'none');
+      });
+      $(window).scroll(function () {
+        ta.css("top", Math.max(140, 320 - $(this).scrollTop()));
+      });
+    };
+  });
+</script>
+
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    var $this = $('.share'),
+      //url = $this.attr('data-url'),
+      url = window.location.href,
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+    var html = [
+      '<a href="#" class="overlay" id="qrcode"></a>',
+      '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://mobile.qq.com/qrcode?url=' + encodedUrl + '"/></div>',
+      '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+      '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+      '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+      '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+      '<a href="http://service.weibo.com/share/share.php?title=' + title + '&url=' + encodedUrl + '&ralateUid=' + tsina + '&searchPic=true&style=number' + '" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+      '<span title="Share to"></span>'
+    ].join('');
+    $this.append(html);
+    viewqrCode();
+    $('.article-share-qrcode').click(viewqrCode()
+    );
+
+  });
+  function viewqrCode() {
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function () {
+      $('.qrcode strong').text(' ');
+    });
+  }
+</script>
+<script type="text/javascript">  
+  //判断是否移动端 
+  if (!browser.versions.mobile) {
+    $(function () {
+      var c, a = $("#rocket-to-top"), e = ($(document).scrollTop(), !0);
+      $(window).scroll(function () {
+        var b = $(document).scrollTop(); 0 == b ? "0px 0px" == a.css("background-position") ? a.fadeOut("slow") : e && (e = !1, $(".level-2").css("opacity", 1), a.delay(100).animate({ marginTop: "-1000px" }, "normal", function () { a.css({ "margin-top": "-125px", display: "none" }), e = !0 })) : a.fadeIn("slow")
+      }), a.hover(function () { $(".level-2").stop(!0).animate({ opacity: 1 }) }, function () { $(".level-2").stop(!0).animate({ opacity: 0 }) }), $(".level-3").click(function () { function b() { var b = a.css("background-position"); if ("none" == a.css("display") || 0 == e) return clearInterval(c), a.css("background-position", "0px 0px"), void 0; switch (b) { case "0px 0px": a.css("background-position", "-298px 0px"); break; case "-298px 0px": a.css("background-position", "-447px 0px"); break; case "-447px 0px": a.css("background-position", "-596px 0px"); break; case "-596px 0px": a.css("background-position", "-745px 0px"); break; case "-745px 0px": a.css("background-position", "-298px 0px") } } e && (c = setInterval(b, 50), $("html,body").animate({ scrollTop: 0 }, "slow")) })
+    });
+  }
+</script>
+
+
+
+
+
+  </body>
+</html>

@@ -1,0 +1,673 @@
+
+ <!DOCTYPE HTML>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  
+    <title>DotNet面试题解析01-值类型与引用类型 | syxdevcode博客</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="syxdevcode">
+    
+    <meta name="description" content="基本概念CLR支持两种类型：引用类型和值类型。这是.NET语言的基础和关键，他们从类型定义、实例创建、参数传递，到内存分配都有所不同。
+
+下图清晰了展示了.NET中类型分类，值类型主要是一些简单的、基础的数据类型，引用类型主要用于更丰富的、复杂的、复合的数据类型。
+
+使用值类型最佳实践
+对象很小，并">
+    
+    
+    
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+  <body>
+    <header>
+      <div>
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="syxdevcode博客" title="syxdevcode博客"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="syxdevcode博客">syxdevcode博客</a></h1>
+				<h2 class="blog-motto"></h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+						<li><a href="/tags">tags</a></li>
+					
+						<li><a href="/categories">categories</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:syxdevcode.github.com">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>			
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2018/12/04/DotNet面试题解析01-值类型与引用类型/" title="DotNet面试题解析01-值类型与引用类型" itemprop="url">DotNet面试题解析01-值类型与引用类型</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="https://syxdevcode.github.com" title="syxdevcode">syxdevcode</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2018-12-04T10:17:55.000Z" itemprop="datePublished">2018-12-04</time>
+    更新日期:<time datetime="2020-02-29T10:34:53.184Z" itemprop="dateModified">2020-02-29</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#基本概念"><span class="toc-number">1.</span> <span class="toc-text">基本概念</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#使用值类型最佳实践"><span class="toc-number">1.1.</span> <span class="toc-text">使用值类型最佳实践</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#引用类型"><span class="toc-number">1.2.</span> <span class="toc-text">引用类型</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#内存结构"><span class="toc-number">2.</span> <span class="toc-text">内存结构</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#对象的传递"><span class="toc-number">3.</span> <span class="toc-text">对象的传递</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#参数-按值传递："><span class="toc-number">3.1.</span> <span class="toc-text">参数-按值传递：</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#参数-按引用传递："><span class="toc-number">3.2.</span> <span class="toc-text">参数-按引用传递：</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#常见问题"><span class="toc-number">3.3.</span> <span class="toc-text">常见问题</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#题目答案解析"><span class="toc-number">4.</span> <span class="toc-text">题目答案解析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-值类型和引用类型的区别？"><span class="toc-number">4.1.</span> <span class="toc-text">1. 值类型和引用类型的区别？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-结构和类的区别？"><span class="toc-number">4.2.</span> <span class="toc-text">2. 结构和类的区别？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-delegate是引用类型还是值类型？enum、int-和string呢？"><span class="toc-number">4.3.</span> <span class="toc-text">3. delegate是引用类型还是值类型？enum、int[]和string呢？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-堆和栈的区别？"><span class="toc-number">4.4.</span> <span class="toc-text">4. 堆和栈的区别？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-“结构”对象可能分配在堆上吗？什么情况下会发生，有什么需要注意的吗？"><span class="toc-number">4.5.</span> <span class="toc-text">5.“结构”对象可能分配在堆上吗？什么情况下会发生，有什么需要注意的吗？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-理解参数按值传递？以及按引用传递？"><span class="toc-number">4.6.</span> <span class="toc-text">6. 理解参数按值传递？以及按引用传递？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7-out-和-ref的区别与相同点？"><span class="toc-number">4.7.</span> <span class="toc-text">7. out 和 ref的区别与相同点？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#8-C-支持哪几个预定义的值类型？C-支持哪些预定义的引用类型？"><span class="toc-number">4.8.</span> <span class="toc-text">8. C#支持哪几个预定义的值类型？C#支持哪些预定义的引用类型？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#9-有几种方法可以判定值类型和引用类型？"><span class="toc-number">4.9.</span> <span class="toc-text">9. 有几种方法可以判定值类型和引用类型？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#10-说说值类型和引用类型的生命周期？"><span class="toc-number">4.10.</span> <span class="toc-text">10. 说说值类型和引用类型的生命周期？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#11-如果结构体中定义引用类型，对象在内存中是如何存储的？例如下面结构体中的class类-User对象是存储在栈上，还是堆上？"><span class="toc-number">4.11.</span> <span class="toc-text">11. 如果结构体中定义引用类型，对象在内存中是如何存储的？例如下面结构体中的class类 User对象是存储在栈上，还是堆上？</span></a></li></ol></li></ol>
+		</div>
+		
+		<h2 id="基本概念"><a href="#基本概念" class="headerlink" title="基本概念"></a>基本概念</h2><p>CLR支持两种类型：<strong>引用类型</strong>和<strong>值类型</strong>。这是.NET语言的基础和关键，他们从类型定义、实例创建、参数传递，到内存分配都有所不同。</p>
+<p><img src="/img/typesystem.gif" alt="typesystem.gif"></p>
+<p>下图清晰了展示了.NET中类型分类，值类型主要是一些简单的、基础的数据类型，引用类型主要用于更丰富的、复杂的、复合的数据类型。</p>
+<p><img src="/img/2009020510331710.jpg" alt="2009020510331710.jpg"></p>
+<h3 id="使用值类型最佳实践"><a href="#使用值类型最佳实践" class="headerlink" title="使用值类型最佳实践"></a>使用值类型最佳实践</h3><ul>
+<li>对象很小，并且打算创建很多这样的对象</li>
+<li>需要高密度的内存集合</li>
+<li>在值类型中重写Equals,重载Equals,实现IEquatable<T>,以及重载操作符==和!=。</li>
+<li>在值类型中重写GetHashCode。</li>
+<li>考虑将值类型实现为不可变的。</li>
+</ul>
+<h3 id="引用类型"><a href="#引用类型" class="headerlink" title="引用类型"></a>引用类型</h3><p>标准配置，引用对象的额外空间：对象头字节（包括同步块索引）和TypeHandle（或方法表指针，类型对象指针）</p>
+<p>方法表指针指向一个CLR内部数据结构–方法表（MT）。方法表指向另一个内部数据结构—EEClass(EE代表Execution Engine,执行引擎)。方法表和EEClass包含一些信息，可用来分发虚方法和接口方法调用，访问静态变量，确定对象的运行时类型，高效访问基类型方法等。</p>
+<h2 id="内存结构"><a href="#内存结构" class="headerlink" title="内存结构"></a>内存结构</h2><p>值类型和引用类型最根源的区别就是其内存分配的差异，在这之前首先要理解CLR的内存中两个重要的概念：</p>
+<p><strong>Stack 栈</strong>：线程栈，由操作系统管理，<strong>存放值类型、引用类型变量（就是引用对象在托管堆上的地址）</strong>。栈是基于线程的，也就是说一个线程会包含一个线程栈，线程栈中的值类型在对象作用域结束后会被清理，效率很高。</p>
+<p><strong>GC Heap托管堆</strong>：进程初始化后在进程地址空间上划分的内存空间，存储.NET运行过程中的对象，<strong>所有的引用类型都分配在托管堆上</strong>，托管堆上分配的对象是由GC来管理和释放的。托管堆是基于进程的，当然托管堆内部还有其他更为复杂的结构，有兴趣的可以深入了解。</p>
+<p>结合下图理解，变量a及其值3都是存储在栈上面。变量b在栈上存储，其值指向字符串“123”的托管堆对象地址(字符串是引用类型,字符串对象是存储在托管堆上面。字符串是一个特殊的引用类型，后面文章会专门探讨)”</p>
+<p><img src="/img/151257-20160301092426314-1061559039.png" alt="151257-20160301092426314-1061559039.png"></p>
+<p>** 值类型一直都存储在栈上面吗？所有的引用类型都存储在托管堆上面吗？**</p>
+<p>1.单独的值类型变量，如局部值类型变量都是存储在栈上面的；</p>
+<p>2.当值类型是自定义class的一个字段、属性时，它随引用类型存储在托管堆上，此时她是引用类型的一部分；</p>
+<p>4.所有的引用类型肯定都是存放在托管堆上的。</p>
+<p>5.还有一种情况，同上面题目12，结构体（值类型）中定义引用类型字段，结构体是存储在栈上，其引用变量字段只存储内存地址，指向堆中的引用实例。</p>
+<h2 id="对象的传递"><a href="#对象的传递" class="headerlink" title="对象的传递"></a>对象的传递</h2><p><font color=#0099ff size=4 face="黑体">将值类型的变量赋值给另一个变量（或者作为参数传递），会执行一次值复制。<br>将引用类型的变量赋值给另一个引用类型的变量，它复制的值是引用对象的内存地址，因此赋值后就会多个变量指向同一个引用对象实例。</font></p>
+<p>理解这一点非常重要，下面代码测试验证一下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">int v1 &#x3D; 0;</span><br><span class="line">int v2 &#x3D; v1;</span><br><span class="line">v2 &#x3D; 100;</span><br><span class="line">Console.WriteLine(&quot;v1&#x3D;&quot; + v1); &#x2F;&#x2F;输出：v1&#x3D;0</span><br><span class="line">Console.WriteLine(&quot;v2&#x3D;&quot; + v2); &#x2F;&#x2F;输出：v2&#x3D;100</span><br><span class="line"></span><br><span class="line">User u1&#x3D;new User();</span><br><span class="line">u1.Age &#x3D; 0;</span><br><span class="line">User u2 &#x3D; u1;</span><br><span class="line">u2.Age &#x3D; 100;</span><br><span class="line">Console.WriteLine(&quot;u1.Age&#x3D;&quot; + u1.Age); &#x2F;&#x2F;输出：u1.Age&#x3D;100</span><br><span class="line">Console.WriteLine(&quot;u2.Age&#x3D;&quot; + u2.Age); &#x2F;&#x2F;输出：u2.Age&#x3D;100，因为u1&#x2F;u2指向同一个对象</span><br></pre></td></tr></table></figure>
+
+<p>当把对象作为参数传递的时候，效果同上面一样，他们都称为按值传递，但因为值类型和引用类型的区别，导致其产生的效果也不同。</p>
+<h3 id="参数-按值传递："><a href="#参数-按值传递：" class="headerlink" title="参数-按值传递："></a>参数-按值传递：</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">DoTest</span>(<span class="params"><span class="keyword">int</span> a</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            a *= <span class="number">2</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">DoUserTest</span>(<span class="params">User user</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            user.Age *= <span class="number">2</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        [<span class="meta">NUnit.Framework.Test</span>]</span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">DoParaTest</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            <span class="keyword">int</span> a = <span class="number">10</span>;</span><br><span class="line">            DoTest(a);</span><br><span class="line">            Console.WriteLine(<span class="string">"a="</span> + a); <span class="comment">//输出：a=10</span></span><br><span class="line">            User user = <span class="keyword">new</span> User();</span><br><span class="line">            user.Age = <span class="number">10</span>;</span><br><span class="line">            DoUserTest(user);</span><br><span class="line">            Console.WriteLine(<span class="string">"user.Age="</span> + user.Age); <span class="comment">//输出：user.Age=20</span></span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
+
+<p>上面的代码示例，两个方法的参数，都是按值传递</p>
+<ul>
+<li>对于值类型(int a) ：传递的是变量a的值拷贝副本，因此原本的a值并没有改变。</li>
+<li>对于引用类型(User user) ：传递的是变量user的引用地址（User对象实例的内存地址）拷贝副本，因此他们操作都是同一个User对象实例。</li>
+</ul>
+<h3 id="参数-按引用传递："><a href="#参数-按引用传递：" class="headerlink" title="参数-按引用传递："></a>参数-按引用传递：</h3><font color=#0099ff size=4 face="黑体">
+按引用传递的两个主要关键字：out 和 ref不管值类型还是引用类型，按引用传递的效果是一样的，都不传递值副本，而是引用的引用（类似c++的指针的指针）。out 和 ref告诉编译器方法传递额是参数地址，而不是参数本身，理解这一点很重要。
+</font>
+
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">DoTest</span>(<span class="params"><span class="keyword">ref</span> <span class="keyword">int</span> a</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    a *= <span class="number">2</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">DoUserTest</span>(<span class="params"><span class="keyword">ref</span> User user</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    user.Age *= <span class="number">2</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">DoParaTest</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> a = <span class="number">10</span>;</span><br><span class="line">    DoTest(<span class="keyword">ref</span> a);</span><br><span class="line">    Console.WriteLine(<span class="string">"a="</span> + a); <span class="comment">//输出：a=20 ,a的值改变了</span></span><br><span class="line">    User user = <span class="keyword">new</span> User();</span><br><span class="line">    user.Age = <span class="number">10</span>;</span><br><span class="line">    DoUserTest(<span class="keyword">ref</span> user);</span><br><span class="line">    Console.WriteLine(<span class="string">"user.Age="</span> + user.Age); <span class="comment">//输出：user.Age=20</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> m = <span class="number">0</span>;</span><br><span class="line">Console.WriteLine(RefValue(<span class="number">1</span>, <span class="keyword">ref</span> m)); <span class="comment">//输出 1</span></span><br><span class="line">Console.WriteLine(m);  <span class="comment">//输出 222</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">int</span> n;</span><br><span class="line">Console.WriteLine(OutValue(<span class="number">1</span>, <span class="keyword">out</span> n));  <span class="comment">//输出 223</span></span><br><span class="line">Console.WriteLine(n);  <span class="comment">//输出 222</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">RefValue</span>(<span class="params"><span class="keyword">int</span> i, <span class="keyword">ref</span> <span class="keyword">int</span> j</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> k = j;</span><br><span class="line">    j = <span class="number">222</span>;</span><br><span class="line">    <span class="keyword">return</span> i + k;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">OutValue</span>(<span class="params"><span class="keyword">int</span> i, <span class="keyword">out</span> <span class="keyword">int</span> j</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    j = <span class="number">222</span>;</span><br><span class="line">    <span class="keyword">return</span> i + j;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>out 和 ref的主要异同:</p>
+<ul>
+<li>out 和 ref都指示编译器传递参数地址，在行为上是相同的；</li>
+<li>他们的使用机制稍有不同，ref必须要求参数在使用之前要显式初始化，out必须要在方法内部初始化；</li>
+<li>使用ref和out时，在方法的参数和执行方法时，都要加Ref或Out关键字。以满足匹配。</li>
+<li>out适合用在需要retrun多个返回值的地方，而ref则用在需要被调用的方法修改调用者的引用的时候。</li>
+<li>out 和 ref不可以重载，就是不能定义Method(ref int a)和Method(out int a)这样的重载，从编译角度看，二者的实质是相同的，只是使用时有区别；</li>
+<li>ref是有进有出，而out是只出不进.</li>
+</ul>
+<font color=#ff0000 size=4 face="黑体">
+注：在C#中，方法的参数传递有四种类型：传值（by value），传址（by reference），输出参数（by output），数组参数（by array）。传值参数无需额外的修饰符，传址参数需要修饰符ref，输出参数需要修饰符out，数组参数需要修饰符params。</font>
+
+<h3 id="常见问题"><a href="#常见问题" class="headerlink" title="常见问题"></a>常见问题</h3><p><img src="/img/%E5%80%BC%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B%E5%8C%BA%E5%88%AB.jpg" alt="值类型和引用类型区别.jpg"></p>
+<h2 id="题目答案解析"><a href="#题目答案解析" class="headerlink" title="题目答案解析"></a>题目答案解析</h2><h3 id="1-值类型和引用类型的区别？"><a href="#1-值类型和引用类型的区别？" class="headerlink" title="1. 值类型和引用类型的区别？"></a>1. 值类型和引用类型的区别？</h3><p>值类型包括简单类型、结构体类型和枚举类型，引用类型包括自定义类、数组、接口、委托等。</p>
+<ul>
+<li>1、赋值方式：将一个值类型变量赋给另一个值类型变量时，将复制包含的值。这与引用类型变量的赋值不同，引用类型变量的赋值只复制对象的引用（即内存地址，类似C++中的指针），而不复制对象本身。</li>
+<li>2、继承：值类型不可能派生出新的类型，所有的值类型均隐式派生自 System.ValueType。但与引用类型相同的是，结构也可以实现接口。</li>
+<li>3、null：与引用类型不同，值类型不可能包含 null 值。然而，可空类型允许将 null 赋给值类型（他其实只是一种语法形式，在clr底层做了特殊处理）。</li>
+<li>4、每种值类型均有一个隐式的默认构造函数来初始化该类型的默认值，值类型初始会默认为0，引用类型默认为null。</li>
+<li>5、值类型存储在栈中，引用类型存储在托管堆中。</li>
+</ul>
+<h3 id="2-结构和类的区别？"><a href="#2-结构和类的区别？" class="headerlink" title="2. 结构和类的区别？"></a>2. 结构和类的区别？</h3><p>结构体是值类型，类是引用类型，主要区别如题1。其他的区别：</p>
+<ul>
+<li>结构不支持无惨构造函数，不支持析构函数，并且不能有protected修饰；</li>
+<li>结构常用于数据存储，类class多用于行为；</li>
+<li>class需要用new关键字实例化对象，struct可以不适用new关键字；</li>
+<li>class可以为抽象类，struct不支持抽象；</li>
+</ul>
+<h3 id="3-delegate是引用类型还是值类型？enum、int-和string呢？"><a href="#3-delegate是引用类型还是值类型？enum、int-和string呢？" class="headerlink" title="3. delegate是引用类型还是值类型？enum、int[]和string呢？"></a>3. delegate是引用类型还是值类型？enum、int[]和string呢？</h3><p>enum枚举是值类型，其他都是引用类型。</p>
+<h3 id="4-堆和栈的区别？"><a href="#4-堆和栈的区别？" class="headerlink" title="4. 堆和栈的区别？"></a>4. 堆和栈的区别？</h3><p>线程堆栈：简称栈 Stack<br>托管堆： 简称堆 Heap</p>
+<ul>
+<li>值类型大多分配在栈上，引用类型都分配在堆上；</li>
+<li>栈由操作系统管理，栈上的变量在其作用域完成后就被释放，效率较高，但空间有限。堆受CLR的GC控制；</li>
+<li>栈是基于线程的，每个线程都有自己的线程栈，初始大小为1M。堆是基于进程的，一个进程分配一个堆，堆的大小由GC根据运行情况动态控制；</li>
+</ul>
+<h3 id="5-“结构”对象可能分配在堆上吗？什么情况下会发生，有什么需要注意的吗？"><a href="#5-“结构”对象可能分配在堆上吗？什么情况下会发生，有什么需要注意的吗？" class="headerlink" title="5.“结构”对象可能分配在堆上吗？什么情况下会发生，有什么需要注意的吗？"></a>5.“结构”对象可能分配在堆上吗？什么情况下会发生，有什么需要注意的吗？</h3><p>结构是值类型，有两种情况会分配在对上面：</p>
+<ul>
+<li>结构作为class的一个字段或属性，会随class一起分配在堆上面；</li>
+<li>装箱后会在堆中存储，尽量避免值类型的装箱，值类型的拆箱和装箱都有性能损失，下一篇会重点关注；</li>
+</ul>
+<h3 id="6-理解参数按值传递？以及按引用传递？"><a href="#6-理解参数按值传递？以及按引用传递？" class="headerlink" title="6. 理解参数按值传递？以及按引用传递？"></a>6. 理解参数按值传递？以及按引用传递？</h3><ul>
+<li>按值传递：对于值类型传递的它的值拷贝副本，而引用类型传递的是引用变量的内存地址，他们还是指向的同一个对象。</li>
+<li>按引用传递：通过关键字out和ref传递参数的内存地址，值类型和引用类型的效果是相同的。</li>
+</ul>
+<h3 id="7-out-和-ref的区别与相同点？"><a href="#7-out-和-ref的区别与相同点？" class="headerlink" title="7. out 和 ref的区别与相同点？"></a>7. <code>out</code> 和 <code>ref</code>的区别与相同点？</h3><ul>
+<li><code>out</code> 和 <code>ref</code>都指示编译器传递参数地址，在行为上是相同的；</li>
+<li>他们的使用机制稍有不同，ref要求参数在使用之前要显式初始化，out要在方法内部初始化；</li>
+<li><code>out</code> 和 <code>ref</code>不可以重载，就是不能定义Method(ref int a)和Method(out int a)这样的重载，从编译角度看，二者的实质是相同的，只是使用时有区别；</li>
+</ul>
+<h3 id="8-C-支持哪几个预定义的值类型？C-支持哪些预定义的引用类型？"><a href="#8-C-支持哪几个预定义的值类型？C-支持哪些预定义的引用类型？" class="headerlink" title="8. C#支持哪几个预定义的值类型？C#支持哪些预定义的引用类型？"></a>8. C#支持哪几个预定义的值类型？C#支持哪些预定义的引用类型？</h3><p>值类型：整数、浮点数、字符、bool和decimal</p>
+<p>引用类型：Object，String</p>
+<h3 id="9-有几种方法可以判定值类型和引用类型？"><a href="#9-有几种方法可以判定值类型和引用类型？" class="headerlink" title="9. 有几种方法可以判定值类型和引用类型？"></a>9. 有几种方法可以判定值类型和引用类型？</h3><p>简单来说，继承自System.ValueType的是值类型，反之是引用类型。</p>
+<h3 id="10-说说值类型和引用类型的生命周期？"><a href="#10-说说值类型和引用类型的生命周期？" class="headerlink" title="10. 说说值类型和引用类型的生命周期？"></a>10. 说说值类型和引用类型的生命周期？</h3><p>值类型在作用域结束后释放。</p>
+<p>引用类型由GC垃圾回收期回收。这个答案可能太简单了，更详细的答案在后面的文章会说到。</p>
+<h3 id="11-如果结构体中定义引用类型，对象在内存中是如何存储的？例如下面结构体中的class类-User对象是存储在栈上，还是堆上？"><a href="#11-如果结构体中定义引用类型，对象在内存中是如何存储的？例如下面结构体中的class类-User对象是存储在栈上，还是堆上？" class="headerlink" title="11. 如果结构体中定义引用类型，对象在内存中是如何存储的？例如下面结构体中的class类 User对象是存储在栈上，还是堆上？"></a>11. 如果结构体中定义引用类型，对象在内存中是如何存储的？例如下面结构体中的class类 User对象是存储在栈上，还是堆上？</h3><p>public struct MyStruct<br>{<br>    public int Index;<br>    public User User;<br>}</p>
+<p>MyStruct存储在栈中，其字段User的实例存储在堆中，MyStruct.User字段存储指向User对象的内存地址。</p>
+<p>参考：</p>
+<p><a href="http://www.cnblogs.com/anding/p/5229756.html" target="_blank" rel="noopener">.NET面试题解析(01)-值类型与引用类型</a></p>
+<p><a href="https://phodal.github.io/2md/" target="_blank" rel="noopener">2md</a></p>
+<p><a href="https://www.cnblogs.com/gjahead/archive/2008/02/28/1084871.html" target="_blank" rel="noopener">C#基础：ref和out的区别</a></p>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/DotNet/">DotNet</a><a href="/tags/CSharp/">CSharp</a><a href="/tags/CSharp基础/">CSharp基础</a><a href="/tags/DotNet面试题解析/">DotNet面试题解析</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%90/">DotNet面试题解析</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="https://syxdevcode.github.com/2018/12/04/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9001-%E5%80%BC%E7%B1%BB%E5%9E%8B%E4%B8%8E%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/" data-title="DotNet面试题解析01-值类型与引用类型 | syxdevcode博客" data-tsina="" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2018/12/05/DotNet面试题解析02-拆箱与装箱/" title="DotNet面试题解析02-拆箱与装箱">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  DotNet面试题解析02-拆箱与装箱</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2018/11/14/CSharp中迭代器-yield-return用法/"  title="CSharp中迭代器-yield-return用法">
+ <strong>NEXT:</strong><br/> 
+ <span>CSharp中迭代器-yield-return用法
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#基本概念"><span class="toc-number">1.</span> <span class="toc-text">基本概念</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#使用值类型最佳实践"><span class="toc-number">1.1.</span> <span class="toc-text">使用值类型最佳实践</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#引用类型"><span class="toc-number">1.2.</span> <span class="toc-text">引用类型</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#内存结构"><span class="toc-number">2.</span> <span class="toc-text">内存结构</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#对象的传递"><span class="toc-number">3.</span> <span class="toc-text">对象的传递</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#参数-按值传递："><span class="toc-number">3.1.</span> <span class="toc-text">参数-按值传递：</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#参数-按引用传递："><span class="toc-number">3.2.</span> <span class="toc-text">参数-按引用传递：</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#常见问题"><span class="toc-number">3.3.</span> <span class="toc-text">常见问题</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#题目答案解析"><span class="toc-number">4.</span> <span class="toc-text">题目答案解析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-值类型和引用类型的区别？"><span class="toc-number">4.1.</span> <span class="toc-text">1. 值类型和引用类型的区别？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-结构和类的区别？"><span class="toc-number">4.2.</span> <span class="toc-text">2. 结构和类的区别？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-delegate是引用类型还是值类型？enum、int-和string呢？"><span class="toc-number">4.3.</span> <span class="toc-text">3. delegate是引用类型还是值类型？enum、int[]和string呢？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#4-堆和栈的区别？"><span class="toc-number">4.4.</span> <span class="toc-text">4. 堆和栈的区别？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#5-“结构”对象可能分配在堆上吗？什么情况下会发生，有什么需要注意的吗？"><span class="toc-number">4.5.</span> <span class="toc-text">5.“结构”对象可能分配在堆上吗？什么情况下会发生，有什么需要注意的吗？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#6-理解参数按值传递？以及按引用传递？"><span class="toc-number">4.6.</span> <span class="toc-text">6. 理解参数按值传递？以及按引用传递？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#7-out-和-ref的区别与相同点？"><span class="toc-number">4.7.</span> <span class="toc-text">7. out 和 ref的区别与相同点？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#8-C-支持哪几个预定义的值类型？C-支持哪些预定义的引用类型？"><span class="toc-number">4.8.</span> <span class="toc-text">8. C#支持哪几个预定义的值类型？C#支持哪些预定义的引用类型？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#9-有几种方法可以判定值类型和引用类型？"><span class="toc-number">4.9.</span> <span class="toc-text">9. 有几种方法可以判定值类型和引用类型？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#10-说说值类型和引用类型的生命周期？"><span class="toc-number">4.10.</span> <span class="toc-text">10. 说说值类型和引用类型的生命周期？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#11-如果结构体中定义引用类型，对象在内存中是如何存储的？例如下面结构体中的class类-User对象是存储在栈上，还是堆上？"><span class="toc-number">4.11.</span> <span class="toc-text">11. 如果结构体中定义引用类型，对象在内存中是如何存储的？例如下面结构体中的class类 User对象是存储在栈上，还是堆上？</span></a></li></ol></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/Net-Standard/" title=".Net Standard">.Net Standard<sup>2</sup></a></li>
+		
+			<li><a href="/categories/net异步与并行/" title=".net异步与并行">.net异步与并行<sup>10</sup></a></li>
+		
+			<li><a href="/categories/ABP/" title="ABP">ABP<sup>27</sup></a></li>
+		
+			<li><a href="/categories/ASP-NET-IIS请求处理管道/" title="ASP.NET/IIS请求处理管道">ASP.NET/IIS请求处理管道<sup>2</sup></a></li>
+		
+			<li><a href="/categories/ApplicationPoolIdentify/" title="ApplicationPoolIdentify">ApplicationPoolIdentify<sup>1</sup></a></li>
+		
+			<li><a href="/categories/CSharp基础/" title="CSharp基础">CSharp基础<sup>11</sup></a></li>
+		
+			<li><a href="/categories/CentOS7/" title="CentOS7">CentOS7<sup>5</sup></a></li>
+		
+			<li><a href="/categories/Chrome/" title="Chrome">Chrome<sup>1</sup></a></li>
+		
+			<li><a href="/categories/CodeDOM/" title="CodeDOM">CodeDOM<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Consul/" title="Consul">Consul<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Docker/" title="Docker">Docker<sup>7</sup></a></li>
+		
+			<li><a href="/categories/Docker-Compose/" title="Docker Compose">Docker Compose<sup>3</sup></a></li>
+		
+			<li><a href="/categories/DotNetCore/" title="DotNetCore">DotNetCore<sup>3</sup></a></li>
+		
+			<li><a href="/categories/DotNet面试题解析/" title="DotNet面试题解析">DotNet面试题解析<sup>8</sup></a></li>
+		
+			<li><a href="/categories/EasyNetQ/" title="EasyNetQ">EasyNetQ<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Elasticsearch/" title="Elasticsearch">Elasticsearch<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Emit-反射发出/" title="Emit(反射发出)">Emit(反射发出)<sup>6</sup></a></li>
+		
+			<li><a href="/categories/Expression-Tree/" title="Expression Tree">Expression Tree<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Git/" title="Git">Git<sup>2</sup></a></li>
+		
+			<li><a href="/categories/HostService/" title="HostService">HostService<sup>1</sup></a></li>
+		
+			<li><a href="/categories/JavaScript-JQuery/" title="JavaScript/JQuery">JavaScript/JQuery<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Jenkins/" title="Jenkins">Jenkins<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Jexus/" title="Jexus">Jexus<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Json-Net/" title="Json.Net">Json.Net<sup>1</sup></a></li>
+		
+			<li><a href="/categories/LINQ/" title="LINQ">LINQ<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Let’s-Encrypt/" title="Let’s Encrypt">Let’s Encrypt<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Linux基础命令/" title="Linux基础命令">Linux基础命令<sup>6</sup></a></li>
+		
+			<li><a href="/categories/MSIL指令/" title="MSIL指令">MSIL指令<sup>2</sup></a></li>
+		
+			<li><a href="/categories/MVC-Web-API/" title="MVC/Web API">MVC/Web API<sup>2</sup></a></li>
+		
+			<li><a href="/categories/MariaDB/" title="MariaDB">MariaDB<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MarkDown/" title="MarkDown">MarkDown<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MongoDB/" title="MongoDB">MongoDB<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Moq/" title="Moq">Moq<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MySql/" title="MySql">MySql<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Naudio/" title="Naudio">Naudio<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Nginx/" title="Nginx">Nginx<sup>2</sup></a></li>
+		
+			<li><a href="/categories/OAuth2-0/" title="OAuth2.0">OAuth2.0<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Ocelot/" title="Ocelot">Ocelot<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Openssl/" title="Openssl">Openssl<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Polly/" title="Polly">Polly<sup>2</sup></a></li>
+		
+			<li><a href="/categories/PostGresqlSql/" title="PostGresqlSql">PostGresqlSql<sup>1</sup></a></li>
+		
+			<li><a href="/categories/RESTful/" title="RESTful">RESTful<sup>2</sup></a></li>
+		
+			<li><a href="/categories/RabbitMQ/" title="RabbitMQ">RabbitMQ<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Redis/" title="Redis">Redis<sup>5</sup></a></li>
+		
+			<li><a href="/categories/Resharper/" title="Resharper">Resharper<sup>1</sup></a></li>
+		
+			<li><a href="/categories/SSH/" title="SSH">SSH<sup>1</sup></a></li>
+		
+			<li><a href="/categories/SSL-TLS/" title="SSL/TLS">SSL/TLS<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Skywalking/" title="Skywalking">Skywalking<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Sql/" title="Sql">Sql<sup>5</sup></a></li>
+		
+			<li><a href="/categories/TDD/" title="TDD">TDD<sup>1</sup></a></li>
+		
+			<li><a href="/categories/TPL-DataFlow/" title="TPL DataFlow">TPL DataFlow<sup>2</sup></a></li>
+		
+			<li><a href="/categories/WCF时间类型序列化/" title="WCF时间类型序列化">WCF时间类型序列化<sup>1</sup></a></li>
+		
+			<li><a href="/categories/WebForm/" title="WebForm">WebForm<sup>2</sup></a></li>
+		
+			<li><a href="/categories/WinDbg/" title="WinDbg">WinDbg<sup>1</sup></a></li>
+		
+			<li><a href="/categories/WinSCP/" title="WinSCP">WinSCP<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Windows子系统/" title="Windows子系统">Windows子系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Windows系统/" title="Windows系统">Windows系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/ab/" title="ab">ab<sup>1</sup></a></li>
+		
+			<li><a href="/categories/hexo/" title="hexo">hexo<sup>2</sup></a></li>
+		
+			<li><a href="/categories/shadowsocks/" title="shadowsocks">shadowsocks<sup>1</sup></a></li>
+		
+			<li><a href="/categories/zookeeper/" title="zookeeper">zookeeper<sup>1</sup></a></li>
+		
+			<li><a href="/categories/内存泄漏/" title="内存泄漏">内存泄漏<sup>1</sup></a></li>
+		
+			<li><a href="/categories/分布式/" title="分布式">分布式<sup>1</sup></a></li>
+		
+			<li><a href="/categories/分布式事务/" title="分布式事务">分布式事务<sup>1</sup></a></li>
+		
+			<li><a href="/categories/单词收录/" title="单词收录">单词收录<sup>14</sup></a></li>
+		
+			<li><a href="/categories/反射/" title="反射">反射<sup>4</sup></a></li>
+		
+			<li><a href="/categories/委托与事件/" title="委托与事件">委托与事件<sup>4</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>1</sup></a></li>
+		
+			<li><a href="/categories/并发模型/" title="并发模型">并发模型<sup>1</sup></a></li>
+		
+			<li><a href="/categories/插件/" title="插件">插件<sup>1</sup></a></li>
+		
+			<li><a href="/categories/时间-时间戳转换/" title="时间/时间戳转换">时间/时间戳转换<sup>1</sup></a></li>
+		
+			<li><a href="/categories/消息队列/" title="消息队列">消息队列<sup>1</sup></a></li>
+		
+			<li><a href="/categories/程序集/" title="程序集">程序集<sup>2</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>3</sup></a></li>
+		
+			<li><a href="/categories/线性表/" title="线性表">线性表<sup>1</sup></a></li>
+		
+			<li><a href="/categories/线程池/" title="线程池">线程池<sup>1</sup></a></li>
+		
+			<li><a href="/categories/缓存/" title="缓存">缓存<sup>3</sup></a></li>
+		
+			<li><a href="/categories/计算机基础/" title="计算机基础">计算机基础<sup>2</sup></a></li>
+		
+			<li><a href="/categories/认证与授权/" title="认证与授权">认证与授权<sup>1</sup></a></li>
+		
+			<li><a href="/categories/设计模式/" title="设计模式">设计模式<sup>3</sup></a></li>
+		
+			<li><a href="/categories/链表/" title="链表">链表<sup>2</sup></a></li>
+		
+			<li><a href="/categories/集合与泛型/" title="集合与泛型">集合与泛型<sup>3</sup></a></li>
+		
+			<li><a href="/categories/音频-视频/" title="音频/视频">音频/视频<sup>1</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist" style="clear:both;">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/Net-Standard/" title=".Net Standard">.Net Standard<sup>2</sup></a></li>
+		
+			<li><a href="/tags/net异步与并行/" title=".net异步与并行">.net异步与并行<sup>12</sup></a></li>
+		
+			<li><a href="/tags/ABP/" title="ABP">ABP<sup>27</sup></a></li>
+		
+			<li><a href="/tags/ASP-NET-IIS请求处理管道/" title="ASP.NET/IIS请求处理管道">ASP.NET/IIS请求处理管道<sup>7</sup></a></li>
+		
+			<li><a href="/tags/AWS/" title="AWS">AWS<sup>7</sup></a></li>
+		
+			<li><a href="/tags/ApplicationPoolIdentify/" title="ApplicationPoolIdentify">ApplicationPoolIdentify<sup>1</sup></a></li>
+		
+			<li><a href="/tags/CSharp/" title="CSharp">CSharp<sup>101</sup></a></li>
+		
+			<li><a href="/tags/CSharp基础/" title="CSharp基础">CSharp基础<sup>44</sup></a></li>
+		
+			<li><a href="/tags/CentOS7/" title="CentOS7">CentOS7<sup>24</sup></a></li>
+		
+			<li><a href="/tags/Chrome/" title="Chrome">Chrome<sup>1</sup></a></li>
+		
+			<li><a href="/tags/CodeDOM/" title="CodeDOM">CodeDOM<sup>3</sup></a></li>
+		
+			<li><a href="/tags/Consul/" title="Consul">Consul<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Docker/" title="Docker">Docker<sup>23</sup></a></li>
+		
+			<li><a href="/tags/Docker-Compose/" title="Docker Compose">Docker Compose<sup>5</sup></a></li>
+		
+			<li><a href="/tags/DotNet/" title="DotNet">DotNet<sup>106</sup></a></li>
+		
+			<li><a href="/tags/DotNetCore/" title="DotNetCore">DotNetCore<sup>16</sup></a></li>
+		
+			<li><a href="/tags/DotNet面试题解析/" title="DotNet面试题解析">DotNet面试题解析<sup>10</sup></a></li>
+		
+			<li><a href="/tags/Elasticsearch/" title="Elasticsearch">Elasticsearch<sup>2</sup></a></li>
+		
+			<li><a href="/tags/Emit-反射发出/" title="Emit(反射发出)">Emit(反射发出)<sup>8</sup></a></li>
+		
+			<li><a href="/tags/Expression-Tree/" title="Expression Tree">Expression Tree<sup>3</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+<div style="display: none;" id="rocket-to-top">
+  <div style="opacity: 0; display: block;" class="level-2"></div>
+  <div class="level-3"></div>
+</div>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<div class="social-font clearfix">
+		
+		
+		
+		<a href="https://github.com/syxdevcode" target="_blank" title="github"></a>
+		
+		
+		
+	</div>
+		<p class="copyright">Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/syxdevcode/pacman" target="_blank" title="Pacman">Pacman</a> © 2020 
+		
+		<a href="https://syxdevcode.github.com" target="_blank" title="syxdevcode">syxdevcode</a>
+		
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    $('.navbar').click(function () {
+      $('header nav').toggleClass('shownav');
+    });
+    var myWidth = 0;
+    function getSize() {
+      if (typeof (window.innerWidth) == 'number') {
+        myWidth = window.innerWidth;
+      } else if (document.documentElement && document.documentElement.clientWidth) {
+        myWidth = document.documentElement.clientWidth;
+      };
+    };
+    var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+    $(window).resize(function () {
+      getSize();
+      if (myWidth >= 1024) {
+        $('header nav').removeClass('shownav');
+      } else {
+        m.removeClass('moveMain');
+        a.css('display', 'block').removeClass('fadeOut');
+        o.css('display', 'none');
+      
+          $('#toc.toc-aside').css('display', 'none');
+        
+    }
+    });
+    c.click(function () {
+      a.addClass('fadeOut').css('display', 'none');
+      o.css('display', 'block').addClass('fadeIn');
+      m.addClass('moveMain');
+    });
+    o.click(function () {
+      o.css('display', 'none').removeClass('beforeFadeIn');
+      a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');
+      m.removeClass('moveMain');
+    });
+    $(window).scroll(function () {
+      o.css("top", Math.max(80, 260 - $(this).scrollTop()));
+    });
+  });
+  //判断访问终端
+  var browser = {
+    versions: function () {
+      var u = navigator.userAgent,
+        app = navigator.appVersion;
+      return {
+        trident: u.indexOf('Trident') > -1, //IE内核
+        presto: u.indexOf('Presto') > -1, //opera内核
+        webKit: u.indexOf('AppleWebKit') > -1, //苹果、谷歌内核
+        gecko: u.indexOf('Gecko') > -1 && u.indexOf('KHTML') == -1,//火狐内核
+        mobile: !!u.match(/AppleWebKit.*Mobile.*/), //是否为移动终端
+        ios: !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/), //ios终端
+        android: u.indexOf('Android') > -1 || u.indexOf('Adr') > -1, //android终端
+        iPhone: u.indexOf('iPhone') > -1, //是否为iPhone或者QQHD浏览器
+        iPad: u.indexOf('iPad') > -1, //是否iPad
+        webApp: u.indexOf('Safari') == -1, //是否web应该程序，没有头部与底部
+        weixin: u.indexOf('MicroMessenger') > -1, //是否微信 （2015-01-22新增）
+        qq: u.match(/\sQQ/i) == " qq" //是否QQ
+      };
+    }(),
+    language: (navigator.browserLanguage || navigator.language).toLowerCase()
+  }
+</script>
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t = $('#toc'),
+      h = $('article h2')
+    ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o = $('.openaside'),
+      c = $('.closeaside');
+    if (ai.length > 0) {
+      ai.wrap('<div class="video-container" />');
+    };
+    if (ae.length > 0) {
+      ae.wrap('<div class="video-container" />');
+    };
+    if (ah.length == 0) {
+      t.css('display', 'none');
+    } else {
+      c.click(function () {
+        ta.css('display', 'block').addClass('fadeIn');
+      });
+      o.click(function () {
+        ta.css('display', 'none');
+      });
+      $(window).scroll(function () {
+        ta.css("top", Math.max(140, 320 - $(this).scrollTop()));
+      });
+    };
+  });
+</script>
+
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    var $this = $('.share'),
+      //url = $this.attr('data-url'),
+      url = window.location.href,
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+    var html = [
+      '<a href="#" class="overlay" id="qrcode"></a>',
+      '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://mobile.qq.com/qrcode?url=' + encodedUrl + '"/></div>',
+      '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+      '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+      '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+      '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+      '<a href="http://service.weibo.com/share/share.php?title=' + title + '&url=' + encodedUrl + '&ralateUid=' + tsina + '&searchPic=true&style=number' + '" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+      '<span title="Share to"></span>'
+    ].join('');
+    $this.append(html);
+    viewqrCode();
+    $('.article-share-qrcode').click(viewqrCode()
+    );
+
+  });
+  function viewqrCode() {
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function () {
+      $('.qrcode strong').text(' ');
+    });
+  }
+</script>
+<script type="text/javascript">  
+  //判断是否移动端 
+  if (!browser.versions.mobile) {
+    $(function () {
+      var c, a = $("#rocket-to-top"), e = ($(document).scrollTop(), !0);
+      $(window).scroll(function () {
+        var b = $(document).scrollTop(); 0 == b ? "0px 0px" == a.css("background-position") ? a.fadeOut("slow") : e && (e = !1, $(".level-2").css("opacity", 1), a.delay(100).animate({ marginTop: "-1000px" }, "normal", function () { a.css({ "margin-top": "-125px", display: "none" }), e = !0 })) : a.fadeIn("slow")
+      }), a.hover(function () { $(".level-2").stop(!0).animate({ opacity: 1 }) }, function () { $(".level-2").stop(!0).animate({ opacity: 0 }) }), $(".level-3").click(function () { function b() { var b = a.css("background-position"); if ("none" == a.css("display") || 0 == e) return clearInterval(c), a.css("background-position", "0px 0px"), void 0; switch (b) { case "0px 0px": a.css("background-position", "-298px 0px"); break; case "-298px 0px": a.css("background-position", "-447px 0px"); break; case "-447px 0px": a.css("background-position", "-596px 0px"); break; case "-596px 0px": a.css("background-position", "-745px 0px"); break; case "-745px 0px": a.css("background-position", "-298px 0px") } } e && (c = setInterval(b, 50), $("html,body").animate({ scrollTop: 0 }, "slow")) })
+    });
+  }
+</script>
+
+
+
+
+
+  </body>
+</html>

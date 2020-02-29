@@ -1,0 +1,652 @@
+
+ <!DOCTYPE HTML>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  
+    <title>TPL DataFlow笔记（1） | syxdevcode博客</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="syxdevcode">
+    
+    <meta name="description" content="转载：TPL DataFlow初探（一）
+属性 TPL Dataflow 是微软面向高并发应用而推出的一个类库。借助于异步消息传递与管道，它可以提供比线程池更好的控制，也比手工线程方式具备更好的性能。我们常常可以消息传递，生产-消费模式或Actor-Agent模式中使用。在TDF是构建于 Task ">
+    
+    
+    
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+  <body>
+    <header>
+      <div>
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="syxdevcode博客" title="syxdevcode博客"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="syxdevcode博客">syxdevcode博客</a></h1>
+				<h2 class="blog-motto"></h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+						<li><a href="/tags">tags</a></li>
+					
+						<li><a href="/categories">categories</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:syxdevcode.github.com">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>			
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2020/01/10/TPL DataFlow笔记（1）/" title="TPL DataFlow笔记（1）" itemprop="url">TPL DataFlow笔记（1）</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="https://syxdevcode.github.com" title="syxdevcode">syxdevcode</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2020-01-10T10:27:52.000Z" itemprop="datePublished">2020-01-10</time>
+    更新日期:<time datetime="2020-02-29T10:34:53.188Z" itemprop="dateModified">2020-02-29</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#BufferBlock"><span class="toc-number">1.</span> <span class="toc-text">BufferBlock</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ActionBlock"><span class="toc-number">2.</span> <span class="toc-text">ActionBlock</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#TransformBlock"><span class="toc-number">3.</span> <span class="toc-text">TransformBlock</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#TransformManyBlock"><span class="toc-number">4.</span> <span class="toc-text">TransformManyBlock</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#BroadcastBlock"><span class="toc-number">5.</span> <span class="toc-text">BroadcastBlock</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#WriteOnceBlock"><span class="toc-number">6.</span> <span class="toc-text">WriteOnceBlock</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#BatchBlock"><span class="toc-number">7.</span> <span class="toc-text">BatchBlock</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#JoinBlock"><span class="toc-number">8.</span> <span class="toc-text">JoinBlock</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#BatchedJoinBlock"><span class="toc-number">9.</span> <span class="toc-text">BatchedJoinBlock</span></a></li></ol>
+		</div>
+		
+		<p>转载：<a href="https://www.cnblogs.com/haoxinyue/archive/2013/03/01/2938959.html" target="_blank" rel="noopener">TPL DataFlow初探（一）</a></p>
+<p>属性 <code>TPL Dataflow</code> 是微软面向高并发应用而推出的一个类库。借助于异步消息传递与管道，它可以提供比线程池更好的控制，也比手工线程方式具备更好的性能。我们常常可以消息传递，生产-消费模式或Actor-Agent模式中使用。在TDF是构建于 <code>Task Parallel Library</code> (TPL)之上的，它是我们开发高性能，高并发的应用程序的又一利器。</p>
+<p>TDF的主要作用就是 <code>Buffering Data</code> 和 <code>Processing Data</code> ，在TDF中，有两个非常重要的接口，<code>ISourceBlock&lt;T&gt;</code> 和 <code>ITargetBlock&lt;T&gt;</code> 接口。继承于 <code>ISourceBlock&lt;T&gt;</code> 的对象时作为提供数据的数据源对象-生产者，而继承于 <code>ITargetBlock&lt;T&gt;</code> 接口类主要是扮演目标对象-消费者。在这个类库中，<code>System.Threading.Tasks.Dataflow</code> 名称空间下，提供了很多以Block名字结尾的类，<code>ActionBlock</code>，<code>BufferBlock</code>，<code>TransformBlock</code>，<code>BroadcastBlock</code> 等9个Block，我们在开发中通常使用单个或多个Block组合的方式来实现一些功能。</p>
+<p>支持的版本：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20200110135719.png" alt="QQ截图20200110135719.png"></p>
+<p>备注：<br>TPL 数据流库（<code>System.Threading.Tasks.Dataflow</code> 命名空间）不随 .NET 一起分发。 若要在 Visual Studio 中安装 <code>System.Threading.Tasks.Dataflow</code> 命名空间，请打开项目，选择“项目” 菜单中的“管理 NuGet 包” ，再在线搜索 <code>System.Threading.Tasks.Dataflow</code> 包。 或者，若要使用 .NET Core CLI 进行安装，请运行 <code>dotnet add package System.Threading.Tasks.Dataflow</code>。</p>
+<h2 id="BufferBlock"><a href="#BufferBlock" class="headerlink" title="BufferBlock"></a>BufferBlock</h2><p><code>BufferBlock</code> 是TDF中最基础的 <code>Block</code>。<code>BufferBlock</code> 提供了一个有界限或没有界限的 <code>Buffer</code>，该 <code>Buffer</code> 中存储T。该 <code>Block</code> 很像 <code>BlockingCollection&lt;T&gt;</code> 。可以用过 <code>Post</code> 往里面添加数据，也可以通过<code>Receive</code> 方法阻塞或异步的的获取数据，数据处理的顺序是 <code>FIFO</code> 的。它也可以通过Link向其他 <code>Block</code> 输出数据。</p>
+<p><img src="/img/01161517-0f5c7949243a4f9b995672da83950fb9.png" alt="01161517-0f5c7949243a4f9b995672da83950fb9.png"></p>
+<p>简单的同步的生产者消费者代码示例：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> BufferBlock&lt;<span class="keyword">int</span>&gt; m_buffer = <span class="keyword">new</span> BufferBlock&lt;<span class="keyword">int</span>&gt;();</span><br><span class="line"></span><br><span class="line"><span class="comment">// Producer</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Producer</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">while</span>(<span class="literal">true</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">int</span> item = Produce();</span><br><span class="line">        m_buffer.Post(item);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Consumer</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Consumer</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">while</span>(<span class="literal">true</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">int</span> item = m_buffer.Receive();</span><br><span class="line">        Process(item);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Main</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">var</span> p = Task.Factory.StartNew(Producer);</span><br><span class="line">    <span class="keyword">var</span> c = Task.Factory.StartNew(Consumer);</span><br><span class="line">    Task.WaitAll(p,c);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><a href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.dataflow.bufferblock-1?view=netcore-3.1" target="_blank" rel="noopener">BufferBlock<T> 类</a></p>
+<h2 id="ActionBlock"><a href="#ActionBlock" class="headerlink" title="ActionBlock"></a>ActionBlock</h2><p><code>ActionBlock</code> 实现 <code>ITargetBlock</code>，说明它是消费数据的，也就是对输入的一些数据进行处理。它在构造函数中，允许输入一个委托，来对每一个进来的数据进行一些操作。如果使用<code>Action(T)</code> 委托，那说明每一个数据的处理完成需要等待这个委托方法结束，如果使用了 <code>Func&lt;TInput, Task&gt;)</code> 来构造的话，那么数据的结束将不是委托的返回，而是Task的结束。默认情况下，<code>ActionBlock</code> 会 <code>FIFO</code> 的处理每一个数据，而且一次只能处理一个数据，一个处理完了再处理第二个，但也可以通过配置来并行的执行多个数据。</p>
+<p><img src="/img/01161519-5f62f15310e548b9a06f3fa9b603a149.png" alt="01161519-5f62f15310e548b9a06f3fa9b603a149.png"></p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> ActionBlock&lt;<span class="keyword">int</span>&gt; abSync = <span class="keyword">new</span> ActionBlock&lt;<span class="keyword">int</span>&gt;((i) =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        Thread.Sleep(<span class="number">1000</span>);</span><br><span class="line">        Console.WriteLine(i + <span class="string">" ThreadId:"</span> + Thread.CurrentThread.ManagedThreadId + <span class="string">" Execute Time:"</span> + DateTime.Now);</span><br><span class="line">    &#125;</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">TestSync</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        abSync.Post(i);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    Console.WriteLine(<span class="string">"Post finished"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/img/01161524-b5276dfab96c4200aa72b906a3b4009b.jpg" alt="01161524-b5276dfab96c4200aa72b906a3b4009b.jpg"></p>
+<p>可见，<code>ActionBlock</code> 是顺序处理数据的，这也是 <code>ActionBlock</code> 一大特性之一。主线程在往 <code>ActionBlock</code> 中 <code>Post</code> 数据以后马上返回，具体数据的处理是另外一个线程来做的。数据是异步处理的，但处理本身是同步的，这样在一定程度上保证数据处理的准确性。下面的例子是使用async和await。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> ActionBlock&lt;<span class="keyword">int</span>&gt; abSync2 = <span class="keyword">new</span> ActionBlock&lt;<span class="keyword">int</span>&gt;(<span class="keyword">async</span> (i) =&gt;</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">await</span> Task.Delay(<span class="number">1000</span>);</span><br><span class="line">    Console.WriteLine(i + <span class="string">" ThreadId:"</span> + Thread.CurrentThread.ManagedThreadId + <span class="string">" Execute Time:"</span> + DateTime.Now);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/img/01161525-ab3d15e3e91641be9a15988a88effddf.jpg" alt="01161525-ab3d15e3e91641be9a15988a88effddf.jpg"></p>
+<p>虽然还是1秒钟处理一个数据，但是处理数据的线程会有不同。</p>
+<p>如果你想异步处理多个消息的话，<code>ActionBlock</code> 也提供了一些接口，让你轻松实现。在 <code>ActionBlock</code> 的构造函数中，可以提供一个 <code>ExecutionDataflowBlockOptions</code> 的类型，让你定义 <code>ActionBlock</code> 的执行选项，在下面了例子中，我们定义了 <code>MaxDegreeOfParallelism</code> 选项，设置为3。目的的让 <code>ActionBlock</code> 中的Item最多可以3个并行处理。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> ActionBlock&lt;<span class="keyword">int</span>&gt; abAsync = <span class="keyword">new</span> ActionBlock&lt;<span class="keyword">int</span>&gt;((i) =&gt;</span><br><span class="line">&#123;</span><br><span class="line">    Thread.Sleep(<span class="number">1000</span>);</span><br><span class="line">    Console.WriteLine(i + <span class="string">" ThreadId:"</span> + Thread.CurrentThread.ManagedThreadId + <span class="string">" Execute Time:"</span> + DateTime.Now);</span><br><span class="line">&#125;, <span class="keyword">new</span> ExecutionDataflowBlockOptions() &#123; MaxDegreeOfParallelism = <span class="number">3</span> &#125;);</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">TestAsync</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        abAsync.Post(i);</span><br><span class="line">    &#125;</span><br><span class="line">    Console.WriteLine(<span class="string">"Post finished"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/img/01161530-c51b7a2e84254edebe2d85a63e3bf576.jpg" alt="01161530-c51b7a2e84254edebe2d85a63e3bf576.jpg"></p>
+<p>运行程序，我们看见，每3个数据几乎同时处理，并且他们的线程ID也是不一样的。</p>
+<p><code>ActionBlock</code> 也有自己的生命周期，所有继承 <code>IDataflowBlock</code> 的类型都有 <code>Completion</code> 属性和 <code>Complete</code> 方法。调用 <code>Complete</code> 方法是让 <code>ActionBlock</code> 停止接收数据，而 <code>Completion</code> 属性则是一个Task，是在 <code>ActionBlock</code> 处理完所有数据时候会执行的任务，我们可以使用 <code>Completion.Wait()</code> 方法来等待 <code>ActionBlock</code> 完成所有的任务，<code>Completion</code> 属性只有在设置了 <code>Complete</code> 方法后才会有效。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">TestAsync</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        abAsync.Post(i);</span><br><span class="line">    &#125;</span><br><span class="line">    abAsync.Complete();</span><br><span class="line">    Console.WriteLine(<span class="string">"Post finished"</span>);</span><br><span class="line">    abAsync.Completion.Wait();</span><br><span class="line">    Console.WriteLine(<span class="string">"Process finished"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/img/01161531-151aebc85b31469894f4cae064eac264.jpg" alt="01161531-151aebc85b31469894f4cae064eac264.jpg"></p>
+<h2 id="TransformBlock"><a href="#TransformBlock" class="headerlink" title="TransformBlock"></a>TransformBlock</h2><p><code>TransformBlock</code> 是TDF提供的另一种 <code>Block</code> ，顾名思义它常常在数据流中充当数据转换处理的功能。在<code>TransformBlock</code> 内部维护了2个 <code>Queue</code>，一个 <code>InputQueue</code>，一个 <code>OutputQueue</code>。<code>InputQueue</code> 存储输入的数据，而通过 <code>Transform</code> 处理以后的数据则放在 <code>OutputQueue</code>，<code>OutputQueue</code> 就好像是一个 <code>BufferBlock</code>。最终我们可以通过 <code>Receive</code> 方法来阻塞的一个一个获取 <code>OutputQueue</code> 中的数据。 <code>TransformBlock</code> 的 <code>Completion.Wait()</code> 方法只有在 <code>OutputQueue</code> 中的数据为0的时候才会返回。</p>
+<p><img src="/img/01161534-bdb94184e8814888b2fcc44c75c89a76.png" alt="01161534-bdb94184e8814888b2fcc44c75c89a76.png"></p>
+<p>举个例子，我们有一组网址的URL，我们需要对每个URL下载它的HTML数据并存储。那我们通过如下的代码来完成：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> TransformBlock&lt;<span class="keyword">string</span>, <span class="keyword">string</span>&gt; tbUrl = <span class="keyword">new</span> TransformBlock&lt;<span class="keyword">string</span>, <span class="keyword">string</span>&gt;((url) =&gt;</span><br><span class="line">&#123;</span><br><span class="line">    WebClient webClient = <span class="keyword">new</span> WebClient();</span><br><span class="line">    <span class="keyword">return</span> webClient.DownloadString(<span class="keyword">new</span> Uri(url));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">TestDownloadHTML</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    tbUrl.Post(<span class="string">"www.baidu.com"</span>);</span><br><span class="line">    tbUrl.Post(<span class="string">"www.sina.com.cn"</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">string</span> baiduHTML = tbUrl.Receive();</span><br><span class="line">    <span class="keyword">string</span> sinaHTML = tbUrl.Receive();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>当然，<code>Post</code> 操作和 <code>Receive</code> 操作可以在不同的线程中进行，<code>Receive</code> 操作同样也是阻塞操作，在 <code>OutputQueue</code> 中有可用的数据时，才会返回。</p>
+<h2 id="TransformManyBlock"><a href="#TransformManyBlock" class="headerlink" title="TransformManyBlock"></a>TransformManyBlock</h2><p><code>TransformManyBlock</code> 和 <code>TransformBlock</code> 非常类似，关键的不同点是，<code>TransformBlock</code> 对应于一个输入数据只有一个输出数据，而 <code>TransformManyBlock</code> 可以有多个，及可以从 <code>InputQueue</code> 中取一个数据出来，然后放多个数据放入到 <code>OutputQueue</code> 中。</p>
+<p><img src="/img/01161536-f582de1c67994e409b4f7835251b3c53.png" alt="01161536-f582de1c67994e409b4f7835251b3c53.png"></p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">TransformManyBlock&lt;<span class="keyword">int</span>, <span class="keyword">int</span>&gt; tmb = <span class="keyword">new</span> TransformManyBlock&lt;<span class="keyword">int</span>, <span class="keyword">int</span>&gt;((i) =&gt; &#123; <span class="keyword">return</span> <span class="keyword">new</span> <span class="keyword">int</span>[] &#123; i, i + <span class="number">1</span> &#125;; &#125;);</span><br><span class="line"></span><br><span class="line">ActionBlock&lt;<span class="keyword">int</span>&gt; ab = <span class="keyword">new</span> ActionBlock&lt;<span class="keyword">int</span>&gt;((i) =&gt; Console.WriteLine(i));</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">TestSync</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    tmb.LinkTo(ab);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">4</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        tmb.Post(i);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    Console.WriteLine(<span class="string">"Finished post"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/img/01161542-6d6c0dd2327a43f5982ad5405487b717.jpg" alt="01161542-6d6c0dd2327a43f5982ad5405487b717.jpg"></p>
+<h2 id="BroadcastBlock"><a href="#BroadcastBlock" class="headerlink" title="BroadcastBlock"></a>BroadcastBlock</h2><p><code>BroadcastBlock</code> 的作用不像 <code>BufferBlock</code> ，它是使命是让所有和它相联的目标 <code>Block</code> 都收到数据的副本，这点从它的命名上面就可以看出来了。还有一点不同的是，<code>BroadcastBlock</code> 并不保存数据，在每一个数据被发送到所有接收者以后，这条数据就会被后面最新的一条数据所覆盖。如没有目标 <code>Block</code> 和 <code>BroadcastBlock</code> 相连的话，数据将被丢弃。但 <code>BroadcastBlock</code> 总会保存最后一个数据，不管这个数据是不是被发出去过，如果有一个新的目标 <code>Block</code> 连上来，那么这个 <code>Block</code> 将收到这个最后一个数据。</p>
+<p><img src="/img/01161543-bbfd0d43c8ad434f9af8dab2827c148c.png" alt="01161543-bbfd0d43c8ad434f9af8dab2827c148c.png"></p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">BroadcastBlock&lt;<span class="keyword">int</span>&gt; bb = <span class="keyword">new</span> BroadcastBlock&lt;<span class="keyword">int</span>&gt;((i) =&gt; &#123; <span class="keyword">return</span> i; &#125;);</span><br><span class="line"></span><br><span class="line">ActionBlock&lt;<span class="keyword">int</span>&gt; displayBlock = <span class="keyword">new</span> ActionBlock&lt;<span class="keyword">int</span>&gt;((i) =&gt; Console.WriteLine(<span class="string">"Displayed "</span> + i));</span><br><span class="line"></span><br><span class="line">ActionBlock&lt;<span class="keyword">int</span>&gt; saveBlock = <span class="keyword">new</span> ActionBlock&lt;<span class="keyword">int</span>&gt;((i) =&gt; Console.WriteLine(<span class="string">"Saved "</span> + i));</span><br><span class="line"></span><br><span class="line">ActionBlock&lt;<span class="keyword">int</span>&gt; sendBlock = <span class="keyword">new</span> ActionBlock&lt;<span class="keyword">int</span>&gt;((i) =&gt; Console.WriteLine(<span class="string">"Sent "</span> + i));</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">TestSync</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    bb.LinkTo(displayBlock);</span><br><span class="line">    bb.LinkTo(saveBlock);</span><br><span class="line">    bb.LinkTo(sendBlock);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">4</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        bb.Post(i);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    Console.WriteLine(<span class="string">"Post finished"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/img/01161545-e9724f3e074644f5b5d756efe3ea4c02.jpg" alt="01161545-e9724f3e074644f5b5d756efe3ea4c02.jpg"></p>
+<p>如果我们在Post以后再添加连接Block的话，那些Block就只会收到最后一个数据了。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">TestSync</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">4</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        bb.Post(i);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    Thread.Sleep(<span class="number">5000</span>);</span><br><span class="line"></span><br><span class="line">    bb.LinkTo(displayBlock);</span><br><span class="line">    bb.LinkTo(saveBlock);</span><br><span class="line">    bb.LinkTo(sendBlock);</span><br><span class="line">    Console.WriteLine(<span class="string">"Post finished"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="WriteOnceBlock"><a href="#WriteOnceBlock" class="headerlink" title="WriteOnceBlock"></a>WriteOnceBlock</h2><p>如果说 <code>BufferBlock</code> 是最基本的 <code>Block</code> ，那么 <code>WriteOnceBock</code> 则是最最简单的 <code>Block</code> 。它最多只能存储一个数据，一旦这个数据被发送出去以后，这个数据还是会留在Block中，但不会被删除或被新来的数据替换，同样所有的接收者都会收到这个数据的备份。</p>
+<p><img src="/img/01161551-f163f3bb35014568ac90dd5d3175d7ee.png" alt="01161551-f163f3bb35014568ac90dd5d3175d7ee.png"></p>
+<p>和BroadcastBlock同样的代码，但是结果不一样：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">WriteOnceBlock&lt;<span class="keyword">int</span>&gt; bb = <span class="keyword">new</span> WriteOnceBlock&lt;<span class="keyword">int</span>&gt;((i) =&gt; &#123; <span class="keyword">return</span> i; &#125;);</span><br><span class="line"></span><br><span class="line">ActionBlock&lt;<span class="keyword">int</span>&gt; displayBlock = <span class="keyword">new</span> ActionBlock&lt;<span class="keyword">int</span>&gt;((i) =&gt; Console.WriteLine(<span class="string">"Displayed "</span> + i));</span><br><span class="line"></span><br><span class="line">ActionBlock&lt;<span class="keyword">int</span>&gt; saveBlock = <span class="keyword">new</span> ActionBlock&lt;<span class="keyword">int</span>&gt;((i) =&gt; Console.WriteLine(<span class="string">"Saved "</span> + i));</span><br><span class="line"></span><br><span class="line">ActionBlock&lt;<span class="keyword">int</span>&gt; sendBlock = <span class="keyword">new</span> ActionBlock&lt;<span class="keyword">int</span>&gt;((i) =&gt; Console.WriteLine(<span class="string">"Sent "</span> + i));</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">TestSync</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    bb.LinkTo(displayBlock);</span><br><span class="line">    bb.LinkTo(saveBlock);</span><br><span class="line">    bb.LinkTo(sendBlock);</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">4</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        bb.Post(i);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    Console.WriteLine(<span class="string">"Post finished"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/img/01161558-66b3a94704ba426385f65e0f0d78433e.jpg" alt="01161558-66b3a94704ba426385f65e0f0d78433e.jpg"></p>
+<p>WriteOnceBock只会接收一次数据。而且始终保留那个数据。</p>
+<p>同样使用Receive方法来获取数据也是一样的结果，获取到的都是第一个数据：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">TestReceive</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">4</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        bb.Post(i);</span><br><span class="line">    &#125;</span><br><span class="line">    Console.WriteLine(<span class="string">"Post finished"</span>);</span><br><span class="line"></span><br><span class="line">    Console.WriteLine(<span class="string">"1st Receive:"</span> + bb.Receive());</span><br><span class="line">    Console.WriteLine(<span class="string">"2nd Receive:"</span> + bb.Receive());</span><br><span class="line">    Console.WriteLine(<span class="string">"3rd Receive:"</span> + bb.Receive());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/img/01161605-e4ff0fa705c941059b3d0d6d0087eb25.jpg" alt="01161605-e4ff0fa705c941059b3d0d6d0087eb25.jpg"></p>
+<h2 id="BatchBlock"><a href="#BatchBlock" class="headerlink" title="BatchBlock"></a>BatchBlock</h2><p><img src="/img/01161612-424f44c875a64999aa48d0a15a6d2f8a.png" alt="01161612-424f44c875a64999aa48d0a15a6d2f8a.png"></p>
+<p><code>BatchBlock</code> 提供了能够把多个单个的数据组合起来处理的功能，如上图。应对有些需求需要固定多个数据才能处理的问题。在构造函数中需要制定多少个为一个 <code>Batch</code>，一旦它收到了那个数量的数据后，会打包放在它的 <code>OutputQueue</code> 中。当 <code>BatchBlock</code> 被调用 <code>Complete</code> 告知 <code>Post</code> 数据结束的时候，会把 <code>InputQueue</code> 中余下的数据打包放入 <code>OutputQueue</code> 中等待处理，而不管 <code>InputQueue</code> 中的数据量是不是满足构造函数的数量。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">BatchBlock&lt;<span class="keyword">int</span>&gt; bb = <span class="keyword">new</span> BatchBlock&lt;<span class="keyword">int</span>&gt;(<span class="number">3</span>);</span><br><span class="line"></span><br><span class="line">ActionBlock&lt;<span class="keyword">int</span>[]&gt; ab = <span class="keyword">new</span> ActionBlock&lt;<span class="keyword">int</span>[]&gt;((i) =&gt;</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">string</span> s = <span class="keyword">string</span>.Empty;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">foreach</span> (<span class="keyword">int</span> m <span class="keyword">in</span> i)</span><br><span class="line">    &#123;</span><br><span class="line">        s += m + <span class="string">" "</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    Console.WriteLine(s);</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">TestSync</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    bb.LinkTo(ab);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        bb.Post(i);</span><br><span class="line">    &#125;</span><br><span class="line">    bb.Complete();</span><br><span class="line"></span><br><span class="line">    Console.WriteLine(<span class="string">"Finished post"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/img/01161613-22d4c06138354a2db448bc5bfa3c9d6b.jpg" alt="01161613-22d4c06138354a2db448bc5bfa3c9d6b.jpg"></p>
+<p><code>BatchBlock</code> 执行数据有两种模式：贪婪模式和非贪婪模式。贪婪模式是默认的。贪婪模式是指任何Post到<code>BatchBlock</code>，<code>BatchBlock</code> 都接收，并等待个数满了以后处理。非贪婪模式是指 <code>BatchBlock</code> 需要等到构造函数中设置的 <code>BatchSize</code> 个数的 <code>Source</code> 都向 <code>BatchBlock</code> 发数据，<code>Post</code> 数据的时候才会处理。不然都会留在Source的Queue中。也就是说 <code>BatchBlock</code> 可以使用在每次从N个 <code>Source</code> 那个收一个数据打包处理或从1个 <code>Source</code> 那里收N个数据打包处理。这里的Source是指其他的继承 <code>ISourceBlock</code> 的，用 <code>LinkTo</code> 连接到这个<code>BatchBlock</code> 的 <code>Block</code> 。</p>
+<p>在另一个构造参数中 <code>GroupingDataflowBlockOptions</code>，可以通过设置 <code>Greedy</code> 属性来选择是否贪婪模式和 <code>MaxNumberOfGroups</code> 来设置最大产生Batch的数量，如果到达了这个数量，<code>BatchBlock</code> 将不会再接收数据。</p>
+<h2 id="JoinBlock"><a href="#JoinBlock" class="headerlink" title="JoinBlock"></a>JoinBlock</h2><p><img src="/img/01161619-5805d12c170c4dd291897abe0fff07f6.png" alt="01161619-5805d12c170c4dd291897abe0fff07f6.png"></p>
+<p><code>JoinBlock</code> 一看名字就知道是需要和两个或两个以上的 <code>Source Block</code> 相连接的。它的作用就是等待一个数据组合，这个组合需要的数据都到达了，它才会处理数据，并把这个组合作为一个 <code>Tuple</code> 传递给目标 <code>Block</code>。举个例子，如果定义了 <code>JoinBlock&lt;int, string&gt;</code> 类型，那么 <code>JoinBlock</code> 内部会有两个 <code>ITargetBlock</code>，一个接收int类型的数据，一个接收string类型的数据。那只有当两个 <code>ITargetBlock</code> 都收到各自的数据后，才会放到<code>JoinBlock的OutputQueue</code> 中，输出。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">JoinBlock&lt;<span class="keyword">int</span>, <span class="keyword">string</span>&gt; jb = <span class="keyword">new</span> JoinBlock&lt;<span class="keyword">int</span>, <span class="keyword">string</span>&gt;();</span><br><span class="line">ActionBlock&lt;Tuple&lt;<span class="keyword">int</span>, <span class="keyword">string</span>&gt;&gt; ab = <span class="keyword">new</span> ActionBlock&lt;Tuple&lt;<span class="keyword">int</span>, <span class="keyword">string</span>&gt;&gt;((i) =&gt;</span><br><span class="line">&#123;</span><br><span class="line">    Console.WriteLine(i.Item1 + <span class="string">" "</span> + i.Item2);</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">TestSync</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    jb.LinkTo(ab);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">5</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        jb.Target1.Post(i);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">5</span>; i &gt; <span class="number">0</span>; i--)</span><br><span class="line">    &#123;</span><br><span class="line">        Thread.Sleep(<span class="number">1000</span>);</span><br><span class="line">        jb.Target2.Post(i.ToString());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    Console.WriteLine(<span class="string">"Finished post"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/img/01161623-de3f5cbecec145d88c3bc4ac70276026.jpg" alt="01161623-de3f5cbecec145d88c3bc4ac70276026.jpg"></p>
+<h2 id="BatchedJoinBlock"><a href="#BatchedJoinBlock" class="headerlink" title="BatchedJoinBlock"></a>BatchedJoinBlock</h2><p><img src="/img/01161627-35dfb0f1f22448f6a68d78ea78e6012a.png" alt="01161627-35dfb0f1f22448f6a68d78ea78e6012a.png"></p>
+<p><code>BatchedJoinBlock</code> 一看就是 <code>BacthBlock</code> 和 <code>JoinBlick</code> 的组合。<code>JoinBlick</code> 是组合目标队列的一个数据，而 <code>BatchedJoinBlock</code> 是组合目标队列的N个数据，当然这个N可以在构造函数中配置。如果我们定义的是<code>BatchedJoinBlock&lt;int, string&gt;</code>， 那么在最后的 <code>OutputQueue</code> 中存储的是 <code>Tuple&lt;IList&lt;int&gt;, IList&lt;string&gt;&gt;</code>，也就是说最后得到的数据是 <code>Tuple&lt;IList&lt;int&gt;, IList&lt;string&gt;&gt;</code>。它的行为是这样的，还是假设上文的定义，<code>BatchedJoinBlock&lt;int, string&gt;</code>， 构造 <code>BatchSize</code> 输入为3。那么在这个<code>BatchedJoinBlock</code> 种会有两个 <code>ITargetBlock</code>，会接收Post的数据。那什么时候会生成一个 <code>Tuple&lt;IList&lt;int&gt;，IList&lt;string&gt;&gt;</code> 到 <code>OutputQueue</code> 中呢，测试下来并不是我们想的需要有3个int数据和3个string数据，而是只要2个 <code>ITargetBlock</code> 中的数据个数加起来等于3就可以了。3和0,2和1，1和2或0和3的组合都会生成 <code>Tuple&lt;IList&lt;int&gt;，IList&lt;string&gt;&gt;</code>到 <code>OutputQueue</code> 中。可以参看下面的例子：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">BatchedJoinBlock&lt;<span class="keyword">int</span>, <span class="keyword">string</span>&gt; bjb = <span class="keyword">new</span> BatchedJoinBlock&lt;<span class="keyword">int</span>, <span class="keyword">string</span>&gt;(<span class="number">3</span>);</span><br><span class="line"></span><br><span class="line">ActionBlock&lt;Tuple&lt;IList&lt;<span class="keyword">int</span>&gt;, IList&lt;<span class="keyword">string</span>&gt;&gt;&gt; ab = <span class="keyword">new</span> ActionBlock&lt;Tuple&lt;IList&lt;<span class="keyword">int</span>&gt;, IList&lt;<span class="keyword">string</span>&gt;&gt;&gt;((i) =&gt;</span><br><span class="line">&#123;</span><br><span class="line">    Console.WriteLine(<span class="string">"-----------------------------"</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">foreach</span> (<span class="keyword">int</span> m <span class="keyword">in</span> i.Item1)</span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(m);</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">foreach</span> (<span class="keyword">string</span> s <span class="keyword">in</span> i.Item2)</span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(s);</span><br><span class="line">    &#125;;</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">TestSync</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    bjb.LinkTo(ab);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">5</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        bjb.Target1.Post(i);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">5</span>; i &gt; <span class="number">0</span>; i--)</span><br><span class="line">    &#123;</span><br><span class="line">        bjb.Target2.Post(i.ToString());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    Console.WriteLine(<span class="string">"Finished post"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/img/01161631-152815cac25746c9a5a04d09bc7cf172.jpg" alt="01161631-152815cac25746c9a5a04d09bc7cf172.jpg"></p>
+<p>最后剩下的一个数据1，由于没有满3个，所以一直被保留在Target2中。</p>
+<p>TDF中最有用的功能之一就是多个 <code>Block</code> 之间可以组合应用。<code>ISourceBlock</code> 可以连接 <code>ITargetBlock</code> ，一对一，一对多，或多对多。下面的例子就是一个 <code>TransformBlock</code> 和一个 <code>ActionBlock</code> 的组合。<code>TransformBlock</code> 用来把数据*2，并转换成字符串，然后把数据扔到 <code>ActionBlock</code> 中，而 <code>ActionBlock</code> 则用来最后的处理数据打印结果。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> ActionBlock&lt;<span class="keyword">string</span>&gt; abSync = <span class="keyword">new</span> ActionBlock&lt;<span class="keyword">string</span>&gt;((i) =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        Thread.Sleep(<span class="number">1000</span>);</span><br><span class="line">        Console.WriteLine(i + <span class="string">" ThreadId:"</span> + Thread.CurrentThread.ManagedThreadId + <span class="string">" Execute Time:"</span> + DateTime.Now);</span><br><span class="line">    &#125;</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> TransformBlock&lt;<span class="keyword">int</span>, <span class="keyword">string</span>&gt; tbSync = <span class="keyword">new</span> TransformBlock&lt;<span class="keyword">int</span>, <span class="keyword">string</span>&gt;((i) =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        i = i * <span class="number">2</span>;</span><br><span class="line">        <span class="keyword">return</span> i.ToString();</span><br><span class="line">    &#125;</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">TestSync</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    tbSync.LinkTo(abSync);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        tbSync.Post(i);</span><br><span class="line">    &#125;</span><br><span class="line">    tbSync.Complete();</span><br><span class="line">    Console.WriteLine(<span class="string">"Post finished"</span>);</span><br><span class="line"></span><br><span class="line">    tbSync.Completion.Wait();</span><br><span class="line">    Console.WriteLine(<span class="string">"TransformBlock process finished"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/img/01161632-f4dc0afbc9fa49b3a36336842ac52009.jpg" alt="01161632-f4dc0afbc9fa49b3a36336842ac52009.jpg"></p>
+<p>参考：</p>
+<p><a href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.dataflow?view=netcore-3.1" target="_blank" rel="noopener">System.Threading.Tasks.Dataflow 命名空间</a></p>
+<p><a href="https://docs.microsoft.com/zh-cn/dotnet/standard/parallel-programming/dataflow-task-parallel-library?view=netcore-3.1" target="_blank" rel="noopener">数据流（任务并行库）</a></p>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/DotNet/">DotNet</a><a href="/tags/CSharp/">CSharp</a><a href="/tags/Task/">Task</a><a href="/tags/net异步与并行/">.net异步与并行</a><a href="/tags/TPL-DataFlow/">TPL DataFlow</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/TPL-DataFlow/">TPL DataFlow</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="https://syxdevcode.github.com/2020/01/10/TPL%20DataFlow%E7%AC%94%E8%AE%B0%EF%BC%881%EF%BC%89/" data-title="TPL DataFlow笔记（1） | syxdevcode博客" data-tsina="" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2020/01/10/TPL DataFlow笔记（2）/" title="TPL DataFlow笔记（2）">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  TPL DataFlow笔记（2）</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2020/01/08/hash算法笔记/"  title="hash算法笔记">
+ <strong>NEXT:</strong><br/> 
+ <span>hash算法笔记
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#BufferBlock"><span class="toc-number">1.</span> <span class="toc-text">BufferBlock</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ActionBlock"><span class="toc-number">2.</span> <span class="toc-text">ActionBlock</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#TransformBlock"><span class="toc-number">3.</span> <span class="toc-text">TransformBlock</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#TransformManyBlock"><span class="toc-number">4.</span> <span class="toc-text">TransformManyBlock</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#BroadcastBlock"><span class="toc-number">5.</span> <span class="toc-text">BroadcastBlock</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#WriteOnceBlock"><span class="toc-number">6.</span> <span class="toc-text">WriteOnceBlock</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#BatchBlock"><span class="toc-number">7.</span> <span class="toc-text">BatchBlock</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#JoinBlock"><span class="toc-number">8.</span> <span class="toc-text">JoinBlock</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#BatchedJoinBlock"><span class="toc-number">9.</span> <span class="toc-text">BatchedJoinBlock</span></a></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/Net-Standard/" title=".Net Standard">.Net Standard<sup>2</sup></a></li>
+		
+			<li><a href="/categories/net异步与并行/" title=".net异步与并行">.net异步与并行<sup>10</sup></a></li>
+		
+			<li><a href="/categories/ABP/" title="ABP">ABP<sup>27</sup></a></li>
+		
+			<li><a href="/categories/ASP-NET-IIS请求处理管道/" title="ASP.NET/IIS请求处理管道">ASP.NET/IIS请求处理管道<sup>2</sup></a></li>
+		
+			<li><a href="/categories/ApplicationPoolIdentify/" title="ApplicationPoolIdentify">ApplicationPoolIdentify<sup>1</sup></a></li>
+		
+			<li><a href="/categories/CSharp基础/" title="CSharp基础">CSharp基础<sup>11</sup></a></li>
+		
+			<li><a href="/categories/CentOS7/" title="CentOS7">CentOS7<sup>5</sup></a></li>
+		
+			<li><a href="/categories/Chrome/" title="Chrome">Chrome<sup>1</sup></a></li>
+		
+			<li><a href="/categories/CodeDOM/" title="CodeDOM">CodeDOM<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Consul/" title="Consul">Consul<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Docker/" title="Docker">Docker<sup>7</sup></a></li>
+		
+			<li><a href="/categories/Docker-Compose/" title="Docker Compose">Docker Compose<sup>3</sup></a></li>
+		
+			<li><a href="/categories/DotNetCore/" title="DotNetCore">DotNetCore<sup>3</sup></a></li>
+		
+			<li><a href="/categories/DotNet面试题解析/" title="DotNet面试题解析">DotNet面试题解析<sup>8</sup></a></li>
+		
+			<li><a href="/categories/EasyNetQ/" title="EasyNetQ">EasyNetQ<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Elasticsearch/" title="Elasticsearch">Elasticsearch<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Emit-反射发出/" title="Emit(反射发出)">Emit(反射发出)<sup>6</sup></a></li>
+		
+			<li><a href="/categories/Expression-Tree/" title="Expression Tree">Expression Tree<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Git/" title="Git">Git<sup>2</sup></a></li>
+		
+			<li><a href="/categories/HostService/" title="HostService">HostService<sup>1</sup></a></li>
+		
+			<li><a href="/categories/JavaScript-JQuery/" title="JavaScript/JQuery">JavaScript/JQuery<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Jenkins/" title="Jenkins">Jenkins<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Jexus/" title="Jexus">Jexus<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Json-Net/" title="Json.Net">Json.Net<sup>1</sup></a></li>
+		
+			<li><a href="/categories/LINQ/" title="LINQ">LINQ<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Let’s-Encrypt/" title="Let’s Encrypt">Let’s Encrypt<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Linux基础命令/" title="Linux基础命令">Linux基础命令<sup>6</sup></a></li>
+		
+			<li><a href="/categories/MSIL指令/" title="MSIL指令">MSIL指令<sup>2</sup></a></li>
+		
+			<li><a href="/categories/MVC-Web-API/" title="MVC/Web API">MVC/Web API<sup>2</sup></a></li>
+		
+			<li><a href="/categories/MariaDB/" title="MariaDB">MariaDB<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MarkDown/" title="MarkDown">MarkDown<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MongoDB/" title="MongoDB">MongoDB<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Moq/" title="Moq">Moq<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MySql/" title="MySql">MySql<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Naudio/" title="Naudio">Naudio<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Nginx/" title="Nginx">Nginx<sup>2</sup></a></li>
+		
+			<li><a href="/categories/OAuth2-0/" title="OAuth2.0">OAuth2.0<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Ocelot/" title="Ocelot">Ocelot<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Openssl/" title="Openssl">Openssl<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Polly/" title="Polly">Polly<sup>2</sup></a></li>
+		
+			<li><a href="/categories/PostGresqlSql/" title="PostGresqlSql">PostGresqlSql<sup>1</sup></a></li>
+		
+			<li><a href="/categories/RESTful/" title="RESTful">RESTful<sup>2</sup></a></li>
+		
+			<li><a href="/categories/RabbitMQ/" title="RabbitMQ">RabbitMQ<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Redis/" title="Redis">Redis<sup>5</sup></a></li>
+		
+			<li><a href="/categories/Resharper/" title="Resharper">Resharper<sup>1</sup></a></li>
+		
+			<li><a href="/categories/SSH/" title="SSH">SSH<sup>1</sup></a></li>
+		
+			<li><a href="/categories/SSL-TLS/" title="SSL/TLS">SSL/TLS<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Skywalking/" title="Skywalking">Skywalking<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Sql/" title="Sql">Sql<sup>5</sup></a></li>
+		
+			<li><a href="/categories/TDD/" title="TDD">TDD<sup>1</sup></a></li>
+		
+			<li><a href="/categories/TPL-DataFlow/" title="TPL DataFlow">TPL DataFlow<sup>2</sup></a></li>
+		
+			<li><a href="/categories/WCF时间类型序列化/" title="WCF时间类型序列化">WCF时间类型序列化<sup>1</sup></a></li>
+		
+			<li><a href="/categories/WebForm/" title="WebForm">WebForm<sup>2</sup></a></li>
+		
+			<li><a href="/categories/WinDbg/" title="WinDbg">WinDbg<sup>1</sup></a></li>
+		
+			<li><a href="/categories/WinSCP/" title="WinSCP">WinSCP<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Windows子系统/" title="Windows子系统">Windows子系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Windows系统/" title="Windows系统">Windows系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/ab/" title="ab">ab<sup>1</sup></a></li>
+		
+			<li><a href="/categories/hexo/" title="hexo">hexo<sup>2</sup></a></li>
+		
+			<li><a href="/categories/shadowsocks/" title="shadowsocks">shadowsocks<sup>1</sup></a></li>
+		
+			<li><a href="/categories/zookeeper/" title="zookeeper">zookeeper<sup>1</sup></a></li>
+		
+			<li><a href="/categories/内存泄漏/" title="内存泄漏">内存泄漏<sup>1</sup></a></li>
+		
+			<li><a href="/categories/分布式/" title="分布式">分布式<sup>1</sup></a></li>
+		
+			<li><a href="/categories/分布式事务/" title="分布式事务">分布式事务<sup>1</sup></a></li>
+		
+			<li><a href="/categories/单词收录/" title="单词收录">单词收录<sup>14</sup></a></li>
+		
+			<li><a href="/categories/反射/" title="反射">反射<sup>4</sup></a></li>
+		
+			<li><a href="/categories/委托与事件/" title="委托与事件">委托与事件<sup>4</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>1</sup></a></li>
+		
+			<li><a href="/categories/并发模型/" title="并发模型">并发模型<sup>1</sup></a></li>
+		
+			<li><a href="/categories/插件/" title="插件">插件<sup>1</sup></a></li>
+		
+			<li><a href="/categories/时间-时间戳转换/" title="时间/时间戳转换">时间/时间戳转换<sup>1</sup></a></li>
+		
+			<li><a href="/categories/消息队列/" title="消息队列">消息队列<sup>1</sup></a></li>
+		
+			<li><a href="/categories/程序集/" title="程序集">程序集<sup>2</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>3</sup></a></li>
+		
+			<li><a href="/categories/线性表/" title="线性表">线性表<sup>1</sup></a></li>
+		
+			<li><a href="/categories/线程池/" title="线程池">线程池<sup>1</sup></a></li>
+		
+			<li><a href="/categories/缓存/" title="缓存">缓存<sup>3</sup></a></li>
+		
+			<li><a href="/categories/计算机基础/" title="计算机基础">计算机基础<sup>2</sup></a></li>
+		
+			<li><a href="/categories/认证与授权/" title="认证与授权">认证与授权<sup>1</sup></a></li>
+		
+			<li><a href="/categories/设计模式/" title="设计模式">设计模式<sup>3</sup></a></li>
+		
+			<li><a href="/categories/链表/" title="链表">链表<sup>2</sup></a></li>
+		
+			<li><a href="/categories/集合与泛型/" title="集合与泛型">集合与泛型<sup>3</sup></a></li>
+		
+			<li><a href="/categories/音频-视频/" title="音频/视频">音频/视频<sup>1</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist" style="clear:both;">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/Net-Standard/" title=".Net Standard">.Net Standard<sup>2</sup></a></li>
+		
+			<li><a href="/tags/net异步与并行/" title=".net异步与并行">.net异步与并行<sup>12</sup></a></li>
+		
+			<li><a href="/tags/ABP/" title="ABP">ABP<sup>27</sup></a></li>
+		
+			<li><a href="/tags/ASP-NET-IIS请求处理管道/" title="ASP.NET/IIS请求处理管道">ASP.NET/IIS请求处理管道<sup>7</sup></a></li>
+		
+			<li><a href="/tags/AWS/" title="AWS">AWS<sup>7</sup></a></li>
+		
+			<li><a href="/tags/ApplicationPoolIdentify/" title="ApplicationPoolIdentify">ApplicationPoolIdentify<sup>1</sup></a></li>
+		
+			<li><a href="/tags/CSharp/" title="CSharp">CSharp<sup>101</sup></a></li>
+		
+			<li><a href="/tags/CSharp基础/" title="CSharp基础">CSharp基础<sup>44</sup></a></li>
+		
+			<li><a href="/tags/CentOS7/" title="CentOS7">CentOS7<sup>24</sup></a></li>
+		
+			<li><a href="/tags/Chrome/" title="Chrome">Chrome<sup>1</sup></a></li>
+		
+			<li><a href="/tags/CodeDOM/" title="CodeDOM">CodeDOM<sup>3</sup></a></li>
+		
+			<li><a href="/tags/Consul/" title="Consul">Consul<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Docker/" title="Docker">Docker<sup>23</sup></a></li>
+		
+			<li><a href="/tags/Docker-Compose/" title="Docker Compose">Docker Compose<sup>5</sup></a></li>
+		
+			<li><a href="/tags/DotNet/" title="DotNet">DotNet<sup>106</sup></a></li>
+		
+			<li><a href="/tags/DotNetCore/" title="DotNetCore">DotNetCore<sup>16</sup></a></li>
+		
+			<li><a href="/tags/DotNet面试题解析/" title="DotNet面试题解析">DotNet面试题解析<sup>10</sup></a></li>
+		
+			<li><a href="/tags/Elasticsearch/" title="Elasticsearch">Elasticsearch<sup>2</sup></a></li>
+		
+			<li><a href="/tags/Emit-反射发出/" title="Emit(反射发出)">Emit(反射发出)<sup>8</sup></a></li>
+		
+			<li><a href="/tags/Expression-Tree/" title="Expression Tree">Expression Tree<sup>3</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+<div style="display: none;" id="rocket-to-top">
+  <div style="opacity: 0; display: block;" class="level-2"></div>
+  <div class="level-3"></div>
+</div>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<div class="social-font clearfix">
+		
+		
+		
+		<a href="https://github.com/syxdevcode" target="_blank" title="github"></a>
+		
+		
+		
+	</div>
+		<p class="copyright">Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/syxdevcode/pacman" target="_blank" title="Pacman">Pacman</a> © 2020 
+		
+		<a href="https://syxdevcode.github.com" target="_blank" title="syxdevcode">syxdevcode</a>
+		
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    $('.navbar').click(function () {
+      $('header nav').toggleClass('shownav');
+    });
+    var myWidth = 0;
+    function getSize() {
+      if (typeof (window.innerWidth) == 'number') {
+        myWidth = window.innerWidth;
+      } else if (document.documentElement && document.documentElement.clientWidth) {
+        myWidth = document.documentElement.clientWidth;
+      };
+    };
+    var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+    $(window).resize(function () {
+      getSize();
+      if (myWidth >= 1024) {
+        $('header nav').removeClass('shownav');
+      } else {
+        m.removeClass('moveMain');
+        a.css('display', 'block').removeClass('fadeOut');
+        o.css('display', 'none');
+      
+          $('#toc.toc-aside').css('display', 'none');
+        
+    }
+    });
+    c.click(function () {
+      a.addClass('fadeOut').css('display', 'none');
+      o.css('display', 'block').addClass('fadeIn');
+      m.addClass('moveMain');
+    });
+    o.click(function () {
+      o.css('display', 'none').removeClass('beforeFadeIn');
+      a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');
+      m.removeClass('moveMain');
+    });
+    $(window).scroll(function () {
+      o.css("top", Math.max(80, 260 - $(this).scrollTop()));
+    });
+  });
+  //判断访问终端
+  var browser = {
+    versions: function () {
+      var u = navigator.userAgent,
+        app = navigator.appVersion;
+      return {
+        trident: u.indexOf('Trident') > -1, //IE内核
+        presto: u.indexOf('Presto') > -1, //opera内核
+        webKit: u.indexOf('AppleWebKit') > -1, //苹果、谷歌内核
+        gecko: u.indexOf('Gecko') > -1 && u.indexOf('KHTML') == -1,//火狐内核
+        mobile: !!u.match(/AppleWebKit.*Mobile.*/), //是否为移动终端
+        ios: !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/), //ios终端
+        android: u.indexOf('Android') > -1 || u.indexOf('Adr') > -1, //android终端
+        iPhone: u.indexOf('iPhone') > -1, //是否为iPhone或者QQHD浏览器
+        iPad: u.indexOf('iPad') > -1, //是否iPad
+        webApp: u.indexOf('Safari') == -1, //是否web应该程序，没有头部与底部
+        weixin: u.indexOf('MicroMessenger') > -1, //是否微信 （2015-01-22新增）
+        qq: u.match(/\sQQ/i) == " qq" //是否QQ
+      };
+    }(),
+    language: (navigator.browserLanguage || navigator.language).toLowerCase()
+  }
+</script>
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t = $('#toc'),
+      h = $('article h2')
+    ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o = $('.openaside'),
+      c = $('.closeaside');
+    if (ai.length > 0) {
+      ai.wrap('<div class="video-container" />');
+    };
+    if (ae.length > 0) {
+      ae.wrap('<div class="video-container" />');
+    };
+    if (ah.length == 0) {
+      t.css('display', 'none');
+    } else {
+      c.click(function () {
+        ta.css('display', 'block').addClass('fadeIn');
+      });
+      o.click(function () {
+        ta.css('display', 'none');
+      });
+      $(window).scroll(function () {
+        ta.css("top", Math.max(140, 320 - $(this).scrollTop()));
+      });
+    };
+  });
+</script>
+
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    var $this = $('.share'),
+      //url = $this.attr('data-url'),
+      url = window.location.href,
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+    var html = [
+      '<a href="#" class="overlay" id="qrcode"></a>',
+      '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://mobile.qq.com/qrcode?url=' + encodedUrl + '"/></div>',
+      '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+      '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+      '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+      '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+      '<a href="http://service.weibo.com/share/share.php?title=' + title + '&url=' + encodedUrl + '&ralateUid=' + tsina + '&searchPic=true&style=number' + '" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+      '<span title="Share to"></span>'
+    ].join('');
+    $this.append(html);
+    viewqrCode();
+    $('.article-share-qrcode').click(viewqrCode()
+    );
+
+  });
+  function viewqrCode() {
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function () {
+      $('.qrcode strong').text(' ');
+    });
+  }
+</script>
+<script type="text/javascript">  
+  //判断是否移动端 
+  if (!browser.versions.mobile) {
+    $(function () {
+      var c, a = $("#rocket-to-top"), e = ($(document).scrollTop(), !0);
+      $(window).scroll(function () {
+        var b = $(document).scrollTop(); 0 == b ? "0px 0px" == a.css("background-position") ? a.fadeOut("slow") : e && (e = !1, $(".level-2").css("opacity", 1), a.delay(100).animate({ marginTop: "-1000px" }, "normal", function () { a.css({ "margin-top": "-125px", display: "none" }), e = !0 })) : a.fadeIn("slow")
+      }), a.hover(function () { $(".level-2").stop(!0).animate({ opacity: 1 }) }, function () { $(".level-2").stop(!0).animate({ opacity: 0 }) }), $(".level-3").click(function () { function b() { var b = a.css("background-position"); if ("none" == a.css("display") || 0 == e) return clearInterval(c), a.css("background-position", "0px 0px"), void 0; switch (b) { case "0px 0px": a.css("background-position", "-298px 0px"); break; case "-298px 0px": a.css("background-position", "-447px 0px"); break; case "-447px 0px": a.css("background-position", "-596px 0px"); break; case "-596px 0px": a.css("background-position", "-745px 0px"); break; case "-745px 0px": a.css("background-position", "-298px 0px") } } e && (c = setInterval(b, 50), $("html,body").animate({ scrollTop: 0 }, "slow")) })
+    });
+  }
+</script>
+
+
+
+
+
+  </body>
+</html>

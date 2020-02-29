@@ -1,0 +1,614 @@
+
+ <!DOCTYPE HTML>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  
+    <title>使用ab进行站点压力测试 | syxdevcode博客</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="syxdevcode">
+    
+    <meta name="description" content="使用ab进行站点压力测试压力测试相关概念
+吞吐率（Requests per second）
+  概念：服务器并发处理能力的量化描述，单位是reqs/s，指的是某个并发用户数下单位时间内处理的请求数。某个并发用户数下单位时间内能处理的最大请求数，称之为最大吞吐率。  计算公式：总请求数 / 处理完成这">
+    
+    
+    
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+  <body>
+    <header>
+      <div>
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="syxdevcode博客" title="syxdevcode博客"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="syxdevcode博客">syxdevcode博客</a></h1>
+				<h2 class="blog-motto"></h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+						<li><a href="/tags">tags</a></li>
+					
+						<li><a href="/categories">categories</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:syxdevcode.github.com">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>			
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2017/05/27/使用ab进行站点压力测试/" title="使用ab进行站点压力测试" itemprop="url">使用ab进行站点压力测试</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="https://syxdevcode.github.com" title="syxdevcode">syxdevcode</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2017-05-27T11:11:18.000Z" itemprop="datePublished">2017-05-27</time>
+    更新日期:<time datetime="2020-02-29T10:34:53.188Z" itemprop="dateModified">2020-02-29</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#使用ab进行站点压力测试"><span class="toc-number">1.</span> <span class="toc-text">使用ab进行站点压力测试</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#压力测试相关概念"><span class="toc-number">1.1.</span> <span class="toc-text">压力测试相关概念</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#下载工具"><span class="toc-number">1.1.1.</span> <span class="toc-text">下载工具</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#运行测试"><span class="toc-number">1.1.2.</span> <span class="toc-text">运行测试</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#测试结果"><span class="toc-number">1.1.3.</span> <span class="toc-text">测试结果</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#完整测试报告"><span class="toc-number">1.1.4.</span> <span class="toc-text">完整测试报告</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#服务器信息"><span class="toc-number">1.1.4.1.</span> <span class="toc-text">服务器信息</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#文档信息"><span class="toc-number">1.1.4.2.</span> <span class="toc-text">文档信息</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#重要信息"><span class="toc-number">1.1.4.3.</span> <span class="toc-text">重要信息</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#网络上消耗的时间的分解"><span class="toc-number">1.1.4.4.</span> <span class="toc-text">网络上消耗的时间的分解</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#网络消耗时间"><span class="toc-number">1.1.4.5.</span> <span class="toc-text">网络消耗时间</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#登录的问题"><span class="toc-number">1.1.4.6.</span> <span class="toc-text">登录的问题</span></a></li></ol></li></ol></li></ol></li></ol>
+		</div>
+		
+		<h1 id="使用ab进行站点压力测试"><a href="#使用ab进行站点压力测试" class="headerlink" title="使用ab进行站点压力测试"></a>使用ab进行站点压力测试</h1><h2 id="压力测试相关概念"><a href="#压力测试相关概念" class="headerlink" title="压力测试相关概念"></a>压力测试相关概念</h2><ul>
+<li><p>吞吐率（Requests per second）</p>
+<p>  概念：服务器并发处理能力的量化描述，单位是reqs/s，指的是某个并发用户数下单位时间内处理的请求数。某个并发用户数下单位时间内能处理的最大请求数，称之为最大吞吐率。<br>  计算公式：总请求数 / 处理完成这些请求数所花费的时间，即<br>  Request per second = Complete requests / Time taken for tests</p>
+</li>
+<li><p>并发连接数（The number of concurrent connections）</p>
+<p>  概念：某个时刻服务器所接受的请求数目，简单的讲，就是一个会话。</p>
+<p>  并发用户数（The number of concurrent users，Concurrency Level）</p>
+<p>  概念：要注意区分这个概念和并发连接数之间的区别，一个用户可能同时会产生多个会话，也即连接数。</p>
+</li>
+<li><p>用户平均请求等待时间（Time per request）</p>
+<p>  计算公式：处理完成所有请求数所花费的时间/ （总请求数 / 并发用户数），即<br>  Time per request = Time taken for tests /（ Complete requests / Concurrency Level）</p>
+</li>
+<li><p>服务器平均请求等待时间（Time per request: across all concurrent requests）</p>
+<p>  计算公式：处理完成所有请求数所花费的时间 / 总请求数，即<br>  Time taken for / testsComplete requests<br>  可以看到，它是吞吐率的倒数。<br>  同时，它也=用户平均请求等待时间/并发用户数，即<br>  Time per request / Concurrency Level</p>
+</li>
+</ul>
+<h3 id="下载工具"><a href="#下载工具" class="headerlink" title="下载工具"></a>下载工具</h3><p><a href="https://www.apachelounge.com/download/" target="_blank" rel="noopener" title="下载链接">官网下载网址</a> </p>
+<p>解压压缩包，进入到<code>httpd-2.4.25-win64-VC14\Apache24\bin</code>目录下，<br>打开命令行，输入命令</p>
+<h3 id="运行测试"><a href="#运行测试" class="headerlink" title="运行测试"></a>运行测试</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ab -n 100 -c 10 http:&#x2F;&#x2F;baidu.com&#x2F;</span><br></pre></td></tr></table></figure>
+
+<p>其中－n表示请求数，－c表示并发数</p>
+<h3 id="测试结果"><a href="#测试结果" class="headerlink" title="测试结果"></a>测试结果</h3><p><img src="/img/ab%E6%B5%8B%E8%AF%95%E7%BB%93%E6%9E%9C.png" alt="测试结果"></p>
+<h3 id="完整测试报告"><a href="#完整测试报告" class="headerlink" title="完整测试报告"></a>完整测试报告</h3><h4 id="服务器信息"><a href="#服务器信息" class="headerlink" title="服务器信息"></a>服务器信息</h4><pre><code>显示服务器为apache,域名，端口；</code></pre><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Server Software:        Apache</span><br><span class="line">Server Hostname:        baidu.com</span><br><span class="line">Server Port:            80</span><br></pre></td></tr></table></figure>
+
+<h4 id="文档信息"><a href="#文档信息" class="headerlink" title="文档信息"></a>文档信息</h4><pre><code>所在位置“/”，文档的大小为338436 bytes（此为http响应的正文长度）</code></pre><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Document Path:          &#x2F;</span><br><span class="line">Document Length:        81 bytes</span><br></pre></td></tr></table></figure>
+
+<h4 id="重要信息"><a href="#重要信息" class="headerlink" title="重要信息"></a>重要信息</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">Concurrency Level:      10</span><br><span class="line">Time taken for tests:   2.584 seconds</span><br><span class="line">Complete requests:      100</span><br><span class="line">Failed requests:        0</span><br><span class="line">Total transferred:      38100 bytes</span><br><span class="line">HTML transferred:       8100 bytes</span><br><span class="line">Requests per second:    38.70 [#&#x2F;sec] (mean)</span><br><span class="line">Time per request:       258.374 [ms] (mean)</span><br><span class="line">Time per request:       25.837 [ms] (mean, across all concurrent requests)</span><br><span class="line">Transfer rate:          14.40 [Kbytes&#x2F;sec] received</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">&#x2F;&#x2F;并发请求数</span><br><span class="line">Concurrency Level: 10</span><br><span class="line"></span><br><span class="line">&#x2F;&#x2F;整个测试持续的时间</span><br><span class="line">Time taken for tests: 2.584 seconds</span><br><span class="line"></span><br><span class="line">&#x2F;&#x2F;完成的请求数</span><br><span class="line">Complete requests: 100</span><br><span class="line"></span><br><span class="line">&#x2F;&#x2F;失败的请求数</span><br><span class="line">Failed requests: 0</span><br><span class="line"></span><br><span class="line">&#x2F;&#x2F;整个场景中的网络传输量</span><br><span class="line">Total transferred: 13701482 bytes</span><br><span class="line"></span><br><span class="line">&#x2F;&#x2F;整个场景中的HTML内容传输量</span><br><span class="line">HTML transferred: 13197000 bytes</span><br><span class="line"></span><br><span class="line">&#x2F;&#x2F;吞吐率，大家最关心的指标之一，相当于 LR 中的每秒事务数，后面括号中的 mean 表示这是一个平均值</span><br><span class="line">Requests per second: 38.70 [#&#x2F;sec] (mean)</span><br><span class="line"></span><br><span class="line">&#x2F;&#x2F;用户平均请求等待时间，大家最关心的指标之二，相当于 LR 中的平均事务响应时间，后面括号中的 mean 表示这是一个平均值</span><br><span class="line">Time per request: 258.374 [ms] (mean)</span><br><span class="line"></span><br><span class="line">&#x2F;&#x2F;服务器平均请求处理时间，大家最关心的指标之三</span><br><span class="line">Time per request: 25.837 [ms] (mean, across all concurrent requests)</span><br><span class="line"></span><br><span class="line">&#x2F;&#x2F;平均每秒网络上的流量，可以帮助排除是否存在网络流量过大导致响应时间延长的问题</span><br><span class="line">Transfer rate: 14.40 [Kbytes&#x2F;sec] received</span><br></pre></td></tr></table></figure>
+
+<h4 id="网络上消耗的时间的分解"><a href="#网络上消耗的时间的分解" class="headerlink" title="网络上消耗的时间的分解"></a>网络上消耗的时间的分解</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Connection Times (ms)</span><br><span class="line">              min  mean[+&#x2F;-sd] median   max</span><br><span class="line">Connect:       12   25  38.9     20     408</span><br><span class="line">Processing:     8  223 120.3    196     591</span><br><span class="line">Waiting:        8  142 124.9    120     574</span><br><span class="line">Total:         29  248 125.7    217     609</span><br></pre></td></tr></table></figure>
+
+<h4 id="网络消耗时间"><a href="#网络消耗时间" class="headerlink" title="网络消耗时间"></a>网络消耗时间</h4><p>这段是每个请求处理时间的分布情况，50%的处理时间在217ms内，66%的处理时间在224ms内…，重要的是看90%的处理时间</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">Percentage of the requests served within a certain time (ms)</span><br><span class="line">  50%    217</span><br><span class="line">  66%    224</span><br><span class="line">  75%    246</span><br><span class="line">  80%    249</span><br><span class="line">  90%    595</span><br><span class="line">  95%    604</span><br><span class="line">  98%    609</span><br><span class="line">  99%    609</span><br><span class="line"> 100%    609 (longest request)</span><br></pre></td></tr></table></figure>
+
+<h4 id="登录的问题"><a href="#登录的问题" class="headerlink" title="登录的问题"></a>登录的问题</h4><pre><code>有时候进行压力测试需要用户登录，怎么办？
+请参考以下步骤：
+
+先用账户和密码登录后，用开发者工具找到标识这个会话的Cookie值（Session ID）记下来
+如果只用到一个Cookie，那么只需键入命令：
+ab －n 100 －C key＝value http://baidu.com/
+
+如果需要多个Cookie，就直接设Header：
+ab -n 100 -H “Cookie: Key1=Value1; Key2=Value2” http://baidu.com/
+
+同类型的压力测试工具还有：webbench、siege、http_load等</code></pre><p>参考：</p>
+<p><a href="http://www.cnblogs.com/lpfuture/p/5740831.html" target="_blank" rel="noopener" title="参考1">http://www.cnblogs.com/lpfuture/p/5740831.html</a></p>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/ab/">ab</a><a href="/tags/压力测试/">压力测试</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/ab/">ab</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="https://syxdevcode.github.com/2017/05/27/%E4%BD%BF%E7%94%A8ab%E8%BF%9B%E8%A1%8C%E7%AB%99%E7%82%B9%E5%8E%8B%E5%8A%9B%E6%B5%8B%E8%AF%95/" data-title="使用ab进行站点压力测试 | syxdevcode博客" data-tsina="" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2017/05/31/zookeeper的安装与配置（单机和集群）/" title="zookeeper的安装与配置（单机和集群）">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  zookeeper的安装与配置（单机和集群）</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2017/05/25/win10安装openssl/"  title="win10安装openssl">
+ <strong>NEXT:</strong><br/> 
+ <span>win10安装openssl
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#使用ab进行站点压力测试"><span class="toc-number">1.</span> <span class="toc-text">使用ab进行站点压力测试</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#压力测试相关概念"><span class="toc-number">1.1.</span> <span class="toc-text">压力测试相关概念</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#下载工具"><span class="toc-number">1.1.1.</span> <span class="toc-text">下载工具</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#运行测试"><span class="toc-number">1.1.2.</span> <span class="toc-text">运行测试</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#测试结果"><span class="toc-number">1.1.3.</span> <span class="toc-text">测试结果</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#完整测试报告"><span class="toc-number">1.1.4.</span> <span class="toc-text">完整测试报告</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#服务器信息"><span class="toc-number">1.1.4.1.</span> <span class="toc-text">服务器信息</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#文档信息"><span class="toc-number">1.1.4.2.</span> <span class="toc-text">文档信息</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#重要信息"><span class="toc-number">1.1.4.3.</span> <span class="toc-text">重要信息</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#网络上消耗的时间的分解"><span class="toc-number">1.1.4.4.</span> <span class="toc-text">网络上消耗的时间的分解</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#网络消耗时间"><span class="toc-number">1.1.4.5.</span> <span class="toc-text">网络消耗时间</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#登录的问题"><span class="toc-number">1.1.4.6.</span> <span class="toc-text">登录的问题</span></a></li></ol></li></ol></li></ol></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/Net-Standard/" title=".Net Standard">.Net Standard<sup>2</sup></a></li>
+		
+			<li><a href="/categories/net异步与并行/" title=".net异步与并行">.net异步与并行<sup>10</sup></a></li>
+		
+			<li><a href="/categories/ABP/" title="ABP">ABP<sup>27</sup></a></li>
+		
+			<li><a href="/categories/ASP-NET-IIS请求处理管道/" title="ASP.NET/IIS请求处理管道">ASP.NET/IIS请求处理管道<sup>2</sup></a></li>
+		
+			<li><a href="/categories/ApplicationPoolIdentify/" title="ApplicationPoolIdentify">ApplicationPoolIdentify<sup>1</sup></a></li>
+		
+			<li><a href="/categories/CSharp基础/" title="CSharp基础">CSharp基础<sup>11</sup></a></li>
+		
+			<li><a href="/categories/CentOS7/" title="CentOS7">CentOS7<sup>5</sup></a></li>
+		
+			<li><a href="/categories/Chrome/" title="Chrome">Chrome<sup>1</sup></a></li>
+		
+			<li><a href="/categories/CodeDOM/" title="CodeDOM">CodeDOM<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Consul/" title="Consul">Consul<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Docker/" title="Docker">Docker<sup>7</sup></a></li>
+		
+			<li><a href="/categories/Docker-Compose/" title="Docker Compose">Docker Compose<sup>3</sup></a></li>
+		
+			<li><a href="/categories/DotNetCore/" title="DotNetCore">DotNetCore<sup>3</sup></a></li>
+		
+			<li><a href="/categories/DotNet面试题解析/" title="DotNet面试题解析">DotNet面试题解析<sup>8</sup></a></li>
+		
+			<li><a href="/categories/EasyNetQ/" title="EasyNetQ">EasyNetQ<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Elasticsearch/" title="Elasticsearch">Elasticsearch<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Emit-反射发出/" title="Emit(反射发出)">Emit(反射发出)<sup>6</sup></a></li>
+		
+			<li><a href="/categories/Expression-Tree/" title="Expression Tree">Expression Tree<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Git/" title="Git">Git<sup>2</sup></a></li>
+		
+			<li><a href="/categories/HostService/" title="HostService">HostService<sup>1</sup></a></li>
+		
+			<li><a href="/categories/JavaScript-JQuery/" title="JavaScript/JQuery">JavaScript/JQuery<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Jenkins/" title="Jenkins">Jenkins<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Jexus/" title="Jexus">Jexus<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Json-Net/" title="Json.Net">Json.Net<sup>1</sup></a></li>
+		
+			<li><a href="/categories/LINQ/" title="LINQ">LINQ<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Let’s-Encrypt/" title="Let’s Encrypt">Let’s Encrypt<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Linux基础命令/" title="Linux基础命令">Linux基础命令<sup>6</sup></a></li>
+		
+			<li><a href="/categories/MSIL指令/" title="MSIL指令">MSIL指令<sup>2</sup></a></li>
+		
+			<li><a href="/categories/MVC-Web-API/" title="MVC/Web API">MVC/Web API<sup>2</sup></a></li>
+		
+			<li><a href="/categories/MariaDB/" title="MariaDB">MariaDB<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MarkDown/" title="MarkDown">MarkDown<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MongoDB/" title="MongoDB">MongoDB<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Moq/" title="Moq">Moq<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MySql/" title="MySql">MySql<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Naudio/" title="Naudio">Naudio<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Nginx/" title="Nginx">Nginx<sup>2</sup></a></li>
+		
+			<li><a href="/categories/OAuth2-0/" title="OAuth2.0">OAuth2.0<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Ocelot/" title="Ocelot">Ocelot<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Openssl/" title="Openssl">Openssl<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Polly/" title="Polly">Polly<sup>2</sup></a></li>
+		
+			<li><a href="/categories/PostGresqlSql/" title="PostGresqlSql">PostGresqlSql<sup>1</sup></a></li>
+		
+			<li><a href="/categories/RESTful/" title="RESTful">RESTful<sup>2</sup></a></li>
+		
+			<li><a href="/categories/RabbitMQ/" title="RabbitMQ">RabbitMQ<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Redis/" title="Redis">Redis<sup>5</sup></a></li>
+		
+			<li><a href="/categories/Resharper/" title="Resharper">Resharper<sup>1</sup></a></li>
+		
+			<li><a href="/categories/SSH/" title="SSH">SSH<sup>1</sup></a></li>
+		
+			<li><a href="/categories/SSL-TLS/" title="SSL/TLS">SSL/TLS<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Skywalking/" title="Skywalking">Skywalking<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Sql/" title="Sql">Sql<sup>5</sup></a></li>
+		
+			<li><a href="/categories/TDD/" title="TDD">TDD<sup>1</sup></a></li>
+		
+			<li><a href="/categories/TPL-DataFlow/" title="TPL DataFlow">TPL DataFlow<sup>2</sup></a></li>
+		
+			<li><a href="/categories/WCF时间类型序列化/" title="WCF时间类型序列化">WCF时间类型序列化<sup>1</sup></a></li>
+		
+			<li><a href="/categories/WebForm/" title="WebForm">WebForm<sup>2</sup></a></li>
+		
+			<li><a href="/categories/WinDbg/" title="WinDbg">WinDbg<sup>1</sup></a></li>
+		
+			<li><a href="/categories/WinSCP/" title="WinSCP">WinSCP<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Windows子系统/" title="Windows子系统">Windows子系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Windows系统/" title="Windows系统">Windows系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/ab/" title="ab">ab<sup>1</sup></a></li>
+		
+			<li><a href="/categories/hexo/" title="hexo">hexo<sup>2</sup></a></li>
+		
+			<li><a href="/categories/shadowsocks/" title="shadowsocks">shadowsocks<sup>1</sup></a></li>
+		
+			<li><a href="/categories/zookeeper/" title="zookeeper">zookeeper<sup>1</sup></a></li>
+		
+			<li><a href="/categories/内存泄漏/" title="内存泄漏">内存泄漏<sup>1</sup></a></li>
+		
+			<li><a href="/categories/分布式/" title="分布式">分布式<sup>1</sup></a></li>
+		
+			<li><a href="/categories/分布式事务/" title="分布式事务">分布式事务<sup>1</sup></a></li>
+		
+			<li><a href="/categories/单词收录/" title="单词收录">单词收录<sup>14</sup></a></li>
+		
+			<li><a href="/categories/反射/" title="反射">反射<sup>4</sup></a></li>
+		
+			<li><a href="/categories/委托与事件/" title="委托与事件">委托与事件<sup>4</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>1</sup></a></li>
+		
+			<li><a href="/categories/并发模型/" title="并发模型">并发模型<sup>1</sup></a></li>
+		
+			<li><a href="/categories/插件/" title="插件">插件<sup>1</sup></a></li>
+		
+			<li><a href="/categories/时间-时间戳转换/" title="时间/时间戳转换">时间/时间戳转换<sup>1</sup></a></li>
+		
+			<li><a href="/categories/消息队列/" title="消息队列">消息队列<sup>1</sup></a></li>
+		
+			<li><a href="/categories/程序集/" title="程序集">程序集<sup>2</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>3</sup></a></li>
+		
+			<li><a href="/categories/线性表/" title="线性表">线性表<sup>1</sup></a></li>
+		
+			<li><a href="/categories/线程池/" title="线程池">线程池<sup>1</sup></a></li>
+		
+			<li><a href="/categories/缓存/" title="缓存">缓存<sup>3</sup></a></li>
+		
+			<li><a href="/categories/计算机基础/" title="计算机基础">计算机基础<sup>2</sup></a></li>
+		
+			<li><a href="/categories/认证与授权/" title="认证与授权">认证与授权<sup>1</sup></a></li>
+		
+			<li><a href="/categories/设计模式/" title="设计模式">设计模式<sup>3</sup></a></li>
+		
+			<li><a href="/categories/链表/" title="链表">链表<sup>2</sup></a></li>
+		
+			<li><a href="/categories/集合与泛型/" title="集合与泛型">集合与泛型<sup>3</sup></a></li>
+		
+			<li><a href="/categories/音频-视频/" title="音频/视频">音频/视频<sup>1</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist" style="clear:both;">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/Net-Standard/" title=".Net Standard">.Net Standard<sup>2</sup></a></li>
+		
+			<li><a href="/tags/net异步与并行/" title=".net异步与并行">.net异步与并行<sup>12</sup></a></li>
+		
+			<li><a href="/tags/ABP/" title="ABP">ABP<sup>27</sup></a></li>
+		
+			<li><a href="/tags/ASP-NET-IIS请求处理管道/" title="ASP.NET/IIS请求处理管道">ASP.NET/IIS请求处理管道<sup>7</sup></a></li>
+		
+			<li><a href="/tags/AWS/" title="AWS">AWS<sup>7</sup></a></li>
+		
+			<li><a href="/tags/ApplicationPoolIdentify/" title="ApplicationPoolIdentify">ApplicationPoolIdentify<sup>1</sup></a></li>
+		
+			<li><a href="/tags/CSharp/" title="CSharp">CSharp<sup>101</sup></a></li>
+		
+			<li><a href="/tags/CSharp基础/" title="CSharp基础">CSharp基础<sup>44</sup></a></li>
+		
+			<li><a href="/tags/CentOS7/" title="CentOS7">CentOS7<sup>24</sup></a></li>
+		
+			<li><a href="/tags/Chrome/" title="Chrome">Chrome<sup>1</sup></a></li>
+		
+			<li><a href="/tags/CodeDOM/" title="CodeDOM">CodeDOM<sup>3</sup></a></li>
+		
+			<li><a href="/tags/Consul/" title="Consul">Consul<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Docker/" title="Docker">Docker<sup>23</sup></a></li>
+		
+			<li><a href="/tags/Docker-Compose/" title="Docker Compose">Docker Compose<sup>5</sup></a></li>
+		
+			<li><a href="/tags/DotNet/" title="DotNet">DotNet<sup>106</sup></a></li>
+		
+			<li><a href="/tags/DotNetCore/" title="DotNetCore">DotNetCore<sup>16</sup></a></li>
+		
+			<li><a href="/tags/DotNet面试题解析/" title="DotNet面试题解析">DotNet面试题解析<sup>10</sup></a></li>
+		
+			<li><a href="/tags/Elasticsearch/" title="Elasticsearch">Elasticsearch<sup>2</sup></a></li>
+		
+			<li><a href="/tags/Emit-反射发出/" title="Emit(反射发出)">Emit(反射发出)<sup>8</sup></a></li>
+		
+			<li><a href="/tags/Expression-Tree/" title="Expression Tree">Expression Tree<sup>3</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+<div style="display: none;" id="rocket-to-top">
+  <div style="opacity: 0; display: block;" class="level-2"></div>
+  <div class="level-3"></div>
+</div>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<div class="social-font clearfix">
+		
+		
+		
+		<a href="https://github.com/syxdevcode" target="_blank" title="github"></a>
+		
+		
+		
+	</div>
+		<p class="copyright">Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/syxdevcode/pacman" target="_blank" title="Pacman">Pacman</a> © 2020 
+		
+		<a href="https://syxdevcode.github.com" target="_blank" title="syxdevcode">syxdevcode</a>
+		
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    $('.navbar').click(function () {
+      $('header nav').toggleClass('shownav');
+    });
+    var myWidth = 0;
+    function getSize() {
+      if (typeof (window.innerWidth) == 'number') {
+        myWidth = window.innerWidth;
+      } else if (document.documentElement && document.documentElement.clientWidth) {
+        myWidth = document.documentElement.clientWidth;
+      };
+    };
+    var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+    $(window).resize(function () {
+      getSize();
+      if (myWidth >= 1024) {
+        $('header nav').removeClass('shownav');
+      } else {
+        m.removeClass('moveMain');
+        a.css('display', 'block').removeClass('fadeOut');
+        o.css('display', 'none');
+      
+          $('#toc.toc-aside').css('display', 'none');
+        
+    }
+    });
+    c.click(function () {
+      a.addClass('fadeOut').css('display', 'none');
+      o.css('display', 'block').addClass('fadeIn');
+      m.addClass('moveMain');
+    });
+    o.click(function () {
+      o.css('display', 'none').removeClass('beforeFadeIn');
+      a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');
+      m.removeClass('moveMain');
+    });
+    $(window).scroll(function () {
+      o.css("top", Math.max(80, 260 - $(this).scrollTop()));
+    });
+  });
+  //判断访问终端
+  var browser = {
+    versions: function () {
+      var u = navigator.userAgent,
+        app = navigator.appVersion;
+      return {
+        trident: u.indexOf('Trident') > -1, //IE内核
+        presto: u.indexOf('Presto') > -1, //opera内核
+        webKit: u.indexOf('AppleWebKit') > -1, //苹果、谷歌内核
+        gecko: u.indexOf('Gecko') > -1 && u.indexOf('KHTML') == -1,//火狐内核
+        mobile: !!u.match(/AppleWebKit.*Mobile.*/), //是否为移动终端
+        ios: !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/), //ios终端
+        android: u.indexOf('Android') > -1 || u.indexOf('Adr') > -1, //android终端
+        iPhone: u.indexOf('iPhone') > -1, //是否为iPhone或者QQHD浏览器
+        iPad: u.indexOf('iPad') > -1, //是否iPad
+        webApp: u.indexOf('Safari') == -1, //是否web应该程序，没有头部与底部
+        weixin: u.indexOf('MicroMessenger') > -1, //是否微信 （2015-01-22新增）
+        qq: u.match(/\sQQ/i) == " qq" //是否QQ
+      };
+    }(),
+    language: (navigator.browserLanguage || navigator.language).toLowerCase()
+  }
+</script>
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t = $('#toc'),
+      h = $('article h2')
+    ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o = $('.openaside'),
+      c = $('.closeaside');
+    if (ai.length > 0) {
+      ai.wrap('<div class="video-container" />');
+    };
+    if (ae.length > 0) {
+      ae.wrap('<div class="video-container" />');
+    };
+    if (ah.length == 0) {
+      t.css('display', 'none');
+    } else {
+      c.click(function () {
+        ta.css('display', 'block').addClass('fadeIn');
+      });
+      o.click(function () {
+        ta.css('display', 'none');
+      });
+      $(window).scroll(function () {
+        ta.css("top", Math.max(140, 320 - $(this).scrollTop()));
+      });
+    };
+  });
+</script>
+
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    var $this = $('.share'),
+      //url = $this.attr('data-url'),
+      url = window.location.href,
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+    var html = [
+      '<a href="#" class="overlay" id="qrcode"></a>',
+      '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://mobile.qq.com/qrcode?url=' + encodedUrl + '"/></div>',
+      '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+      '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+      '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+      '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+      '<a href="http://service.weibo.com/share/share.php?title=' + title + '&url=' + encodedUrl + '&ralateUid=' + tsina + '&searchPic=true&style=number' + '" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+      '<span title="Share to"></span>'
+    ].join('');
+    $this.append(html);
+    viewqrCode();
+    $('.article-share-qrcode').click(viewqrCode()
+    );
+
+  });
+  function viewqrCode() {
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function () {
+      $('.qrcode strong').text(' ');
+    });
+  }
+</script>
+<script type="text/javascript">  
+  //判断是否移动端 
+  if (!browser.versions.mobile) {
+    $(function () {
+      var c, a = $("#rocket-to-top"), e = ($(document).scrollTop(), !0);
+      $(window).scroll(function () {
+        var b = $(document).scrollTop(); 0 == b ? "0px 0px" == a.css("background-position") ? a.fadeOut("slow") : e && (e = !1, $(".level-2").css("opacity", 1), a.delay(100).animate({ marginTop: "-1000px" }, "normal", function () { a.css({ "margin-top": "-125px", display: "none" }), e = !0 })) : a.fadeIn("slow")
+      }), a.hover(function () { $(".level-2").stop(!0).animate({ opacity: 1 }) }, function () { $(".level-2").stop(!0).animate({ opacity: 0 }) }), $(".level-3").click(function () { function b() { var b = a.css("background-position"); if ("none" == a.css("display") || 0 == e) return clearInterval(c), a.css("background-position", "0px 0px"), void 0; switch (b) { case "0px 0px": a.css("background-position", "-298px 0px"); break; case "-298px 0px": a.css("background-position", "-447px 0px"); break; case "-447px 0px": a.css("background-position", "-596px 0px"); break; case "-596px 0px": a.css("background-position", "-745px 0px"); break; case "-745px 0px": a.css("background-position", "-298px 0px") } } e && (c = setInterval(b, 50), $("html,body").animate({ scrollTop: 0 }, "slow")) })
+    });
+  }
+</script>
+
+
+
+
+
+  </body>
+</html>

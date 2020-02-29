@@ -1,0 +1,660 @@
+
+ <!DOCTYPE HTML>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  
+    <title>缓存在分布式系统中的应用 | syxdevcode博客</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="syxdevcode">
+    
+    <meta name="description" content="缓存在分布式系统中的应用一、缓存概述缓存是分布式系统中的重要组件，主要解决高并发，大数据场景下，热点数据访问的性能问题。提供高性能的数据快速访问。
+1.1缓存的原理（1）将数据写入/读取速度更快的存储（设备）
+（2）将数据缓存到离应用最近的位置；
+（3）将数据缓存到离用户最近的位置。
+1.2缓存分类">
+    
+    
+    
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+  <body>
+    <header>
+      <div>
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="syxdevcode博客" title="syxdevcode博客"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="syxdevcode博客">syxdevcode博客</a></h1>
+				<h2 class="blog-motto"></h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+						<li><a href="/tags">tags</a></li>
+					
+						<li><a href="/categories">categories</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:syxdevcode.github.com">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>			
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2018/06/12/缓存在分布式系统中的应用/" title="缓存在分布式系统中的应用" itemprop="url">缓存在分布式系统中的应用</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="https://syxdevcode.github.com" title="syxdevcode">syxdevcode</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2018-06-12T09:10:31.000Z" itemprop="datePublished">2018-06-12</time>
+    更新日期:<time datetime="2020-02-29T10:34:53.192Z" itemprop="dateModified">2020-02-29</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#缓存在分布式系统中的应用"><span class="toc-number">1.</span> <span class="toc-text">缓存在分布式系统中的应用</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#一、缓存概述"><span class="toc-number">1.1.</span> <span class="toc-text">一、缓存概述</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1缓存的原理"><span class="toc-number">1.1.1.</span> <span class="toc-text">1.1缓存的原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2缓存分类"><span class="toc-number">1.1.2.</span> <span class="toc-text">1.2缓存分类</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-3缓存媒介"><span class="toc-number">1.1.3.</span> <span class="toc-text">1.3缓存媒介</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-4缓存设计"><span class="toc-number">1.1.4.</span> <span class="toc-text">1.4缓存设计</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#二、CDN缓存"><span class="toc-number">1.2.</span> <span class="toc-text">二、CDN缓存</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-CND原理"><span class="toc-number">1.2.1.</span> <span class="toc-text">2.1 CND原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-CDN优缺点"><span class="toc-number">1.2.2.</span> <span class="toc-text">2.2 CDN优缺点</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#三、反向代理缓存"><span class="toc-number">1.3.</span> <span class="toc-text">三、反向代理缓存</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1缓存原理"><span class="toc-number">1.3.1.</span> <span class="toc-text">3.1缓存原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-代理缓存比较"><span class="toc-number">1.3.2.</span> <span class="toc-text">3.2 代理缓存比较</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#四、分布式缓存"><span class="toc-number">1.4.</span> <span class="toc-text">四、分布式缓存</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Memcache"><span class="toc-number">1.4.1.</span> <span class="toc-text">Memcache</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Redis"><span class="toc-number">1.4.2.</span> <span class="toc-text">Redis</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Memcache与Redis的比较"><span class="toc-number">1.4.3.</span> <span class="toc-text">Memcache与Redis的比较</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#缓存穿透"><span class="toc-number">1.5.</span> <span class="toc-text">缓存穿透</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#缓存击穿"><span class="toc-number">1.6.</span> <span class="toc-text">缓存击穿</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#四、缓存雪崩"><span class="toc-number">1.7.</span> <span class="toc-text">四、缓存雪崩</span></a></li></ol></li></ol>
+		</div>
+		
+		<h1 id="缓存在分布式系统中的应用"><a href="#缓存在分布式系统中的应用" class="headerlink" title="缓存在分布式系统中的应用"></a>缓存在分布式系统中的应用</h1><h2 id="一、缓存概述"><a href="#一、缓存概述" class="headerlink" title="一、缓存概述"></a>一、缓存概述</h2><p>缓存是分布式系统中的重要组件，主要解决高并发，大数据场景下，热点数据访问的性能问题。提供高性能的数据快速访问。</p>
+<h3 id="1-1缓存的原理"><a href="#1-1缓存的原理" class="headerlink" title="1.1缓存的原理"></a>1.1缓存的原理</h3><p>（1）将数据写入/读取速度更快的存储（设备）</p>
+<p>（2）将数据缓存到离应用最近的位置；</p>
+<p>（3）将数据缓存到离用户最近的位置。</p>
+<h3 id="1-2缓存分类"><a href="#1-2缓存分类" class="headerlink" title="1.2缓存分类"></a>1.2缓存分类</h3><p>（1）CDN缓存；</p>
+<p>（2）反向代理缓存；</p>
+<p>（3）分布式Cache；</p>
+<p>（4）本地应用缓存；</p>
+<h3 id="1-3缓存媒介"><a href="#1-3缓存媒介" class="headerlink" title="1.3缓存媒介"></a>1.3缓存媒介</h3><p>常用中间件：Redis，Memcache，Ngnix，Varnish，Squid，Ehcache等；</p>
+<p>缓存的内容：文件，数据，对象；</p>
+<p>缓存的介质：CPU，内存（本地，分布式），磁盘（本地，分布式）</p>
+<h3 id="1-4缓存设计"><a href="#1-4缓存设计" class="headerlink" title="1.4缓存设计"></a>1.4缓存设计</h3><p>缓存设计需要解决以下几个问题：</p>
+<p>（1）缓存什么？</p>
+<p>哪些数据需要缓存：1.热点数据；2.静态资源；</p>
+<p>（2）缓存的位置？</p>
+<p>CDN，反向代理，分布式缓存服务器，本机（内存，硬盘）</p>
+<p>（3）如何缓存的问题？</p>
+<p>过期策略</p>
+<p>1.固定时间：比如指定缓存的时间是30分钟；<br>2.相对时间：比如最近10分钟内没有访问的数据；</p>
+<p>同步机制</p>
+<p>实时写入；（推）<br>异步刷新；（推拉）</p>
+<h2 id="二、CDN缓存"><a href="#二、CDN缓存" class="headerlink" title="二、CDN缓存"></a>二、CDN缓存</h2><p>CDN主要解决将数据缓存到离用户最近的位置，一般缓存静态资源文件（页面，脚本，图片，视频，文件等）。国内网络异常复杂，跨运营商的网络访问会很慢。为了解决跨运营商或各地用户访问问题，可以在重要的城市，部署CDN应用。使用户就近获取所需内容，降低网络拥塞，提高用户访问响应速度和命中率。</p>
+<h3 id="2-1-CND原理"><a href="#2-1-CND原理" class="headerlink" title="2.1 CND原理"></a>2.1 CND原理</h3><p>CDN的基本原理是广泛采用各种缓存服务器，将这些缓存服务器分布到用户访问相对集中的地区或网络中，在用户访问网站时，利用全局负载技术将用户的访问指向距离最近的工作正常的缓存服务器上，由缓存服务器直接响应用户请求。</p>
+<p>（1）未部署CDN应用前</p>
+<p>网络请求路径：</p>
+<p>请求：本机网络（局域网）——》运营商网络——》应用服务器机房</p>
+<p>响应：应用服务器机房——》运营商网络——》本机网络（局域网）</p>
+<p>在不考虑复杂网络的情况下，从请求到响应需要经过3个节点，6个步骤完成一次用户访问操作。</p>
+<p>（2）部署CDN应用后</p>
+<p>网络路径：</p>
+<p>请求：本机网络（局域网）——》运营商网络</p>
+<p>响应：运营商网络——》本机网络（局域网）</p>
+<p>在不考虑复杂网络的情况下，从请求到响应需要经过2个节点，2个步骤完成一次用户访问操作。</p>
+<p>与不部署CDN服务相比，减少了1个节点，4个步骤的访问。极大的提高的系统的响应速度。</p>
+<h3 id="2-2-CDN优缺点"><a href="#2-2-CDN优缺点" class="headerlink" title="2.2 CDN优缺点"></a>2.2 CDN优缺点</h3><p>（1）优点（摘自百度百科）</p>
+<p>1、本地Cache加速：提升访问速度，尤其含有大量图片和静态页面站点；</p>
+<p>2、镜像服务：消除了不同运营商之间互联的瓶颈造成的影响，实现了跨运营商的网络加速，保证不同网络中的用户都能得到良好的访问质量；</p>
+<p>3、远程加速：远程访问用户根据DNS负载均衡技术智能自动选择Cache服务器，选择最快的Cache服务器，加快远程访问的速度；</p>
+<p>4、带宽优化：自动生成服务器的远程Mirror（镜像）cache服务器，远程用户访问时从cache服务器上读取数据，减少远程访问的带宽、分担网络流量、减轻原站点WEB服务器负载等功能。</p>
+<p>5、集群抗攻击：广泛分布的CDN节点加上节点之间的智能冗余机制，可以有效地预防黑客入侵以及降低各种D.D.o.S攻击对网站的影响，同时保证较好的服务质量。</p>
+<p>（2）缺点</p>
+<p>1.动态资源缓存，需要注意实时性；</p>
+<p>解决：主要缓存静态资源，动态资源建立多级缓存或准实时同步；</p>
+<p>2.如何保证数据的一致性和实时性需要权衡考虑；</p>
+<p>解决：</p>
+<p>1.设置缓存失效时间（1个小时，最终一致性）；<br>2.数据版本号；</p>
+<h2 id="三、反向代理缓存"><a href="#三、反向代理缓存" class="headerlink" title="三、反向代理缓存"></a>三、反向代理缓存</h2><p>反向代理是指在网站服务器机房部署代理服务器，实现负载均衡，数据缓存，安全控制等功能。</p>
+<h3 id="3-1缓存原理"><a href="#3-1缓存原理" class="headerlink" title="3.1缓存原理"></a>3.1缓存原理</h3><p>反向代理位于应用服务器机房，处理所有对WEB服务器的请求。如果用户请求的页面在代理服务器上有缓冲的话，代理服务器直接将缓冲内容发送给用户。如果没有缓冲则先向WEB服务器发出请求，取回数据，本地缓存后再发送给用户。通过降低向WEB服务器的请求数，从而降低了WEB服务器的负载。</p>
+<p>反向代理一般缓存静态资源，动态资源转发到应用服务器处理。常用的缓存应用服务器有Varnish，Ngnix，Squid。</p>
+<h3 id="3-2-代理缓存比较"><a href="#3-2-代理缓存比较" class="headerlink" title="3.2 代理缓存比较"></a>3.2 代理缓存比较</h3><p>常用的代理缓存有Varnish，Squid，Ngnix，简单比较如下：</p>
+<p>（1）varnish和squid是专业的cache服务，nginx需要第三方模块支持；</p>
+<p>（2）Varnish采用内存型缓存，避免了频繁在内存、磁盘中交换文件，性能比Squid高；</p>
+<p>（3）Varnish由于是内存cache，所以对小文件如css,js,小图片啥的支持很棒，后端的持久化缓存可以采用的是Squid或ATS；</p>
+<p>（4）Squid功能全而大，适合于各种静态的文件缓存，一般会在前端挂一个HAProxy或nginx做负载均衡跑多个实例；</p>
+<p>（5）Nginx采用第三方模块ncache做的缓冲，性能基本达到varnish，一般作为反向代理使用，可以实现简单的缓存。</p>
+<h2 id="四、分布式缓存"><a href="#四、分布式缓存" class="headerlink" title="四、分布式缓存"></a>四、分布式缓存</h2><p>CDN,反向代理缓存，主要解决静态文件，或用户请求资源的缓存，数据源一般为静态文件或动态生成的文件（有缓存头标识）。</p>
+<p>分布式缓存，主要指缓存用户经常访问数据的缓存，数据源为数据库。一般起到热点数据访问和减轻数据库压力的作用。</p>
+<p>目前分布式缓存设计，在大型网站架构中是必备的架构要素。常用的中间件有Memcache，Redis。</p>
+<h3 id="Memcache"><a href="#Memcache" class="headerlink" title="Memcache"></a>Memcache</h3><p>（1）使用物理内存作为缓存区，可独立运行在服务器上。每个进程最大2G，如果想缓存更多的数据，可以开辟更多的memcache进程（不同端口）或者使用分布式memcache进行缓存，将数据缓存到不同的物理机或者虚拟机上。</p>
+<p>（2）使用key-value的方式来存储数据，这是一种单索引的结构化数据组织形式，可使数据项查询时间复杂度为O(1)。</p>
+<p>（3）协议简单：基于文本行的协议，直接通过telnet在memcached服务器上可进行存取数据操作，简单，方便多种缓存参考此协议；</p>
+<p>（4）基于libevent高性能通信：Libevent是一套利用C开发的程序库，它将BSD系统的kqueue,Linux系统的epoll等事件处理功能封装成一个接口，与传统的select相比，提高了性能。</p>
+<p>（5）内置的内存管理方式：所有数据都保存在内存中，存取数据比硬盘快，当内存满后，通过LRU算法自动删除不使用的缓存，但没有考虑数据的容灾问题，重启服务，所有数据会丢失。</p>
+<p>（6）分布式：各个memcached服务器之间互不通信，各自独立存取数据，不共享任何信息。服务器并不具有分布式功能，分布式部署取决于memcache客户端。</p>
+<p>（7）缓存策略：Memcached的缓存策略是LRU（最近最少使用）到期失效策略。在memcached内存储数据项时，可以指定它在缓存的失效时间，默认为永久。当memcached服务器用完分配的内时，失效的数据被首先替换，然后也是最近未使用的数据。在LRU中，memcached使用的是一种Lazy Expiration策略，自己不会监控存入的key/vlue对是否过期，而是在获取key值时查看记录的时间戳，检查key/value对空间是否过期，这样可减轻服务器的负载。</p>
+<h3 id="Redis"><a href="#Redis" class="headerlink" title="Redis"></a>Redis</h3><p>Redis 是一个开源（BSD许可）的，基于内存的，多数据结构存储系统。可以用作数据库、缓存和消息中间件。 支持多种类型的数据结构，如 字符串（strings）， 散列（hashes）， 列表（lists）， 集合（sets）， 有序集合（sorted sets） 与范围查询， bitmaps， hyperloglogs 和 地理空间（geospatial） 索引半径查询。</p>
+<p>内置了 复制（replication），LUA脚本（Lua scripting）， LRU驱动事件（LRU eviction），事务（transactions） 和不同级别的 磁盘持久化（persistence）， 并通过 Redis哨兵（Sentinel）和自动分区（Cluster）提供高可用性（high availability）。</p>
+<h3 id="Memcache与Redis的比较"><a href="#Memcache与Redis的比较" class="headerlink" title="Memcache与Redis的比较"></a>Memcache与Redis的比较</h3><p>（1）数据结构：Memcache只支持key value存储方式，Redis支持更多的数据类型，比如Key value，hash，list，set，zset；</p>
+<p>（2）多线程：Memcache支持多线程，redis支持单线程；CPU利用方面Memcache优于redis；</p>
+<p>（3）持久化：Memcache不支持持久化，Redis支持持久化；</p>
+<p>（4）内存利用率：memcache高，redis低（采用压缩的情况下比memcache高）；</p>
+<p>（5）过期策略：memcache过期后，不删除缓存，会导致下次取数据数据的问题，Redis有专门线程，清除缓存数据；</p>
+<h2 id="缓存穿透"><a href="#缓存穿透" class="headerlink" title="缓存穿透"></a>缓存穿透</h2><p>缓存穿透是说收到了一个请求，但是该请求缓存里没有，只能去数据库里查询，然后放进缓存。这里面有两个风险，一个是同时有好多请求访问同一个数据，然后业务系统把这些请求全发到了数据库；第二个是有人恶意构造一个逻辑上不存在的数据，然后大量发送这个请求，这样每次请求都会被发送到数据库，可能导致数据挂掉。</p>
+<p>怎么应对这种情况呢？对于恶意访问，一个思路是事先做校验，对恶意数据直接过滤掉，不要发到数据库层；第二个思路是缓存空结果，就是对查询不存在的数据仍然记录一条该数据不存在在缓存里，这样能有效的减少查询数据库的次数。</p>
+<h2 id="缓存击穿"><a href="#缓存击穿" class="headerlink" title="缓存击穿"></a>缓存击穿</h2><p>缓存一般是Key，value方式存在，当某一个Key不存在时会查询数据库，假如这个Key，一直不存在，则会频繁的请求数据库，对数据库造成访问压力。</p>
+<p>解决方法：</p>
+<p>（1）对结果为空的数据也进行缓存，当此key有数据后，清理缓存；</p>
+<p>（2）一定不存在的key，采用布隆过滤器，建立一个大的Bitmap中，查询时通过该bitmap过滤；</p>
+<p>一个思路是全局锁，就是所有访问某个数据的请求都共享一个锁，获得锁的那个才有资格去访问数据库，其他线程必须等待。但是现在的业务都是分布式的，本地锁没法控制其他服务器也等待，所以要用到全局锁，比如用redis的setnx实现全局锁。</p>
+<p>另一个思路是对即将过期的数据主动刷新，做法可以有很多，比如起一个线程轮询数据，比如把所有数据划分为不同的缓存区间，定期分区间刷新数据等等。</p>
+<h2 id="四、缓存雪崩"><a href="#四、缓存雪崩" class="headerlink" title="四、缓存雪崩"></a>四、缓存雪崩</h2><p>雪崩是指当大量缓存失效时，导致大量的请求访问数据库，导致数据库服务器，无法抗住请求或挂掉的情况。</p>
+<p>解决方法：</p>
+<p>（1）合理规划缓存的失效时间；</p>
+<p>（2）合理评估数据库的负载压力；</p>
+<p>（3）对数据库进行过载保护或应用层限流；</p>
+<p>（4）多级缓存设计，缓存高可用；</p>
+<p>参考：</p>
+<p><a href="http://www.cnblogs.com/itfly8/p/5562610.html" target="_blank" rel="noopener">大型网站架构系列：缓存在分布式系统中的应用（一）</a></p>
+<p><a href="http://www.cnblogs.com/itfly8/p/5562615.html" target="_blank" rel="noopener">大型网站架构系列：缓存在分布式系统中的应用（二）</a></p>
+<p><a href="http://www.cnblogs.com/itfly8/p/5597639.html" target="_blank" rel="noopener">大型网站架构系列：缓存在分布式系统中的应用（三）</a></p>
+<p><a href="https://www.cnblogs.com/bethunebtj/p/9159914.html" target="_blank" rel="noopener">高并发请求的缓存设计策略</a></p>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/分布式/">分布式</a><a href="/tags/缓存/">缓存</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/%E7%BC%93%E5%AD%98/">缓存</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="https://syxdevcode.github.com/2018/06/12/%E7%BC%93%E5%AD%98%E5%9C%A8%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F%E4%B8%AD%E7%9A%84%E5%BA%94%E7%94%A8/" data-title="缓存在分布式系统中的应用 | syxdevcode博客" data-tsina="" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2018/06/12/缓存击穿，失效以及热点key/" title="缓存击穿，失效以及热点key">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  缓存击穿，失效以及热点key</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2018/06/11/Redis内存模型/"  title="Redis内存模型">
+ <strong>NEXT:</strong><br/> 
+ <span>Redis内存模型
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#缓存在分布式系统中的应用"><span class="toc-number">1.</span> <span class="toc-text">缓存在分布式系统中的应用</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#一、缓存概述"><span class="toc-number">1.1.</span> <span class="toc-text">一、缓存概述</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-1缓存的原理"><span class="toc-number">1.1.1.</span> <span class="toc-text">1.1缓存的原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-2缓存分类"><span class="toc-number">1.1.2.</span> <span class="toc-text">1.2缓存分类</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-3缓存媒介"><span class="toc-number">1.1.3.</span> <span class="toc-text">1.3缓存媒介</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#1-4缓存设计"><span class="toc-number">1.1.4.</span> <span class="toc-text">1.4缓存设计</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#二、CDN缓存"><span class="toc-number">1.2.</span> <span class="toc-text">二、CDN缓存</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#2-1-CND原理"><span class="toc-number">1.2.1.</span> <span class="toc-text">2.1 CND原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-2-CDN优缺点"><span class="toc-number">1.2.2.</span> <span class="toc-text">2.2 CDN优缺点</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#三、反向代理缓存"><span class="toc-number">1.3.</span> <span class="toc-text">三、反向代理缓存</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#3-1缓存原理"><span class="toc-number">1.3.1.</span> <span class="toc-text">3.1缓存原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-2-代理缓存比较"><span class="toc-number">1.3.2.</span> <span class="toc-text">3.2 代理缓存比较</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#四、分布式缓存"><span class="toc-number">1.4.</span> <span class="toc-text">四、分布式缓存</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Memcache"><span class="toc-number">1.4.1.</span> <span class="toc-text">Memcache</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Redis"><span class="toc-number">1.4.2.</span> <span class="toc-text">Redis</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Memcache与Redis的比较"><span class="toc-number">1.4.3.</span> <span class="toc-text">Memcache与Redis的比较</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#缓存穿透"><span class="toc-number">1.5.</span> <span class="toc-text">缓存穿透</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#缓存击穿"><span class="toc-number">1.6.</span> <span class="toc-text">缓存击穿</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#四、缓存雪崩"><span class="toc-number">1.7.</span> <span class="toc-text">四、缓存雪崩</span></a></li></ol></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/Net-Standard/" title=".Net Standard">.Net Standard<sup>2</sup></a></li>
+		
+			<li><a href="/categories/net异步与并行/" title=".net异步与并行">.net异步与并行<sup>10</sup></a></li>
+		
+			<li><a href="/categories/ABP/" title="ABP">ABP<sup>27</sup></a></li>
+		
+			<li><a href="/categories/ASP-NET-IIS请求处理管道/" title="ASP.NET/IIS请求处理管道">ASP.NET/IIS请求处理管道<sup>2</sup></a></li>
+		
+			<li><a href="/categories/ApplicationPoolIdentify/" title="ApplicationPoolIdentify">ApplicationPoolIdentify<sup>1</sup></a></li>
+		
+			<li><a href="/categories/CSharp基础/" title="CSharp基础">CSharp基础<sup>11</sup></a></li>
+		
+			<li><a href="/categories/CentOS7/" title="CentOS7">CentOS7<sup>5</sup></a></li>
+		
+			<li><a href="/categories/Chrome/" title="Chrome">Chrome<sup>1</sup></a></li>
+		
+			<li><a href="/categories/CodeDOM/" title="CodeDOM">CodeDOM<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Consul/" title="Consul">Consul<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Docker/" title="Docker">Docker<sup>7</sup></a></li>
+		
+			<li><a href="/categories/Docker-Compose/" title="Docker Compose">Docker Compose<sup>3</sup></a></li>
+		
+			<li><a href="/categories/DotNetCore/" title="DotNetCore">DotNetCore<sup>3</sup></a></li>
+		
+			<li><a href="/categories/DotNet面试题解析/" title="DotNet面试题解析">DotNet面试题解析<sup>8</sup></a></li>
+		
+			<li><a href="/categories/EasyNetQ/" title="EasyNetQ">EasyNetQ<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Elasticsearch/" title="Elasticsearch">Elasticsearch<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Emit-反射发出/" title="Emit(反射发出)">Emit(反射发出)<sup>6</sup></a></li>
+		
+			<li><a href="/categories/Expression-Tree/" title="Expression Tree">Expression Tree<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Git/" title="Git">Git<sup>2</sup></a></li>
+		
+			<li><a href="/categories/HostService/" title="HostService">HostService<sup>1</sup></a></li>
+		
+			<li><a href="/categories/JavaScript-JQuery/" title="JavaScript/JQuery">JavaScript/JQuery<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Jenkins/" title="Jenkins">Jenkins<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Jexus/" title="Jexus">Jexus<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Json-Net/" title="Json.Net">Json.Net<sup>1</sup></a></li>
+		
+			<li><a href="/categories/LINQ/" title="LINQ">LINQ<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Let’s-Encrypt/" title="Let’s Encrypt">Let’s Encrypt<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Linux基础命令/" title="Linux基础命令">Linux基础命令<sup>6</sup></a></li>
+		
+			<li><a href="/categories/MSIL指令/" title="MSIL指令">MSIL指令<sup>2</sup></a></li>
+		
+			<li><a href="/categories/MVC-Web-API/" title="MVC/Web API">MVC/Web API<sup>2</sup></a></li>
+		
+			<li><a href="/categories/MariaDB/" title="MariaDB">MariaDB<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MarkDown/" title="MarkDown">MarkDown<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MongoDB/" title="MongoDB">MongoDB<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Moq/" title="Moq">Moq<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MySql/" title="MySql">MySql<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Naudio/" title="Naudio">Naudio<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Nginx/" title="Nginx">Nginx<sup>2</sup></a></li>
+		
+			<li><a href="/categories/OAuth2-0/" title="OAuth2.0">OAuth2.0<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Ocelot/" title="Ocelot">Ocelot<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Openssl/" title="Openssl">Openssl<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Polly/" title="Polly">Polly<sup>2</sup></a></li>
+		
+			<li><a href="/categories/PostGresqlSql/" title="PostGresqlSql">PostGresqlSql<sup>1</sup></a></li>
+		
+			<li><a href="/categories/RESTful/" title="RESTful">RESTful<sup>2</sup></a></li>
+		
+			<li><a href="/categories/RabbitMQ/" title="RabbitMQ">RabbitMQ<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Redis/" title="Redis">Redis<sup>5</sup></a></li>
+		
+			<li><a href="/categories/Resharper/" title="Resharper">Resharper<sup>1</sup></a></li>
+		
+			<li><a href="/categories/SSH/" title="SSH">SSH<sup>1</sup></a></li>
+		
+			<li><a href="/categories/SSL-TLS/" title="SSL/TLS">SSL/TLS<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Skywalking/" title="Skywalking">Skywalking<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Sql/" title="Sql">Sql<sup>5</sup></a></li>
+		
+			<li><a href="/categories/TDD/" title="TDD">TDD<sup>1</sup></a></li>
+		
+			<li><a href="/categories/TPL-DataFlow/" title="TPL DataFlow">TPL DataFlow<sup>2</sup></a></li>
+		
+			<li><a href="/categories/WCF时间类型序列化/" title="WCF时间类型序列化">WCF时间类型序列化<sup>1</sup></a></li>
+		
+			<li><a href="/categories/WebForm/" title="WebForm">WebForm<sup>2</sup></a></li>
+		
+			<li><a href="/categories/WinDbg/" title="WinDbg">WinDbg<sup>1</sup></a></li>
+		
+			<li><a href="/categories/WinSCP/" title="WinSCP">WinSCP<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Windows子系统/" title="Windows子系统">Windows子系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Windows系统/" title="Windows系统">Windows系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/ab/" title="ab">ab<sup>1</sup></a></li>
+		
+			<li><a href="/categories/hexo/" title="hexo">hexo<sup>2</sup></a></li>
+		
+			<li><a href="/categories/shadowsocks/" title="shadowsocks">shadowsocks<sup>1</sup></a></li>
+		
+			<li><a href="/categories/zookeeper/" title="zookeeper">zookeeper<sup>1</sup></a></li>
+		
+			<li><a href="/categories/内存泄漏/" title="内存泄漏">内存泄漏<sup>1</sup></a></li>
+		
+			<li><a href="/categories/分布式/" title="分布式">分布式<sup>1</sup></a></li>
+		
+			<li><a href="/categories/分布式事务/" title="分布式事务">分布式事务<sup>1</sup></a></li>
+		
+			<li><a href="/categories/单词收录/" title="单词收录">单词收录<sup>14</sup></a></li>
+		
+			<li><a href="/categories/反射/" title="反射">反射<sup>4</sup></a></li>
+		
+			<li><a href="/categories/委托与事件/" title="委托与事件">委托与事件<sup>4</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>1</sup></a></li>
+		
+			<li><a href="/categories/并发模型/" title="并发模型">并发模型<sup>1</sup></a></li>
+		
+			<li><a href="/categories/插件/" title="插件">插件<sup>1</sup></a></li>
+		
+			<li><a href="/categories/时间-时间戳转换/" title="时间/时间戳转换">时间/时间戳转换<sup>1</sup></a></li>
+		
+			<li><a href="/categories/消息队列/" title="消息队列">消息队列<sup>1</sup></a></li>
+		
+			<li><a href="/categories/程序集/" title="程序集">程序集<sup>2</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>3</sup></a></li>
+		
+			<li><a href="/categories/线性表/" title="线性表">线性表<sup>1</sup></a></li>
+		
+			<li><a href="/categories/线程池/" title="线程池">线程池<sup>1</sup></a></li>
+		
+			<li><a href="/categories/缓存/" title="缓存">缓存<sup>3</sup></a></li>
+		
+			<li><a href="/categories/计算机基础/" title="计算机基础">计算机基础<sup>2</sup></a></li>
+		
+			<li><a href="/categories/认证与授权/" title="认证与授权">认证与授权<sup>1</sup></a></li>
+		
+			<li><a href="/categories/设计模式/" title="设计模式">设计模式<sup>3</sup></a></li>
+		
+			<li><a href="/categories/链表/" title="链表">链表<sup>2</sup></a></li>
+		
+			<li><a href="/categories/集合与泛型/" title="集合与泛型">集合与泛型<sup>3</sup></a></li>
+		
+			<li><a href="/categories/音频-视频/" title="音频/视频">音频/视频<sup>1</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist" style="clear:both;">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/Net-Standard/" title=".Net Standard">.Net Standard<sup>2</sup></a></li>
+		
+			<li><a href="/tags/net异步与并行/" title=".net异步与并行">.net异步与并行<sup>12</sup></a></li>
+		
+			<li><a href="/tags/ABP/" title="ABP">ABP<sup>27</sup></a></li>
+		
+			<li><a href="/tags/ASP-NET-IIS请求处理管道/" title="ASP.NET/IIS请求处理管道">ASP.NET/IIS请求处理管道<sup>7</sup></a></li>
+		
+			<li><a href="/tags/AWS/" title="AWS">AWS<sup>7</sup></a></li>
+		
+			<li><a href="/tags/ApplicationPoolIdentify/" title="ApplicationPoolIdentify">ApplicationPoolIdentify<sup>1</sup></a></li>
+		
+			<li><a href="/tags/CSharp/" title="CSharp">CSharp<sup>101</sup></a></li>
+		
+			<li><a href="/tags/CSharp基础/" title="CSharp基础">CSharp基础<sup>44</sup></a></li>
+		
+			<li><a href="/tags/CentOS7/" title="CentOS7">CentOS7<sup>24</sup></a></li>
+		
+			<li><a href="/tags/Chrome/" title="Chrome">Chrome<sup>1</sup></a></li>
+		
+			<li><a href="/tags/CodeDOM/" title="CodeDOM">CodeDOM<sup>3</sup></a></li>
+		
+			<li><a href="/tags/Consul/" title="Consul">Consul<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Docker/" title="Docker">Docker<sup>23</sup></a></li>
+		
+			<li><a href="/tags/Docker-Compose/" title="Docker Compose">Docker Compose<sup>5</sup></a></li>
+		
+			<li><a href="/tags/DotNet/" title="DotNet">DotNet<sup>106</sup></a></li>
+		
+			<li><a href="/tags/DotNetCore/" title="DotNetCore">DotNetCore<sup>16</sup></a></li>
+		
+			<li><a href="/tags/DotNet面试题解析/" title="DotNet面试题解析">DotNet面试题解析<sup>10</sup></a></li>
+		
+			<li><a href="/tags/Elasticsearch/" title="Elasticsearch">Elasticsearch<sup>2</sup></a></li>
+		
+			<li><a href="/tags/Emit-反射发出/" title="Emit(反射发出)">Emit(反射发出)<sup>8</sup></a></li>
+		
+			<li><a href="/tags/Expression-Tree/" title="Expression Tree">Expression Tree<sup>3</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+<div style="display: none;" id="rocket-to-top">
+  <div style="opacity: 0; display: block;" class="level-2"></div>
+  <div class="level-3"></div>
+</div>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<div class="social-font clearfix">
+		
+		
+		
+		<a href="https://github.com/syxdevcode" target="_blank" title="github"></a>
+		
+		
+		
+	</div>
+		<p class="copyright">Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/syxdevcode/pacman" target="_blank" title="Pacman">Pacman</a> © 2020 
+		
+		<a href="https://syxdevcode.github.com" target="_blank" title="syxdevcode">syxdevcode</a>
+		
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    $('.navbar').click(function () {
+      $('header nav').toggleClass('shownav');
+    });
+    var myWidth = 0;
+    function getSize() {
+      if (typeof (window.innerWidth) == 'number') {
+        myWidth = window.innerWidth;
+      } else if (document.documentElement && document.documentElement.clientWidth) {
+        myWidth = document.documentElement.clientWidth;
+      };
+    };
+    var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+    $(window).resize(function () {
+      getSize();
+      if (myWidth >= 1024) {
+        $('header nav').removeClass('shownav');
+      } else {
+        m.removeClass('moveMain');
+        a.css('display', 'block').removeClass('fadeOut');
+        o.css('display', 'none');
+      
+          $('#toc.toc-aside').css('display', 'none');
+        
+    }
+    });
+    c.click(function () {
+      a.addClass('fadeOut').css('display', 'none');
+      o.css('display', 'block').addClass('fadeIn');
+      m.addClass('moveMain');
+    });
+    o.click(function () {
+      o.css('display', 'none').removeClass('beforeFadeIn');
+      a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');
+      m.removeClass('moveMain');
+    });
+    $(window).scroll(function () {
+      o.css("top", Math.max(80, 260 - $(this).scrollTop()));
+    });
+  });
+  //判断访问终端
+  var browser = {
+    versions: function () {
+      var u = navigator.userAgent,
+        app = navigator.appVersion;
+      return {
+        trident: u.indexOf('Trident') > -1, //IE内核
+        presto: u.indexOf('Presto') > -1, //opera内核
+        webKit: u.indexOf('AppleWebKit') > -1, //苹果、谷歌内核
+        gecko: u.indexOf('Gecko') > -1 && u.indexOf('KHTML') == -1,//火狐内核
+        mobile: !!u.match(/AppleWebKit.*Mobile.*/), //是否为移动终端
+        ios: !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/), //ios终端
+        android: u.indexOf('Android') > -1 || u.indexOf('Adr') > -1, //android终端
+        iPhone: u.indexOf('iPhone') > -1, //是否为iPhone或者QQHD浏览器
+        iPad: u.indexOf('iPad') > -1, //是否iPad
+        webApp: u.indexOf('Safari') == -1, //是否web应该程序，没有头部与底部
+        weixin: u.indexOf('MicroMessenger') > -1, //是否微信 （2015-01-22新增）
+        qq: u.match(/\sQQ/i) == " qq" //是否QQ
+      };
+    }(),
+    language: (navigator.browserLanguage || navigator.language).toLowerCase()
+  }
+</script>
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t = $('#toc'),
+      h = $('article h2')
+    ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o = $('.openaside'),
+      c = $('.closeaside');
+    if (ai.length > 0) {
+      ai.wrap('<div class="video-container" />');
+    };
+    if (ae.length > 0) {
+      ae.wrap('<div class="video-container" />');
+    };
+    if (ah.length == 0) {
+      t.css('display', 'none');
+    } else {
+      c.click(function () {
+        ta.css('display', 'block').addClass('fadeIn');
+      });
+      o.click(function () {
+        ta.css('display', 'none');
+      });
+      $(window).scroll(function () {
+        ta.css("top", Math.max(140, 320 - $(this).scrollTop()));
+      });
+    };
+  });
+</script>
+
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    var $this = $('.share'),
+      //url = $this.attr('data-url'),
+      url = window.location.href,
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+    var html = [
+      '<a href="#" class="overlay" id="qrcode"></a>',
+      '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://mobile.qq.com/qrcode?url=' + encodedUrl + '"/></div>',
+      '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+      '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+      '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+      '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+      '<a href="http://service.weibo.com/share/share.php?title=' + title + '&url=' + encodedUrl + '&ralateUid=' + tsina + '&searchPic=true&style=number' + '" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+      '<span title="Share to"></span>'
+    ].join('');
+    $this.append(html);
+    viewqrCode();
+    $('.article-share-qrcode').click(viewqrCode()
+    );
+
+  });
+  function viewqrCode() {
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function () {
+      $('.qrcode strong').text(' ');
+    });
+  }
+</script>
+<script type="text/javascript">  
+  //判断是否移动端 
+  if (!browser.versions.mobile) {
+    $(function () {
+      var c, a = $("#rocket-to-top"), e = ($(document).scrollTop(), !0);
+      $(window).scroll(function () {
+        var b = $(document).scrollTop(); 0 == b ? "0px 0px" == a.css("background-position") ? a.fadeOut("slow") : e && (e = !1, $(".level-2").css("opacity", 1), a.delay(100).animate({ marginTop: "-1000px" }, "normal", function () { a.css({ "margin-top": "-125px", display: "none" }), e = !0 })) : a.fadeIn("slow")
+      }), a.hover(function () { $(".level-2").stop(!0).animate({ opacity: 1 }) }, function () { $(".level-2").stop(!0).animate({ opacity: 0 }) }), $(".level-3").click(function () { function b() { var b = a.css("background-position"); if ("none" == a.css("display") || 0 == e) return clearInterval(c), a.css("background-position", "0px 0px"), void 0; switch (b) { case "0px 0px": a.css("background-position", "-298px 0px"); break; case "-298px 0px": a.css("background-position", "-447px 0px"); break; case "-447px 0px": a.css("background-position", "-596px 0px"); break; case "-596px 0px": a.css("background-position", "-745px 0px"); break; case "-745px 0px": a.css("background-position", "-298px 0px") } } e && (c = setInterval(b, 50), $("html,body").animate({ scrollTop: 0 }, "slow")) })
+    });
+  }
+</script>
+
+
+
+
+
+  </body>
+</html>
