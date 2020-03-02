@@ -129,7 +129,7 @@ namespace 多线程池试验
 }
 ```
 
-** AutoResetEvent和ManualResetEvent区别：**
+**AutoResetEvent和ManualResetEvent区别：**
 <font color=#0099ff size=4 face="黑体">AutoResetEvent的WaitOne()方法执行后会自动又将信号置为不发送状态也就是阻塞状态，当再次遇到WaitOne()方法是又会被阻塞，而ManualResetEvent则不会，只要线程处于非阻塞状态则无论遇到多少次WaitOne()方法都不会被阻塞，除非调用ReSet()方法来手动阻塞线程。</font>
 
 线程池是有一个容量的，可以设置线程池的最大活跃线程数，调用方法ThreadPool.SetMaxThreads可以设置相关参数。但很多编程实践里都不建议程序猿们自己去设置这些参数，其实微软为了提高线程池性能，做了大量的优化，线程池可以很智能的确定是否要创建或是消费线程，大多数情况都可以满足需求了。
@@ -337,7 +337,7 @@ finally
 }
 ```
 
-** Semaphore 信号量**
+**Semaphore 信号量**
 
 它可以控制对某一段代码或者对某个资源访问的线程的数量，超过这个数量之后，其它的线程就得等待，只有等现在有线程释放了之后，下面的线程才能访问。这个跟锁有相似的功能，只不过不是独占的，它允许一定数量的线程同时访问。
 
