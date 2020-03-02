@@ -7,7 +7,6 @@ tags:
 categories: 
 - ASP.NET/IIS请求处理管道
 ---
-# ASP.NET请求处理管道
 
 ![2012071209470854.png](/img/2012071209470854.png)
 
