@@ -7,7 +7,6 @@ tags:
 categories:
 - Linux基础命令
 ---
-# linux chmod命令
 
 chmod命令用于改变linux系统文件或目录的访问权限。用它控制文件或目录的访问权限。
 该命令有两种用法:
