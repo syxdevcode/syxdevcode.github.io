@@ -1,6 +1,6 @@
 ---
 title: CentOS7 & Docker Jenkins安装
-date: 2017-06-02 10:20:1J6
+date: 2017-06-02 10:20:16
 tags: 
 - Linux
 - Jenkins
