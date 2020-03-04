@@ -27,6 +27,43 @@ CLR支持两种类型：**引用类型**和**值类型**。这是.NET语言的�
 * 在值类型中重写GetHashCode。
 * 考虑将值类型实现为不可变的。
 
+### 为什么要为值类型重定义相等性
+
+原因主要有以下几点：
+
+* 值类型默认无法使用 == 操作符，除非对它进行重写
+* 性能原因，因为值类型默认的相等性比较会使用装箱和反射，所以性能很差
+* 根据业务需求，其实际相等性的意义和默认的比较结果可能会不同，但是这种情况可能不较少
+
+值类型和string类型除外，因为所有值类型继承于System.ValueType()(System.ValueType()同样继承于Object，但是System.ValueType()本身却是引用类型)，而System.ValueType()对Equals()和==操作符进行了重写，是逐字节比较的。而string类型是比较特殊的引用类型，所以string在很多地方都是特殊处理的。
+
+在值类型使用Equals()时，因为Equals()使用了反射，在比较时会影响效率。
+
+注意：
+
+如果要把引用类型做为Dictionary或HashTable的key使用时，必须重写这两个方法。
+
+原因：当我们把引用类型(string除外)做为Dictionary或HashTable的key时，有可能永远无法根据Key获得value的值，或者说两个类型的HashCode永远不会相等。就拿Dictionary来说，虽然我们存储的时候是键值对，但是CLR会先把key转成HashCode并且验证Equals后再做存储，根据key取值的时候也是把key转换成HashCode并且验证Equals后再取值，一定要注意验证时HashCode和Equals的关系是并且(&&)的关系。也就是说，只要GetHashCode和Equlas中有一个方法没有重写，在验证时没有重写的那个方法会调用基类的默认实现，而这两个方法的默认实现都是根据内存地址判断的，也就是说，其实一个方法的返回值永远会是false。
+
+参考：
+
+[聊一聊C#的Equals()和GetHashCode()方法](https://www.cnblogs.com/xiaochen-vip8/p/5506478.html)
+
+### 实现步骤
+
+* 重写object.Equals()方法
+* 实现IEquatable<T>.Equals()接口方法
+* 重写 == 和 != 操作符
+* 重写object.GetHashCode()
+
+参考：
+
+[C# 为值类型重定义相等性](https://www.cnblogs.com/cgzl/p/10699667.html)
+
+### 如何重写GetHashCode方法
+
+Object中GetHasCode的算法保证了同一对象返回同一HashCode，而不同的对象返回不同的HashCode，但对于值类型等视内容相等的对象为相等对象的类型时，默认的GetHashCode算法并不正确。重写后的GetHashCode必须要保证同一对象无论何时都返回同一HashCode值，而相等的对象也必须返回相同的值。并且在此基础上，保证HashCode尽量随机地散列分布。
+
 ### 引用类型
 
 标准配置，引用对象的额外空间：对象头字节（包括同步块索引）和TypeHandle（或方法表指针，类型对象指针）

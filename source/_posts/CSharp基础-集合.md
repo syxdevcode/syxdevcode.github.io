@@ -9,7 +9,6 @@ tags:
 categories: 
 - 集合与泛型
 ---
-# CSharp基础-集合
 
 集合是.NET FCL(Framework Class Library)中很重要的一部分。.net的集合诸如（`System.Array`类以及 `System.Collections`命名空间）数组、列表、队列、堆栈、哈希表、字典甚至（`System.Data`下)`DataSet`、`DataTable`，还有2.0中加入的集合的泛型版本（`System.Collections.Generic`和 `System.Collections.ObjectModel`）。4.0中引入的有效线程安全操作的集合（`System.Collections.Concurrent`）。
 
