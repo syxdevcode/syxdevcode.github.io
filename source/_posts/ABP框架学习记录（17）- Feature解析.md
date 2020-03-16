@@ -8,8 +8,6 @@ tags:
 categories: 
 - ABP
 ---
-# ABP框架学习记录（17）- Feature解析
-
 Feature：特征，功能。
 
 Feature是什么？Feature就是对function的分类方法，其与function的关系就比如Role和User的关系一样。
