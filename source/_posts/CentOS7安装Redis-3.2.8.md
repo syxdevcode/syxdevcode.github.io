@@ -239,22 +239,31 @@ not connected>
 
 ### 开启远程访问端口
 
-    > 开启端口：
+开启端口：
 
-````linux
+````sh
 firewall-cmd --zone=public --add-port=6379/tcp --permanent
+firewall-cmd --reload  #重启防火墙
+
+## 重新查询端口是否开放
+firewall-cmd --query-port=6379/tcp
+
+## 查看监听的端口
+netstat -lnpt
+
+#关闭6379端口
+firewall-cmd --zone=public --remove-port=6379/tcp --permanent  
+
+## 查看防火墙所有开放的端口
+firewall-cmd --zone=public --list-ports
 ````
 
-    命令含义：
+命令含义：
 
 ````linux
 --zone #作用域
-
---add-port=27017/tcp #添加端口，格式为：端口/通讯协议
-
+--add-port=6379/tcp #添加端口，格式为：端口/通讯协议
 --permanent #永久生效，没有此参数重启后失效
-
-firewall-cmd --reload  #重启防火墙
 ````
 
 ### 配置密码认证
@@ -262,7 +271,7 @@ firewall-cmd --reload  #重启防火墙
 找到/usr/local/redis/etc/redis.conf文件中
 
 ```linux
-#requirepass foobared
+requirepass foobared
 ```
 
 去掉注释，并且设置密码

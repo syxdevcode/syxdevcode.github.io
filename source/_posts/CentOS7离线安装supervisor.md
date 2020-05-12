@@ -19,6 +19,9 @@ categories:
 ```sh
 ## 解压
 uzip -o -d setuptools-46.2.0 setuptools-46.2.0.zip
+# 把 setuptools-46.2.0.zip 文件解压到 setuptools-46.2.0
+# -o ：不提示的情况下覆盖文件
+# -d：将文件解压缩到指定目录下
 cd setuptools-46.2.0
 
 ## 安装
@@ -83,12 +86,20 @@ files = relative/directory/*.ini  /etc/supervisord.d/*.conf
 ```sh
 supervisord -c /etc/supervisord.conf ## 启动
 supervisorctl shutdown  ## 关闭
-supervisord -c supervisord.conf  ## 通过配置文件启动supervisor
-supervisorctl -c supervisord.conf status  ## 查看状态
-supervisorctl -c supervisord.conf reload  ## 重新载入配置文件 
-supervisorctl -c supervisord.conf start [all]|[x]  ## 启动所有/指定的程序进程 
-supervisorctl -c supervisord.conf stop [all]|[x]  ## 关闭所有/指定的程序进程
+supervisord -c /etc/supervisord.conf  ## 通过配置文件启动supervisor
+supervisorctl -c /etc/supervisord.conf status  ## 查看状态
+supervisorctl -c /etc/supervisord.conf reload  ## 重新载入配置文件 
+supervisorctl -c /etc/supervisord.conf start [all]|[x]  ## 启动所有/指定的程序进程 
+supervisorctl -c /etc/supervisord.conf stop [all]|[x]  ## 关闭所有/指定的程序进程
 ```
+
+设置开机自动启动：
+
+参考：
+
+[running-supervisord-automatically-on-startup](http://supervisord.org/running.html#running-supervisord-automatically-on-startup)
+
+[initscripts](https://github.com/Supervisor/initscripts)
 
 ### 部署测试站点
 
@@ -105,7 +116,7 @@ vim /etc/supervisord.d/WebApplication1.conf
 [program:WebApplication1]
 command=dotnet WebApplication1.dll
 directory=/ldjc/webapi
-environment=ASPNETCORE__ENVIRONMENT=Production
+environment=ASPNETCORE__ENVIRONMENT=Production,ASPNETCORE_URLS='http://*:5000'
 stopsignal=INT
 stderr_logfile=/var/log/WebApplication1.err.log
 stdout_logfile=/var/log/WebApplication1.out.log
@@ -126,6 +137,18 @@ vim /var/log/WebApplication1.out.log
 firewall-cmd --zone=public --add-port=5000/tcp --permanent
 firewall-cmd --zone=public --add-port=5001/tcp --permanent
 firewall-cmd --reload
+
+## 重新查询端口是否开放
+firewall-cmd --query-port=5000/tcp
+
+## 查看监听的端口
+netstat -lnpt
+
+#关闭端口
+firewall-cmd --zone=public --remove-port=5000/tcp --permanent  
+
+## 查看防火墙所有开放的端口
+firewall-cmd --zone=public --list-ports
 ```
 
 ## 测试站点
@@ -133,6 +156,7 @@ firewall-cmd --reload
 ```sh
 curl -X GET "http://localhost:5000/weatherforecast" -H "accept: application/json"
 curl -X GET "https://127.0.0.1:5001/weatherforecast" -H "accept: application/json"
+curl -X GET "http://192.125.30.82:5000/weatherforecast" -H "accept: application/json"
 ```
 
 参考：
