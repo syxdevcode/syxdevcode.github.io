@@ -9,7 +9,6 @@ tags:
 categories:
 - Redis
 ---
-# centos7安装Redis-3.2.8
 
 ## 安装
 

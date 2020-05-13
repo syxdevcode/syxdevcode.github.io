@@ -112,11 +112,13 @@ vim /etc/supervisord.d/WebApplication1.conf
 
 内容：
 
+注意：supervisor配置文件中的注释使用英文分号 `;`
+
 ```
 [program:WebApplication1]
 command=dotnet WebApplication1.dll
 directory=/ldjc/webapi
-environment=ASPNETCORE__ENVIRONMENT=Production,ASPNETCORE_URLS='http://*:5000'
+environment=ASPNETCORE__ENVIRONMENT=Production;  ## ,ASPNETCORE_URLS='http://*:5000'
 stopsignal=INT
 stderr_logfile=/var/log/WebApplication1.err.log
 stdout_logfile=/var/log/WebApplication1.out.log

@@ -36,6 +36,8 @@ MySQL-devel-5.6.27-1.el6.x86_64
 [root@localhost usr]# whereis mysql
 mysql: /usr/lib64/mysql
 [root@localhost usr]# rm -rf /usr/lib64/mysql
+
+find / -name mysql
 ```
 
 卸载自启服务：
