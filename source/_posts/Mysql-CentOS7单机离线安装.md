@@ -44,6 +44,15 @@ useradd -g mysql mysql
 passwd mysql
 ```
 
+注：
+
+```sh
+userdel peter
+groupdel peter
+```
+
+参考：[centos系统添加/删除用户和用户组](https://www.cnblogs.com/nyfz/p/8557137.html)
+
 ## 下载离线包
 
 官网下载地址：[https://dev.mysql.com/downloads/mysql/5.7.html#downloads](https://dev.mysql.com/downloads/mysql/5.7.html#downloads)
@@ -116,6 +125,22 @@ explicit_defaults_for_timestamp=true
 user=mysql
 basedir=/usr/local/mysql
 ```
+
+参考：
+
+语法
+chown [-cfhvR] [--help] [--version] user[:group] file...
+参数 :
+
+user : 新的文件拥有者的使用者 ID
+group : 新的文件拥有者的使用者组(group)
+-c : 显示更改的部分的信息
+-f : 忽略错误信息
+-h :修复符号链接
+-v : 显示详细的处理信息
+-R : 处理指定目录以及其子目录下的所有文件
+--help : 显示辅助说明
+--version : 显示版本
 
 ## 安装
 

@@ -7,7 +7,7 @@ tags:
 - Ubuntu
 - 安装部署
 categories: 
-- Linux
+- CentOS7
 ---
 
 ## 安装 setuptools
