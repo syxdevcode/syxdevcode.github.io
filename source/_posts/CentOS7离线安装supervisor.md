@@ -93,14 +93,6 @@ supervisorctl -c /etc/supervisord.conf start [all]|[x]  ## 启动所有/指定�
 supervisorctl -c /etc/supervisord.conf stop [all]|[x]  ## 关闭所有/指定的程序进程
 ```
 
-设置开机自动启动：
-
-参考：
-
-[running-supervisord-automatically-on-startup](http://supervisord.org/running.html#running-supervisord-automatically-on-startup)
-
-[initscripts](https://github.com/Supervisor/initscripts)
-
 ### 部署测试站点
 
 新建 `WebApplication1.conf`:
@@ -118,7 +110,7 @@ vim /etc/supervisord.d/WebApplication1.conf
 [program:WebApplication1]
 command=dotnet WebApplication1.dll
 directory=/ldjc/webapi
-environment=ASPNETCORE__ENVIRONMENT=Production,ASPNETCORE_URLS='http://0.0.0.0:5000'
+environment=ASPNETCORE__ENVIRONMENT=Production ;,ASPNETCORE_URLS="http://0.0.0.0:5100"
 stopsignal=INT
 stderr_logfile=/var/log/WebApplication1.err.log
 stdout_logfile=/var/log/WebApplication1.out.log
@@ -161,6 +153,42 @@ firewall-cmd --zone=public --list-ports
 curl -X GET "http://localhost:5000/weatherforecast" -H "accept: application/json"
 curl -X GET "https://127.0.0.1:5001/weatherforecast" -H "accept: application/json"
 curl -X GET "http://192.125.30.82:5000/weatherforecast" -H "accept: application/json"
+```
+
+## 开机启动
+
+脚本:[centos-systemd-etcs](https://github.com/Supervisor/initscripts/blob/master/centos-systemd-etcs)
+
+```Bash
+[root@host supervisor-4.2.0]# touch /usr/lib/systemd/system/supervisord.service
+[root@host supervisor-4.2.0]# vim /usr/lib/systemd/system/supervisord.service
+[root@host supervisor-4.2.0]# systemctl enable supervisord
+Created symlink from /etc/systemd/system/multi-user.target.wants/supervisord.service to /usr/lib/systemd/system/supervisord.service.
+[root@host supervisor-4.2.0]# systemctl is-enabled supervisord
+enabled
+[root@host supervisor-4.2.0]# 
+```
+
+设置成功后，可以使用下列命令：
+
+```sh
+# 重启指定应用
+supervisorctl restart <application name>
+
+# 停止指定应用
+supervisorctl stop <application name>
+
+# 启动指定应用
+supervisorctl start <application name>
+
+# 重启所有应用
+supervisorctl restart all
+
+# 停止所有应用
+supervisorctl stop all
+
+# 启动所有应用
+supervisorctl start all
 ```
 
 参考：
