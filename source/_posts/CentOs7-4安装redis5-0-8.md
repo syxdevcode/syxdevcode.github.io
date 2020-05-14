@@ -45,7 +45,6 @@ vim /ldjc/rj/redis-5.0.8/redis.conf
 
 搜索 `daemonize no` 改为 `daemonize yes`
 
-
 * 设置密码
 
 搜索 `requirepass foobared` 添加 `requirepass 设置的密码`
@@ -88,6 +87,8 @@ OK
 ```
 
 ### 开放端口
+
+注意：针对各种云，因为有专门策略，所以不需要操作防火墙；
 
 * 开放6379端口
 

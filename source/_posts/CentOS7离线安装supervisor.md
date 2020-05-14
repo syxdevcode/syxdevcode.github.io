@@ -114,11 +114,11 @@ vim /etc/supervisord.d/WebApplication1.conf
 
 注意：supervisor配置文件中的注释使用英文分号 `;`
 
-```
+```sh
 [program:WebApplication1]
 command=dotnet WebApplication1.dll
 directory=/ldjc/webapi
-environment=ASPNETCORE__ENVIRONMENT=Production;  ## ,ASPNETCORE_URLS='http://*:5000'
+environment=ASPNETCORE__ENVIRONMENT=Production,ASPNETCORE_URLS='http://0.0.0.0:5000'
 stopsignal=INT
 stderr_logfile=/var/log/WebApplication1.err.log
 stdout_logfile=/var/log/WebApplication1.out.log
@@ -134,6 +134,8 @@ vim /var/log/WebApplication1.out.log
 ```
 
 ## 开启防火墙
+
+注意：针对各种云，因为有专门策略，所以不需要操作防火墙；
 
 ```sh
 firewall-cmd --zone=public --add-port=5000/tcp --permanent
