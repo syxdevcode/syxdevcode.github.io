@@ -169,6 +169,28 @@ enabled
 [root@host supervisor-4.2.0]# 
 ```
 
+supervisord.service:
+
+```sh
+# supervisord service for systemd (CentOS 7.0+)
+# by ET-CS (https://github.com/ET-CS)
+[Unit]
+Description=Supervisor daemon
+
+[Service]
+Type=forking
+ExecStart=/usr/bin/supervisord
+ExecStop=/usr/bin/supervisorctl $OPTIONS shutdown
+ExecReload=/usr/bin/supervisorctl $OPTIONS reload
+KillMode=process
+Restart=on-failure
+RestartSec=42s
+
+[Install]
+WantedBy=multi-user.target
+```
+
+
 设置成功后，可以使用下列命令：
 
 ```sh
