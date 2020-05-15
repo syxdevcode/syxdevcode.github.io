@@ -83,6 +83,8 @@ cd mysql/
 mkdir data
 chown -R mysql:mysql data
 
+[centos系统添加/删除用户和用户组](https://www.cnblogs.com/nyfz/p/8557137.html)
+
 # 在/etc下创建my.cnf文件
 
 # 进入/usr/local/mysql文件夹下
@@ -105,6 +107,7 @@ default-character-set=utf8
 
 [mysqld]
 socket=/var/lib/mysql/mysql.sock
+bind-address=0.0.0.0
 # set mysql server port  
 port = 3306 #默认是3306，防止这种情况发生，可以避免使用3306mysql默认端口
 # set mysql install base dir
@@ -230,8 +233,8 @@ ugcNJt;ZAx7+
 mysql -uroot -p
 Enter password: #此处填写上边获取到的初始密码
 # 修改
-set password=password('Perfect1');
-UPDATE user SET Password = password('Perfect1') WHERE User = 'mysql';
+set password=password('password');
+UPDATE user SET Password = password('password') WHERE User = 'mysql';
 flush privileges
 exit
 
@@ -277,24 +280,6 @@ mysql> select host,user from user;
 ```sh
 netstat -lnpt
 ```
-
-参考：
-
-[centos7下使用mysql离线安装包安装mysql5.7](https://www.cnblogs.com/nyfz/p/8557137.html)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 参考：
 
