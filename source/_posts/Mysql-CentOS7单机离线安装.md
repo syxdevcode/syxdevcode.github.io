@@ -275,6 +275,27 @@ mysql> select host,user from user;
 /etc/init.d/mysqld restart
 ```
 
+## 配置防火墙
+
+注意：针对各种云，因为有专门策略，所以不需要操作防火墙；
+
+```sh
+firewall-cmd --zone=public --add-port=3306/tcp --permanent
+firewall-cmd --reload
+
+## 重新查询端口是否开放
+firewall-cmd --query-port=3306/tcp
+
+## 查看监听的端口
+netstat -lnpt
+
+#关闭端口
+firewall-cmd --zone=public --remove-port=3306/tcp --permanent
+
+## 查看防火墙所有开放的端口
+firewall-cmd --zone=public --list-ports
+```
+
 ## 查看监听的端口
 
 ```sh

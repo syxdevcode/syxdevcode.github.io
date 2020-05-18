@@ -125,7 +125,7 @@ vim /var/log/WebApplication1.err.log
 vim /var/log/WebApplication1.out.log
 ```
 
-## 开启防火墙
+## 配置防火墙
 
 注意：针对各种云，因为有专门策略，所以不需要操作防火墙；
 
@@ -141,7 +141,7 @@ firewall-cmd --query-port=5000/tcp
 netstat -lnpt
 
 #关闭端口
-firewall-cmd --zone=public --remove-port=5000/tcp --permanent  
+firewall-cmd --zone=public --remove-port=5000/tcp --permanent
 
 ## 查看防火墙所有开放的端口
 firewall-cmd --zone=public --list-ports
