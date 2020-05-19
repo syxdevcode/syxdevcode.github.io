@@ -302,6 +302,19 @@ firewall-cmd --zone=public --list-ports
 netstat -lnpt
 ```
 
+## 执行脚本
+
+```sql
+CREATE DATABASE data1
+
+use data1
+
+进入mysql：
+
+-- 执行脚本
+source /sql/data1.sql
+```
+
 参考：
 
 [centos7下使用mysql离线安装包安装mysql5.7](https://www.cnblogs.com/yy3b2007com/p/10497787.html)

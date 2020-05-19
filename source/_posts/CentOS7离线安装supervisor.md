@@ -4,10 +4,10 @@ date: 2020-05-12 09:15:29
 tags:
 - Linux
 - CentOS7
-- Ubuntu
 - 安装部署
+- supervisor
 categories: 
-- CentOS7
+- supervisor
 ---
 
 ## 安装 setuptools
@@ -153,6 +153,10 @@ firewall-cmd --zone=public --list-ports
 curl -X GET "http://localhost:5000/weatherforecast" -H "accept: application/json"
 curl -X GET "https://127.0.0.1:5001/weatherforecast" -H "accept: application/json"
 curl -X GET "http://192.125.30.82:5000/weatherforecast" -H "accept: application/json"
+
+# 查看状态
+curl  -o /dev/null -s -w %{http_code} -X GET "192.125.30.82:5100/weatherforecast" -H "accept: application/json"
+curl  -o /dev/null -s -w %{http_code} -X GET "192.125.30.82:8013/pages/tsjb/djsl.html" -H "accept: text/html"
 ```
 
 ## 开机启动
@@ -202,6 +206,9 @@ supervisorctl stop <application name>
 
 # 启动指定应用
 supervisorctl start <application name>
+
+# 查看状态
+supervisorctl status
 
 # 重启所有应用
 supervisorctl restart all
