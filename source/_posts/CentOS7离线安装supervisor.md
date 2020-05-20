@@ -106,14 +106,27 @@ vim /etc/supervisord.d/WebApplication1.conf
 
 注意：supervisor配置文件中的注释使用英文分号 `;`
 
-```sh
+asp net core 站点：
+
+```conf
 [program:WebApplication1]
 command=dotnet WebApplication1.dll
-directory=/ldjc/webapi
+directory=/test/webapi
 environment=ASPNETCORE__ENVIRONMENT=Production ;,ASPNETCORE_URLS="http://0.0.0.0:5100"
 stopsignal=INT
 stderr_logfile=/var/log/WebApplication1.err.log
 stdout_logfile=/var/log/WebApplication1.out.log
+```
+
+webapp 站点,使用 `npm http-server`:
+
+```conf
+[program:webapp]
+command=http-server /test/webapp -p 8013
+directory=/test/webapp
+stopsignal=INT
+stderr_logfile=/var/log/webapp.err.log
+stdout_logfile=/var/log/webapp.out.log
 ```
 
 详细命令参考：[Configuration File](http://supervisord.org/configuration.html#file-format)
