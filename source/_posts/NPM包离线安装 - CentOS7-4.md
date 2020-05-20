@@ -88,6 +88,10 @@ http-server /test/webapp -p 8013
 
 # 查看监听的端口
 netstat -lnpt
+
+# curl 命令验证
+curl  -o /dev/null -s -w %{http_code} -X GET "192.125.30.82:8013/pages/tsjb/lzsp.html" -H "accept: text/html"
+curl -X GET "192.125.30.82:8013/pages/tsjb/lzsp.html" -H "accept: text/html"
 ```
 
 参考：
