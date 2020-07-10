@@ -2,8 +2,7 @@
 title: 统一建模语言UML
 date: 2019-04-01 09:23:28
 tags:
-- DotNet
-- CSharp
+- UML
 - 设计模式
 categories: 
 - 设计模式
@@ -26,13 +25,13 @@ categories:
 
 ### 结构性图形（Structure diagrams）
 
-** 1,静态图（static diagram）**
+**1,静态图（static diagram**
 
 * 类图
 * 对象图
 * 包图
 
-** 2,实现图（implementation diagram） **
+**2,实现图（implementation diagram）**
 
 * 组件图
 * 部署图
