@@ -16,4 +16,12 @@ categories:
 
 **F4**：查看源码；
 
+**Ctrl+Alt+B**：导航到抽象方法的实现；
 
+**F7**：单步调试；
+
+****
+
+
+
+[https://github.com/judasn/IntelliJ-IDEA-Tutorial/blob/master/keymap-introduce.md](https://github.com/judasn/IntelliJ-IDEA-Tutorial/blob/master/keymap-introduce.md)
