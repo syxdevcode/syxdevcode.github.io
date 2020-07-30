@@ -18,7 +18,7 @@ categories:
 
 ```sh
 ## 解压
-uzip -o -d setuptools-46.2.0 setuptools-46.2.0.zip
+unzip -o -d setuptools-46.2.0 setuptools-46.2.0.zip
 # 把 setuptools-46.2.0.zip 文件解压到 setuptools-46.2.0
 # -o ：不提示的情况下覆盖文件
 # -d：将文件解压缩到指定目录下

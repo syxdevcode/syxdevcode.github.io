@@ -16,7 +16,7 @@ categories:
 
 ```sh
 xz -d node-v14.2.0-linux-x64.tar.xz
-tar -xzvf node-v14.2.0-linux-x64.tar
+tar -xvf node-v14.2.0-linux-x64.tar
 ```
 
 ## 安装

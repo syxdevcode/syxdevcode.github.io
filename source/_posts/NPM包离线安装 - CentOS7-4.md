@@ -53,10 +53,9 @@ prefix = "C:\\Users\\DELL\\AppData\\Roaming\\npm"
 
 ## 通过ftp工具拷贝到未联网服务器
 
-
 ```sh
 # 本地文件夹：C:\\Users\\DELL\\AppData\\Roaming\\npm 下的文件，
-# 拷贝到 服务器上 /root/.npm 下
+# 拷贝到 服务器上 /root/.npm 下 (不存在，使用mkdir命令创建)
 http-server
 http-server.cmd
 ```

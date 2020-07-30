@@ -246,6 +246,13 @@ show tables;
 show databases;
 ```
 
+如果报错：ERROR 2002 (HY000): Can't connect to local MySQL server through socket '/tmp/mysql.sock' (2)，
+则使用下面的方式连接：
+
+```sh
+mysql -uroot -h 127.0.0.1 -p
+```
+
 ## 添加远程访问权限
 
 ```sh
