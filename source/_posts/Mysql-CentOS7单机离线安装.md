@@ -109,13 +109,13 @@ default-character-set=utf8
 socket=/var/lib/mysql/mysql.sock
 bind-address=0.0.0.0
 # set mysql server port  
-port = 3306 #默认是3306，防止这种情况发生，可以避免使用3306mysql默认端口
+port = 3306 #默认是3306，防止端口冲突发生，可以避免使用3306mysql默认端口
 # set mysql install base dir
 basedir=/usr/local/mysql
 # set the data store dir
 datadir=/usr/local/mysql/data
 # set the number of allow max connnection
-max_connections=200
+max_connections=3000
 # set server charactre default encoding
 character-set-server=utf8
 # the storage engine
