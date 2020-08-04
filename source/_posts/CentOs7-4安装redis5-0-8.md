@@ -48,17 +48,17 @@ vim /ldjc/rj/redis-5.0.8/redis.conf
 
 `/bind`
 
-* 后台启动
+* 1，后台启动
 
 搜索 `daemonize no` 改为 `daemonize yes`
 
-* 设置密码
+* 2，设置密码
 
 搜索 `requirepass foobared` 添加 `requirepass 设置的密码`
 
 `requirepass foobared`
 
-* 外部访问
+* 3，外部访问
 
 搜索 `bind 127.0.0.1` 然后使用 `#`注释掉
 
