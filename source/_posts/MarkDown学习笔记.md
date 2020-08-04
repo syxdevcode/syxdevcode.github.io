@@ -4,11 +4,10 @@ date: 2017-02-08 11:03:52
 tags: MarkDown
 categories: MarkDown
 ---
-# MarkDown 学习笔记
 
- 不在 Markdown 涵盖范围之内的标签，都可以直接在文档里面用 HTML 撰写。不需要额外标注这是 HTML 或是 Markdown；只要直接加标签就可以了。
- 要制约的只有一些 HTML 区块元素――比如 `<div>、<table>、<pre>、<p>` 等标签，必须在前后加上空行与其它内容区隔开，
- 还要求它们的开始标签与结尾标签不能用制表符或空格来缩进。Markdown 的生成器有足够智能，不会在 HTML 区块标签外加上不必要的 `<p>` 标签。
+不在 Markdown 涵盖范围之内的标签，都可以直接在文档里面用 HTML 撰写。不需要额外标注这是 HTML 或是 Markdown；只要直接加标签就可以了。
+要制约的只有一些 HTML 区块元素――比如 `<div>、<table>、<pre>、<p>` 等标签，必须在前后加上空行与其它内容区隔开，
+还要求它们的开始标签与结尾标签不能用制表符或空格来缩进。Markdown 的生成器有足够智能，不会在 HTML 区块标签外加上不必要的 `<p>` 标签。
 
 ## 区块元素
 
@@ -33,24 +32,24 @@ categories: MarkDown
 
 ### 区块引用
 
-* 使用>表示引用，>>表示引用里面再套一层引用，依次类推
+使用>表示引用，>>表示引用里面再套一层引用，依次类推
 
 ### 列表
 
-    * Markdown 支持有序列表和无序列表
-    * 无序列表使用星号、加号或是减号作为列表标记
-    * 有序列表则使用数字接着一个英文句点
-    * 如果要放代码区块的话，该区块就需要缩进两次，也就是 8 个空格或是 2 个制表符
-    * 在行首出现数字-句点-空白，要避免这样的状况，你可以在句点前面加上反斜杠
+* Markdown 支持有序列表和无序列表
+* 无序列表使用星号、加号或是减号作为列表标记
+* 有序列表则使用数字接着一个英文句点
+* 如果要放代码区块的话，该区块就需要缩进两次，也就是 8 个空格或是 2 个制表符
+* 在行首出现数字-句点-空白，要避免这样的状况，你可以在句点前面加上反斜杠
 
-     1986\. What a great season.
+1986\. What a great season.
 
-     '1986\. What a great season.'
+'1986\. What a great season.'
 
 ### 代码区块
 
-    * 要在 Markdown 中建立代码区块很简单，只要简单地缩进 4 个空格或是 1 个制表符就可以
-    * 使用`tab`上面的按键英文输入；
+* 要在 Markdown 中建立代码区块很简单，只要简单地缩进 4 个空格或是 1 个制表符就可以
+* 使用`tab`上面的按键英文输入；
 
 ```MarkDown
 Here is an example of AppleScript:
@@ -103,7 +102,7 @@ This is [an example][foo] reference-style link.
 
 ### 强调
 
-    *  Markdown 使用星号（*）和底线（_）作为标记强调字词的符号，被 * 或 _ 包围的字词会被转成用`<em>` 标签包围，
+`*`  Markdown 使用星号（*）和底线（_）作为标记强调字词的符号，被 * 或 _ 包围的字词会被转成用`<em>` 标签包围，
 用两个 * 或 _ 包起来的话，则会被转成 `<strong>`，例如
 
 ```MarkDown
@@ -168,15 +167,29 @@ A backtick-delimited string in a code span: `` `foo` ``
 [id]: http://img.1985t.com/uploads/attaches/2016/11/106985-c9YZrBt.jpg  "Optional title attribute"
 ```
 
-![Alt text](http://img.1985t.com/uploads/attaches/2014/07/19716-qd52IG.jpg)
-
-![Alt text](http://img.1985t.com/uploads/attaches/2016/11/108284-D2AwRri.jpg "Optional title")
-
-![Alt text][id]
-
-[id]: http://img.1985t.com/uploads/attaches/2016/11/106985-c9YZrBt.jpg  "Optional title attribute"
-
 * 到目前为止， Markdown 还没有办法指定图片的宽高，如果你需要的话，你可以使用普通的 <img> 标签
+
+### 表格
+
+示例：
+
+**echo输出的字符串总结：**
+ 
+```sh
+|符号| 能否引用变量  |  能否引用转移符  |  能否引用文本格式符(如：换行符、制表符)|
+|  ----  | ----  | ----| ---|
+|  单引号  |  否  |  否 |  否  |
+|  双引号  |  能  |  能 |  能  |
+|  无引号  |   能 |  能 |  否  |     
+```
+
+输出：
+
+|符号| 能否引用变量  |  能否引用转移符  |  能否引用文本格式符(如：换行符、制表符)|
+|  ----  | ----  | ----| ---|
+|  单引号  |  否  |  否 |  否  |
+|  双引号  |  能  |  能 |  能  |
+|  无引号  |   能 |  能 |  否  | 
 
 ## 其它
 

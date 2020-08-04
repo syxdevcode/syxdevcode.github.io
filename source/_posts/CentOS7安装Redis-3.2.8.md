@@ -29,8 +29,8 @@ wget http://download.redis.io/releases/redis-3.2.8.tar.gz # 获取包
 tar -zxvf redis-3.2.8.tar.gz
 cd redis-3.2.8
 cd src
-make
-make install
+make distclean 
+make && make install
 ````
 
 ### 移动文件夹

@@ -1,7 +1,13 @@
 ---
-title: CentOs7.4安装redis5.0.8
+title: CentOS7.4安装redis5.0.8
 date: 2020-05-12 16:01:42
 tags:
+- Linux
+- CentOS7
+- Redis
+- 安装部署
+categories:
+- Redis
 ---
 
 ## 下载
@@ -24,7 +30,8 @@ yum install gcc
 tar -zxvf redis-5.0.8.tar.gz
 cd redis-5.0.8
 cd src
-make
+make distclean # make distclean清除之前生成的文件（可选）
+make && make install
 ````
 
 ### 修改配置文件
