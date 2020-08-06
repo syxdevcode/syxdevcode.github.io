@@ -42,7 +42,7 @@ make && make install
 vim /ldjc/rj/redis-5.0.8/redis.conf
 ```
 
-进入vim 输入 `/` 再按火车用来搜索关键字
+进入vim 输入 `/` 再按 回车用来搜索关键字
 
 比如如下命令会定位到文件中出现 bind 的位置并会将关键词用颜色区分。
 
@@ -54,9 +54,9 @@ vim /ldjc/rj/redis-5.0.8/redis.conf
 
 * 2，设置密码
 
-搜索 `requirepass foobared` 添加 `requirepass 设置的密码`
+搜索 `requirepass password` 添加 `requirepass 设置的密码`
 
-`requirepass foobared`
+`requirepass password`
 
 * 3，外部访问
 
@@ -72,18 +72,22 @@ vim /ldjc/rj/redis-5.0.8/redis.conf
 
 ```sh
 cd /ldjc/rj/redis-5.0.8
-src/redis-server redis.conf
-src/redis-cli
+
+# 启动
+/usr/local/bin/redis-server /ldjc/rj/redis-5.0.8/redis.conf
+
+# 连接
+/usr/local/bin/redis-cli
 ```
 
 示例：
 
 ```cs
-[root@host-192-125-30-11 redis-5.0.8]# src/redis-server redis.conf
+[root@host-192-125-30-11 redis-5.0.8]# /usr/local/bin/redis-server /ldjc/rj/redis-5.0.8/redis.conf
 15531:C 12 May 2020 16:07:35.523 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
 15531:C 12 May 2020 16:07:35.523 # Redis version=5.0.8, bits=64, commit=00000000, modified=0, pid=15531, just started
 15531:C 12 May 2020 16:07:35.523 # Configuration loaded
-[root@host-192-125-30-11 redis-5.0.8]# src/redis-cli
+[root@host-192-125-30-11 redis-5.0.8]# /usr/local/bin/redis-cli
 127.0.0.1:6379> keys *
 (error) NOAUTH Authentication required.
 127.0.0.1:6379> auth root
@@ -127,7 +131,7 @@ ps aux | grep redis
 [root@localhost bin]# pkill redis-server
 [root@localhost bin]# netstat -tunpl | grep 6379
 [root@localhost bin]# pstree -p | grep redis
-[root@localhost bin]# redis-cli
+[root@localhost bin]# /usr/local/bin/redis-cli
 Could not connect to Redis at 127.0.0.1:6379: Connection refused
 Could not connect to Redis at 127.0.0.1:6379: Connection refused
 not connected>
