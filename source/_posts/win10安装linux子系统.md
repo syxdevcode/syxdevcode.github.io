@@ -4,10 +4,10 @@ date: 2020-01-21 16:25:13
 tags:
 - Linux
 - Windows子系统
-- WLS
+- WSL
 - Linux基础命令
 categories:
-- WLS
+- WSL
 ---
 
 ## 安装
