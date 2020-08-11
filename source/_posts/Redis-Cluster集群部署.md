@@ -11,6 +11,26 @@ categories:
 - Redis
 ---
 
+## 修改系统参数
+
+### 修改最大可打开文件数
+
+参考：[Linux最大文件打开数 ](https://syxdevcode.github.io/2020/08/04/Linux%E6%9C%80%E5%A4%A7%E6%96%87%E4%BB%B6%E6%89%93%E5%BC%80%E6%95%B0/)
+
+### TCP监听队列大小
+
+参考：[Linux设置TCP监听队列](https://syxdevcode.github.io/2020/08/04/Linux%E8%AE%BE%E7%BD%AETCP%E7%9B%91%E5%90%AC%E9%98%9F%E5%88%97/)
+
+### OOM相关：vm.overcommit_memory
+
+参考：[Linux OOM机制简介](https://syxdevcode.github.io/2020/08/05/Linux%20OOM%E6%9C%BA%E5%88%B6%E7%AE%80%E4%BB%8B/)
+
+### Linux Transparent HugePages(透明大页)
+
+参考：[Linux Transparent HugePages(透明大页)](https://syxdevcode.github.io/2020/08/05/Linux%20Transparent%20HugePages(%E9%80%8F%E6%98%8E%E5%A4%A7%E9%A1%B5)/)
+
+### 
+
 ## 目录结构
 
 完成公共的 redis.conf 和一个端口号的，如 `redis-6379.conf`，其它端口号的配置文件基于一个修改后的端口号配置文件即可。

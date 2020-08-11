@@ -3,6 +3,7 @@ title: Host  'xx.xx.xx.xx' is not allowed to connect to this MySQL server
 date: 2017-02-17 14:33:37
 tags: 
 - MySql
+- CentOS7
 categories: MySql
 ---
 # Host  'xx.xx.xx.xx' is not allowed to connect to this MySQL server

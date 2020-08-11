@@ -114,8 +114,8 @@ command=dotnet WebApplication1.dll
 directory=/test/webapi
 environment=ASPNETCORE__ENVIRONMENT=Production ;,ASPNETCORE_URLS="http://0.0.0.0:5100"
 stopsignal=INT
-stderr_logfile=/var/log/WebApplication1.err.log
-stdout_logfile=/var/log/WebApplication1.out.log
+stderr_logfile=/var/log/WebApplication1/WebApplication1.err.log
+stdout_logfile=/var/log/WebApplication1/WebApplication1.out.log
 ```
 
 webapp 站点,使用 `npm http-server`:
@@ -125,8 +125,8 @@ webapp 站点,使用 `npm http-server`:
 command=http-server /test/webapp -p 8013
 directory=/test/webapp
 stopsignal=INT
-stderr_logfile=/var/log/webapp.err.log
-stdout_logfile=/var/log/webapp.out.log
+stderr_logfile=/var/log/webapp/webapp.err.log
+stdout_logfile=/var/log/webapp/webapp.out.log
 ```
 
 详细命令参考：[Configuration File](http://supervisord.org/configuration.html#file-format)
