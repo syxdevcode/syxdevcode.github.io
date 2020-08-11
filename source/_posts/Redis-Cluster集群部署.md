@@ -29,8 +29,6 @@ categories:
 
 参考：[Linux Transparent HugePages(透明大页)](https://syxdevcode.github.io/2020/08/05/Linux%20Transparent%20HugePages(%E9%80%8F%E6%98%8E%E5%A4%A7%E9%A1%B5)/)
 
-### 
-
 ## 目录结构
 
 完成公共的 redis.conf 和一个端口号的，如 `redis-6379.conf`，其它端口号的配置文件基于一个修改后的端口号配置文件即可。
