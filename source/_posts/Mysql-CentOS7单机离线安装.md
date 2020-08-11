@@ -105,11 +105,14 @@ socket=/var/lib/mysql/mysql.sock
 # set mysql client default chararter
 default-character-set=utf8
 
+# 解决 this is incompatible with sql_mode=only_full_group_by 的错误
+sql_mode=STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION
+
 [mysqld]
 socket=/var/lib/mysql/mysql.sock
 bind-address=0.0.0.0
 # set mysql server port  
-port = 3306 #默认是3306，防止端口冲突发生，可以避免使用3306mysql默认端口
+port = 3306 #默认是3306，防止端口冲突发生，可以避免使用 3306 mysql默认端口
 # set mysql install base dir
 basedir=/usr/local/mysql
 # set the data store dir
@@ -124,10 +127,12 @@ lower_case_table_names=1
 max_allowed_packet=16M
 explicit_defaults_for_timestamp=true
 
+# 解决 this is incompatible with sql_mode=only_full_group_by 的错误
+sql_mode=STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION
+
 [mysql.server]
 user=mysql
 basedir=/usr/local/mysql
-sql_mode=STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION
 ```
 
 参考：

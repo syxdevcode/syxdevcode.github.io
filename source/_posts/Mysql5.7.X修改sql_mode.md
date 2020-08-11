@@ -47,9 +47,10 @@ set @@GLOBAL.sql_mode=STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR
 
 ### 修改mysql配置文件
 
-修改 mysql 配置文件，`/usr/local/mysql/my.cnf`,在最后一行添加，之后重启mysql服务。
+修改 mysql 配置文件，`/usr/local/mysql/my.cnf`,添加如下代码，之后重启mysql服务。
 
-```config
+```sh
+#主要需要添加到 [mysqld] 标签下，加入到其他地方，重启后也不生效。
 sql_mode=STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION
 ```
 
