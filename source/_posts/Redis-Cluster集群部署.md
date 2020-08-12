@@ -317,6 +317,30 @@ logfile /usr/local/redis-cluster/log/redis-PORT.log
 
 ## 创建和启动redis集群
 
+### 加上进程监控
+
+使用 [https://github.com/eyjian/libmooon/blob/master/shell/process_monitor.sh](https://github.com/eyjian/libmooon/blob/master/shell/process_monitor.sh)
+
+监控示例：
+
+```sh
+REDIS_HOME=/usr/local
+* * * * * /usr/local/bin/process_monitor.sh "$REDIS_HOME/bin/redis-server 6379" "$REDIS_HOME/bin/redis-server $REDIS_HOME/redis-cluster/redis-6379.conf"
+* * * * * /usr/local/bin/process_monitor.sh "$REDIS_HOME/bin/redis-server 6380" "$REDIS_HOME/bin/redis-server $REDIS_HOME/redis-cluster/redis-6380.conf"
+* * * * * /usr/local/bin/process_monitor.sh "$REDIS_HOME/bin/redis-server 6381" "$REDIS_HOME/bin/redis-server $REDIS_HOME/redis-cluster/redis-6381.conf"
+```
+
+注意：redis的日志文件不会自动滚动，`redis-server` 每次在写日志时，均会以追加方式调用fopen写日志，而不处理滚动。
+也可借助linux自带的 `logrotate` 来滚动redis日志，命令 `logrotate` 一般位于目录 `/usr/sbin` 下。
+
+滚动日志（可选）:
+
+```sh
+* * * * * log=$REDIS_HOME/redis-cluster/log/redis-6379.log;if test `ls -l $log|cut -d' ' -f5` -gt 104857600; then mv $log $log.old; fi
+* * * * * log=$REDIS_HOME/redis-cluster/log/redis-6380.log;if test `ls -l $log|cut -d' ' -f5` -gt 104857600; then mv $log $log.old; fi
+* * * * * log=$REDIS_HOME/redis-cluster/log/redis-6381.log;if test `ls -l $log|cut -d' ' -f5` -gt 104857600; then mv $log $log.old; fi
+```
+
 ### 快速创建,启动redis集群
 
 如果只是想快速创建和启动redis集群，而不关心过程，可使用redis官方提供的脚本 `create-cluster`，两步完成：
@@ -365,7 +389,6 @@ create
 
 ### 新增主（master）节点
 
-
 注意一定要保证新节点里面没有添加过任何数据
 
 以添加 `192.168.0.251:6390` 为例：
@@ -409,6 +432,7 @@ redis-cli --cluster del-node 127.0.0.1:7000 `<node-id>`
 
 如果待删除的是master节点，则在删除之前需要将该master负责的slots先全部迁到其它master。
 
+```sh
 $ ./redis-cli --cluster del-node 192.168.0.251:6381 082c079149a9915612d21cca8e08c831a4edeade
 
 >>> Removing node 082c079149a9915612d21cca8e08c831a4edeade from cluster 192.168.0.251:6381
@@ -416,7 +440,7 @@ $ ./redis-cli --cluster del-node 192.168.0.251:6381 082c079149a9915612d21cca8e08
 >>> Sending CLUSTER FORGET messages to the cluster...
 
 >>> SHUTDOWN the node.
-
+```
 
 如果删除后，其它节点还看得到这个被删除的节点，则可通过FORGET命令解决，需要在所有还看得到的其它节点上执行：
 
