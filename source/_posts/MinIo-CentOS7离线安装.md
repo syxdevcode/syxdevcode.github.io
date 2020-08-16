@@ -24,8 +24,23 @@ cd /ldjc/rj
 后台运行
 
 ```sh
-nohup ./minio server /ldjc/minio/data --address :9010
+export MINIO_ACCESS_KEY=ldjcadmin
+export MINIO_SECRET_KEY=Perfect1
+nohup ./minio server /ldjc/minio/data --address 192.125.30.71:9010
+nohup ./minio server /ldjc/minio/data --address 0.0.0.0:9010
 ```
 
 
+## TLS 
 
+openssl genrsa -out private.key 2048
+openssl genrsa -aes256 -out private.key 2048 -passout pass:123456
+export MINIO_CERT_PASSWD=<Perfect1>
+openssl rsa -in private-pkcs8-key.key -aes256 -passout pass:Perfect1 -out private.key
+
+
+
+
+
+
+[Minio 文件服务（1）—— Minio部署使用及存储机制分析](https://www.jianshu.com/p/3e81b87d5b0b)
