@@ -384,6 +384,48 @@ create-cluster位于redis源代码的 `utils/create-cluster` 目录下，是一�
 /usr/local/bin/redis-cli -a test --cluster create 192.125.30.111:6379 192.125.30.111:6380 192.125.30.59:6381 192.125.30.59:6379 192.125.30.59:6380 192.125.30.111:6381 --cluster-replicas 1
 ```
 
+注意：如果报以下错误，需要停止单个redis节点，并把对应的数据目录删除重建。
+
+```sh
+Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+[ERR] Node 192.125.30.59:6381 is not empty. Either the node already knows other nodes (check with CLUSTER NODES) or contains some key in database 0.
+```
+
+```sh
+#停止节点，
+[root@host-192-125-30-111 ~]# ps aux | grep redis
+root     10547  0.0  0.0 112724   988 pts/0    R+   11:03   0:00 grep --color=auto redis
+root     17367  0.1  0.0 156452  7920 ?        Ssl  8月15   3:56 /usr/local/bin/redis-server *:6379 [cluster]
+root     17372  0.1  0.0 153892  7844 ?        Ssl  8月15   3:21 /usr/local/bin/redis-server *:6380 [cluster]
+root     17377  0.1  0.0 153892  7848 ?        Ssl  8月15   3:20 /usr/local/bin/redis-server *:6381 [cluster]
+[root@host-192-125-30-111 ~]# kill -9 17367
+[root@host-192-125-30-111 ~]# kill -9 17372
+[root@host-192-125-30-111 ~]# kill -9 17377
+
+# 删除数据目录
+[root@host-192-125-30-111 ~]# cd /usr/local/
+[root@host-192-125-30-111 local]# ls
+bin  etc  games  include  lib  lib64  libexec  redis-cluster  sbin  share  src
+[root@host-192-125-30-111 local]# cd redis-cluster
+[root@host-192-125-30-111 redis-cluster]# ls
+data  log  redis-6379.conf  redis-6380.conf  redis-6381.conf  redis.conf
+[root@host-192-125-30-111 redis-cluster]# cd data
+[root@host-192-125-30-111 data]# ls
+6379  6380  6381
+[root@host-192-125-30-111 data]# rm -rf 63*
+[root@host-192-125-30-111 data]# ls
+[root@host-192-125-30-111 data]# mkdir -p 6379 6380 6381
+[root@host-192-125-30-111 data]# cd ..
+[root@host-192-125-30-111 redis-cluster]# ls
+data  log  redis-6379.conf  redis-6380.conf  redis-6381.conf  redis.conf
+[root@host-192-125-30-111 redis-cluster]# cd log
+[root@host-192-125-30-111 log]# ls
+redis-6379.log  redis-6380.log  redis-6381.log
+[root@host-192-125-30-111 log]# rm -rf redis-*.log
+[root@host-192-125-30-111 log]# ls
+[root@host-192-125-30-111 log]# 
+```
+
 `redis-cli` 的参数说明：
 
 ```sh
@@ -395,6 +437,61 @@ create
 ```
 
 注意：如果配置项 `cluster-enabled` 的值不为yes，则执行时会报错 `[ERR] Node 192.168.0.251:6381 is not configured as a cluster node.`
+
+输出：
+
+```sh
+[root@host-192-125-30-111 redis-cluster]# /usr/local/bin/redis-cli -a Perfect1 --cluster create 192.125.30.111:6379 192.125.30.111:6380 192.125.30.59:6381 192.125.30.59:6379 192.125.30.59:6380 192.125.30.111:6381 --cluster-replicas 1
+Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+>>> Performing hash slots allocation on 6 nodes...
+Master[0] -> Slots 0 - 5460
+Master[1] -> Slots 5461 - 10922
+Master[2] -> Slots 10923 - 16383
+Adding replica 192.125.30.59:6380 to 192.125.30.111:6379
+Adding replica 192.125.30.111:6381 to 192.125.30.59:6381
+Adding replica 192.125.30.59:6379 to 192.125.30.111:6380
+M: 9df266851fa7d8d9363d584a5bc644f36ea1d052 192.125.30.111:6379
+   slots:[0-5460] (5461 slots) master
+M: 932a6ab157056e2d36e3915780b5d77138bbabdb 192.125.30.111:6380
+   slots:[10923-16383] (5461 slots) master
+M: fb9923083a70ca2131b3fb6c7633bc7275dfe33c 192.125.30.59:6381
+   slots:[5461-10922] (5462 slots) master
+S: 53ab782834f304013ac055a35e5275e5004b30c7 192.125.30.59:6379
+   replicates 932a6ab157056e2d36e3915780b5d77138bbabdb
+S: 7854f8ed0234945e89af5079331ce7779449d632 192.125.30.59:6380
+   replicates 9df266851fa7d8d9363d584a5bc644f36ea1d052
+S: 1141e28e7b135db55cdb1c87c143ee0c0502d26d 192.125.30.111:6381
+   replicates fb9923083a70ca2131b3fb6c7633bc7275dfe33c
+Can I set the above configuration? (type 'yes' to accept): yes
+>>> Nodes configuration updated
+>>> Assign a different config epoch to each node
+>>> Sending CLUSTER MEET messages to join the cluster
+Waiting for the cluster to join
+..
+>>> Performing Cluster Check (using node 192.125.30.111:6379)
+M: 9df266851fa7d8d9363d584a5bc644f36ea1d052 192.125.30.111:6379
+   slots:[0-5460] (5461 slots) master
+   1 additional replica(s)
+S: 1141e28e7b135db55cdb1c87c143ee0c0502d26d 192.125.30.111:6381
+   slots: (0 slots) slave
+   replicates fb9923083a70ca2131b3fb6c7633bc7275dfe33c
+M: 932a6ab157056e2d36e3915780b5d77138bbabdb 192.125.30.111:6380
+   slots:[10923-16383] (5461 slots) master
+   1 additional replica(s)
+S: 7854f8ed0234945e89af5079331ce7779449d632 192.125.30.59:6380
+   slots: (0 slots) slave
+   replicates 9df266851fa7d8d9363d584a5bc644f36ea1d052
+S: 53ab782834f304013ac055a35e5275e5004b30c7 192.125.30.59:6379
+   slots: (0 slots) slave
+   replicates 932a6ab157056e2d36e3915780b5d77138bbabdb
+M: fb9923083a70ca2131b3fb6c7633bc7275dfe33c 192.125.30.59:6381
+   slots:[5461-10922] (5462 slots) master
+   1 additional replica(s)
+[OK] All nodes agree about slots configuration.
+>>> Check for open slots...
+>>> Check slots coverage...
+[OK] All 16384 slots covered.
+```
 
 **ps aux|grep redis-server**
 
