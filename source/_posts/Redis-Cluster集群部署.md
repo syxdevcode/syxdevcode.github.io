@@ -493,6 +493,19 @@ M: fb9923083a70ca2131b3fb6c7633bc7275dfe33c 192.125.30.59:6381
 [OK] All 16384 slots covered.
 ```
 
+**集群相关信息查看**
+
+```sh
+# 集群状态
+/usr/local/bin/redis-cli -h 127.0.0.1 -p 6379 -a password cluster info
+
+# 集群节点信息
+/usr/local/bin/redis-cli -h 127.0.0.1 -p 6379 -a password cluster nodes
+
+# 节点内存、cpu、key数量等信息（每个节点都需查看）
+/usr/local/bin/redis-cli -h 127.0.0.1 -p 6379 -a password info
+```
+
 **ps aux|grep redis-server**
 
 查看redis进程是否已切换为集群状态（cluster）
