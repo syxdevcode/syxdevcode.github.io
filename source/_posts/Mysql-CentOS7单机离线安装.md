@@ -172,8 +172,14 @@ ls -l
 ## 启动mysql
 
 ```sh
+# 启动
+/etc/init.d/mysqld start
+
+# 重启
 /etc/init.d/mysqld restart
 ```
+
+注：错误日志在 `/usr/local/mysql/data` 下 `XXXX.err` 文件。
 
 报错：
 
@@ -195,6 +201,9 @@ kill -9 100684
 ps aux|grep mysql
 
 # 启动
+/etc/init.d/mysqld start
+
+# 重启
 /etc/init.d/mysqld restart
 ```
 
