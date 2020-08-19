@@ -251,18 +251,60 @@ Enter password: #此处输入新密码
 show tables;
 show databases;
 ```
+### 常见报错
 
-如果报错：ERROR 2002 (HY000): Can't connect to local MySQL server through socket '/tmp/mysql.sock' (2)，
+（1）如果报错：ERROR 2002 (HY000): Can't connect to local MySQL server through socket '/tmp/mysql.sock' (2)，
 则使用下面的方式连接：
 
 ```sh
 mysql -uroot -h 127.0.0.1 -p
 ```
 
+（2）ERROR 1862 (HY000): Your password has expired. To log in you must change it using a client that supports expired passwords.
+
+使用忽略授权表的方法进入mysql：
+
+```
+vim my.cnf
+[mysqld]
+skip-grant-tables=1
+```
+
+使用命令重启mysql:
+
+```sh
+[root@ mysql]# service mysqld restart
+Shutting down MySQL..                                      [  OK  ]
+Starting MySQL.                                            [  OK  ]
+```
+
+```sh
+# 进入mysql
+mysql -uroot -p
+
+use mysql;
+select * from mysql.user where user='root' \G
+update user set authentication_string=password('test') where user='root' and Host='localhost';
+
+update user set password_expired='N' where user='root';
+
+# 刷新
+flush privileges;
+
+# 退出
+quit;
+```
+
+之后把 my.cnf 的 `skip-grant-tables=1` 这行注释掉
+
+5、重启服务
+
+`service mysqld restart`
+
 ## 添加远程访问权限
 
 ```sh
-mysql> use mysql
+mysql> use mysql;
 Reading table information for completion of table and column names
 You can turn off this feature to get a quicker startup with -A
 
@@ -312,7 +354,7 @@ firewall-cmd --zone=public --list-ports
 ## 查看监听的端口
 
 ```sh
-netstat -lnpt
+netstat -lnpt | grep 3306
 ```
 
 ## 执行脚本
