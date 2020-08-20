@@ -60,7 +60,6 @@ supervisorctl --help
 
 ## 配置supervisor
 
-
 ```sh
 ##创建supervisor所需目录
 mkdir /etc/supervisord.d/

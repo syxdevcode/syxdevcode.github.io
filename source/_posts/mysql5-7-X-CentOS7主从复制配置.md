@@ -148,6 +148,9 @@ log-bin=mysql-bin
 **创建用于复制数据的用户**
 
 ```sh
+# 连接到mysql，输入密码
+mysql -uroot -h 127.0.0.1 -p
+
 # 创建用户
 create user 'slave'@'%' identified by '123456';
 # 或
@@ -163,6 +166,74 @@ flush privileges;
 
 # 查看用户权限
 show grants for 'slave'@'%';
+```
+
+**备份主服务器数据**
+
+```sh
+mysqldump -u用户名 -p密码 --all-databases --master-data=1 > dbdump.db
+
+FLUSH TABLES WITH READ LOCK;
+2. 将master中需要同步的db的数据dump出来
+mysqldump -uroot -p school > school.dump
+3. 将数据导入slave
+mysql -uroot -h172.17.0.4 -p school < school.dump
+4. 解锁master
+UNLOCK TABLES;
+
+```
+
+如果不使用 `--master-data` 参数，则需要手动锁定单独会话中的所有表。
+
+
+
+**从服务器开始复制**
+
+```sh
+# 主服务器复制状态
+show master status;
+
+# 连接主服务器及设置复制的起始节点
+change master to master_host='192.123.75.68',
+master_port=3306,
+master_user='slave',
+master_password='123456',
+master_log_file='bin-log.000001',
+master_log_pos=154;
+
+# 开始复制
+start slave;
+
+# 查看复制状态
+show slave status \G
+
+# 查看数据表数据
+mysql> show create table user\G
+```
+
+复制相关命令：
+
+```sh
+# 停止slave
+stop salve
+
+# 重置slave
+reset slave
+
+# 开启slave
+start slave
+
+# 停止master
+stop master
+
+# 重置master
+reset master
+
+# 开启master
+start master
+
+# 查看主从服务器进程
+show processlist;
 ```
 
 
