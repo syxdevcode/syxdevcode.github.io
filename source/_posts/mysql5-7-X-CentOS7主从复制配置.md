@@ -171,30 +171,32 @@ show grants for 'slave'@'%';
 **备份主服务器数据**
 
 ```sh
-# 如果不使用 --master-data 参数，则需要手动锁定单独会话中的所有表。
+# 如果不使用 --master-data 参数，则需要手动锁定单独会话中的所有表，如下所示。
 mysqldump -u用户名 -p密码 --all-databases --master-data=1 > dbdump.db
 
-# 1，
+# 1，加锁
 FLUSH TABLES WITH READ LOCK;
-2. 将master中需要同步的db的数据dump出来
-mysqldump -uroot -p school > school.dump
-3. 将数据导入slave
-mysql -uroot -h172.17.0.4 -p school < school.dump
-4. 解锁master
+
+# 2. 将master中需要同步的db的数据dump出来
+mysqldump -uroot -p testdb > testdb.dump
+
+# 3. 将数据导入slave
+mysql -uroot -h192.123.75.69 -p testdb < testdb.dump
+
+# 4. 解锁master
 UNLOCK TABLES;
-
 ```
-
-
-
-
 
 **从服务器开始复制**
 
 ```sh
+# 登录 主mysql
+mysql -uroot -h192.123.75.69 -p
+
 # 主服务器复制状态
 show master status;
 
+# 登录从服务器
 # 连接主服务器及设置复制的起始节点
 change master to master_host='192.123.75.68',
 master_port=3306,
@@ -237,8 +239,6 @@ start master
 # 查看主从服务器进程
 show processlist;
 ```
-
-
 
 参考：
 
