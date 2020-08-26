@@ -22,35 +22,129 @@ categories:
 wget https://dl.min.io/server/minio/release/linux-amd64/minio
 ```
 
-添加执行权限：
+**移动到/usr/local/minio文件夹**
 
 ```sh
+mkdir -p /usr/local/minio/bin
+cp /ldjc/rj/minio /usr/local/minio/bin
+cd /usr/local/minio/bin
+
+# 添加执行权限
 chmod +x minio
 ```
 
-## 安装
+## 启动
+
+命令格式：
+
+`./minio -C \"${minio_config}\" server --address=\"${minio_address}\" ${minio_disks}`
+
+-C：配置文件
+
+### 终端方式启动
 
 进入到软件包所在目录：
+
+终端启动，这种方式关闭终端，服务会停止。
 
 ```sh
 cd /ldjc/rj
 
 export MINIO_ACCESS_KEY=admin
 export MINIO_SECRET_KEY=test
-./minio server /ldjc/minio/data --address :9010
+./minio server -C minio.conf /ldjc/minio/data --address :9010
 ```
 
 后台运行
 
 ```sh
+cd /ldjc/rj
 export MINIO_ACCESS_KEY=admin
 export MINIO_SECRET_KEY=test
-nohup ./minio server /ldjc/minio/data --address 192.125.30.71:9010
-nohup ./minio server /ldjc/minio/data --address :9010
+nohup ./minio server -C minio.conf /ldjc/minio/data --address 192.125.30.71:9010
+nohup ./minio server -C minio.conf /ldjc/minio/data --address :9010
 ```
 
+### 配置文件启动
+
+**新建配置文件**
+
 ```sh
-#查看端口：
+cd /usr/local/minio
+touch minio.conf
+vi minio.conf 
+```
+
+配置文件内容：
+
+```sh
+MINIO_ACCESS_KEY=admin
+MINIO_SECRET_KEY=admin
+MINIO_VOLUMES="/test/minio/data"
+MINIO_OPTS=" --address 192.125.31.71:9010"
+```
+
+**新建服务**
+
+在 `/etc/systemd/system`,新建一个 `minio.service` :
+
+```sh
+touch /etc/systemd/system/minio.service
+vim /etc/systemd/system/minio.service
+```
+
+参考：[linux-systemd/minio.service](https://github.com/minio/minio-service/blob/master/linux-systemd/minio.service)
+
+```sh
+[Unit]
+Description=MinIO
+Documentation=https://docs.min.io
+Wants=network-online.target
+After=network-online.target
+AssertFileIsExecutable=/usr/local/minio/bin/minio
+
+[Service]
+WorkingDirectory=/usr/local/
+
+User=root
+Group=root
+
+EnvironmentFile=/usr/local/minio/minio.conf
+ExecStartPre=/bin/bash -c "if [ -z \"${MINIO_VOLUMES}\" ]; then echo \"Variable MINIO_VOLUMES not set in /etc/default/minio\"; exit 1; fi"
+
+ExecStart=/usr/local/minio/bin/minio server $MINIO_OPTS $MINIO_VOLUMES
+
+# Let systemd restart this service always
+Restart=always
+
+# Specifies the maximum file descriptor number that can be opened by this process
+LimitNOFILE=65536
+
+# Disable timeout logic and wait until process is stopped
+TimeoutStopSec=infinity
+SendSIGKILL=no
+
+[Install]
+WantedBy=multi-user.target
+
+# Built for ${project.name}-${project.version} (${project.name})
+```
+
+**启动服务**
+
+```sh
+systemctl enable minio.service
+systemctl start minio.service
+systemctl status minio.service
+
+# 更新服务文件后，需要重新加载
+systemctl daemon-reload
+```
+
+### 查看进程
+
+```sh
+#查看端口
 netstat -tunpl | grep 9010
 
 #查看进程
@@ -120,3 +214,5 @@ openssl req -x509 -nodes -days 730 -newkey rsa:2048 -keyout private.key -out pub
 [Minio 文件服务（1）—— Minio部署使用及存储机制分析](https://www.jianshu.com/p/3e81b87d5b0b)
 
 [MinIO Server Config Guide ](https://docs.min.io/docs/minio-server-configuration-guide.html)
+
+[How to run MinIO in FreeNAS](https://docs.minio.io/docs/how-to-run-minio-in-freenas.html)

@@ -22,16 +22,16 @@ categories: MySql
 
 问题解决如下
 
-* 1.如果数据不重要或已经有备份，只需要恢复mysql启动 (已验证可用)
+**1.如果数据不重要或已经有备份，只需要恢复mysql启动 (已验证可用)**
 
 进入mysql目录，一般是：/usr/local/mysql/data
-删除ib_logfile* 
-删除ibdata* 
-删除所有数据库物理目录（例如数据库为test_db,则执行rm -rf test_db） 
-重启动mysql 
+删除ib_logfile*
+删除ibdata*
+删除所有数据库物理目录（例如数据库为test_db,则执行rm -rf test_db）
+重启动mysql
 重新建立数据库或使用备份覆盖
 
-* 2.如果数据很重要且没有备份
+**2.如果数据很重要且没有备份**
 
 可以使用innodb_force_recovery参数，使mysqld跳过恢复步骤，启动mysqld，将数据导出然后重建数据库。
 
@@ -55,14 +55,12 @@ innodb_purge_thread = 0（purge多线程参数）
 
 重启mysql
 
-这时只可以执行select,create,drop操作，但不能执行insert,update,delete操作 
+这时只可以执行 `select,create,drop` 操作，但不能执行 `insert,update,delete` 操作 
 执行逻辑导出，导出需要的数据库
 
 完成后将innodb_force_recovery=0，innodb_purge_threads=1，
 
 然后重建数据库，最后把导出的数据重新导入。
-
-
 
 参考：
 
