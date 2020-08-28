@@ -3,9 +3,9 @@ title: IDE、SATA、SCSI、SAS、FC、SSD硬盘类型
 date: 2020-08-26 17:35:10
 tags:
 - 计算机基础
-- 硬盘类型
+- 硬盘
 - 计算机科学
-categories: 硬盘类型
+categories: 硬盘
 ---
 
 ## 硬盘接口的分类
