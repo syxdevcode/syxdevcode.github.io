@@ -56,6 +56,14 @@ categories:
 %JAVA_HOME%\jre\bin
 ```
 
+## 验证
+
+```sh
+java
+java -version
+javac
+```
+
 参考：
 
 [Windows 10 配置Java 环境变量](https://www.runoob.com/w3cnote/windows10-java-setup.html)
