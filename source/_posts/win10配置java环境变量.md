@@ -2,9 +2,11 @@
 title: win10配置java环境变量
 date: 2020-07-16 15:15:37
 tags:
-- java
+- Java
+- 环境变量
+- JDK
 categories: 
-- java
+- Java
 ---
 
 ## 打开环境变量窗口

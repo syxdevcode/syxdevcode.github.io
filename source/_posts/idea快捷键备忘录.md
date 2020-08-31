@@ -2,10 +2,10 @@
 title: idea快捷键备忘录
 date: 2020-07-14 09:04:23
 tags:
-- java
-- idea
+- Java
+- IDEA
 categories: 
-- idea
+- IDEA
 ---
 
 **Ctrl+Alt+L**：格式化代码；
@@ -21,7 +21,5 @@ categories:
 **F7**：单步调试；
 
 ****
-
-
 
 [https://github.com/judasn/IntelliJ-IDEA-Tutorial/blob/master/keymap-introduce.md](https://github.com/judasn/IntelliJ-IDEA-Tutorial/blob/master/keymap-introduce.md)

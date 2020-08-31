@@ -2,10 +2,10 @@
 title: java错误：编码GBK的不可映射字符
 date: 2020-07-20 13:43:37
 tags:
-- java
-- idea
+- Java
+- IDEA
 categories: 
-- java
+- Java
 ---
 
 当Java源代码中包含中文字符时，我们在用javac编译时会出现“错误：编码GBK的不可映射字符”。

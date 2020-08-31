@@ -2,10 +2,10 @@
 title: Java格式化输出printf例子
 date: 2020-07-14 16:49:21
 tags:
-- java
-- idea
+- Java
+- IDEA
 categories: 
-- java
+- Java
 ---
 
 转载：

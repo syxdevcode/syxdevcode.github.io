@@ -2,10 +2,10 @@
 title: java错误：找不到或无法加载主类
 date: 2020-07-20 13:46:06
 tags:
-- java
-- idea
+- Java
+- IDEA
 categories: 
-- java
+- Java
 ---
 
 1.编译的时候后缀带了.class：把后缀去掉；
