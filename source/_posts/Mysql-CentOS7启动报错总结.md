@@ -65,3 +65,5 @@ innodb_purge_thread = 0（purge多线程参数）
 参考：
 
 [[ERROR] InnoDB: Plugin initialization aborted with error Generic error几种报错](https://blog.csdn.net/yunhua12/article/details/81393572)
+
+[启动mysql报错The server quit without updating PID file！](https://cloud.tencent.com/developer/article/1409737)
