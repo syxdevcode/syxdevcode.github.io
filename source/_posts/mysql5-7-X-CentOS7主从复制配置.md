@@ -82,7 +82,7 @@ SUPER 权限的用户可以使用 `SET sql_log_bin=0` 语句禁用其当前环�
 
 ### 服务器配置
 
-**主修改配置文件**
+**主节点修改配置文件**
 
 ```sh
 # 服务器唯一ID，一般取IP最后一段
@@ -96,6 +96,24 @@ log-bin=/usr/local/mysql/binlogs/bin-log
 
 # 不可以被从服务器复制的库
 binlog-ignore-db=mysql
+
+# binlog日志格式，mysql默认采用ROW，建议使用mixed
+binlog_format=MIXED
+
+# binlog日志文件
+log-bin=/usr/local/mysql/binlogs/bin-log
+
+# binlog过期清理时间
+expire_logs_days=7
+
+# binlog每个日志文件大小
+max_binlog_size=100m
+
+# binlog缓存大小
+binlog_cache_size=4m
+
+# 最大binlog缓存大小
+max_binlog_cache_size=512m
 ```
 
 创建日志目录，并赋予权限：
@@ -190,10 +208,10 @@ UNLOCK TABLES;
 
 ```sh
 # 登录 主mysql
-mysql -uroot -h192.123.75.69 -p
+mysql -uroot -h192.123.75.68 -p
 
 # 主服务器复制状态
-show master status;
+show master status\G
 
 # 登录从服务器
 # 连接主服务器及设置复制的起始节点
@@ -207,8 +225,12 @@ master_log_pos=154;
 # 开始复制
 start slave;
 
-# 查看复制状态
+# 查看 从 复制状态
+# 输出结果中应该看到 I/O 线程和 SQL 线程都是 YES, 就表示成功。
 show slave status \G
+
+# 查看 主 复制状态
+show master status \G
 
 # 查看数据表数据
 mysql> show create table user\G
@@ -218,26 +240,37 @@ mysql> show create table user\G
 
 ```sh
 # 停止slave
-stop salve
+stop slave;
 
 # 重置slave
-reset slave
+reset slave;
 
 # 开启slave
-start slave
+start slave;
 
 # 停止master
-stop master
+stop master;
 
 # 重置master
-reset master
+reset master;
 
 # 开启master
-start master
+start master;
 
 # 查看主从服务器进程
 show processlist;
 ```
+
+**查看 binlog 日志**
+
+`show binlog events\G`
+
+* Log_name 是二进制日志文件的名称，一个事件不能横跨两个文件
+* Pos 这是该事件在文件中的开始位置
+* Event_type 事件的类型，事件类型是给slave传递信息的基本方法，每个新的binlog都以Format_desc类型开始，以Rotate类型结束
+* Server_id 创建该事件的服务器id
+* End_log_pos 该事件的结束位置，也是下一个事件的开始位置，因此事件范围为 `Pos~End_log_pos - 1`
+* Info 事件信息的可读文本，不同的事件有不同的信息
 
 参考：
 

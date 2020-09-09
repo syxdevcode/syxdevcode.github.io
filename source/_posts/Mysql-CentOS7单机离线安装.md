@@ -22,7 +22,7 @@ rpm -qa | grep mysql
 ```sh
 # 检查mysql组和用户是否存在，如无则创建
 cat /etc/group | grep mysql
-cat /etc/passwd | grep mysql 
+cat /etc/passwd | grep mysql
 ```
 
 查看全部用户：
@@ -67,8 +67,8 @@ Linux - Generic
 ## 上传离线包到服务器
 
 ```sh
-tar -zxvf mysql-5.7.26-linux-glibc2.12-x86_64.tar.gz
-mv mysql-5.7.26-linux-glibc2.12-x86_64 mysql
+tar -zxvf mysql-5.7.30-linux-glibc2.12-x86_64.tar.gz
+mv mysql-5.7.30-linux-glibc2.12-x86_64 mysql
 mv mysql /usr/local
 ```
 
@@ -85,7 +85,7 @@ chown -R mysql:mysql data
 
 [centos系统添加/删除用户和用户组](https://www.cnblogs.com/nyfz/p/8557137.html)
 
-# 在/etc下创建my.cnf文件
+# 创建my.cnf文件
 
 # 进入/usr/local/mysql文件夹下
 cd /usr/local/mysql
@@ -263,7 +263,14 @@ show databases;
 ### 常见报错
 
 （1）如果报错：ERROR 2002 (HY000): Can't connect to local MySQL server through socket '/tmp/mysql.sock' (2)，
-则使用下面的方式连接：
+
+解决方案，创建软链接：
+
+```sh
+ln -s /var/lib/mysql/mysql.sock /tmp/mysql.sock
+```
+
+也可以使用下面的方式连接：
 
 ```sh
 mysql -uroot -h 127.0.0.1 -p
@@ -292,6 +299,11 @@ Starting MySQL.                                            [  OK  ]
 mysql -uroot -p
 
 use mysql;
+
+ERROR 1820 (HY000): You must reset your password using ALTER USER statement before executing this statement.
+mysql> ALTER USER USER() IDENTIFIED BY 'test1';
+Query OK, 0 rows affected (0.05 sec)
+
 select * from mysql.user where user='root' \G
 update user set authentication_string=password('test') where user='root' and Host='localhost';
 
