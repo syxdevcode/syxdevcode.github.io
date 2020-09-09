@@ -236,6 +236,19 @@ show master status \G
 mysql> show create table user\G
 ```
 
+**设置从库只读**
+
+```sh
+# 查看当前只读的状态
+SHOW VARIABLES LIKE '%read_only%';
+
+# 设置普通用户只读
+SET GLOBAL read_only=1;
+
+# 设置超级用户只读
+SET GLOBAL super_read_only=1;
+```
+
 复制相关命令：
 
 ```sh
@@ -259,6 +272,14 @@ start master;
 
 # 查看主从服务器进程
 show processlist;
+
+# 指定线程类型单独 暂停I/O或SQL线程
+STOP SLAVE IO_THREAD;
+STOP SLAVE SQL_THREAD;
+
+# 指定线程类型单独 启动I/O或SQL线程
+START SLAVE IO_THREAD;
+START SLAVE SQL_THREAD;
 ```
 
 **查看 binlog 日志**
