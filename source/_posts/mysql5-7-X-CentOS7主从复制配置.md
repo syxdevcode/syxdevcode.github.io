@@ -293,6 +293,100 @@ START SLAVE SQL_THREAD;
 * End_log_pos 该事件的结束位置，也是下一个事件的开始位置，因此事件范围为 `Pos~End_log_pos - 1`
 * Info 事件信息的可读文本，不同的事件有不同的信息
 
+## 复制原理实现细节
+
+MySQL复制功能使用三个线程实现，一个在主服务器上，两个在从服务器上：
+
+* **Binlog转储线程** 主设备创建一个线程，以便在从设备连接时将二进制日志内容发送到从设备。可以 `SHOW PROCESSLIST` 在主服务器的输出中将此线程标识为 `Binlog Dump` 线程。
+
+    二进制日志转储线程获取主机二进制日志上的锁，用于读取要发送到从机的每个事件。一旦读取了事件，即使在事件发送到从站之前，锁也会被释放。
+
+* **从属 I/O线程** 在从属服务器上发出 `START SLAVE` 语句时，从属服务器会创建一个 `I/O` 线程，该线程连接到主服务器并要求主服务器发送其在二进制日志中的更新记录。
+
+    从属 `I/O` 线程读取主 `Binlog Dump` 线程发送的更新，并将它们复制到包含从属中继日志的本地文件。
+
+    此线程的状态显示为 `Slave_IO_running` 输出 `SHOW SLAVE STATUS` 或 `Slave_running` 输出中的状态 `SHOW STATUS` 。
+
+* **从属SQL线程** 从属设备创建一个SQL线程来读取由从属 `I/O` 线程写入的中继日志，并执行其中包含的事件。
+
+    当从属服务器从放的事件，追干上主服务器的事件后，从属服务器的 `I/O` 线程将会处于休眠状态，直到主服务器的事件有更新时，被主服务器发送的信号唤醒。
+
+    每个 主/从 连接有三个线程。具有多个从站的主站为每个当前连接的从站创建一个二进制日志转储线程，每个从站都有自己的 `I/O`和SQL线程。
+
+从站使用两个线程将读取更新与主站分开并将它们执行到独立任务中。因此，如果语句执行缓慢，则不会减慢读取语句的任务。例如，如果从服务器尚未运行一段时间，则当从服务器启动时，其 `I/O` 线程可以快速从主服务器获取所有二进制日志内容，即使SQL线程远远落后。如果从服务器在SQL线程执行了所有获取的语句之前停止，则 `I/O` 线程至少已获取所有内容，以便语句的安全副本本地存储在从属的中继日志中，准备在下次执行时执行 `SLAVE`开始。
+ 
+主服务器上，输入 `SHOW PROCESSLIST` 如下所示：
+
+```sql
+mysql> show processlist\G
+*************************** 1. row ***************************
+     Id: 69
+   User: slave
+   Host: 192.123.75.69:55453
+     db: NULL
+Command: Binlog Dump
+   Time: 63184
+  State: Master has sent all binlog to slave; waiting for more updates
+   Info: NULL
+```
+
+该线程是 `Binlog Dump` 为连接的从属服务的复制线程。该 `State` 信息表明所有未完成的更新已发送到从站，并且主站正在等待更多更新发生。如果 `Binlog Dump` 在主服务器上看不到任何 线程，则表示复制未运行，说明目前没有连接任何从站。
+
+## 配置多线程复制
+
+多线程复制在 5.6 中被引入，并且在 5.7 中得到了进一步的完善。
+
+5.7 中是基于逻辑时钟的方式进行的多线程复制。
+
+### 配置过程
+
+**从库上查看默认的多线程复制类型**
+
+```sql
+mysql> show variables like "slave_parallel_type";
++---------------------+----------+
+| Variable_name       | Value    |
++---------------------+----------+
+| slave_parallel_type | DATABASE |
++---------------------+----------+
+1 row in set (0.00 sec)
+```
+
+**从库上停止目前正在运行复制链路**
+
+```sh
+# 停止之前可以查看目前的线程数
+show processlist;
+stop slave
+```
+
+**配置并发线程的方式**
+
+```sh
+mysql> set global slave_parallel_type = "logical_clock";
+Query OK, 0 rows affected (0.00 sec)
+```
+
+**配置并发数量**
+
+```sh
+mysql> set global slave_parallel_workers = 4;
+Query OK, 0 rows affected (0.00 sec)
+mysql> show variables like "slave_parallel_workers";
++------------------------+-------+
+| Variable_name          | Value |
++------------------------+-------+
+| slave_parallel_workers | 4     |
++------------------------+-------+
+1 row in set (0.00 sec)
+```
+
+**启动从服务器的复制链路**
+
+```sh
+mysql> start slave
+```
+
 参考：
 
 [Mysql 主从复制](https://www.jianshu.com/p/faf0127f1cb2)
