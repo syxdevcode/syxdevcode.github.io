@@ -81,7 +81,7 @@
     </p>
   <p class="article-time">
     <time datetime="2020-08-19T11:12:04.000Z" itemprop="datePublished">2020-08-19</time>
-    更新日期:<time datetime="2020-09-10T01:14:46.912Z" itemprop="dateModified">2020-09-10</time>
+    更新日期:<time datetime="2020-09-10T01:55:28.465Z" itemprop="dateModified">2020-09-10</time>
     
   </p>
 </header>
@@ -90,7 +90,7 @@
 		
 		<div id="toc" class="toc-article">
 			<strong class="toc-title">文章目录</strong>
-		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#简介"><span class="toc-number">1.</span> <span class="toc-text">简介</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#二进制日志"><span class="toc-number">2.</span> <span class="toc-text">二进制日志</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#配置部署"><span class="toc-number">3.</span> <span class="toc-text">配置部署</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#服务器配置"><span class="toc-number">3.1.</span> <span class="toc-text">服务器配置</span></a></li></ol></li></ol>
+		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#简介"><span class="toc-number">1.</span> <span class="toc-text">简介</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#二进制日志"><span class="toc-number">2.</span> <span class="toc-text">二进制日志</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#配置部署"><span class="toc-number">3.</span> <span class="toc-text">配置部署</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#服务器配置"><span class="toc-number">3.1.</span> <span class="toc-text">服务器配置</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#复制原理实现细节"><span class="toc-number">4.</span> <span class="toc-text">复制原理实现细节</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#配置多线程复制"><span class="toc-number">5.</span> <span class="toc-text">配置多线程复制</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#配置过程"><span class="toc-number">5.1.</span> <span class="toc-text">配置过程</span></a></li></ol></li></ol>
 		</div>
 		
 		<h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>主从复制（也称 Replication， AB 复制）允许将来自一个MySQL数据库服务器（主服务器）的数据复制到一个或多个MySQL数据库服务器（从服务器）。</p>
@@ -174,6 +174,42 @@
 <li>End_log_pos 该事件的结束位置，也是下一个事件的开始位置，因此事件范围为 <code>Pos~End_log_pos - 1</code></li>
 <li>Info 事件信息的可读文本，不同的事件有不同的信息</li>
 </ul>
+<h2 id="复制原理实现细节"><a href="#复制原理实现细节" class="headerlink" title="复制原理实现细节"></a>复制原理实现细节</h2><p>MySQL复制功能使用三个线程实现，一个在主服务器上，两个在从服务器上：</p>
+<ul>
+<li><p><strong>Binlog转储线程</strong> 主设备创建一个线程，以便在从设备连接时将二进制日志内容发送到从设备。可以 <code>SHOW PROCESSLIST</code> 在主服务器的输出中将此线程标识为 <code>Binlog Dump</code> 线程。</p>
+<p>  二进制日志转储线程获取主机二进制日志上的锁，用于读取要发送到从机的每个事件。一旦读取了事件，即使在事件发送到从站之前，锁也会被释放。</p>
+</li>
+<li><p><strong>从属 I/O线程</strong> 在从属服务器上发出 <code>START SLAVE</code> 语句时，从属服务器会创建一个 <code>I/O</code> 线程，该线程连接到主服务器并要求主服务器发送其在二进制日志中的更新记录。</p>
+<p>  从属 <code>I/O</code> 线程读取主 <code>Binlog Dump</code> 线程发送的更新，并将它们复制到包含从属中继日志的本地文件。</p>
+<p>  此线程的状态显示为 <code>Slave_IO_running</code> 输出 <code>SHOW SLAVE STATUS</code> 或 <code>Slave_running</code> 输出中的状态 <code>SHOW STATUS</code> 。</p>
+</li>
+<li><p><strong>从属SQL线程</strong> 从属设备创建一个SQL线程来读取由从属 <code>I/O</code> 线程写入的中继日志，并执行其中包含的事件。</p>
+<p>  当从属服务器从放的事件，追干上主服务器的事件后，从属服务器的 <code>I/O</code> 线程将会处于休眠状态，直到主服务器的事件有更新时，被主服务器发送的信号唤醒。</p>
+<p>  每个 主/从 连接有三个线程。具有多个从站的主站为每个当前连接的从站创建一个二进制日志转储线程，每个从站都有自己的 <code>I/O</code>和SQL线程。</p>
+</li>
+</ul>
+<p>从站使用两个线程将读取更新与主站分开并将它们执行到独立任务中。因此，如果语句执行缓慢，则不会减慢读取语句的任务。例如，如果从服务器尚未运行一段时间，则当从服务器启动时，其 <code>I/O</code> 线程可以快速从主服务器获取所有二进制日志内容，即使SQL线程远远落后。如果从服务器在SQL线程执行了所有获取的语句之前停止，则 <code>I/O</code> 线程至少已获取所有内容，以便语句的安全副本本地存储在从属的中继日志中，准备在下次执行时执行 <code>SLAVE</code>开始。</p>
+<p>主服务器上，输入 <code>SHOW PROCESSLIST</code> 如下所示：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; show processlist\G</span><br><span class="line">*************************** 1. row ***************************</span><br><span class="line">     Id: 69</span><br><span class="line">   User: slave</span><br><span class="line">   Host: 192.123.75.69:55453</span><br><span class="line">     db: NULL</span><br><span class="line">Command: Binlog Dump</span><br><span class="line">   Time: 63184</span><br><span class="line">  State: Master has sent all binlog to slave; waiting for more updates</span><br><span class="line">   Info: NULL</span><br></pre></td></tr></table></figure>
+
+<p>该线程是 <code>Binlog Dump</code> 为连接的从属服务的复制线程。该 <code>State</code> 信息表明所有未完成的更新已发送到从站，并且主站正在等待更多更新发生。如果 <code>Binlog Dump</code> 在主服务器上看不到任何 线程，则表示复制未运行，说明目前没有连接任何从站。</p>
+<h2 id="配置多线程复制"><a href="#配置多线程复制" class="headerlink" title="配置多线程复制"></a>配置多线程复制</h2><p>多线程复制在 5.6 中被引入，并且在 5.7 中得到了进一步的完善。</p>
+<p>5.7 中是基于逻辑时钟的方式进行的多线程复制。</p>
+<h3 id="配置过程"><a href="#配置过程" class="headerlink" title="配置过程"></a>配置过程</h3><p><strong>从库上查看默认的多线程复制类型</strong></p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; show variables like "slave_parallel_type";</span><br><span class="line">+<span class="comment">---------------------+----------+</span></span><br><span class="line">| Variable_name       | Value    |</span><br><span class="line">+<span class="comment">---------------------+----------+</span></span><br><span class="line">| slave_parallel_type | DATABASE |</span><br><span class="line">+<span class="comment">---------------------+----------+</span></span><br><span class="line">1 row in <span class="keyword">set</span> (<span class="number">0.00</span> sec)</span><br></pre></td></tr></table></figure>
+
+<p><strong>从库上停止目前正在运行复制链路</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 停止之前可以查看目前的线程数</span></span><br><span class="line">show processlist;</span><br><span class="line">stop slave</span><br></pre></td></tr></table></figure>
+
+<p><strong>配置并发线程的方式</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; <span class="built_in">set</span> global slave_parallel_type = <span class="string">"logical_clock"</span>;</span><br><span class="line">Query OK, 0 rows affected (0.00 sec)</span><br></pre></td></tr></table></figure>
+
+<p><strong>配置并发数量</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; <span class="built_in">set</span> global slave_parallel_workers = 4;</span><br><span class="line">Query OK, 0 rows affected (0.00 sec)</span><br><span class="line">mysql&gt; show variables like <span class="string">"slave_parallel_workers"</span>;</span><br><span class="line">+------------------------+-------+</span><br><span class="line">| Variable_name          | Value |</span><br><span class="line">+------------------------+-------+</span><br><span class="line">| slave_parallel_workers | 4     |</span><br><span class="line">+------------------------+-------+</span><br><span class="line">1 row <span class="keyword">in</span> <span class="built_in">set</span> (0.00 sec)</span><br></pre></td></tr></table></figure>
+
+<p><strong>启动从服务器的复制链路</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; start slave</span><br></pre></td></tr></table></figure>
+
 <p>参考：</p>
 <p><a href="https://www.jianshu.com/p/faf0127f1cb2" target="_blank" rel="noopener">Mysql 主从复制</a></p>
 <p><a href="https://www.jb51.net/article/186349.htm" target="_blank" rel="noopener">MySQL 主从复制原理与实践详解</a></p>
@@ -230,7 +266,7 @@
 
   <div id="toc" class="toc-aside">
   <strong class="toc-title">文章目录</strong>
-  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#简介"><span class="toc-number">1.</span> <span class="toc-text">简介</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#二进制日志"><span class="toc-number">2.</span> <span class="toc-text">二进制日志</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#配置部署"><span class="toc-number">3.</span> <span class="toc-text">配置部署</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#服务器配置"><span class="toc-number">3.1.</span> <span class="toc-text">服务器配置</span></a></li></ol></li></ol>
+  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#简介"><span class="toc-number">1.</span> <span class="toc-text">简介</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#二进制日志"><span class="toc-number">2.</span> <span class="toc-text">二进制日志</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#配置部署"><span class="toc-number">3.</span> <span class="toc-text">配置部署</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#服务器配置"><span class="toc-number">3.1.</span> <span class="toc-text">服务器配置</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#复制原理实现细节"><span class="toc-number">4.</span> <span class="toc-text">复制原理实现细节</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#配置多线程复制"><span class="toc-number">5.</span> <span class="toc-text">配置多线程复制</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#配置过程"><span class="toc-number">5.1.</span> <span class="toc-text">配置过程</span></a></li></ol></li></ol>
   </div>
 
 <div id="asidepart">
