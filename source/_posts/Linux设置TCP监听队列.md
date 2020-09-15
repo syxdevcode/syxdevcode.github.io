@@ -30,7 +30,15 @@ tcp的三次握手:
 
 立即生效还可以使用命令：`sysctl -w net.core.somaxconn=32767`。
 
-要想永久生效，需要在文件 `/etc/sysctl.conf` 中增加一行：`net.core.somaxconn = 32767`，然后执行命令 `sysctl -p` 以生效。
+要想永久生效，需要在文件 `/etc/sysctl.conf` 中增加一行：
+
+`net.core.somaxconn = 32767`，
+
+或者使用命令：
+
+`echo "net.core.somaxconn = 32767" >> /etc/sysctl.conf`,
+
+然后执行命令 `sysctl -p` 以生效。
 
 Redis配置项 `tcp-backlog` 的值不能超过somaxconn的大小。
 

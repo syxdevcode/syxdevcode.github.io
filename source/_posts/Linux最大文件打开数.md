@@ -85,11 +85,11 @@ open files （-n） 1024 是linux操作系统对一个进程打开的文件句�
 # 找到pid
 ps -aux
 
-/proc/[pid]/limits和fd
+# /proc/[pid]/limits和fd
 
-/proc/[pid]/limits 显示当前进程的资源限制
+cat /proc/[pid]/limits 显示当前进程的资源限制
 
-/proc/[pid]/fd 是一个目录，包含进程打开文件的情况
+ls /proc/[pid]/fd 是一个目录，包含进程打开文件的情况
 ```
 
 实例：
@@ -108,6 +108,8 @@ ps：如果要查看某个进程的线程的详细信息，/proc/[pid]/task
 #### 用户级修改
 
 **临时生效方法：（重启后失效）**
+
+这个设置是暂时的保留。当退出Shell会话后，该值恢复原值。
 
 ```sh
 ulimit -SHn 102400
