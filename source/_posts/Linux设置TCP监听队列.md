@@ -41,19 +41,19 @@ SYN queue 用于保存半连接状态的请求，队列长度由 `/proc/sys/net/
 
 **accept queue**
 
-Accept queue 用于保存全连接状态的请求，队列长度由 `/proc/sys/net/core/somaxconn` 和使用 `listen` 函数时传入的参数，二者取最小值。默认为128。在Linux内核2.4.25之前，是写死在代码常量 `SOMAXCONN` ，在Linux内核2.4.25之后，在配置文件 `/proc/sys/net/core/somaxconn` 中直接修改，或者在 `/etc/sysctl.conf` 中配置 `net.core.somaxconn = 262144` 。
+Accept queue 用于保存全连接状态的请求，队列长度由 `/proc/sys/net/core/somaxconn` 和使用 `listen` 函数时传入的参数，二者取最小值。默认为128。在Linux内核2.4.25之前，是写死在代码常量 `SOMAXCONN` ，在Linux内核2.4.25之后，在配置文件 `/proc/sys/net/core/somaxconn` 中直接修改，或者在 `/etc/sysctl.conf` 中配置 `net.core.somaxconn = 32768` 。
 
 如果 `accpet queue` 队列满了，`server` 将发送一个 `ECONNREFUSED` 错误信息 `Connection refuse`到 `client` 。
 
-立即生效还可以使用命令：`sysctl -w net.core.somaxconn=262144`。
+立即生效还可以使用命令：`sysctl -w net.core.somaxconn=32768`。
 
 要想永久生效，需要在文件 `/etc/sysctl.conf` 中增加一行：
 
-`net.core.somaxconn = 262144`，
+`net.core.somaxconn = 32768`，
 
 或者使用命令：
 
-`echo "net.core.somaxconn = 262144" >> /etc/sysctl.conf`,
+`echo "net.core.somaxconn = 32768" >> /etc/sysctl.conf`,
 
 然后执行命令 `sysctl -p` 以生效。
 

@@ -47,7 +47,7 @@ net.ipv4.tcp_fin_timeout = 2
 net.ipv4.tcp_tw_reuse = 1
 
 # # 表示开启TCP链接中TIME_WAIT sockets的快速回收，
-# 该参数对应系统路径为：/proc/sys/net/ipv4/tcp_tw_recycle，
+# 该参数对应系统路径为：/proc/sys/net/ipv4/tcp_tw_recycle
 # 默认为0 表示关闭
 net.ipv4.tcp_tw_recycle = 1
 ```
@@ -115,8 +115,8 @@ net.ipv4.tcp_max_syn_backlog = 262144
 # 该选项默认值是128，这个参数用于调节系统同时发起的TCP连接数，
 # 在高并发的请求中，默认的值可能会导致链接超时或重传，因此，需要结合并发请求数来调节此值，
 # 该参数对应系统路径为：/proc/sys/net/ipv4/somaxconn 128   
-# 默认没有这个配置，需要自己生成
-net.core.somaxconn = 262144
+# 默认没有这个配置，需要自己生成，somaxconn值不应超过65535
+net.core.somaxconn = 32768
 ```
 
 listen方法指定的backlog是在用户态指定的，内核态的参数优先级高于用户态的参数，所以即使在listen方法里面指定backlog是一个大于somaxconn的值，socket在内核态运行时还会检查一次somaxconn，如果连接数超过somaxconn就会等待。
