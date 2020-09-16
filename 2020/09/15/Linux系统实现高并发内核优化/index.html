@@ -1,0 +1,653 @@
+
+ <!DOCTYPE HTML>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  
+    <title>Linux系统实现高并发内核优化 | syxdevcode博客</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="syxdevcode">
+    
+    <meta name="description" content="Linux 文件打开最大数12345vi /etc/security/limits.conf* soft nproc 65535* hard nproc 65535* soft nofile 65535* hard nofile 65535
+
+参考：Linux最大文件打开数
+内核优化方法一：修改 /">
+    
+    
+    
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+
+  <body>
+    <header>
+      <div>
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="syxdevcode博客" title="syxdevcode博客"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="syxdevcode博客">syxdevcode博客</a></h1>
+				<h2 class="blog-motto"></h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="菜单">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+						<li><a href="/tags">tags</a></li>
+					
+						<li><a href="/categories">categories</a></li>
+					
+					<li>
+					
+					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
+						<label>Search</label>
+						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="搜索" />
+						<input type="hidden" name="q" value="site:syxdevcode.github.com">
+					</form>
+					
+					</li>
+				</ul>
+			</nav>			
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2020/09/15/Linux系统实现高并发内核优化/" title="Linux系统实现高并发内核优化" itemprop="url">Linux系统实现高并发内核优化</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="https://syxdevcode.github.com" title="syxdevcode">syxdevcode</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2020-09-15T11:50:00.000Z" itemprop="datePublished">2020-09-15</time>
+    更新日期:<time datetime="2020-09-16T09:14:01.205Z" itemprop="dateModified">2020-09-16</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<div id="toc" class="toc-article">
+			<strong class="toc-title">文章目录</strong>
+		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Linux-文件打开最大数"><span class="toc-number">1.</span> <span class="toc-text">Linux 文件打开最大数</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#内核优化"><span class="toc-number">2.</span> <span class="toc-text">内核优化</span></a></li></ol>
+		</div>
+		
+		<h2 id="Linux-文件打开最大数"><a href="#Linux-文件打开最大数" class="headerlink" title="Linux 文件打开最大数"></a>Linux 文件打开最大数</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">vi /etc/security/limits.conf</span><br><span class="line">* soft nproc 65535</span><br><span class="line">* hard nproc 65535</span><br><span class="line">* soft nofile 65535</span><br><span class="line">* hard nofile 65535</span><br></pre></td></tr></table></figure>
+
+<p>参考：<a href="https://syxdevcode.github.io/2020/08/04/Linux%E6%9C%80%E5%A4%A7%E6%96%87%E4%BB%B6%E6%89%93%E5%BC%80%E6%95%B0/" target="_blank" rel="noopener">Linux最大文件打开数</a></p>
+<h2 id="内核优化"><a href="#内核优化" class="headerlink" title="内核优化"></a>内核优化</h2><p>方法一：修改 <code>/proc</code> 下内核参数文件内容，不能使用编辑器来修改内核参数文件，理由是由于内核随时可能更改这些文件中的任意一个，另外，这些内核参数文件都是虚拟文件，实际中不存在，因此不能使用编辑器进行编辑，而是使用echo命令，然后从命令行将输出重定向至 <code>/proc</code> 下所选定的文件中。如：将 <code>timeout_timewait</code> 参数设置为30秒：</p>
+<p><code>echo 30 &gt; /proc/sys/net/ipv4/tcp_fin_timeout</code></p>
+<p>参数修改后立即生效，但是重启系统后，该参数又恢复成默认值。因此，想永久更改内核参数，需要修改/etc/sysctl.conf文件</p>
+<p>方法二．修改 <code>/etc/sysctl.conf</code> 文件</p>
+<p>优化适合<code>apache</code>，<code>nginx</code>，<code>squid</code> 多种等web应用。</p>
+<p>文件：<code>/etc/sysctl.conf</code></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 表示套接字由本端要求关闭，这个参数决定了它保持在FIN-wAIT-2状态的时间，默认值是60秒</span></span><br><span class="line"><span class="comment"># server端主动发起断开连接后保持在FIN-WAIT-2状态的时间（建议30s）</span></span><br><span class="line"><span class="comment"># 该参数对应系统路径为：/proc/sys/net/ipv4/tcp_fin_timeout 60</span></span><br><span class="line">net.ipv4.tcp_fin_timeout = 30</span><br><span class="line"></span><br><span class="line"><span class="comment">## reuse和recycle这俩个参数是为防止生产环境下 web，nginx 等业务服务器 time_wait 网络状态数量过多设置的</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 表示开启重用，允许TIME-wAIT sockets重新用于新的TCP链接，默认值为0</span></span><br><span class="line"><span class="comment"># 表示关闭，该参数对应系统路径为：/proc/sys/net/ipv4/tcp_tw_reuse 0</span></span><br><span class="line">net.ipv4.tcp_tw_reuse = 1</span><br><span class="line"></span><br><span class="line"><span class="comment"># # 表示开启TCP链接中TIME_WAIT sockets的快速回收，</span></span><br><span class="line"><span class="comment"># 该参数对应系统路径为：/proc/sys/net/ipv4/tcp_tw_recycle</span></span><br><span class="line"><span class="comment"># 默认为0 表示关闭</span></span><br><span class="line">net.ipv4.tcp_tw_recycle = 1</span><br></pre></td></tr></table></figure>
+
+<details>
+  <summary>reuse/recycle注解：</summary>
+
+<p>因为TCP连接是双向的，所以在关闭连接的时候，两个方向各自都需要关闭。先发 <code>FIN</code> 包的一方执行的是 <code>主动关闭</code>；后发 <code>FIN</code> 包的一方执行的是 <code>被动关闭</code>。主动关闭的一方会进入<code>TIME_WAIT</code> 状态，并且在此状态停留两倍的 <code>MSL</code> maximum segment lifetime(<code>最大分节生命期</code>或<code>最大报文存活时间</code>，这是一个IP数据包能在互联网上生存的最长时间，超过这个时间IP数据包将在网络中消失 。MSL在RFC 1122上建议是2分钟，而源自berkeley的TCP实现传统上使用30秒。一般Linux内核设置30秒 )时长。<code>TIME_WAIT</code> 状态维持时间是两个MSL时间长度，也就是在1-4分钟。Windows操作系统就是4分钟。</p>
+<p>为什么主动方要傻乎乎等 <code>2MSL</code> 呢?不等,行不行?</p>
+<p>TCP目的是可靠传输,主动关闭的一方发出 <code>FIN</code>,被动方回复<code>ACK</code>,接着被动方发送 <code>FIN</code> ,主动方收到被动关闭的一方发出的 <code>FIN</code> 包后，回应 <code>ACK</code> 包，同时进入 <code>TIME_WAIT</code> 状态。但是因为网络原因，主动关闭的一方发送的这个 <code>ACK</code> 包很可能延迟，从而触发被动连接一方重传 <code>FIN</code> 包。极端情况下，这一去( <code>ACK</code> 去被动方)一回(重传 <code>FIN</code> 回来)，就是两倍的 <code>MSL</code> 时长。</p>
+<p>如果主动关闭的一方跳过 <code>TIME_WAIT</code> 直接进入 <code>CLOSED</code> ，或者在 <code>TIME_WAIT</code> 停留的时长不足两倍的 <code>MSL</code> ，那么当被动关闭的一方早先发出的 <code>FIN</code> 延迟包到达或者重传 <code>FIN</code> 包到达后，就可能出现类似下面的问题：</p>
+<ul>
+<li>主动方旧的TCP连接已经不存在了，主动方只能返回RST包</li>
+<li>主动方新的TCP连接被建立起来了，延迟包可能干扰新的连接</li>
+</ul>
+<p>所以, <code>TIME_WAIT</code> 必须等, <code>2MSL</code> 不能少</p>
+<p><strong>减少TIME_WAIT</strong></p>
+<p><code>TIME_WAIT</code> 期间,资源不会释放,现在都追求高性能高并发,快速释放资源是躲不掉的.对于客户端因为有端口 <code>65535</code> 问题，<code>TIME_WAIT</code> 过多直接影响处理能力. 对于服务器,无端口数量限制的问题,Linux优化也很给力,每个处于 <code>TIME_WAIT</code> 状态下连接内存消耗很少, 而且也能通过 <code>tcp_max_tw_buckets = ${你要的阈值}</code> 配置最大上限，但是对于短连接为主的web服务器,几十万的连接,基数很大,耗得内存也不小，快速释放总是好的。</p>
+<p><strong>tcp_tw_recycle:回收TIME_WAIT连接</strong></p>
+<p>对客户端和服务器同时起作用，开启后在 3.5*RTO 内回收，RTO 200ms~ 120s 具体时间视网络状况。RTO(Retransmission TimeOut)重传超时时间。内网状况比 <code>tcp_tw_reuse</code> 稍快，公网尤其移动网络大多要比 <code>tcp_tw_reuse</code> 慢，优点就是能够回收服务端的 <code>TIME_WAIT</code> 数量。</p>
+<p>但是，需要注意的是:当多个客户端通过NAT方式联网并与服务端交互时，服务端看到的是同一个IP，也就是说对服务端而言这些客户端实际上等同于一个，可惜由于这些客户端的时间戳可能存在差异，于是乎从服务端的视角看，便可能出现时间戳错乱的现象，进而直接导致时间戳小的数据包被丢弃。客户端处于NAT很常见，基本公司家庭网络都走NAT。</p>
+<p><code>tcp_tw_reuse</code>:复用 <code>TIME_WAIT</code> 连接 只对客户端起作用,1秒后才能复用，当创建新连接的时候，如果可能的话会考虑复用相应的 <code>TIME_WAIT</code> 连接。通常认为 <code>tcp_tw_reuse</code>比<code>tcp_tw_recycle</code> 安全一些，这是因为一来 <code>TIME_WAIT</code> 创建时间必须超过一秒才可能会被复用；二来只有连接的时间戳是递增的时候才会被复用。</p>
+<p>客户端请求服务器,服务器响应后主动关闭连接,<code>TIME_WAIT</code> 存在于服务器,服务器是被连接者,没有复用一说,所以只对客户端起作用.如果是客户端主动关闭, <code>TIME_WAIT</code> 存在于客户端,这个时候再次连接服务器,可以复用之前 <code>TIME_WAIT</code> 留下的半废品。</p>
+<p><code>tcp_timestamps</code>:以上两点,必须在客户端和服务端 <code>timestamps</code> 开启时才管用(默认开启) 需要根据 <code>timestamp</code> 的递增性来区分是否新连接</p>
+<p><strong>总结</strong></p>
+<p>客户端 <code>tcp_tw_reuse</code> 复用连接管用, <code>tcp_tw_recycle</code> 有用,但是客户端主要不是接受连接,用处不大<br>服务器 <code>tcp_tw_recycle</code> 回收连接管用,<code>tcp_tw_reuse</code> 复用无效.为了减少 <code>TIME_WAIT</code> 留在服务器,可以在服务器开启 <code>KeepAlive</code> ,尽量不让服务器主动关闭,而是客户端主动关闭,减少<code>TIME_WAIT</code> 产生。</p>
+</details>
+
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 表示开启SYN Cookies功能，当出现SYN等待队列溢出时，启用Cookies来处理，可防范少量SYN攻击，</span></span><br><span class="line"><span class="comment"># 该参数对应系统路径为：/proc/sys/net/ipv4/tcp_syncookies，默认为1，表示开启</span></span><br><span class="line">net.ipv4.tcp_syncookies = 1</span><br><span class="line"></span><br><span class="line"><span class="comment"># 表示当keepalive启用时，TCP发送keepalive消息的频度，默认是2小时，建议更改为5分钟，</span></span><br><span class="line"><span class="comment"># 该参数对应系统路径为：/proc/sys/net/ipv4/tcp_keepalive_time，默认为7200秒</span></span><br><span class="line">net.ipv4.tcp_keepalive_time = 300</span><br><span class="line"></span><br><span class="line"><span class="comment"># 该选项用来设定允许系统打开的端口范围，即用于向外链接的端口范围，</span></span><br><span class="line"><span class="comment"># 每个TCP客户端连接都要占用一个唯一的本地端口号(此端口号在系统的本地端口号范围限制中)，</span></span><br><span class="line"><span class="comment"># 如果现有的TCP客户端连接已将所有的本地端口号占满。将不能创建新的TCP连接。</span></span><br><span class="line"><span class="comment"># 该参数对应系统路径为：/proc/sys/net/ipv4/ip_local_port_range 默认，32768 60999</span></span><br><span class="line"><span class="comment"># 理论上单独一个进程最多可以同时建立60000多个TCP客户端连接。</span></span><br><span class="line">net.ipv4.ip_local_port_range = 1024 65000</span><br><span class="line"></span><br><span class="line"><span class="comment"># 表示SYN队列的长度，默认为1024，建议加大队列的长度，为8182或更多，这样可以容纳更多等待链接的网络连接数，</span></span><br><span class="line"><span class="comment"># 该参数为服务器端用于记录那些尚未收到客户端确认信息的链接请求的最大值，</span></span><br><span class="line"><span class="comment"># 该参数对应系统路径为：/proc/sys/net/ipv4/tcp_max_syn_backlog</span></span><br><span class="line">net.ipv4.tcp_max_syn_backlog = 262144</span><br><span class="line"></span><br><span class="line"><span class="comment"># 该选项默认值是128，这个参数用于调节系统同时发起的TCP连接数，</span></span><br><span class="line"><span class="comment"># 在高并发的请求中，默认的值可能会导致链接超时或重传，因此，需要结合并发请求数来调节此值，</span></span><br><span class="line"><span class="comment"># 该参数对应系统路径为：/proc/sys/net/ipv4/somaxconn 128   </span></span><br><span class="line"><span class="comment"># 默认没有这个配置，需要自己生成，somaxconn值不应超过65535</span></span><br><span class="line">net.core.somaxconn = 32768</span><br></pre></td></tr></table></figure>
+
+<p>listen方法指定的backlog是在用户态指定的，内核态的参数优先级高于用户态的参数，所以即使在listen方法里面指定backlog是一个大于somaxconn的值，socket在内核态运行时还会检查一次somaxconn，如果连接数超过somaxconn就会等待。</p>
+<p><strong>在没有调优的centOS7.4版本的服务器上，由于受到系统级别的限制，在该服务器上运行的服务端程序，在同一时间，最大只能接受128个客户端发起持久连接，并且只能处理128个客户端的数据通信。</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 表示系统同时保持 TIME_WAIT 套接字的最大数量，如果超过这个数值，TIME_WAIT 套接字将立刻被清除并打印警告信息，</span></span><br><span class="line"><span class="comment"># 对于Aapache，Nginx等服务器来说可以将其调低一点，如改为 5000-30000，不用业务的服务器也可以给大一点，</span></span><br><span class="line"><span class="comment"># 比如LVS，Squid，该参数对应系统路径为：/proc/sys/net/ipv4/tcp_max_tw_buckets</span></span><br><span class="line"><span class="comment"># #1st低于此值,TCP没有内存压力,2nd进入内存压力阶段,3rdTCP拒绝分配socket(单位：内存页)</span></span><br><span class="line">net.ipv4.tcp_max_tw_buckets = 6000</span><br><span class="line"></span><br><span class="line"><span class="comment"># 外向syn握手重试次数</span></span><br><span class="line"><span class="comment"># 该参数对应系统路径为：/proc/sys/net/ipv4/tcp_syn_retries，默认是6</span></span><br><span class="line">net.ipv4.tcp_syn_retries = 1</span><br><span class="line"></span><br><span class="line"><span class="comment"># 为了打开对端的连接，内核需要发送一个 SYN 并附带一个回应前面一个 SYN 的 ACK。也就是所谓三次握手中的第二次握手。</span></span><br><span class="line"><span class="comment"># 该参数对应系统路径为：/proc/sys/net/ipv4/tcp_synack_retries，默认是5</span></span><br><span class="line"><span class="comment"># syn-ack握手状态重试次数，默认5，遭受SYN Flood [(SYN洪水) 是种典型的DoS (Denial of Service，拒绝服务)]攻击时改为1或2</span></span><br><span class="line">net.ipv4.tcp_synack_retries = 1</span><br><span class="line"></span><br><span class="line"><span class="comment"># 网卡设备将请求放入队列的长度</span></span><br><span class="line"><span class="comment"># 表示当每个网络接口接收数据包的速率比内核处理这些包的速率快时，允许发送到队列的数据包最大数，</span></span><br><span class="line"><span class="comment"># 该参数对应系统路径为：/proc/sys/net/ipv4/netdev_max_backlog</span></span><br><span class="line"><span class="comment"># 默认没有这个配置，需要自己生成</span></span><br><span class="line">net.core.netdev_max_backlog = 262144</span><br><span class="line"></span><br><span class="line"><span class="comment"># 用于设定系统中最多有多少个TCP套接字不被关联到任何一个用户文件句柄上，</span></span><br><span class="line"><span class="comment"># 如果超过这个数值，孤立链接将立即被复位并打印出警号信息，这个限制只是为了防止简单的DoS攻击，不能过分依靠这个限制甚至</span></span><br><span class="line"><span class="comment"># 人为减小这个值，更多的情况是增加这个值，该参数对应系统路径为：/proc/sys/net/ipv4/tcp_max_orphans</span></span><br><span class="line">net.ipv4.tcp_max_orphans = 262144</span><br><span class="line"></span><br><span class="line"><span class="comment">#开启窗口缩放功能，要支持超过64KB的TCP窗口，必须启用该值,TCP连接双方都启用时才生效</span></span><br><span class="line">net.ipv4.tcp_window_scaling = 1</span><br><span class="line"></span><br><span class="line"><span class="comment"># 表示套接字接收缓冲区的内存最大值</span></span><br><span class="line">net.core.rmem_max = 16777216</span><br><span class="line"></span><br><span class="line"><span class="comment"># 表示套接字发送缓冲区大小的最大值,会覆盖 net.ipv4.tcp_wmem的MAX值</span></span><br><span class="line">net.core.wmem_max = 16777216</span><br><span class="line"></span><br><span class="line"><span class="comment"># 接受缓冲的大小:MIN，DEFAULT,MAX</span></span><br><span class="line">net.ipv4.tcp_rmem = 4096 87380 4194304</span><br><span class="line"></span><br><span class="line"><span class="comment"># socket的发送缓存区分配的MIN，DEFAULT,MAX</span></span><br><span class="line">net.ipv4.tcp_wmem = 4096 16384 4194304</span><br><span class="line"></span><br><span class="line"><span class="comment"># 禁用时间戳，时间戳可以避免序列号的卷绕</span></span><br><span class="line">net.ipv4.tcp_timestamps = 0</span><br><span class="line"></span><br><span class="line"><span class="comment"># 定义SYN重试次数</span></span><br><span class="line">net.ipv4.tcp_sack = 1</span><br><span class="line"></span><br><span class="line"><span class="comment"># 单独一个进程最多可以同时建立20000多个TCP客户端连接</span></span><br><span class="line">net.ipv4.ip_conntrack_max = 20000</span><br><span class="line"></span><br><span class="line"><span class="comment"># 可选</span></span><br><span class="line"><span class="comment"># 1低于此值,TCP没有内存压力,2在此值下,进入内存压力阶段，3高于此值,TCP拒绝分配socket.上述内存单位是页</span></span><br><span class="line">net.ipv4.tcp_mem = 94500000 915000000 927000000</span><br></pre></td></tr></table></figure>
+
+<p><code>/etc/sysctl.conf</code></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">net.ipv4.tcp_fin_timeout = 30</span><br><span class="line">net.ipv4.tcp_tw_reuse = 1</span><br><span class="line">net.ipv4.tcp_tw_recycle = 1</span><br><span class="line">net.ipv4.tcp_syncookies = 1</span><br><span class="line">net.ipv4.ip_local_port_range = 1024 65535</span><br><span class="line">net.ipv4.tcp_max_syn_backlog = 262144</span><br><span class="line">net.core.somaxconn = 32768</span><br><span class="line">net.ipv4.tcp_max_tw_buckets = 6000</span><br><span class="line">net.ipv4.tcp_syn_retries = 1</span><br><span class="line">net.ipv4.tcp_synack_retries = 1</span><br><span class="line">net.core.netdev_max_backlog = 262144</span><br><span class="line">net.ipv4.tcp_max_orphans = 262144</span><br><span class="line">net.ipv4.tcp_window_scaling = 1</span><br><span class="line">net.core.rmem_max = 16777216</span><br><span class="line">net.core.wmem_max = 16777216</span><br><span class="line">net.ipv4.tcp_rmem = 4096  87380  4194304</span><br><span class="line">net.ipv4.tcp_wmem = 4096 16384 4194304</span><br><span class="line">net.ipv4.tcp_keepalive_time = 300</span><br><span class="line">net.ipv4.tcp_timestamps = 0</span><br><span class="line">net.ipv4.tcp_sack = 1</span><br></pre></td></tr></table></figure>
+
+<p>备忘录：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看当前的连接数状况</span></span><br><span class="line"><span class="comment"># SYN_RECV表示正在等待处理的请求数；ESTABLISHED表示正常数据传输状态；TIME_WAIT表示处理完毕，等待超时结束的请求数</span></span><br><span class="line">netstat -nat|awk <span class="string">'&#123;print awk $NF&#125;'</span>|sort|uniq -c|sort -n</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看IP连接数状况</span></span><br><span class="line">netstat -nat|grep <span class="string">":80"</span>|awk <span class="string">'&#123;print $5&#125;'</span> |awk -F: <span class="string">'&#123;print $1&#125;'</span> | sort| uniq -c|sort -n</span><br><span class="line"></span><br><span class="line"><span class="comment"># 统计当前各种状态的连接的数量的命令</span></span><br><span class="line">netstat -n | awk <span class="string">'/^tcp/ &#123;++S[$NF]&#125; END &#123;for(a in S) print a, S[a]&#125;'</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 返回结果如下：</span></span><br><span class="line">LAST_ACK 14</span><br><span class="line">SYN_RECV 348</span><br><span class="line">ESTABLISHED 70</span><br><span class="line">FIN_WAIT1 229</span><br><span class="line">FIN_WAIT2 30</span><br><span class="line">CLOSING 33</span><br><span class="line">TIME_WAIT 18122</span><br><span class="line"></span><br><span class="line"><span class="comment"># 对上述结果的解释：</span></span><br><span class="line">CLOSED：无连接是活动的或正在进行</span><br><span class="line">LISTEN：服务器在等待进入呼叫</span><br><span class="line">SYN_RECV：一个连接请求已经到达，等待确认</span><br><span class="line">SYN_SENT：应用已经开始，打开一个连接</span><br><span class="line">ESTABLISHED：正常数据传输状态</span><br><span class="line">FIN_WAIT1：应用说它已经完成</span><br><span class="line">FIN_WAIT2：另一边已同意释放</span><br><span class="line">ITMED_WAIT：等待所有分组死掉</span><br><span class="line">CLOSING：两边同时尝试关闭</span><br><span class="line">TIME_WAIT：另一边已初始化一个释放</span><br><span class="line">LAST_ACK：等待所有分组死掉</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a href="https://www.cnblogs.com/liluxiang/p/9318493.html" target="_blank" rel="noopener">Linux系统优化实现高并发</a></p>
+<p><a href="https://www.cnblogs.com/augusite/p/10774014.html" target="_blank" rel="noopener">Linux内核优化</a></p>
+<p><a href="https://www.cnblogs.com/heping1314/p/11214638.html" target="_blank" rel="noopener">Linux 下高并发系统内核优化</a></p>
+<p><a href="https://www.cnblogs.com/jokerbj/p/9133093.html" target="_blank" rel="noopener">centos7之系统优化方案</a></p>
+<p><a href="https://www.jianshu.com/p/fa35d91b727b" target="_blank" rel="noopener">Linux 内核优化-调大TCP最大连接数</a></p>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/Linux/">Linux</a><a href="/tags/CentOS7/">CentOS7</a><a href="/tags/Linux优化/">Linux优化</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/Linux/">Linux</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="https://syxdevcode.github.com/2020/09/15/Linux%E7%B3%BB%E7%BB%9F%E5%AE%9E%E7%8E%B0%E9%AB%98%E5%B9%B6%E5%8F%91%E5%86%85%E6%A0%B8%E4%BC%98%E5%8C%96/" data-title="Linux系统实现高并发内核优化 | syxdevcode博客" data-tsina="" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2020/09/15/TCP传输控制协议/" title="TCP传输控制协议">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  TCP传输控制协议</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2020/09/09/ERROR-2002-HY000-Can-t-connect-to-local-MySQL-server-through-socket-tmp-sock-2/"  title="ERROR 2002 (HY000): Can&#39;t connect to local MySQL server through socket &#39;/tmp/mysql.sock&#39; (2)">
+ <strong>NEXT:</strong><br/> 
+ <span>ERROR 2002 (HY000): Can&#39;t connect to local MySQL server through socket &#39;/tmp/mysql.sock&#39; (2)
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="显示侧边栏"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">文章目录</strong>
+  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Linux-文件打开最大数"><span class="toc-number">1.</span> <span class="toc-text">Linux 文件打开最大数</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#内核优化"><span class="toc-number">2.</span> <span class="toc-text">内核优化</span></a></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="隐藏侧边栏"></a></div>
+<aside class="clearfix">
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">分类</p>
+		<ul>
+		
+			<li><a href="/categories/Net-Standard/" title=".Net Standard">.Net Standard<sup>2</sup></a></li>
+		
+			<li><a href="/categories/net异步与并行/" title=".net异步与并行">.net异步与并行<sup>10</sup></a></li>
+		
+			<li><a href="/categories/ABP/" title="ABP">ABP<sup>27</sup></a></li>
+		
+			<li><a href="/categories/ASP-NET-IIS请求处理管道/" title="ASP.NET/IIS请求处理管道">ASP.NET/IIS请求处理管道<sup>2</sup></a></li>
+		
+			<li><a href="/categories/ApplicationPoolIdentify/" title="ApplicationPoolIdentify">ApplicationPoolIdentify<sup>1</sup></a></li>
+		
+			<li><a href="/categories/CSharp基础/" title="CSharp基础">CSharp基础<sup>11</sup></a></li>
+		
+			<li><a href="/categories/CentOS7/" title="CentOS7">CentOS7<sup>11</sup></a></li>
+		
+			<li><a href="/categories/Chrome/" title="Chrome">Chrome<sup>1</sup></a></li>
+		
+			<li><a href="/categories/CodeDOM/" title="CodeDOM">CodeDOM<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Consul/" title="Consul">Consul<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Crontab/" title="Crontab">Crontab<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Docker/" title="Docker">Docker<sup>7</sup></a></li>
+		
+			<li><a href="/categories/Docker-Compose/" title="Docker Compose">Docker Compose<sup>3</sup></a></li>
+		
+			<li><a href="/categories/DotNetCore/" title="DotNetCore">DotNetCore<sup>4</sup></a></li>
+		
+			<li><a href="/categories/DotNet面试题解析/" title="DotNet面试题解析">DotNet面试题解析<sup>8</sup></a></li>
+		
+			<li><a href="/categories/EasyNetQ/" title="EasyNetQ">EasyNetQ<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Elasticsearch/" title="Elasticsearch">Elasticsearch<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Emit-反射发出/" title="Emit(反射发出)">Emit(反射发出)<sup>6</sup></a></li>
+		
+			<li><a href="/categories/Expression-Tree/" title="Expression Tree">Expression Tree<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Git/" title="Git">Git<sup>2</sup></a></li>
+		
+			<li><a href="/categories/HostService/" title="HostService">HostService<sup>1</sup></a></li>
+		
+			<li><a href="/categories/IDEA/" title="IDEA">IDEA<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Java/" title="Java">Java<sup>5</sup></a></li>
+		
+			<li><a href="/categories/JavaScript-JQuery/" title="JavaScript/JQuery">JavaScript/JQuery<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Jenkins/" title="Jenkins">Jenkins<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Jexus/" title="Jexus">Jexus<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Json-Net/" title="Json.Net">Json.Net<sup>1</sup></a></li>
+		
+			<li><a href="/categories/LINQ/" title="LINQ">LINQ<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Let’s-Encrypt/" title="Let’s Encrypt">Let’s Encrypt<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Linux/" title="Linux">Linux<sup>5</sup></a></li>
+		
+			<li><a href="/categories/Linux-LVM/" title="Linux LVM">Linux LVM<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Linux-磁盘/" title="Linux 磁盘">Linux 磁盘<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Linux基础命令/" title="Linux基础命令">Linux基础命令<sup>22</sup></a></li>
+		
+			<li><a href="/categories/Linux服务/" title="Linux服务">Linux服务<sup>3</sup></a></li>
+		
+			<li><a href="/categories/MSIL指令/" title="MSIL指令">MSIL指令<sup>2</sup></a></li>
+		
+			<li><a href="/categories/MVC-Web-API/" title="MVC/Web API">MVC/Web API<sup>2</sup></a></li>
+		
+			<li><a href="/categories/MariaDB/" title="MariaDB">MariaDB<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MarkDown/" title="MarkDown">MarkDown<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MinIo/" title="MinIo">MinIo<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MongoDB/" title="MongoDB">MongoDB<sup>3</sup></a></li>
+		
+			<li><a href="/categories/Moq/" title="Moq">Moq<sup>1</sup></a></li>
+		
+			<li><a href="/categories/MySql/" title="MySql">MySql<sup>9</sup></a></li>
+		
+			<li><a href="/categories/Naudio/" title="Naudio">Naudio<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Nginx/" title="Nginx">Nginx<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Nodejs/" title="Nodejs">Nodejs<sup>3</sup></a></li>
+		
+			<li><a href="/categories/OAuth2-0/" title="OAuth2.0">OAuth2.0<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Ocelot/" title="Ocelot">Ocelot<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Openssl/" title="Openssl">Openssl<sup>2</sup></a></li>
+		
+			<li><a href="/categories/PAM/" title="PAM">PAM<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Polly/" title="Polly">Polly<sup>2</sup></a></li>
+		
+			<li><a href="/categories/PostGresqlSql/" title="PostGresqlSql">PostGresqlSql<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Python/" title="Python">Python<sup>1</sup></a></li>
+		
+			<li><a href="/categories/RESTful/" title="RESTful">RESTful<sup>2</sup></a></li>
+		
+			<li><a href="/categories/RabbitMQ/" title="RabbitMQ">RabbitMQ<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Redis/" title="Redis">Redis<sup>8</sup></a></li>
+		
+			<li><a href="/categories/Resharper/" title="Resharper">Resharper<sup>1</sup></a></li>
+		
+			<li><a href="/categories/SSH/" title="SSH">SSH<sup>1</sup></a></li>
+		
+			<li><a href="/categories/SSL-TLS/" title="SSL/TLS">SSL/TLS<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Shell脚本/" title="Shell脚本">Shell脚本<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Skywalking/" title="Skywalking">Skywalking<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Sql/" title="Sql">Sql<sup>5</sup></a></li>
+		
+			<li><a href="/categories/TCP协议/" title="TCP协议">TCP协议<sup>2</sup></a></li>
+		
+			<li><a href="/categories/TDD/" title="TDD">TDD<sup>1</sup></a></li>
+		
+			<li><a href="/categories/TPL-DataFlow/" title="TPL DataFlow">TPL DataFlow<sup>2</sup></a></li>
+		
+			<li><a href="/categories/Tomcat/" title="Tomcat">Tomcat<sup>2</sup></a></li>
+		
+			<li><a href="/categories/WCF时间类型序列化/" title="WCF时间类型序列化">WCF时间类型序列化<sup>1</sup></a></li>
+		
+			<li><a href="/categories/WSL/" title="WSL">WSL<sup>1</sup></a></li>
+		
+			<li><a href="/categories/WebForm/" title="WebForm">WebForm<sup>2</sup></a></li>
+		
+			<li><a href="/categories/WinDbg/" title="WinDbg">WinDbg<sup>1</sup></a></li>
+		
+			<li><a href="/categories/WinSCP/" title="WinSCP">WinSCP<sup>1</sup></a></li>
+		
+			<li><a href="/categories/Windows系统/" title="Windows系统">Windows系统<sup>1</sup></a></li>
+		
+			<li><a href="/categories/ab/" title="ab">ab<sup>1</sup></a></li>
+		
+			<li><a href="/categories/hexo/" title="hexo">hexo<sup>2</sup></a></li>
+		
+			<li><a href="/categories/shadowsocks/" title="shadowsocks">shadowsocks<sup>1</sup></a></li>
+		
+			<li><a href="/categories/supervisor/" title="supervisor">supervisor<sup>2</sup></a></li>
+		
+			<li><a href="/categories/zookeeper/" title="zookeeper">zookeeper<sup>1</sup></a></li>
+		
+			<li><a href="/categories/内存泄漏/" title="内存泄漏">内存泄漏<sup>1</sup></a></li>
+		
+			<li><a href="/categories/分布式/" title="分布式">分布式<sup>1</sup></a></li>
+		
+			<li><a href="/categories/分布式事务/" title="分布式事务">分布式事务<sup>1</sup></a></li>
+		
+			<li><a href="/categories/单词收录/" title="单词收录">单词收录<sup>14</sup></a></li>
+		
+			<li><a href="/categories/反射/" title="反射">反射<sup>4</sup></a></li>
+		
+			<li><a href="/categories/委托与事件/" title="委托与事件">委托与事件<sup>4</sup></a></li>
+		
+			<li><a href="/categories/工具/" title="工具">工具<sup>1</sup></a></li>
+		
+			<li><a href="/categories/并发模型/" title="并发模型">并发模型<sup>1</sup></a></li>
+		
+			<li><a href="/categories/插件/" title="插件">插件<sup>1</sup></a></li>
+		
+			<li><a href="/categories/时间-时间戳转换/" title="时间/时间戳转换">时间/时间戳转换<sup>1</sup></a></li>
+		
+			<li><a href="/categories/消息队列/" title="消息队列">消息队列<sup>1</sup></a></li>
+		
+			<li><a href="/categories/硬盘/" title="硬盘">硬盘<sup>1</sup></a></li>
+		
+			<li><a href="/categories/程序集/" title="程序集">程序集<sup>2</sup></a></li>
+		
+			<li><a href="/categories/算法/" title="算法">算法<sup>3</sup></a></li>
+		
+			<li><a href="/categories/线性表/" title="线性表">线性表<sup>1</sup></a></li>
+		
+			<li><a href="/categories/线程池/" title="线程池">线程池<sup>1</sup></a></li>
+		
+			<li><a href="/categories/缓存/" title="缓存">缓存<sup>3</sup></a></li>
+		
+			<li><a href="/categories/计算机基础/" title="计算机基础">计算机基础<sup>3</sup></a></li>
+		
+			<li><a href="/categories/认证与授权/" title="认证与授权">认证与授权<sup>1</sup></a></li>
+		
+			<li><a href="/categories/设计模式/" title="设计模式">设计模式<sup>3</sup></a></li>
+		
+			<li><a href="/categories/链表/" title="链表">链表<sup>2</sup></a></li>
+		
+			<li><a href="/categories/集合与泛型/" title="集合与泛型">集合与泛型<sup>4</sup></a></li>
+		
+			<li><a href="/categories/音频-视频/" title="音频/视频">音频/视频<sup>1</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  
+<div class="tagslist" style="clear:both;">
+	<p class="asidetitle">标签</p>
+		<ul class="clearfix">
+		
+			<li><a href="/tags/Net-Standard/" title=".Net Standard">.Net Standard<sup>2</sup></a></li>
+		
+			<li><a href="/tags/net异步与并行/" title=".net异步与并行">.net异步与并行<sup>12</sup></a></li>
+		
+			<li><a href="/tags/ABP/" title="ABP">ABP<sup>27</sup></a></li>
+		
+			<li><a href="/tags/ASP-NET-IIS请求处理管道/" title="ASP.NET/IIS请求处理管道">ASP.NET/IIS请求处理管道<sup>7</sup></a></li>
+		
+			<li><a href="/tags/AWS/" title="AWS">AWS<sup>7</sup></a></li>
+		
+			<li><a href="/tags/ApplicationPoolIdentify/" title="ApplicationPoolIdentify">ApplicationPoolIdentify<sup>1</sup></a></li>
+		
+			<li><a href="/tags/CSharp/" title="CSharp">CSharp<sup>102</sup></a></li>
+		
+			<li><a href="/tags/CSharp基础/" title="CSharp基础">CSharp基础<sup>45</sup></a></li>
+		
+			<li><a href="/tags/CentOS7/" title="CentOS7">CentOS7<sup>78</sup></a></li>
+		
+			<li><a href="/tags/Chrome/" title="Chrome">Chrome<sup>1</sup></a></li>
+		
+			<li><a href="/tags/CodeDOM/" title="CodeDOM">CodeDOM<sup>3</sup></a></li>
+		
+			<li><a href="/tags/Consul/" title="Consul">Consul<sup>4</sup></a></li>
+		
+			<li><a href="/tags/Crontab/" title="Crontab">Crontab<sup>1</sup></a></li>
+		
+			<li><a href="/tags/Docker/" title="Docker">Docker<sup>23</sup></a></li>
+		
+			<li><a href="/tags/Docker-Compose/" title="Docker Compose">Docker Compose<sup>5</sup></a></li>
+		
+			<li><a href="/tags/DotNet/" title="DotNet">DotNet<sup>106</sup></a></li>
+		
+			<li><a href="/tags/DotNetCore/" title="DotNetCore">DotNetCore<sup>17</sup></a></li>
+		
+			<li><a href="/tags/DotNet面试题解析/" title="DotNet面试题解析">DotNet面试题解析<sup>10</sup></a></li>
+		
+			<li><a href="/tags/Elasticsearch/" title="Elasticsearch">Elasticsearch<sup>2</sup></a></li>
+		
+			<li><a href="/tags/Emit-反射发出/" title="Emit(反射发出)">Emit(反射发出)<sup>8</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  <div class="rsspart">
+	<a href="" target="_blank" title="rss">RSS 订阅</a>
+</div>
+
+</aside>
+<div style="display: none;" id="rocket-to-top">
+  <div style="opacity: 0; display: block;" class="level-2"></div>
+  <div class="level-3"></div>
+</div>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<div class="social-font clearfix">
+		
+		
+		
+		<a href="https://github.com/syxdevcode" target="_blank" title="github"></a>
+		
+		
+		
+	</div>
+		<p class="copyright">Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/syxdevcode/pacman" target="_blank" title="Pacman">Pacman</a> © 2020 
+		
+		<a href="https://syxdevcode.github.com" target="_blank" title="syxdevcode">syxdevcode</a>
+		
+		</p>
+</div>
+</footer>
+    <script src="/js/jquery-2.1.0.min.js"></script>
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    $('.navbar').click(function () {
+      $('header nav').toggleClass('shownav');
+    });
+    var myWidth = 0;
+    function getSize() {
+      if (typeof (window.innerWidth) == 'number') {
+        myWidth = window.innerWidth;
+      } else if (document.documentElement && document.documentElement.clientWidth) {
+        myWidth = document.documentElement.clientWidth;
+      };
+    };
+    var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+    $(window).resize(function () {
+      getSize();
+      if (myWidth >= 1024) {
+        $('header nav').removeClass('shownav');
+      } else {
+        m.removeClass('moveMain');
+        a.css('display', 'block').removeClass('fadeOut');
+        o.css('display', 'none');
+      
+          $('#toc.toc-aside').css('display', 'none');
+        
+    }
+    });
+    c.click(function () {
+      a.addClass('fadeOut').css('display', 'none');
+      o.css('display', 'block').addClass('fadeIn');
+      m.addClass('moveMain');
+    });
+    o.click(function () {
+      o.css('display', 'none').removeClass('beforeFadeIn');
+      a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');
+      m.removeClass('moveMain');
+    });
+    $(window).scroll(function () {
+      o.css("top", Math.max(80, 260 - $(this).scrollTop()));
+    });
+  });
+  //判断访问终端
+  var browser = {
+    versions: function () {
+      var u = navigator.userAgent,
+        app = navigator.appVersion;
+      return {
+        trident: u.indexOf('Trident') > -1, //IE内核
+        presto: u.indexOf('Presto') > -1, //opera内核
+        webKit: u.indexOf('AppleWebKit') > -1, //苹果、谷歌内核
+        gecko: u.indexOf('Gecko') > -1 && u.indexOf('KHTML') == -1,//火狐内核
+        mobile: !!u.match(/AppleWebKit.*Mobile.*/), //是否为移动终端
+        ios: !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/), //ios终端
+        android: u.indexOf('Android') > -1 || u.indexOf('Adr') > -1, //android终端
+        iPhone: u.indexOf('iPhone') > -1, //是否为iPhone或者QQHD浏览器
+        iPad: u.indexOf('iPad') > -1, //是否iPad
+        webApp: u.indexOf('Safari') == -1, //是否web应该程序，没有头部与底部
+        weixin: u.indexOf('MicroMessenger') > -1, //是否微信 （2015-01-22新增）
+        qq: u.match(/\sQQ/i) == " qq" //是否QQ
+      };
+    }(),
+    language: (navigator.browserLanguage || navigator.language).toLowerCase()
+  }
+</script>
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t = $('#toc'),
+      h = $('article h2')
+    ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o = $('.openaside'),
+      c = $('.closeaside');
+    if (ai.length > 0) {
+      ai.wrap('<div class="video-container" />');
+    };
+    if (ae.length > 0) {
+      ae.wrap('<div class="video-container" />');
+    };
+    if (ah.length == 0) {
+      t.css('display', 'none');
+    } else {
+      c.click(function () {
+        ta.css('display', 'block').addClass('fadeIn');
+      });
+      o.click(function () {
+        ta.css('display', 'none');
+      });
+      $(window).scroll(function () {
+        ta.css("top", Math.max(140, 320 - $(this).scrollTop()));
+      });
+    };
+  });
+</script>
+
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    var $this = $('.share'),
+      //url = $this.attr('data-url'),
+      url = window.location.href,
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+    var html = [
+      '<a href="#" class="overlay" id="qrcode"></a>',
+      '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://mobile.qq.com/qrcode?url=' + encodedUrl + '"/></div>',
+      '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+      '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+      '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+      '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+      '<a href="http://service.weibo.com/share/share.php?title=' + title + '&url=' + encodedUrl + '&ralateUid=' + tsina + '&searchPic=true&style=number' + '" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+      '<span title="Share to"></span>'
+    ].join('');
+    $this.append(html);
+    viewqrCode();
+    $('.article-share-qrcode').click(viewqrCode()
+    );
+
+  });
+  function viewqrCode() {
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function () {
+      $('.qrcode strong').text(' ');
+    });
+  }
+</script>
+<script type="text/javascript">  
+  //判断是否移动端 
+  if (!browser.versions.mobile) {
+    $(function () {
+      var c, a = $("#rocket-to-top"), e = ($(document).scrollTop(), !0);
+      $(window).scroll(function () {
+        var b = $(document).scrollTop(); 0 == b ? "0px 0px" == a.css("background-position") ? a.fadeOut("slow") : e && (e = !1, $(".level-2").css("opacity", 1), a.delay(100).animate({ marginTop: "-1000px" }, "normal", function () { a.css({ "margin-top": "-125px", display: "none" }), e = !0 })) : a.fadeIn("slow")
+      }), a.hover(function () { $(".level-2").stop(!0).animate({ opacity: 1 }) }, function () { $(".level-2").stop(!0).animate({ opacity: 0 }) }), $(".level-3").click(function () { function b() { var b = a.css("background-position"); if ("none" == a.css("display") || 0 == e) return clearInterval(c), a.css("background-position", "0px 0px"), void 0; switch (b) { case "0px 0px": a.css("background-position", "-298px 0px"); break; case "-298px 0px": a.css("background-position", "-447px 0px"); break; case "-447px 0px": a.css("background-position", "-596px 0px"); break; case "-596px 0px": a.css("background-position", "-745px 0px"); break; case "-745px 0px": a.css("background-position", "-298px 0px") } } e && (c = setInterval(b, 50), $("html,body").animate({ scrollTop: 0 }, "slow")) })
+    });
+  }
+</script>
+
+
+
+
+
+  </body>
+</html>

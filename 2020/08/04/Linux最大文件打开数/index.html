@@ -10,7 +10,7 @@
     <meta name="author" content="syxdevcode">
     
     <meta name="description" content="简介linux最大打开文件句柄数，即打开文件数最大限制，就是规定的单个进程能够打开的最大文件句柄数量（Socket连接也算在里面，默认大小1024）
-在Linux下有时会遇到Socket/File : Can’t open so many files的问题。其实Linux是有文件句柄限制的，而且Li">
+为了防止失控的进程破坏系统的性能，Unix 和 Linux 跟踪进程使用的大部分资源，允许用户和系统管理员使用对进程的资源限制,设置的限制有两种：硬限">
     
     
     
@@ -80,7 +80,7 @@
     </p>
   <p class="article-time">
     <time datetime="2020-08-04T13:57:52.000Z" itemprop="datePublished">2020-08-04</time>
-    更新日期:<time datetime="2020-09-10T01:55:28.461Z" itemprop="dateModified">2020-09-10</time>
+    更新日期:<time datetime="2020-09-16T09:14:01.205Z" itemprop="dateModified">2020-09-16</time>
     
   </p>
 </header>
@@ -93,6 +93,12 @@
 		</div>
 		
 		<h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>linux最大打开文件句柄数，即打开文件数最大限制，就是规定的单个进程能够打开的最大文件句柄数量（Socket连接也算在里面，默认大小1024）</p>
+<p>为了防止失控的进程破坏系统的性能，<code>Unix</code> 和 <code>Linux</code> 跟踪进程使用的大部分资源，允许用户和系统管理员使用对进程的资源限制,<br>设置的限制有两种：<code>硬限制</code> 和 <code>软限制</code>:</p>
+<ul>
+<li><strong>hard</strong>：硬限制是可以在任何时候任何进程中设置 但硬限制只能由超级用户修改。</li>
+<li><strong>soft</strong>：软限制是内核实际执行的限制，任何进程都可以将软限制设置为任意小于等于对进程限制的硬限制的值。</li>
+</ul>
+<p>(noproc)最大线程数和(nofile)文件数。</p>
 <p>在Linux下有时会遇到Socket/File : Can’t open so many files的问题。其实Linux是有文件句柄限制的，而且Linux默认一般都是1024（阿里云主机默认是65535）。在生产环境中很容易到达这个值，因此这里就会成为系统的瓶颈。</p>
 <h2 id="相关命令"><a href="#相关命令" class="headerlink" title="相关命令"></a>相关命令</h2><h3 id="查看命令"><a href="#查看命令" class="headerlink" title="查看命令"></a>查看命令</h3><p><strong>用户级的最大限制</strong></p>
 <p><code>ulimit -a</code> 或者 <code>ulimit -n</code></p>
@@ -184,20 +190,21 @@
 
 <p><code>file-max</code> 是设置系统所有进程一共可以打开的文件数量 。同时一些程序可以通过setrlimit调用，设置每个进程的限制。如果得到大量使用完文件句柄的错误信息，是应该增加这个值。</p>
 <h3 id="查看某个进程的最大打开文件数和当前打开文件数"><a href="#查看某个进程的最大打开文件数和当前打开文件数" class="headerlink" title="查看某个进程的最大打开文件数和当前打开文件数"></a>查看某个进程的最大打开文件数和当前打开文件数</h3><p>先找到该进程的进程号，然后查看</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 找到pid</span></span><br><span class="line">ps -aux</span><br><span class="line"></span><br><span class="line">/proc/[pid]/limits和fd</span><br><span class="line"></span><br><span class="line">/proc/[pid]/limits 显示当前进程的资源限制</span><br><span class="line"></span><br><span class="line">/proc/[pid]/fd 是一个目录，包含进程打开文件的情况</span><br></pre></td></tr></table></figure>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 找到pid</span></span><br><span class="line">ps -aux</span><br><span class="line"></span><br><span class="line"><span class="comment"># /proc/[pid]/limits和fd</span></span><br><span class="line"></span><br><span class="line">cat /proc/[pid]/limits 显示当前进程的资源限制</span><br><span class="line"></span><br><span class="line">ls /proc/[pid]/fd 是一个目录，包含进程打开文件的情况</span><br></pre></td></tr></table></figure>
 
 <p>实例：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@host-192-125-30-59 ~]<span class="comment"># cat /proc/3289/limits| grep files</span></span><br><span class="line">Max open files            1024                 4096                 files</span><br><span class="line">[root@host-192-125-30-59 ~]<span class="comment"># ll /proc/3289/fd | wc -l</span></span><br><span class="line">7</span><br></pre></td></tr></table></figure>
 
 <p>ps：如果要查看某个进程的线程的详细信息，/proc/[pid]/task</p>
 <h3 id="修改最大限制"><a href="#修改最大限制" class="headerlink" title="修改最大限制"></a>修改最大限制</h3><h4 id="用户级修改"><a href="#用户级修改" class="headerlink" title="用户级修改"></a>用户级修改</h4><p><strong>临时生效方法：（重启后失效）</strong></p>
+<p>这个设置是暂时的保留。当退出Shell会话后，该值恢复原值。</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ulimit</span> -SHn 102400</span><br></pre></td></tr></table></figure>
 
 <p>ulimit 命令分软限制和硬限制，加-H就是硬限制，加-S就是软限制。默认显示的是软限制，如果运行ulimit 命令修改时没有加上-H或-S，就是两个参数一起改变。</p>
 <p>硬限制就是实际的限制，而软限制是警告限制，它只会给出警告。</p>
 <p><strong>用户级修改永久有效方式</strong></p>
 <p>修改配置文件 <code>vim /etc/security/limits.conf</code>，加入：</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">* soft nofile 102400</span><br><span class="line">* hard nofile 102400</span><br></pre></td></tr></table></figure>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">* soft nofile 65535</span><br><span class="line">* hard nofile 65535</span><br><span class="line"></span><br><span class="line"><span class="comment"># 可以使用下面一行来替代上面</span></span><br><span class="line">* - nofile 65535</span><br></pre></td></tr></table></figure>
 
 <p>或者使用命令：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">"* soft nofile 65535"</span> &gt;&gt; /etc/security/limits.conf</span><br><span class="line"><span class="built_in">echo</span> <span class="string">"* hard nofile 65535"</span> &gt;&gt; /etc/security/limits.conf</span><br></pre></td></tr></table></figure>
@@ -224,7 +231,7 @@
 
   <div class="article-tags">
   
-  <span></span> <a href="/tags/Linux/">Linux</a><a href="/tags/CentOS7/">CentOS7</a>
+  <span></span> <a href="/tags/Linux/">Linux</a><a href="/tags/CentOS7/">CentOS7</a><a href="/tags/Linux优化/">Linux优化</a>
   </div>
 
 
@@ -405,6 +412,8 @@
 		
 			<li><a href="/categories/Sql/" title="Sql">Sql<sup>5</sup></a></li>
 		
+			<li><a href="/categories/TCP协议/" title="TCP协议">TCP协议<sup>2</sup></a></li>
+		
 			<li><a href="/categories/TDD/" title="TDD">TDD<sup>1</sup></a></li>
 		
 			<li><a href="/categories/TPL-DataFlow/" title="TPL DataFlow">TPL DataFlow<sup>2</sup></a></li>
@@ -504,7 +513,7 @@
 		
 			<li><a href="/tags/CSharp基础/" title="CSharp基础">CSharp基础<sup>45</sup></a></li>
 		
-			<li><a href="/tags/CentOS7/" title="CentOS7">CentOS7<sup>77</sup></a></li>
+			<li><a href="/tags/CentOS7/" title="CentOS7">CentOS7<sup>78</sup></a></li>
 		
 			<li><a href="/tags/Chrome/" title="Chrome">Chrome<sup>1</sup></a></li>
 		
