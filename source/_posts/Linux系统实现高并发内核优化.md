@@ -36,9 +36,10 @@ vi /etc/security/limits.conf
 文件：`/etc/sysctl.conf`
 
 ```sh
-# 表示套接字由本端要求关闭，这个参数决定了它保持在FIN-wAIT-2状态的时间，默认值是60秒，建议调整为2
+# 表示套接字由本端要求关闭，这个参数决定了它保持在FIN-wAIT-2状态的时间，默认值是60秒
+# server端主动发起断开连接后保持在FIN-WAIT-2状态的时间（建议30s）
 # 该参数对应系统路径为：/proc/sys/net/ipv4/tcp_fin_timeout 60
-net.ipv4.tcp_fin_timeout = 2
+net.ipv4.tcp_fin_timeout = 30
 
 ## reuse和recycle这俩个参数是为防止生产环境下 web，nginx 等业务服务器 time_wait 网络状态数量过多设置的
 
@@ -96,16 +97,16 @@ TCP目的是可靠传输,主动关闭的一方发出 `FIN`,被动方回复`ACK`,
 # 该参数对应系统路径为：/proc/sys/net/ipv4/tcp_syncookies，默认为1，表示开启
 net.ipv4.tcp_syncookies = 1
 
-# 表示当keepalive启用时，TCP发送keepalive消息的频度，默认是2小时，建议更改为10分钟，
+# 表示当keepalive启用时，TCP发送keepalive消息的频度，默认是2小时，建议更改为5分钟，
 # 该参数对应系统路径为：/proc/sys/net/ipv4/tcp_keepalive_time，默认为7200秒
-net.ipv4.tcp_keepalive_time =600
+net.ipv4.tcp_keepalive_time = 300
 
 # 该选项用来设定允许系统打开的端口范围，即用于向外链接的端口范围，
 # 每个TCP客户端连接都要占用一个唯一的本地端口号(此端口号在系统的本地端口号范围限制中)，
 # 如果现有的TCP客户端连接已将所有的本地端口号占满。将不能创建新的TCP连接。
 # 该参数对应系统路径为：/proc/sys/net/ipv4/ip_local_port_range 默认，32768 60999
 # 理论上单独一个进程最多可以同时建立60000多个TCP客户端连接。
-net.ipv4.ip_local_port_range = 1024 65535
+net.ipv4.ip_local_port_range = 1024 65000
 
 # 表示SYN队列的长度，默认为1024，建议加大队列的长度，为8182或更多，这样可以容纳更多等待链接的网络连接数，
 # 该参数为服务器端用于记录那些尚未收到客户端确认信息的链接请求的最大值，
@@ -165,16 +166,6 @@ net.ipv4.tcp_rmem = 4096 87380 4194304
 # socket的发送缓存区分配的MIN，DEFAULT,MAX
 net.ipv4.tcp_wmem = 4096 16384 4194304
 
-# 修改系統默认的 TIMEOUT 时间
-# server端主动发起断开连接后保持在FIN-WAIT-2状态的时间（建议30s）
-net.ipv4.tcp_fin_timeout = 30
-
-# 表示当keepalive起用的时候，TCP发送keepalive消息的频度。缺省是2小时，改为5分钟。
-net.ipv4.tcp_keepalive_time = 300
-
-# 开启重用。允许将 TIME-WAIT sockets 重新用于新的 TCP 连接，默认为 0 ，表示关闭；
-net.ipv4.tcp_tw_reuse = 1
-
 # 禁用时间戳，时间戳可以避免序列号的卷绕
 net.ipv4.tcp_timestamps = 0
 
@@ -189,6 +180,32 @@ net.ipv4.ip_conntrack_max = 20000
 net.ipv4.tcp_mem = 94500000 915000000 927000000
 ```
 
+`/etc/sysctl.conf`
+
+```sh
+net.ipv4.tcp_fin_timeout = 30
+net.ipv4.tcp_tw_reuse = 1
+net.ipv4.tcp_tw_recycle = 1
+net.ipv4.tcp_syncookies = 1
+net.ipv4.ip_local_port_range = 1024 65535
+net.ipv4.tcp_max_syn_backlog = 262144
+net.core.somaxconn = 32768
+net.ipv4.tcp_max_tw_buckets = 6000
+net.ipv4.tcp_syn_retries = 1
+net.ipv4.tcp_synack_retries = 1
+net.core.netdev_max_backlog = 262144
+net.ipv4.tcp_max_orphans = 262144
+net.ipv4.tcp_window_scaling = 1
+net.core.rmem_max = 16777216
+net.core.wmem_max = 16777216
+net.ipv4.tcp_rmem = 4096  87380  4194304
+net.ipv4.tcp_wmem = 4096 16384 4194304
+net.ipv4.tcp_keepalive_time = 300
+net.ipv4.tcp_timestamps = 0
+net.ipv4.tcp_sack = 1
+```
+
+备忘录：
 
 ```sh
 # 查看当前的连接数状况
