@@ -14,9 +14,12 @@ categories:
 
 创建Tomcat8服务文件
 
-`vim /usr/lib/systemd/system/tomcat8.service`
+```sh
+touch /usr/lib/systemd/system/tomcat8.service
+vim /usr/lib/systemd/system/tomcat8.service
+```
 
-#tomcat8.service文件内容：
+tomcat8.service文件内容：
 
 ```sh
 [Unit]
@@ -39,7 +42,7 @@ WantedBy=multi-user.target
 systemctl enable tomcat8.service
 systemctl is-enabled tomcat8
 systemctl daemon-reload
-systemctl restart supervisord
+systemctl restart tomcat8
 ```
 
 参考：
