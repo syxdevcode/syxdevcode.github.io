@@ -109,7 +109,7 @@ asp net core 站点：
 
 ```conf
 [program:WebApplication1]
-command=dotnet WebApplication1.dll
+command=/root/dotnet/dotnet WebApplication1.dll
 directory=/test/webapi
 environment=ASPNETCORE__ENVIRONMENT=Production ;,ASPNETCORE_URLS="http://0.0.0.0:5100"
 stopsignal=INT
@@ -182,7 +182,8 @@ curl  -o /dev/null -s -w %{http_code} -X GET "192.125.30.82:8013/pages/tsjb/djsl
 Created symlink from /etc/systemd/system/multi-user.target.wants/supervisord.service to /usr/lib/systemd/system/supervisord.service.
 [root@host supervisor-4.2.0]# systemctl is-enabled supervisord
 enabled
-[root@host supervisor-4.2.0]# 
+[root@host supervisor-4.2.0]# systemctl daemon-reload
+[root@host supervisor-4.2.0]# systemctl restart supervisord
 ```
 
 supervisord.service:
