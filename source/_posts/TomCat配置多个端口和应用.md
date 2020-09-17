@@ -14,7 +14,7 @@ categories:
 
 一个service配置多个端口，项目可以通过多个端口访问。
 
-修改 `tomcat-home/conf` 下的 `server.xml`，在Service下配置多个 `<Connector>` 即可。
+修改 `vim /usr/local/apache-tomcat-8.5.40/conf/server.xml`，在Service下配置多个 `<Connector>` 即可。
 
 ```xml
 <Service name="Catalina"> 
@@ -38,7 +38,7 @@ categories:
 </Service>
 ```
 
-在这个应用里，可以用8080端口号访问服务，也可以用8099端口号来访问服务; 服务放置的路径由host决定，上例中服务放在webapps下。
+在这个应用里，可以用8080端口号访问服务，也可以用8099端口号来访问服务; 服务放置的路径由host决定，上例中服务放在 `webapps` 下。
 以下两种方式访问同一个项目：
 
 ```
@@ -50,8 +50,7 @@ http://localhost:8014/项目名称
 
 配置多个service，每个service可以配置多个端口。
 
-
-修改 tomcat-home/conf下的 `server.xml` ，添加多个 `Service` 即可。
+修改 `vim /usr/local/apache-tomcat-8.5.40/conf/server.xml` ，添加多个 `Service` 即可。
 
 注意 `Service name`、`Engine name`、`appBase`，`端口号`。
 

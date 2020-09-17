@@ -45,6 +45,14 @@ systemctl daemon-reload
 systemctl restart tomcat8
 ```
 
+## 验证
+
+```sh
+# 查看监听的端口
+# Tomcat默认8080端口
+netstat -lnpt
+```
+
 参考：
 
 [centos7配置tomcat开机自启动](https://blog.csdn.net/qq_43080036/article/details/90064320)
