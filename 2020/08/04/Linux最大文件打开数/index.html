@@ -80,7 +80,7 @@
     </p>
   <p class="article-time">
     <time datetime="2020-08-04T13:57:52.000Z" itemprop="datePublished">2020-08-04</time>
-    更新日期:<time datetime="2020-09-16T09:14:01.205Z" itemprop="dateModified">2020-09-16</time>
+    更新日期:<time datetime="2020-09-18T06:37:13.757Z" itemprop="dateModified">2020-09-18</time>
     
   </p>
 </header>
@@ -89,7 +89,7 @@
 		
 		<div id="toc" class="toc-article">
 			<strong class="toc-title">文章目录</strong>
-		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#简介"><span class="toc-number">1.</span> <span class="toc-text">简介</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#相关命令"><span class="toc-number">2.</span> <span class="toc-text">相关命令</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#查看命令"><span class="toc-number">2.1.</span> <span class="toc-text">查看命令</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#查看某个进程的最大打开文件数和当前打开文件数"><span class="toc-number">2.2.</span> <span class="toc-text">查看某个进程的最大打开文件数和当前打开文件数</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#修改最大限制"><span class="toc-number">2.3.</span> <span class="toc-text">修改最大限制</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#用户级修改"><span class="toc-number">2.3.1.</span> <span class="toc-text">用户级修改</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#系统级的修改"><span class="toc-number">2.3.2.</span> <span class="toc-text">系统级的修改</span></a></li></ol></li></ol></li></ol>
+		<ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#简介"><span class="toc-number">1.</span> <span class="toc-text">简介</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Centos7系统修改"><span class="toc-number">2.</span> <span class="toc-text">Centos7系统修改</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#查看用户级的最大限制"><span class="toc-number">3.</span> <span class="toc-text">查看用户级的最大限制</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#查看系统级的最大限制"><span class="toc-number">4.</span> <span class="toc-text">查看系统级的最大限制</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#查看某个进程的最大打开文件数和当前打开文件数"><span class="toc-number">5.</span> <span class="toc-text">查看某个进程的最大打开文件数和当前打开文件数</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#修改用户级最大限制"><span class="toc-number">6.</span> <span class="toc-text">修改用户级最大限制</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#临时生效方法：（重启后失效）"><span class="toc-number">6.1.</span> <span class="toc-text">临时生效方法：（重启后失效）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#用户级修改永久有效方式"><span class="toc-number">6.2.</span> <span class="toc-text">用户级修改永久有效方式</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#修改系统级最大限制"><span class="toc-number">7.</span> <span class="toc-text">修改系统级最大限制</span></a></li></ol>
 		</div>
 		
 		<h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>linux最大打开文件句柄数，即打开文件数最大限制，就是规定的单个进程能够打开的最大文件句柄数量（Socket连接也算在里面，默认大小1024）</p>
@@ -99,13 +99,21 @@
 <li><strong>soft</strong>：软限制是内核实际执行的限制，任何进程都可以将软限制设置为任意小于等于对进程限制的硬限制的值。</li>
 </ul>
 <p>(noproc)最大线程数和(nofile)文件数。</p>
-<p>在Linux下有时会遇到Socket/File : Can’t open so many files的问题。其实Linux是有文件句柄限制的，而且Linux默认一般都是1024（阿里云主机默认是65535）。在生产环境中很容易到达这个值，因此这里就会成为系统的瓶颈。</p>
-<h2 id="相关命令"><a href="#相关命令" class="headerlink" title="相关命令"></a>相关命令</h2><h3 id="查看命令"><a href="#查看命令" class="headerlink" title="查看命令"></a>查看命令</h3><p><strong>用户级的最大限制</strong></p>
-<p><code>ulimit -a</code> 或者 <code>ulimit -n</code></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># nr_open是单个进程可分配的最大文件数</span></span><br><span class="line">cat /proc/sys/fs/nr_open</span><br><span class="line"></span><br><span class="line"><span class="comment"># file-max是内核可分配的最大文件数</span></span><br><span class="line">cat /proc/sys/fs/file-max</span><br></pre></td></tr></table></figure>
+
+<p>在Linux下有时会遇到 <code>Socket/File : Can&#39;t open so many files</code> 的问题。其实Linux是有文件句柄限制的，而且Linux默认一般都是1024（阿里云主机默认是65535）。在生产环境中很容易到达这个值，因此这里就会成为系统的瓶颈。</p>
+<h2 id="Centos7系统修改"><a href="#Centos7系统修改" class="headerlink" title="Centos7系统修改"></a>Centos7系统修改</h2><p>在Centos7系统中，使用 <code>Systemd</code> 替代了之前的SysV。<code>/etc/security/limits.conf</code> 文件的配置作用域缩小了。<code>/etc/security/limits.conf</code> 的配置，只适用于通过PAM认证登录用户的资源限制，它对 <code>systemd</code> 的 <code>service</code> 的资源限制不生效。因此登录用户的限制，通过 <code>/etc/security/limits.conf</code> 与 <code>/etc/security/limits.d</code> 下的文件设置即可。</p>
+<p>对于 <code>systemd service</code> 的资源设置，则需修改全局配置，全局配置文件放在 <code>/etc/systemd/system.conf</code> 和 <code>/etc/systemd/user.conf</code>。<code>system.conf</code> 是系统实例使用的，<code>user.conf</code> 是用户实例使用的。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># vim /etc/systemd/system.conf</span></span><br><span class="line">[Manager]</span><br><span class="line">DefaultLimitNOFILE=1024000</span><br><span class="line">DefaultLimitNPROC=1024000</span><br></pre></td></tr></table></figure>
+
+<p><code>reboot</code> 重启后生效。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">[root@host-192-175-32-22 bin]<span class="comment"># cat /proc/2789/limits</span></span><br><span class="line">Limit                     Soft Limit           Hard Limit           Units     </span><br><span class="line">Max cpu time              unlimited            unlimited            seconds   </span><br><span class="line">Max file size             unlimited            unlimited            bytes     </span><br><span class="line">Max data size             unlimited            unlimited            bytes     </span><br><span class="line">Max stack size            8388608              unlimited            bytes     </span><br><span class="line">Max core file size        0                    unlimited            bytes     </span><br><span class="line">Max resident <span class="built_in">set</span>          unlimited            unlimited            bytes     </span><br><span class="line">Max processes             1024000              1024000              processes </span><br><span class="line">Max open files            1024000              1024000              files     </span><br><span class="line">Max locked memory         65536                65536                bytes     </span><br><span class="line">Max address space         unlimited            unlimited            bytes     </span><br><span class="line">Max file locks            unlimited            unlimited            locks     </span><br><span class="line">Max pending signals       127951               127951               signals   </span><br><span class="line">Max msgqueue size         819200               819200               bytes     </span><br><span class="line">Max nice priority         0                    0                    </span><br><span class="line">Max realtime priority     0                    0                    </span><br><span class="line">Max realtime timeout      unlimited            unlimited            us        </span><br><span class="line">[root@host-192-175-32-22 bin]<span class="comment"># ulimit -n</span></span><br><span class="line">1024000</span><br></pre></td></tr></table></figure>
+
+<h2 id="查看用户级的最大限制"><a href="#查看用户级的最大限制" class="headerlink" title="查看用户级的最大限制"></a>查看用户级的最大限制</h2><p><code>ulimit -a</code> 或者 <code>ulimit -n</code></p>
 <p><code>ulimit -n</code>，默认是1024，向阿里云华为云这种云主机一般是65535。</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">[root@host-192-125-30-59 ~]<span class="comment"># ulimit -a</span></span><br><span class="line">core file size          (blocks, -c) 0</span><br><span class="line">data seg size           (kbytes, -d) unlimited</span><br><span class="line">scheduling priority             (-e) 0</span><br><span class="line">file size               (blocks, -f) unlimited</span><br><span class="line">pending signals                 (-i) 256967</span><br><span class="line">max locked memory       (kbytes, -l) 64</span><br><span class="line">max memory size         (kbytes, -m) unlimited</span><br><span class="line">open files                      (-n) 1024</span><br><span class="line">pipe size            (512 bytes, -p) 8</span><br><span class="line">POSIX message queues     (bytes, -q) 819200</span><br><span class="line">real-time priority              (-r) 0</span><br><span class="line">stack size              (kbytes, -s) 8192</span><br><span class="line">cpu time               (seconds, -t) unlimited</span><br><span class="line">max user processes              (-u) 256967</span><br><span class="line">virtual memory          (kbytes, -v) unlimited</span><br><span class="line">file locks                      (-x) unlimited</span><br><span class="line">[root@host-192-125-30-59 ~]<span class="comment"># ulimit -n</span></span><br><span class="line">1024</span><br></pre></td></tr></table></figure>
 
-<p>open files （-n） 1024 是linux操作系统对一个进程打开的文件句柄数量的限制（也包含打开的套接字数量）</p>
+<p>open files （-n）1024 是linux操作系统对一个进程打开的文件句柄数量的限制（也包含打开的套接字数量）</p>
 <table>
 <thead>
 <tr>
@@ -185,25 +193,22 @@
 <td>ulimit – v 200000；限制最大可用的虚拟内存为 200000 Kbytes。</td>
 </tr>
 </tbody></table>
-<p><strong>系统级的最大限制</strong></p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@host-192-125-30-59 ~]<span class="comment"># cat /proc/sys/fs/file-max</span></span><br><span class="line">6523120</span><br></pre></td></tr></table></figure>
+<h2 id="查看系统级的最大限制"><a href="#查看系统级的最大限制" class="headerlink" title="查看系统级的最大限制"></a>查看系统级的最大限制</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@host-192-125-30-59 ~]<span class="comment"># cat /proc/sys/fs/file-max</span></span><br><span class="line">6523120</span><br></pre></td></tr></table></figure>
 
 <p><code>file-max</code> 是设置系统所有进程一共可以打开的文件数量 。同时一些程序可以通过setrlimit调用，设置每个进程的限制。如果得到大量使用完文件句柄的错误信息，是应该增加这个值。</p>
-<h3 id="查看某个进程的最大打开文件数和当前打开文件数"><a href="#查看某个进程的最大打开文件数和当前打开文件数" class="headerlink" title="查看某个进程的最大打开文件数和当前打开文件数"></a>查看某个进程的最大打开文件数和当前打开文件数</h3><p>先找到该进程的进程号，然后查看</p>
+<h2 id="查看某个进程的最大打开文件数和当前打开文件数"><a href="#查看某个进程的最大打开文件数和当前打开文件数" class="headerlink" title="查看某个进程的最大打开文件数和当前打开文件数"></a>查看某个进程的最大打开文件数和当前打开文件数</h2><p>先找到该进程的进程号，然后查看</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 找到pid</span></span><br><span class="line">ps -aux</span><br><span class="line"></span><br><span class="line"><span class="comment"># /proc/[pid]/limits和fd</span></span><br><span class="line"></span><br><span class="line">cat /proc/[pid]/limits 显示当前进程的资源限制</span><br><span class="line"></span><br><span class="line">ls /proc/[pid]/fd 是一个目录，包含进程打开文件的情况</span><br></pre></td></tr></table></figure>
 
 <p>实例：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@host-192-125-30-59 ~]<span class="comment"># cat /proc/3289/limits| grep files</span></span><br><span class="line">Max open files            1024                 4096                 files</span><br><span class="line">[root@host-192-125-30-59 ~]<span class="comment"># ll /proc/3289/fd | wc -l</span></span><br><span class="line">7</span><br></pre></td></tr></table></figure>
 
 <p>ps：如果要查看某个进程的线程的详细信息，/proc/[pid]/task</p>
-<h3 id="修改最大限制"><a href="#修改最大限制" class="headerlink" title="修改最大限制"></a>修改最大限制</h3><h4 id="用户级修改"><a href="#用户级修改" class="headerlink" title="用户级修改"></a>用户级修改</h4><p><strong>临时生效方法：（重启后失效）</strong></p>
-<p>这个设置是暂时的保留。当退出Shell会话后，该值恢复原值。</p>
+<h2 id="修改用户级最大限制"><a href="#修改用户级最大限制" class="headerlink" title="修改用户级最大限制"></a>修改用户级最大限制</h2><h3 id="临时生效方法：（重启后失效）"><a href="#临时生效方法：（重启后失效）" class="headerlink" title="临时生效方法：（重启后失效）"></a>临时生效方法：（重启后失效）</h3><p>这个设置是暂时的保留。当退出Shell会话后，该值恢复原值。</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ulimit</span> -SHn 102400</span><br></pre></td></tr></table></figure>
 
 <p>ulimit 命令分软限制和硬限制，加-H就是硬限制，加-S就是软限制。默认显示的是软限制，如果运行ulimit 命令修改时没有加上-H或-S，就是两个参数一起改变。</p>
 <p>硬限制就是实际的限制，而软限制是警告限制，它只会给出警告。</p>
-<p><strong>用户级修改永久有效方式</strong></p>
-<p>修改配置文件 <code>vim /etc/security/limits.conf</code>，加入：</p>
+<h3 id="用户级修改永久有效方式"><a href="#用户级修改永久有效方式" class="headerlink" title="用户级修改永久有效方式"></a>用户级修改永久有效方式</h3><p>修改配置文件 <code>vim /etc/security/limits.conf</code>，加入：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">* soft nofile 65535</span><br><span class="line">* hard nofile 65535</span><br><span class="line"></span><br><span class="line"><span class="comment"># 可以使用下面一行来替代上面</span></span><br><span class="line">* - nofile 65535</span><br></pre></td></tr></table></figure>
 
 <p>或者使用命令：</p>
@@ -214,11 +219,10 @@
 
 <p>有些环境修改后，root用户需要重启机器才生效，而普通用户重新登录后即生效。</p>
 <p>需要小心注意的是，有些环境上面这样做，可能导致无法ssh登录，所以在修改时最好打开两个窗口，万一登录不了还可自救。</p>
-<h4 id="系统级的修改"><a href="#系统级的修改" class="headerlink" title="系统级的修改"></a>系统级的修改</h4><p>其实上面的修改都是对一个进程打开的文件句柄数量的限制，我们还需要设置系统的总限制才可以。</p>
+<h2 id="修改系统级最大限制"><a href="#修改系统级最大限制" class="headerlink" title="修改系统级最大限制"></a>修改系统级最大限制</h2><p>其实上面的修改都是对一个进程打开的文件句柄数量的限制，我们还需要设置系统的总限制才可以。</p>
 <p>假如，我们设置进程打开的文件句柄数是1024 ，但是系统总限制才500，所以所有进程最多能打开文件句柄数量500。从这里我们可以看出只设置进程的打开文件句柄的数量是不行的。所以需要修改系统的总限制才可以。</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 系统级修改临时生效方式：</span></span><br><span class="line"><span class="built_in">echo</span> 6523120 &gt; /proc/sys/fs/file-max</span><br><span class="line"></span><br><span class="line"><span class="comment"># 系统级修改永久生效方式：</span></span><br><span class="line">vim /etc/sysctl.conf</span><br><span class="line"><span class="comment"># 加入</span></span><br><span class="line">fs.file-max=6523120</span><br></pre></td></tr></table></figure>
 
-<p>系统级永久生效方式修改后，重启服务器，才能生效。</p>
 <p>查看系统级文件句柄修改，是否生效</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sysctl -p</span><br></pre></td></tr></table></figure>
 
@@ -278,7 +282,7 @@
 
   <div id="toc" class="toc-aside">
   <strong class="toc-title">文章目录</strong>
-  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#简介"><span class="toc-number">1.</span> <span class="toc-text">简介</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#相关命令"><span class="toc-number">2.</span> <span class="toc-text">相关命令</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#查看命令"><span class="toc-number">2.1.</span> <span class="toc-text">查看命令</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#查看某个进程的最大打开文件数和当前打开文件数"><span class="toc-number">2.2.</span> <span class="toc-text">查看某个进程的最大打开文件数和当前打开文件数</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#修改最大限制"><span class="toc-number">2.3.</span> <span class="toc-text">修改最大限制</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#用户级修改"><span class="toc-number">2.3.1.</span> <span class="toc-text">用户级修改</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#系统级的修改"><span class="toc-number">2.3.2.</span> <span class="toc-text">系统级的修改</span></a></li></ol></li></ol></li></ol>
+  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#简介"><span class="toc-number">1.</span> <span class="toc-text">简介</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Centos7系统修改"><span class="toc-number">2.</span> <span class="toc-text">Centos7系统修改</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#查看用户级的最大限制"><span class="toc-number">3.</span> <span class="toc-text">查看用户级的最大限制</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#查看系统级的最大限制"><span class="toc-number">4.</span> <span class="toc-text">查看系统级的最大限制</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#查看某个进程的最大打开文件数和当前打开文件数"><span class="toc-number">5.</span> <span class="toc-text">查看某个进程的最大打开文件数和当前打开文件数</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#修改用户级最大限制"><span class="toc-number">6.</span> <span class="toc-text">修改用户级最大限制</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#临时生效方法：（重启后失效）"><span class="toc-number">6.1.</span> <span class="toc-text">临时生效方法：（重启后失效）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#用户级修改永久有效方式"><span class="toc-number">6.2.</span> <span class="toc-text">用户级修改永久有效方式</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#修改系统级最大限制"><span class="toc-number">7.</span> <span class="toc-text">修改系统级最大限制</span></a></li></ol>
   </div>
 
 <div id="asidepart">
@@ -418,7 +422,7 @@
 		
 			<li><a href="/categories/TPL-DataFlow/" title="TPL DataFlow">TPL DataFlow<sup>2</sup></a></li>
 		
-			<li><a href="/categories/Tomcat/" title="Tomcat">Tomcat<sup>2</sup></a></li>
+			<li><a href="/categories/Tomcat/" title="Tomcat">Tomcat<sup>4</sup></a></li>
 		
 			<li><a href="/categories/WCF时间类型序列化/" title="WCF时间类型序列化">WCF时间类型序列化<sup>1</sup></a></li>
 		
@@ -513,7 +517,7 @@
 		
 			<li><a href="/tags/CSharp基础/" title="CSharp基础">CSharp基础<sup>45</sup></a></li>
 		
-			<li><a href="/tags/CentOS7/" title="CentOS7">CentOS7<sup>78</sup></a></li>
+			<li><a href="/tags/CentOS7/" title="CentOS7">CentOS7<sup>80</sup></a></li>
 		
 			<li><a href="/tags/Chrome/" title="Chrome">Chrome<sup>1</sup></a></li>
 		
