@@ -117,6 +117,10 @@ stderr_logfile=/var/log/WebApplication1/WebApplication1.err.log
 stdout_logfile=/var/log/WebApplication1/WebApplication1.out.log
 ```
 
+注意：如果配置Linux开机启动服务报错，则需要配置 `dotnet` 命令全路径：`/root/dotnet/dotnet`
+
+`supervisor FATAL can't find command 'dotnet'`
+
 webapp 站点,使用 `npm http-server`:
 
 ```conf
