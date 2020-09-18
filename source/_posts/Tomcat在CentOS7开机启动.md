@@ -42,6 +42,7 @@ WantedBy=multi-user.target
 systemctl enable tomcat8.service
 systemctl is-enabled tomcat8
 systemctl daemon-reload
+systemctl status tomcat8
 systemctl restart tomcat8
 ```
 

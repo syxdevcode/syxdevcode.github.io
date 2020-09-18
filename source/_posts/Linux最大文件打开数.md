@@ -44,7 +44,7 @@ DefaultLimitNOFILE=1024000
 DefaultLimitNPROC=1024000
 ```
 
-重启后生效。
+`reboot` 重启后生效。
 
 ```sh
 [root@host-192-175-32-22 bin]# cat /proc/2789/limits

@@ -188,6 +188,7 @@ Created symlink from /etc/systemd/system/multi-user.target.wants/supervisord.ser
 enabled
 [root@host supervisor-4.2.0]# systemctl daemon-reload
 [root@host supervisor-4.2.0]# systemctl restart supervisord
+[root@host supervisor-4.2.0]# systemctl status supervisord
 ```
 
 supervisord.service:
