@@ -9,7 +9,6 @@ tags:
 categories:
 - MongoDB
 ---
-# CentOS7 安装MongoDB
 
 ## 流程
 
@@ -27,36 +26,26 @@ categories:
 
 在终端输入命令,如下：
 
-* 解压
+```sh
+# 解压
+tar xzvf mongodb-linux-x86_64-rhel70-3.4.4.tgz
 
-````linux
- tar xzvf mongodb-linux-x86_64-rhel70-3.4.4.tgz
-````
-
-* 移动
-
-````linux
+# 移动
 mv mongodb-linux-x86_64-rhel70-3.4.4 mongodb-3.4.4
-````
 
-* 创建目录
-
-````linux
+# 创建目录
 cd mongodb-3.4.4
 mkdir logs
 mkdir db
-````
 
-* 创建配置文件
-
-````linux
+# 创建配置文件
 cd bin
 vim mongodb.conf
-````
+```
 
-* 配置文件如下配置：
+**配置文件如下配置：**
 
-````linux
+```sh
 # idae - MongoDB config start - 2017-05-10
 
 # 设置数据文件的存放目录
@@ -74,11 +63,11 @@ fork = true
 # nohttpinterface = true
 nohttpinterface = true
 # idae - MongoDB config end - 2016-05-10
-````
+```
 
-* 参数解释
+**参数解释**
 
-````linux
+```linux
 --dbpath 数据库路径(数据文件)
 --logpath 日志文件路径
 --master 指定为主机器
@@ -97,152 +86,153 @@ nohttpinterface = true
 --maxConns 最大的并发连接数，默认2000  
 --pidfilepath 指定进程文件，不指定则不产生进程文件
 --bind_ip 绑定IP，绑定后只能绑定的IP访问服务（服务器本地IP，非访问服务器客户端IP）
-````
+```
 
-* 启动mongodb服务
+**启动mongodb服务**
 
-     进入mongodb-3.4.4/bin目录
+```sh
+# 进入mongodb-3.4.4/bin目录
+# 自定义的 mongodb 配置文件方式启动
+./mongod --config mongodb.conf
 
-    & 自定义的 mongodb 配置文件方式启动
-        > `./mongod --config mongodb.conf`
-        > 停止:`./mongod --config mongodb.conf --shutdown`
-    & 修复模式启动 mongodb
-        > `./mongod --repair -f mongodb.conf`
+# 停止:
+./mongod --config mongodb.conf --shutdown
 
-    & 以参数方式启动（在mongodb-3.4.4/bin目录下）:
+# 修复模式启动 mongodb
+./mongod --repair -f mongodb.conf
 
-        ````
-         ./mongod --dbpath=/usr/local/mongodb/mongodb-3.4.4/db --logpath=/usr/local/mongodb/mongodb-3.4.4/logs/mongodb.log --fork
-        ````
-        停止：添加 --shutdown
+# 以参数方式启动（在mongodb-3.4.4/bin目录下）:
+./mongod --dbpath=/usr/local/mongodb/mongodb-3.4.4/db --logpath=/usr/local/mongodb/mongodb-3.4.4/logs/mongodb.log --fork
 
-        ````
-         ./mongod --dbpath=/usr/local/mongodb/mongodb-3.4.4/db --logpath=/usr/local/mongodb/mongodb-3.4.4/logs/mongodb.log --fork --shutdown
-        ````
+# 停止：添加 --shutdown
+./mongod --dbpath=/usr/local/mongodb/mongodb-3.4.4/db --logpath=/usr/local/mongodb/mongodb-3.4.4/logs/mongodb.log --fork --shutdown
 
-        添加认证： --auth
+# 添加认证： --auth
+# 连接
+./mongo 192.168.1.131:27017/admin -u root1 -p root1
 
-* 连接
+# 如果报如下错误：
 
-    ````linux
-    ./mongo 192.168.1.131:27017/admin -u root1 -p root1
-    ````
+ERROR: child process failed, exited with error number 1
+# 很可能是 mongodb.conf 中配置的路径不一致问题；
 
-* 报错
+# 如果报如下错误：
 
-    如果报如下错误：
+ERROR: child process failed, exited with error number 100
+# 很可能是没有正常关闭导致的，那么可以删除 mongod.lock 文件
+# number 100 ：端口问题
+```
 
-    ERROR: child process failed, exited with error number 1
-    很可能是 mongodb.conf 中配置的路径不一致问题；
+**查看 mongodb 进程：**
 
-    如果报如下错误：
+`ps aux | grep mongodb`
 
-    ERROR: child process failed, exited with error number 100
-    很可能是没有正常关闭导致的，那么可以删除 mongod.lock 文件
+**查看 mongodb 服务的运行日志：**
 
-    number 100 ：端口问题
+ `tail -200f /usr/local/mongodb/mongodb-3.4.4/logs/mongodb.log`
 
-* 查看 mongodb 进程：
-    > `ps aux |grep mongodb`
+**检查端口是否已被启动：**
 
-* 查看 mongodb 服务的运行日志：
-    >  `tail -200f /usr/local/mongodb/mongodb-3.4.4/logs/mongodb.log`
+`netstat -lanp | grep 27017`
 
-* 检查端口是否已被启动：
-    > `netstat -lanp | grep 27017`
+**杀死 mongodb 进程，即可关闭 mongodb 服务：(禁止使用，容易出现问题)**
 
-* 杀死 mongodb 进程，即可关闭 mongodb 服务：(禁止使用，容易出现问题)
+```sh
+kill -15 PID
+```
 
-    > kill -15 PID
-    > PID 可以通过步骤 16 查看到
+**连接错误**
 
-* 连接错误
+1.若数据库出现如上不能连接的原因，可能是data目录下的mongod.lock文件问题，可以用如下命令修复：
+`./bin/mongod --repair`
 
-    1.若数据库出现如上不能连接的原因，可能是data目录下的mongod.lock文件问题，可以用如下命令修复：
-   `./bin/mongod --repair`
-    2.直接删除mongod.lock
-   `rm -f /usr/local/mongodb/db/mongod.lock`
-    3.然后再启动 mongodb 服务：
-   `./mongod --config mongodb.conf`
-    4.如果以上两部依然解决不掉，则是路径文件，我们可以删除 /usr/local/mongodb/mongodb-3.4.4/db 目录及其子目录，并采用绝对路径的方式：
+2.直接删除mongod.lock
+`rm -f /usr/local/mongodb/db/mongod.lock`
 
-    ```linux
-    ./mongod /usr/local/mongodb/mongodb-3.4.4/bin/mongod --dbpath=/usr/local/mongodb/mongodb3.4.4/db --logpath=/usr/local/mongodb/mongodb-3.4.4/logs/mongodb.log --fork
-    ```
+3.然后再启动 mongodb 服务：
+`./mongod --config mongodb.conf`
 
-* 将 mongodb 服务加入到自启动文件中：
-     `vi /etc/rc.local`
-    在文件末尾追加如下命令：
-    `/usr/local/mongodb/mongodb-3.4.4/bin/mongod --config mongodb.conf`
-    保存并退出：
-    :wq!
+4.如果以上两部依然解决不掉，则是路径文件，我们可以删除 `/usr/local/mongodb/mongodb-3.4.4/db` 目录及其子目录，并采用绝对路径的方式：
 
-* 在 /usr/local/mongodb/mongodb3.4.4/bin/ 目录中，键入如下命令，打开一个 mongodb 的客户端程序，即打开一个 mongodb 的 shell 客户端，这个 shell 客户端同时也是一个 JavaScript 编辑器，即可用输入任何的 JavaScript 脚本：
+```sh
+./mongod /usr/local/mongodb/mongodb-3.4.4/bin/mongod --dbpath=/usr/local/mongodb/mongodb3.4.4/db --logpath=/usr/local/mongodb/mongodb-3.4.4/logs/mongodb.log --fork
+```
 
-    `./mongo`
+**将 mongodb 服务加入到自启动文件中：**
 
-* 在浏览器中输入 IP:27017，如：
+`vi /etc/rc.local`
 
-    `http://127.0.0.1:27017/`
-* 开启远程访问端口
+在文件末尾追加如下命令：
 
-    > 开启端口：
+`/usr/local/mongodb/mongodb-3.4.4/bin/mongod --config mongodb.conf`
 
-    `firewall-cmd --zone=public --add-port=27017/tcp --permanent`
+保存并退出：
+:wq!
 
-    命令含义：
+在 `/usr/local/mongodb/mongodb3.4.4/bin/` 目录中，键入如下命令，打开一个 mongodb 的客户端程序，即打开一个 mongodb 的 shell 客户端，这个 shell 客户端同时也是一个 JavaScript 编辑器，即可用输入任何的 JavaScript 脚本：
 
-    --zone #作用域
+`./mongo`
 
-    --add-port=27017/tcp #添加端口，格式为：端口/通讯协议
+在浏览器中输入 IP:27017，如：
 
-    --permanent #永久生效，没有此参数重启后失效
+`http://127.0.0.1:27017/`
 
-    > 重启防火墙:
+**开启远程访问端口**
 
-    `firewall-cmd --reload`
+开启端口：
+
+`firewall-cmd --zone=public --add-port=27017/tcp --permanent`
+
+命令含义：
+--zone #作用域
+--add-port=27017/tcp #添加端口，格式为：端口/通讯协议
+--permanent #永久生效，没有此参数重启后失效
+
+重启防火墙:
+
+`firewall-cmd --reload`
 
 ### 安全和认证
 
-* 限制特定IP地址访问(MongoDB服务器IP地址)
+**限制特定IP地址访问(MongoDB服务器IP地址)**
 
-````linux
+```sh
 ./mongod --bind_ip 192.168.1.131 --port 27017 --dbpath /usr/local/mongodb/mongodb-3.4.4/db --logpath /usr/local/mongodb/mongodb-3.4.4/logs/mongodb.log --fork
-````
+```
 
-* 设置监听端口，并且需要在防火墙配置
+**设置监听端口，并且需要在防火墙配置**
 
-````linux
+```sh
 --port 27017
-````
+```
 
-* 设置登录用户名和口令
+**设置登录用户名和口令**
 
-    启用mongodb授权认证的方法：
+启用mongodb授权认证的方法：
 
-    1、以–auth 启动mongod
+1、以–auth 启动mongod
 
-    2、在配置文件mongod.conf 中加入 auth = true
+2、在配置文件mongod.conf 中加入 auth = true
 
-    添加用户：
+添加用户：
 
-    ````linux
-    db.createUser(
-    ...   {
-    ...     user: "root1",
-    ...     pwd: "root1",
-    ...     roles: [ { role: "__system", db: "admin" } ]
-    ...   }
-    ... )
-    ````
-    重新登录：
-    `./mongo 192.168.1.131:27017 -u root1 -p root1`
+```linux
+db.createUser(
+...   {
+...     user: "root1",
+...     pwd: "root1",
+...     roles: [ { role: "__system", db: "admin" } ]
+...   }
+... )
+```
+重新登录：
+`./mongo 192.168.1.131:27017 -u root1 -p root1`
 
-    展示角色：
-    `show roles`
+展示角色：
+`show roles`
 
-    获取用户：
-    `db.getUsers();`
+获取用户：
+`db.getUsers();`
 
 参考网址：
 
