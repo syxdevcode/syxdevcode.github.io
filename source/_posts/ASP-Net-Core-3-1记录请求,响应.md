@@ -28,10 +28,15 @@ namespace Test
         {
             app.Use(async (context, next) =>
             {
+                var requestContent = "";
+                var contentType = context.Request.ContentType;
                 context.Request.EnableBuffering();
-                var requestReader = new StreamReader(context.Request.Body);
-
-                var requestContent = await requestReader.ReadToEndAsync();
+                // 只接受json格式参数，防止文件流等参数超长
+                if (!string.IsNullOrWhiteSpace(contentType) && contentType.Contains("json", StringComparison.OrdinalIgnoreCase))
+                {
+                    var requestReader = new StreamReader(context.Request.Body);
+                    requestContent = await requestReader.ReadToEndAsync();
+                }
                 context.Request.Body.Position = 0;
 
                 monitorlog ml = new monitorlog();
