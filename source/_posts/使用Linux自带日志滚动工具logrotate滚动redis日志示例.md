@@ -13,7 +13,7 @@ categories:
 
 ## Linux logrotate简介
 
-Linux logrotate命令用于管理记录文件。
+`Linux logrotate` 命令用于管理记录文件。
 
 使用 `logrotate` 指令，可让你轻松管理系统所产生的记录文件。它提供自动替换，压缩，删除和邮寄记录文件，每个记录文件都可被设置成每日，每周或每月处理，也能在文件太大时立即处理。例如，你可以设置 `logrotate`，让 `/var/log/foo` 日志文件每30天轮循，并删除超过6个月的日志。配置完后，`logrotate` 的运作完全自动化，不必进行任何进一步的人为干预。
 

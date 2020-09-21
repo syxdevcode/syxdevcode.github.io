@@ -145,4 +145,12 @@ The server generated these startup warnings when booting:
 test
 > 2 + 2
 4
+> show dbs
+admin   0.000GB
+config  0.000GB
+local   0.000GB
 ```
+
+参考：
+
+[Windows 平台安装 MongoDB](https://www.runoob.com/mongodb/mongodb-window-install.html)
