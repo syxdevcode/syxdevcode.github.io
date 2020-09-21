@@ -161,6 +161,9 @@ net.core.rmem_max = 16777216
 net.core.wmem_max = 16777216
 
 # 接受缓冲的大小:MIN，DEFAULT,MAX
+# net.ipv4.tcp_mem[0]:低于此值，TCP没有内存压力。
+# net.ipv4.tcp_mem[1]:在此值下，进入内存压力阶段。
+# net.ipv4.tcp_mem[2]:高于此值，TCP拒绝分配socket。
 net.ipv4.tcp_rmem = 4096 87380 4194304
 
 # socket的发送缓存区分配的MIN，DEFAULT,MAX
