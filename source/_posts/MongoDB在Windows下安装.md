@@ -143,4 +143,6 @@ The server generated these startup warnings when booting:
 ---
 > db
 test
+> 2 + 2
+4
 ```
