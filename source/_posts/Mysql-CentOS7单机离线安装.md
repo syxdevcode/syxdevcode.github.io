@@ -100,14 +100,16 @@ vim my.cnf
 my.cnf:
 
 ```sh
+# 对其他远程连接的mysql客户端的配置
 [mysql]
 socket=/var/lib/mysql/mysql.sock
 # set mysql client default chararter
-default-character-set=utf8
+default-character-set=utf8mb4
 
 # 解决 this is incompatible with sql_mode=only_full_group_by 的错误
 sql_mode=STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION
 
+# 本地mysql服务的配置
 [mysqld]
 socket=/var/lib/mysql/mysql.sock
 bind-address=0.0.0.0
@@ -118,9 +120,11 @@ basedir=/usr/local/mysql
 # set the data store dir
 datadir=/usr/local/mysql/data
 # set the number of allow max connnection
-max_connections=3000
+max_connections=30000
+character-set-client-handshake = FALSE
 # set server charactre default encoding
-character-set-server=utf8
+character-set-server=utf8mb4
+collation-server = utf8mb4_unicode_ci
 # the storage engine
 default-storage-engine=INNODB
 lower_case_table_names=1
@@ -133,7 +137,15 @@ sql_mode=STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_
 [mysql.server]
 user=mysql
 basedir=/usr/local/mysql
+
+# 对本地的mysql客户端的配置
+[client] 
+default-character-set = utf8mb4 
 ```
+
+注：在MySQL中，`utf8` 编码只支持每个字符最多三个字节，而真正的 `UTF-8` 是每个字符最多四个字节，
+MySQL 的 `utf8mb4` 才是真正的 `UTF-8`。
+`utf8mb4` 的最低mysql版本支持版本为5.5.3+，若不是，请升级到较新版本。
 
 参考：
 
