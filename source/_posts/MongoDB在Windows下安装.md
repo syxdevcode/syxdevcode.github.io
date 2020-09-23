@@ -29,8 +29,8 @@ mongod --dbpath D:\MongoDBData
 **连接服务**
 
 ```sh
-C:\Users\DELL>cd C:\Program Files\MongoDB\Server\4.4\bin\
-C:\Program Files\MongoDB\Server\4.4\bin>mongo.exe
+cd C:\Program Files\MongoDB\Server\4.4\bin\
+mongo.exe
 ```
 
 ![微信截图_20200921162957.png](/img/微信截图_20200921162957.png)

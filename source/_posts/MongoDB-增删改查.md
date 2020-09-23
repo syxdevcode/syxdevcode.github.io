@@ -243,6 +243,23 @@ db.collection.save(
 * document : 文档数据。
 * writeConcern :可选，抛出异常的级别。
 
+在3.2版本开始，MongoDB提供以下更新集合文档的方法：
+
+```sh
+# 向指定集合更新单个文档
+db.collection.updateOne()
+
+# 向指定集合更新多个文档
+db.collection.updateMany()
+
+# 移除集合中的键值对，使用的 $unset 操作符：
+db.col.update({"_id":"56064f89ade2f21f36b03136"}, {$set:{ "test2" : "OK"}})
+
+db.col.update({"_id":"56064f89ade2f21f36b03136"}, {$unset:{ "test2" : "OK"}})
+
+
+```
+
 ## 删除文档
 
 MongoDB 最早删除文档使用的是 `remove()` 方法，后来官方把它移除了因为 `remove()` 并不会真正释放空间。需要继续执行 `db.repairDatabase()` 来回收磁盘空间。
@@ -336,13 +353,102 @@ db.collection.find(query, {_id:0, title: 1, by: 1}) # 正确
 querydb.collection.find({}, {title: 1})
 ```
 
+**AND 条件**
 
+```sh
+db.test1.find({key1:value1, key2:value2}).pretty()
+```
 
+**OR 条件**
 
+使用关键字 `$or`,语法格式如下：
 
+```
+db.test1.find(
+   {
+      $or: [
+         {key1: value1}, {key2:value2}
+      ]
+   }
+).pretty()
+```
 
+**AND 和 OR 联合使用**
 
+`where likes>50 AND (by = 'test1' OR title = 'MongoDB')`
 
+```sh
+db.test1.find({"likes": {$gt:50}, $or: [{"by": "test1"},{"title": "MongoDB"}]}).pretty()
+```
+
+**模糊查询**
+
+```sh
+# 查询 title 包含"教"字的文档：
+db.col.find({title:/教/})
+
+# 查询 title 字段以"教"字开头的文档：
+db.col.find({title:/^教/})
+
+# 查询 titl e字段以"教"字结尾的文档：
+db.col.find({title:/教$/})
+```
+
+## 条件操作符 
+
+结合查询语句使用。
+
+* $gt --- greater than  >
+* $gte --- gt equal  >=
+* $lt --- less than  <
+* $lte --- lt equal  <=
+* $ne --- not equal  !=
+* $eq ---  equal  =
+
+## $type 操作符
+
+`$type` 操作符是基于BSON类型来检索集合中匹配的数据类型，并返回结果。
+
+获取 `test1` 集合中 title 为 String 的数据
+
+```sh
+db.test1.find({"title" : {$type : 2}})
+# 或
+db.test1.find({"title" : {$type : 'string'}})
+```
+
+## Limit与Skip方法
+
+```sh
+# Limit() 方法
+db.COLLECTION_NAME.find().limit(NUMBER)
+
+# 如果你们没有指定limit()方法中的参数则显示集合中的所有数据。
+db.test1.find({},{"title":1,_id:0}).limit(2)
+
+# Skip() 方法
+# skip()方法默认参数为 0
+db.COLLECTION_NAME.find().limit(NUMBER).skip(NUMBER)
+```
+
+skip 和limit方法只适合小数据量分页，如果是百万级效率就会非常低，因为skip方法是一条条数据数过去的，建议使用 `where limit`。
+
+## 排序
+
+`sort()` 方法对数据进行排序，`sort()` 方法可以通过参数指定排序的字段，并使用 1 和 -1 来指定排序的方式，其中 1 为升序排列，而 -1 是用于降序排列。
+
+语法：
+
+```sh
+# 语法
+db.COLLECTION_NAME.find().sort({KEY:1})
+
+# 实例
+# 按字段 likes 的降序排列
+db.test1.find({},{"title":1,_id:0}).sort({"likes":-1})
+```
+
+## 索引
 
 
 

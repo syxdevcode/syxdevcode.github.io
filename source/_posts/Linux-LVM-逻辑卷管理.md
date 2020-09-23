@@ -54,7 +54,7 @@ vgchange：设置 VG 是否启动（active）
 vgremove：删除一个卷组 VG 本身
 ```
 
-## 管理
+## 创建LVM过程
 
 创建 LVM 过程 ：
 
@@ -64,10 +64,13 @@ vgremove：删除一个卷组 VG 本身
 
 ### 创建分区
 
-使用分区工具(如:fdisk等)创建LVM分区，方法和创建其他一般分区的方式是一样的，区别仅仅是LVM的分区类型为8e。
+使用分区工具(如: `fdisk` 等)创建LVM分区，方法和创建其他一般分区的方式是一样的，区别仅仅是LVM的分区类型为8e。
 
 ```sh
-fdisk /dev/sdb
+fdisk /dev/vdb
+
+# 选项
+# p n w
 
 # 重启（可选）
 reboot
@@ -79,19 +82,19 @@ reboot
 
 ```sh
 # 格式化
-mkfs.ext4 /dev/sdb1
+mkfs.ext4 /dev/vdb
 
 # 将整个磁盘创建为物理卷
-pvcreate /dev/sdb
+pvcreate /dev/vdb
 
 # 将单个分区创建为物理卷
-pvcreate /dev/sda1
+pvcreate /dev/vda1
 
 # 将6-9分区转成pv
-pvcreate /dev/sda{6,7,8,9}
+pvcreate /dev/vda{6,7,8,9}
 
 # -v显示创建的全部过程
-pvcreate [-v] /dev/sda2 /dev/sdb2
+pvcreate [-v] /dev/vda2 /dev/vdb2
 
 # 显示系统上的 PV 状态
 pvdisplay
@@ -102,12 +105,12 @@ pvdisplay
 创建卷组的命令为 `vgcreate`，将使用 `pvcreate` 建立的物理卷创建为一个完整的卷组:
 
 ```sh
-# web_document：指定该卷组的逻辑名:
+# unicomvg：指定该卷组的逻辑名:
 # 后面参数指定希望添加到该卷组的所有分区和磁盘
-vgcreate web_document /dev/sda5 /dev/sdb
+vgcreate unicomvg /dev/vdb
 ```
 
-`vgcreate` 在创建卷组 `web_document` 以外，还设置使用大小为4MB的PE(默认为4MB)，这表示卷组上创建的所有逻辑卷都以4MB为增量单位来进行扩充 或缩减。
+`vgcreate` 在创建卷组 `unicomvg` 以外，还设置使用大小为4MB的PE(默认为4MB)，这表示卷组上创建的所有逻辑卷都以4MB为增量单位来进行扩充 或缩减。
 
 由于内核原因，PE大小决定了逻辑卷的最大大小，4MB的PE决定了单个逻辑卷最大容量为256GB，若希望使用大于256G的逻辑卷则创建卷组时指定更大的PE。
 
@@ -116,7 +119,7 @@ PE大小范围为8KB到512MB，并且必须总是2的倍数(使用-s指定，具
 例如，如果希望使用 64MB 的PE创建卷组，这样逻辑卷最大容量就可以为 `4TB`，命令如下: 
 
 ```sh
-vgcreate -64MB lvmdisk /dev/sdb1 /dev/sdc1
+vgcreate -64MB lvmdisk /dev/vdb1 /dev/vdc1
 ```
 
 ### 激活卷组
@@ -124,7 +127,7 @@ vgcreate -64MB lvmdisk /dev/sdb1 /dev/sdc1
 为了立即使用卷组而不是重新启动系统，可以使用 `vgchange` 来激活卷组:
 
 ```sh
-vgchange -ay web_document
+vgchange -ay unicomvg
 ```
 
 ### 添加新的物理卷到卷组中
@@ -132,10 +135,10 @@ vgchange -ay web_document
 当系统安装了新的磁盘并创建了新的物理卷，而要将其添加到已有卷组时，就需要使用 `vgextend` 命令:
 
 ```sh
-vgextend web_document /dev/sdb1
+vgextend unicomvg /dev/vdb1
 ```
 
-这里`/dev/sdb1`是新的物理卷。
+这里`/dev/vdb1`是新的物理卷。
 
 ### 从卷组中删除一个物理卷
 
@@ -146,7 +149,7 @@ vgextend web_document /dev/sdb1
 删除物理卷的命令为 `vgreduce`:
 
 ```sh
-vgreduce web_document /dev/sda1
+vgreduce unicomvg /dev/sda1
 ```
 
 ### 创建逻辑卷
@@ -154,7 +157,7 @@ vgreduce web_document /dev/sda1
 逻辑卷（Logical Volumes）简称 LV，是在卷组中划分的一个逻辑区域，类似于非LVM系统中的硬盘分区。 
 创建逻辑卷的命令为lvcreate，通过下面的命令。
 
-该命令就在卷组 `web_document` 上创建名字为 `www1` ，大小为15000M（15G）的逻辑卷，并且设备入口为 `/dev/web_document/www1` (web_document为卷组名，www1为逻辑卷名)。
+该命令就在卷组 `unicomvg` 上创建名字为 `unicomvol` ，大小为15000M（15G）的逻辑卷，并且设备入口为 `/dev/unicomvg/unicomvol` ( `unicomvg` 为卷组名，`unicomvol` 为逻辑卷名)。
 
 创建逻辑卷的命令为 `lvcreate`:
 
@@ -162,21 +165,24 @@ vgreduce web_document /dev/sda1
 * -l：指定逻辑卷的大小（LE数）。
 
 ```sh
-lvcreate -L 15000 -n www1 web_document
+lvcreate -L 15000 -n unicomvol unicomvg
+
+# 或 
+lvcreate -l 100%VG  -n unicomvol unicomvg
 
 # 也可以指定大小为 15G
-lvcreate -L 15G -n www1 web_document
+lvcreate -L 15G -n unicomvol unicomvg
 ```
 
 如果希望创建一个使用全部卷组的逻辑卷，则需要首先察看该卷组的PE数，然后在创建逻辑卷时指定:
 
 ```sh
-vgdisplay web_document | grep "TotalPE"
+vgdisplay unicomvg | grep "TotalPE"
 
 # 显示
 Total PE 45230
 
-lvcreate -l 45230 web_document -n www1
+lvcreate -l 45230 unicomvg -n unicomvol
 ```
 
 同卷组一样，逻辑卷在创建的过程中也被分成了一块一块的空间，这些空间称为 `LE（Logical Extents）`，在同一个卷组中，LE的大小和PE是相同的，并且一一对应。
@@ -190,11 +196,14 @@ lvcreate -l 45230 web_document -n www1
 mkdir /data/wwwroot
 
 # 挂载
-mount /dev/web_document/www1 /data/wwwroot
+mount /dev/unicomvg/unicomvol /data/wwwroot
 
 # 如果希望系统启动时自动加载文件系统，
 # 则还需要在 /etc/fstab 中添加内容:
-/dev/web_document/www1 /data/wwwroot ext4  defaults 0 0
+/dev/unicomvg/unicomvol /data/wwwroot ext4  defaults 0 0
+
+# 或者使用
+echo  "/dev/mapper/unicomvg-unicomvol /unicom ext4 defaults 0 0 " >>/etc/fstab
 ```
 
 `/etc/fstab`文件的每一行都遵循以下格式：
@@ -216,10 +225,10 @@ mount /dev/web_document/www1 /data/wwwroot
 
 ```sh
 # 卸载
-umount /dev/web_document/www1
+umount /dev/unicomvg/unicomvol
 
 # 删除
-lvremove /dev/web_document/www1
+lvremove /dev/unicomvg/unicomvol
 ```
 
 ## 扩展逻辑卷大小
@@ -227,11 +236,11 @@ lvremove /dev/web_document/www1
 LVM提供了方便调整逻辑卷大小的能力，扩展逻辑卷大小的命令是 `lvextend` :
 
 ```sh
-# 将逻辑卷www1的大小扩招为12G
-lvextend -L12G /dev/web_document/www1
+# 将逻辑卷unicomvol的大小扩招为12G
+lvextend -L12G /dev/unicomvg/unicomvol
 
-# 将逻辑卷www1的大小增加1G
-lvextend -L +1G /dev/web_document/www1
+# 将逻辑卷unicomvol的大小增加1G
+lvextend -L +1G /dev/unicomvg/unicomvol
 ```
 
 **调整文件系统大小**
@@ -250,13 +259,13 @@ resize2fs 命令是用来增大或者收缩未加载的 `ext2/ext3/ext4` 文件�
 ```sh
 # 建议最好将文件系统卸载，调整大小，然后再加载
 # 卸载
-umount /dev/web_document/www1
+umount /dev/unicomvg/unicomvol
 
 # 调整
-resize2fs -p /dev/web_document/www1
+resize2fs -p /dev/unicomvg/unicomvol
 
 # 挂载
-mount  /dev/web_document/www1 /data/wwwroot
+mount  /dev/unicomvg/unicomvol /data/wwwroot
 ```
 
 ## 减少逻辑卷大小
@@ -272,9 +281,9 @@ mount  /dev/web_document/www1 /data/wwwroot
 umount /data/wwwroot
 
 # 减小 2G
-lvreduce -L -2G /dev/web_document/www1
+lvreduce -L -2G /dev/unicomvg/unicomvol
 
-mount /dev/web_document/www1 /data/wwwroot
+mount /dev/unicomvg/unicomvol /data/wwwroot
 ````
 
 参考：
