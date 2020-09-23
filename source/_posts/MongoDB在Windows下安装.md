@@ -20,7 +20,8 @@ categories:
 **命令行运行**
 
 ```sh
-C:\Program Files\MongoDB\Server\4.4\bin\mongod --dbpath D:\MongoDBData
+cd C:\Program Files\MongoDB\Server\4.4\bin\
+mongod --dbpath D:\MongoDBData
 ```
 
 ![微信截图_20200921162755.png](/img/微信截图_20200921162755.png)
