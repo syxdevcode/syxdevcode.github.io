@@ -34,7 +34,7 @@ github: [Dockerfile](https://github.com/docker-library/mongo/blob/4958ee0a8a6b1a
 
 * `shard`，分片（`sharding`）是指将数据库拆分，将其分散在不同的机器上的过程。将数据分散到不同的机器上，不需要功能强大的服务器就可以存储更多的数据和处理更大的负载。基本思想就是将集合切成小块，这些块分散到若干片里，每个片只负责总数据的一部分，最后通过一个均衡器来对各个分片进行均衡（数据迁移）。
 
-* `replica set`，中文翻译副本集，其实就是 `shard` 的备份，防止 `shard` 挂掉之后数据丢失。复制提供了数据的冗余备份，并在多个服务器上存储数据副本，提高了数据的可用性， 并可以保证数据的安全性。
+* `replica set`，中文翻译 `副本集`，其实就是 `shard` 的备份，防止 `shard` 挂掉之后数据丢失。复制提供了数据的冗余备份，并在多个服务器上存储数据副本，提高了数据的可用性， 并可以保证数据的安全性。
 
 `仲裁者（Arbiter）`，是复制集中的一个 `MongoDB` 实例，它并不保存数据。仲裁节点使用最小的资源并且不要求硬件设备，不能将 `Arbiter` 部署在同一个数据集节点中，可以部署在其他应用服务器或者监视服务器中，也可部署在单独的虚拟机中。为了确保复制集中有奇数的投票成员（包括 `primary` ），需要添加仲裁节点做为投票，否则 `primary` 不能运行时不会自动切换 `primary`。
 
@@ -50,22 +50,22 @@ mongodb
  |- mongodbtest
 ```
 
-创建2个分片服务（`shardsvr`），每个 `shardsvr` 包含3个副本，其中1个主节点，1个从节点，1个仲裁节点。
+创建2个路由服务（`mongos`） 命令：`configdb`
 
 创建3个配置服务（`configsvr` ）
 
-创建2个路由服务（`mongos`） 命令：`configdb`
+创建2个分片服务（`shardsvr`），每个 `shardsvr` 包含3个副本，其中1个主节点，1个从节点，1个仲裁节点。
 
 ### 创建目录
 
 在 `mongodb` 目录运行以下命令生成目录：
 
 ```bash
+mkdir -p /home/toor/Documents/mongodb/mongodbtest/mongos1 # mongos1
+mkdir -p /home/toor/Documents/mongodb/mongodbtest/mongos2 # mongos2
 mkdir -p /home/toor/Documents/mongodb/mongodbtest/cs/rs1 /home/toor/Documents/mongodb/mongodbtest/cs/rs2 /home/toor/Documents/mongodb/mongodbtest/cs/rs3 # config server replset
 mkdir -p /home/toor/Documents/mongodb/mongodbtest/sh1/rs1 /home/toor/Documents/mongodb/mongodbtest/sh1/rs2 /home/toor/Documents/mongodb/mongodbtest/sh1/rs3 # sharding
 mkdir -p /home/toor/Documents/mongodb/mongodbtest/sh2/rs1 /home/toor/Documents/mongodb/mongodbtest/sh2/rs2 /home/toor/Documents/mongodb/mongodbtest/sh2/rs3 # sharding
-mkdir -p /home/toor/Documents/mongodb/mongodbtest/mongos1
-mkdir -p /home/toor/Documents/mongodb/mongodbtest/mongos2
 ```
 
 ### 创建docker-compose
@@ -146,6 +146,16 @@ services:
 # 不加会有一个28017的端口监听，可以通过网页管理mongodb，不需要请去掉
 --nohttpinterface
 
+# 这两个参数的作用就是改变启动端口
+--shardsvr
+--configsvr
+
+# 副本集设置
+--replSet
+
+# 这一项是用来指定chunk的大小的，单位是MB，默认大小为200MB
+--chunkSize
+
 # 可以限制访问的ip
 --bind_ip
 
@@ -164,11 +174,11 @@ rs.status() //查看状态
 quit() // 退出 或 exit
 ```
 
-注：config server 默认端口为 27019
+注：`config server` 默认端口为 27019
 
 ### 初始化分片
 
-注：'shard server' 默认端口号为 27018
+注：`shard server` 默认端口号为 27018
 
 #### shrs1副本集
 
@@ -256,7 +266,7 @@ show dbs
 
 mongodb 的启动顺序是，先启动配置服务器，在启动分片，最后启动 mongos.
 
-关闭时，直接killall杀掉所有进程
+关闭时，直接 `killall` 杀掉所有进程
 
 例：
 
