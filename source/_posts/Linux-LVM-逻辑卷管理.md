@@ -87,10 +87,10 @@ mkfs.ext4 /dev/vdb
 # 将整个磁盘创建为物理卷
 pvcreate /dev/vdb
 
-# 将单个分区创建为物理卷
+# 或 将单个分区创建为物理卷
 pvcreate /dev/vda1
 
-# 将6-9分区转成pv
+# 或  将6-9分区转成pv
 pvcreate /dev/vda{6,7,8,9}
 
 # -v显示创建的全部过程
@@ -167,7 +167,7 @@ vgreduce unicomvg /dev/sda1
 ```sh
 lvcreate -L 15000 -n unicomvol unicomvg
 
-# 或 
+# 或 指定100%的LE 到逻辑卷
 lvcreate -l 100%VG  -n unicomvol unicomvg
 
 # 也可以指定大小为 15G
@@ -240,7 +240,10 @@ LVM提供了方便调整逻辑卷大小的能力，扩展逻辑卷大小的命�
 lvextend -L12G /dev/unicomvg/unicomvol
 
 # 将逻辑卷unicomvol的大小增加1G
-lvextend -L +1G /dev/unicomvg/unicomvol
+lvextend -L +1G /dev/unicomvg/unicomvol、
+
+# 将卷组 100% 分配到 逻辑卷unicomvol
+lvextend -l 100%VG /dev/mapper/centos-root
 ```
 
 **调整文件系统大小**
