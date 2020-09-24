@@ -450,8 +450,149 @@ db.test1.find({},{"title":1,_id:0}).sort({"likes":-1})
 
 ## 索引
 
+3.0.0 版本前创建索引方法为 `db.collection.ensureIndex()` ，之后的版本使用了 `db.collection.createIndex()` 方法，`ensureIndex()` 还能用，但只是 `createIndex()` 的别名。
 
+**语法**
 
+```sh
+db.collection.createIndex(keys, options)
 
+# 实例
+db.test1.createIndex({"title":1})
 
+# 可以设置使用多个字段创建索引（关系型数据库中称作复合索引）
+db.test1.createIndex({"title":1,"description":-1})
+```
+
+语法中 Key 值为你要创建的索引字段，1 为指定按升序创建索引 -1 按降序来创建索引。
+
+可选参数:
+
+![微信截图_20200924134809.png](/img/微信截图_20200924134809.png)
+
+```sh
+# 查看集合索引
+db.test1.getIndexes()
+
+# 查看集合索引大小
+db.test1.totalIndexSize()
+
+# 删除集合所有索引
+db.test1.dropIndexes()
+
+# 删除集合指定索引
+db.test1.dropIndex("索引名称")
+```
+
+### TTL索引
+
+保存最近三个月的文档（单位秒），当中途修改了createdAt的值时，
+则不会删除文档（指定的时间是字段与当前时间的差值）。
+
+`db.user.createIndex({"createdAt": 1},{expireAfterSeconds: 60*60*24*3});`
+
+若需求变动，需要将三个月修改为一个月可以使用collMod，如下：
+
+`db.runCommand({collMod: 'user', index: {keyPattern:{"createdAt": 1}, expireAfterSeconds:60*60*24*1}});`
+
+TTL索引限制：
+
+* TTL索引是单字段索引，不能使用在聚合索引上
+* 不能在普通索引上再创建TTL索引，只能删除再建
+* _id主键上不能建立TTL索引
+* 一个集合上可以建立多个TTL索引
+* 索引不能包含多个字段
+* TTL索引可以用于普通索引一样进行排序和查询
+* 如果定义的字段不存在，则永不过期
+* 不能对capped集合创建TTL索引
+* TTL索引会每分钟检查超时文档，并进行删除操作。需要注意删除时候的并发问题（不要影响线上业务）
+
+## 聚合
+
+MongoDB中聚合( `aggregate` )主要用于处理数据(诸如统计平均值,求和等)，并返回计算后的数据结果。有点类似sql语句中的 `count(*)`。
+
+**aggregate() 方法**
+
+`db.COLLECTION_NAME.aggregate(AGGREGATE_OPERATION)`
+
+聚合的表达式：
+
+![微信截图_20200924142403.png](/img/微信截图_20200924142403.png)
+
+实例：
+
+```sh
+db.test1.aggregate([{$group : {_id : "$by_user", num_tutorial : {$sum : 1}}}])
+# 类似：
+select by_user, count(*) from mycol group by by_user
+
+# $project实例
+# 只展示_id,tilte和author三个字段
+db.article.aggregate(
+    { $project : {
+        title : 1 ,
+        author : 1 ,
+    }}
+ );
+
+# $match实例
+db.article.aggregate(
+    { $project : {
+        _id : 0 ,
+        title : 1 ,
+        author : 1
+    }});
+
+# $match实例
+db.articles.aggregate( [
+                        { $match : { score : { $gt : 70, $lte : 90 } } },
+                        { $group: { _id: null, count: { $sum: 1 } } }
+                       ] );
+```
+
+管道操作：
+
+* $project：修改输入文档的结构。可以用来重命名、增加或删除域，也可以用于创建计算结果以及嵌套文档。
+* $match：用于过滤数据，只输出符合条件的文档。$match使用MongoDB的标准查询操作。
+* $limit：用来限制MongoDB聚合管道返回的文档数。
+* $skip：在聚合管道中跳过指定数量的文档，并返回余下的文档。
+* $unwind：将文档中的某一个数组类型字段拆分成多条，每条包含数组中的一个值。
+* $group：将集合中的文档分组，可用于统计结果。
+* $sort：将输入文档排序后输出。
+* $geoNear：输出接近某一地理位置的有序文档。
+
+注意：当 `match` 条件和 `group` 同时存在时，顺序会影响检索结果，必须先写 `match` 在前面。
+
+时间关键字如下：
+
+* $dayOfYear: 返回该日期是这一年的第几天（全年 366 天）。
+* $dayOfMonth: 返回该日期是这一个月的第几天（1到31）。
+* $dayOfWeek: 返回的是这个周的星期几（1：星期日，7：星期六）。
+* $year: 返回该日期的年份部分。
+* $month： 返回该日期的月份部分（ 1 到 12）。
+* $week： 返回该日期是所在年的第几个星期（ 0 到 53）。
+* $hour： 返回该日期的小时部分。
+* $minute: 返回该日期的分钟部分。
+* $second: 返回该日期的秒部分（以0到59之间的数字形式返回日期的第二部分，但可以是60来计算闰秒）。
+* $millisecond：返回该日期的毫秒部分（ 0 到 999）。
+* $dateToString： { $dateToString: { format: , date: } }。
+
+实例：
+
+```sh
+db.getCollection('m_msg_tb').aggregate(
+[
+    {$match:{m_id:10001,mark_time:{$gt:new Date(2017,8,0)}}},
+    {$group: {
+       _id: {$dayOfMonth:'$mark_time'},
+        pv: {$sum: 1}
+        }
+    },
+    {$sort: {"_id": 1}}
+])
+```
+
+参考：
+
+[MongoDB 教程](https://www.runoob.com/mongodb/mongodb-tutorial.html)
 
