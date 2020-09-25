@@ -3,6 +3,7 @@ title: Docker安装MongoDB4.1群集
 date: 2018-08-21 10:37:53
 tags:
 - Linux
+- NoSQL
 - MongoDB
 - CentOS7
 - 安装部署

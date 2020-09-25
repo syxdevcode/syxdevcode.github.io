@@ -3,6 +3,7 @@ title: MongoDB基本概念
 date: 2020-09-21 17:00:48
 tags:
 - Linux
+- NoSQL
 - CentOS7
 - Windows
 - MongoDB

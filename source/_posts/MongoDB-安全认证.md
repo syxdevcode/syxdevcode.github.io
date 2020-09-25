@@ -2,6 +2,7 @@
 title: MongoDB 安全认证
 date: 2018-08-24 11:37:04
 tags:
+- NoSQL
 - Linux
 - MongoDB
 - CentOS7

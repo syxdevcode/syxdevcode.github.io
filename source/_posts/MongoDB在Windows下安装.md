@@ -3,6 +3,7 @@ title: MongoDB在Windows下安装
 date: 2020-09-21 15:59:13
 tags:
 - Windows
+- NoSQL
 - MongoDB
 - 安装部署
 categories:

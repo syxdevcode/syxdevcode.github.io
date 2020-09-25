@@ -3,6 +3,7 @@ title: MongoDB 增删改查
 date: 2020-09-22 16:25:18
 tags:
 - Linux
+- NoSQL
 - CentOS7
 - Windows
 - MongoDB

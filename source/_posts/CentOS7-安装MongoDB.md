@@ -2,6 +2,7 @@
 title: CentOS7 安装MongoDB
 date: 2017-05-10 10:43:53
 tags:
+- NoSQL
 - Linux
 - CentOS7
 - MongoDB
