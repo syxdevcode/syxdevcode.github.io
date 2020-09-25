@@ -142,7 +142,7 @@ requirepass password
 
 # 可选
 # 最大连接数
-maxclients 10000
+maxclients 100000
 
 # 可选
 # 客户端多长（秒）时间没发包过来关闭它，0表示永不关闭

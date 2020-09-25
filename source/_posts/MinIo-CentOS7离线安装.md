@@ -135,7 +135,10 @@ WantedBy=multi-user.target
 ```sh
 systemctl enable minio.service
 systemctl start minio.service
+systemctl stop minio.service
 systemctl status minio.service
+
+systemctl restart minio.service
 
 # 更新服务文件后，需要重新加载
 systemctl daemon-reload
