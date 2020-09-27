@@ -188,14 +188,17 @@ show grants for 'slave'@'%';
 **备份主服务器数据**
 
 ```sh
-# 如果不使用 --master-data 参数，则需要手动锁定单独会话中的所有表，如下所示。
-mysqldump -u用户名 -p密码 --all-databases --master-data=1 > dbdump.db
+# 进入 mysql 安装目录
+cd /usr/local/mysql/bin
+# 如果不使用 --master-data 参数，则需要手动锁定单独会话中的所有表
+./mysqldump -u用户名 -p密码 --all-databases --master-data=1 > dbdump.db
 
+# 或
 # 1，加锁
 FLUSH TABLES WITH READ LOCK;
 
 # 2. 将master中需要同步的db的数据dump出来
-mysqldump -uroot -p testdb > testdb.dump
+./mysqldump -uroot -p testdb > testdb.dump
 
 # 3. 将数据导入slave
 mysql -uroot -h192.123.75.69 -p testdb < testdb.dump
