@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"syxdevcode.github.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="MSIL：Microsoft 中间语言 参考：OpCodes Class    名称 说明    Add 将两个值相加并将结果推送到计算堆栈上。   Add.Ovf 将两个整数相加，执行溢出检查，并且将结果推送到计算堆栈上。   Add.Ovf.Un 将两个无符号整数值相加，执行溢出检查，并且将结果推送到计算堆栈上。   And 计算两个值的按位“与”并将结果推送到计算堆栈上。   Arglist">
+<meta property="og:type" content="article">
+<meta property="og:title" content="DotNet IL指令速查">
+<meta property="og:url" content="https://syxdevcode.github.com/2018/12/11/DotNet-IL%E6%8C%87%E4%BB%A4%E9%80%9F%E6%9F%A5/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="MSIL：Microsoft 中间语言 参考：OpCodes Class    名称 说明    Add 将两个值相加并将结果推送到计算堆栈上。   Add.Ovf 将两个整数相加，执行溢出检查，并且将结果推送到计算堆栈上。   Add.Ovf.Un 将两个无符号整数值相加，执行溢出检查，并且将结果推送到计算堆栈上。   And 计算两个值的按位“与”并将结果推送到计算堆栈上。   Arglist">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2018-12-11T08:45:20.000Z">
+<meta property="article:modified_time" content="2020-09-28T07:12:37.253Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="DotNet">
+<meta property="article:tag" content="CSharp">
+<meta property="article:tag" content="Emit(反射发出)">
+<meta property="article:tag" content="MSIL指令">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://syxdevcode.github.com/2018/12/11/DotNet-IL%E6%8C%87%E4%BB%A4%E9%80%9F%E6%9F%A5/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>DotNet IL指令速查 | syxdevcode博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">syxdevcode博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/syxdevcode" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/11/DotNet-IL%E6%8C%87%E4%BB%A4%E9%80%9F%E6%9F%A5/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          DotNet IL指令速查
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-12-11 08:45:20" itemprop="dateCreated datePublished" datetime="2018-12-11T08:45:20+00:00">2018-12-11</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-09-28 07:12:37" itemprop="dateModified" datetime="2020-09-28T07:12:37+00:00">2020-09-28</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/MSIL%E6%8C%87%E4%BB%A4/" itemprop="url" rel="index"><span itemprop="name">MSIL指令</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>MSIL：Microsoft 中间语言</p>
+<p>参考：<a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.reflection.emit.opcodes?view=netframework-4.7.2">OpCodes Class</a></p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Add</td>
+<td>将两个值相加并将结果推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Add.Ovf</td>
+<td>将两个整数相加，执行溢出检查，并且将结果推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Add.Ovf.Un</td>
+<td>将两个无符号整数值相加，执行溢出检查，并且将结果推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>And</td>
+<td>计算两个值的按位“与”并将结果推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Arglist</td>
+<td>返回指向当前方法的参数列表的非托管指针。</td>
+</tr>
+<tr>
+<td>Beq</td>
+<td>如果两个值相等，则将控制转移到目标指令。</td>
+</tr>
+<tr>
+<td>Beq.S</td>
+<td>如果两个值相等，则将控制转移到目标指令（短格式）。</td>
+</tr>
+<tr>
+<td>Bge</td>
+<td>如果第一个值大于或等于第二个值，则将控制转移到目标指令。</td>
+</tr>
+<tr>
+<td>Bge.S</td>
+<td>如果第一个值大于或等于第二个值，则将控制转移到目标指令（短格式）。</td>
+</tr>
+<tr>
+<td>Bge.Un</td>
+<td>当比较无符号整数值或不可排序的浮点型值时，如果第一个值大于第二个值，则将控制转移到目标指令。</td>
+</tr>
+<tr>
+<td>Bge.Un.S</td>
+<td>当比较无符号整数值或不可排序的浮点型值时，如果第一个值大于第二个值，则将控制转移到目标指令（短格式）。</td>
+</tr>
+<tr>
+<td>Bgt</td>
+<td>如果第一个值大于第二个值，则将控制转移到目标指令。</td>
+</tr>
+<tr>
+<td>Bgt.S</td>
+<td>如果第一个值大于第二个值，则将控制转移到目标指令（短格式）。</td>
+</tr>
+<tr>
+<td>Bgt.Un</td>
+<td>当比较无符号整数值或不可排序的浮点型值时，如果第一个值大于第二个值，则将控制转移到目标指令。</td>
+</tr>
+<tr>
+<td>Bgt.Un.S</td>
+<td>当比较无符号整数值或不可排序的浮点型值时，如果第一个值大于第二个值，则将控制转移到目标指令（短格式）。</td>
+</tr>
+<tr>
+<td>Ble</td>
+<td>如果第一个值小于或等于第二个值，则将控制转移到目标指令。</td>
+</tr>
+<tr>
+<td>Ble.S</td>
+<td>如果第一个值小于或等于第二个值，则将控制转移到目标指令（短格式）。</td>
+</tr>
+<tr>
+<td>Ble.Un</td>
+<td>当比较无符号整数值或不可排序的浮点型值时，如果第一个值小于或等于第二个值，则将控制转移到目标指令。</td>
+</tr>
+<tr>
+<td>Ble.Un.S</td>
+<td>当比较无符号整数值或不可排序的浮点值时，如果第一个值小于或等于第二个值，则将控制权转移到目标指令（短格式）。</td>
+</tr>
+<tr>
+<td>Blt</td>
+<td>如果第一个值小于第二个值，则将控制转移到目标指令。</td>
+</tr>
+<tr>
+<td>Blt.S</td>
+<td>如果第一个值小于第二个值，则将控制转移到目标指令（短格式）。</td>
+</tr>
+<tr>
+<td>Blt.Un</td>
+<td>当比较无符号整数值或不可排序的浮点型值时，如果第一个值小于第二个值，则将控制转移到目标指令。</td>
+</tr>
+<tr>
+<td>Blt.Un.S</td>
+<td>当比较无符号整数值或不可排序的浮点型值时，如果第一个值小于第二个值，则将控制转移到目标指令（短格式）。</td>
+</tr>
+<tr>
+<td>Bne.Un</td>
+<td>当两个无符号整数值或不可排序的浮点型值不相等时，将控制转移到目标指令。</td>
+</tr>
+<tr>
+<td>Bne.Un.S</td>
+<td>当两个无符号整数值或不可排序的浮点型值不相等时，将控制转移到目标指令（短格式）。</td>
+</tr>
+<tr>
+<td>Box</td>
+<td>将值类转换为对象引用（O 类型）。</td>
+</tr>
+<tr>
+<td>Br</td>
+<td>无条件地将控制转移到目标指令。</td>
+</tr>
+<tr>
+<td>Br.S</td>
+<td>无条件地将控制转移到目标指令（短格式）。</td>
+</tr>
+<tr>
+<td>Break</td>
+<td>向公共语言结构 (CLI) 发出信号以通知调试器已撞上了一个断点。</td>
+</tr>
+<tr>
+<td>Brfalse</td>
+<td>如果 value 为 false、空引用（Visual Basic 中的 Nothing）或零，则将控制转移到目标指令。</td>
+</tr>
+<tr>
+<td>Brfalse.S</td>
+<td>如果 value 为 false、空引用或零，则将控制转移到目标指令。</td>
+</tr>
+<tr>
+<td>Brtrue</td>
+<td>如果 value 为 true、非空或非零，则将控制转移到目标指令。</td>
+</tr>
+<tr>
+<td>Brtrue.S</td>
+<td>如果 value 为 true、非空或非零，则将控制转移到目标指令（短格式）。</td>
+</tr>
+<tr>
+<td>Call</td>
+<td>调用由传递的方法说明符指示的方法。</td>
+</tr>
+<tr>
+<td>Calli</td>
+<td>通过调用约定描述的参数调用在计算堆栈上指示的方法（作为指向入口点的指针）。</td>
+</tr>
+<tr>
+<td>Callvirt</td>
+<td>对对象调用后期绑定方法，并且将返回值推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Castclass</td>
+<td>尝试将引用传递的对象转换为指定的类。</td>
+</tr>
+<tr>
+<td>Ceq</td>
+<td>比较两个值。如果这两个值相等，则将整数值 1 (int32) 推送到计算堆栈上；否则，将 0 (int32) 推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Cgt</td>
+<td>比较两个值。如果第一个值大于第二个值，则将整数值 1 (int32) 推送到计算堆栈上；反之，将 0 (int32) 推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Cgt.Un</td>
+<td>比较两个无符号的或不可排序的值。如果第一个值大于第二个值，则将整数值 1 (int32) 推送到计算堆栈上；反之，将 0 (int32) 推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ckfinite</td>
+<td>如果值不是有限数，则引发 ArithmeticException。</td>
+</tr>
+<tr>
+<td>Clt</td>
+<td>比较两个值。如果第一个值小于第二个值，则将整数值 1 (int32) 推送到计算堆栈上；反之，将 0 (int32) 推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Clt.Un</td>
+<td>比较无符号的或不可排序的值 value1 和 value2。如果 value1 小于 value2，则将整数值 1 (int32 ) 推送到计算堆栈上；反之，将 0 ( int32 ) 推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Constrained</td>
+<td>约束要对其进行虚方法调用的类型。</td>
+</tr>
+<tr>
+<td>Conv.I</td>
+<td>将位于计算堆栈顶部的值转换为 native int。</td>
+</tr>
+<tr>
+<td>Conv.I1</td>
+<td>将位于计算堆栈顶部的值转换为 int8，然后将其扩展（填充）为 int32。</td>
+</tr>
+<tr>
+<td>Conv.I2</td>
+<td>将位于计算堆栈顶部的值转换为 int16，然后将其扩展（填充）为 int32。</td>
+</tr>
+<tr>
+<td>Conv.I4</td>
+<td>将位于计算堆栈顶部的值转换为 int32。</td>
+</tr>
+<tr>
+<td>Conv.I8</td>
+<td>将位于计算堆栈顶部的值转换为 int64。</td>
+</tr>
+<tr>
+<td>Conv.Ovf.I</td>
+<td>将位于计算堆栈顶部的有符号值转换为有符号 native int，并在溢出时引发 OverflowException。</td>
+</tr>
+<tr>
+<td>Conv.Ovf.I.Un</td>
+<td>将位于计算堆栈顶部的无符号值转换为有符号 native int，并在溢出时引发 OverflowException。</td>
+</tr>
+<tr>
+<td>Conv.Ovf.I1</td>
+<td>将位于计算堆栈顶部的有符号值转换为有符号 int8 并将其扩展为 int32，并在溢出时引发 OverflowException。</td>
+</tr>
+<tr>
+<td>Conv.Ovf.I1.Un</td>
+<td>将位于计算堆栈顶部的无符号值转换为有符号 int8 并将其扩展为 int32，并在溢出时引发 OverflowException。</td>
+</tr>
+<tr>
+<td>Conv.Ovf.I2</td>
+<td>将位于计算堆栈顶部的有符号值转换为有符号 int16 并将其扩展为 int32，并在溢出时引发 OverflowException。</td>
+</tr>
+<tr>
+<td>Conv.Ovf.I2.Un</td>
+<td>将位于计算堆栈顶部的无符号值转换为有符号 int16 并将其扩展为 int32，并在溢出时引发 OverflowException。</td>
+</tr>
+<tr>
+<td>Conv.Ovf.I4</td>
+<td>将位于计算堆栈顶部的有符号值转换为有符号 int32，并在溢出时引发 OverflowException。</td>
+</tr>
+<tr>
+<td>Conv.Ovf.I4.Un</td>
+<td>将位于计算堆栈顶部的无符号值转换为有符号 int32，并在溢出时引发 OverflowException。</td>
+</tr>
+<tr>
+<td>Conv.Ovf.I8</td>
+<td>将位于计算堆栈顶部的有符号值转换为有符号 int64，并在溢出时引发 OverflowException。</td>
+</tr>
+<tr>
+<td>Conv.Ovf.I8.Un</td>
+<td>将位于计算堆栈顶部的无符号值转换为有符号 int64，并在溢出时引发 OverflowException。</td>
+</tr>
+<tr>
+<td>Conv.Ovf.U</td>
+<td>将位于计算堆栈顶部的有符号值转换为 unsigned native int，并在溢出时引发 OverflowException。</td>
+</tr>
+<tr>
+<td>Conv.Ovf.U.Un</td>
+<td>将位于计算堆栈顶部的无符号值转换为 unsigned native int，并在溢出时引发 OverflowException。</td>
+</tr>
+<tr>
+<td>Conv.Ovf.U1</td>
+<td>将位于计算堆栈顶部的有符号值转换为 unsigned int8 并将其扩展为 int32，并在溢出时引发 OverflowException。</td>
+</tr>
+<tr>
+<td>Conv.Ovf.U1.Un</td>
+<td>将位于计算堆栈顶部的无符号值转换为 unsigned int8 并将其扩展为 int32，并在溢出时引发 OverflowException。</td>
+</tr>
+<tr>
+<td>Conv.Ovf.U2</td>
+<td>将位于计算堆栈顶部的有符号值转换为 unsigned int16 并将其扩展为 int32，并在溢出时引发 OverflowException。</td>
+</tr>
+<tr>
+<td>Conv.Ovf.U2.Un</td>
+<td>将位于计算堆栈顶部的无符号值转换为 unsigned int16 并将其扩展为 int32，并在溢出时引发 OverflowException。</td>
+</tr>
+<tr>
+<td>Conv.Ovf.U4</td>
+<td>将位于计算堆栈顶部的有符号值转换为 unsigned int32，并在溢出时引发 OverflowException。</td>
+</tr>
+<tr>
+<td>Conv.Ovf.U4.Un</td>
+<td>将位于计算堆栈顶部的无符号值转换为 unsigned int32，并在溢出时引发 OverflowException。</td>
+</tr>
+<tr>
+<td>Conv.Ovf.U8</td>
+<td>将位于计算堆栈顶部的有符号值转换为 unsigned int64，并在溢出时引发 OverflowException。</td>
+</tr>
+<tr>
+<td>Conv.Ovf.U8.Un</td>
+<td>将位于计算堆栈顶部的无符号值转换为 unsigned int64，并在溢出时引发 OverflowException。</td>
+</tr>
+<tr>
+<td>Conv.R.Un</td>
+<td>将位于计算堆栈顶部的无符号整数值转换为 float32。</td>
+</tr>
+<tr>
+<td>Conv.R4</td>
+<td>将位于计算堆栈顶部的值转换为 float32。</td>
+</tr>
+<tr>
+<td>Conv.R8</td>
+<td>将位于计算堆栈顶部的值转换为 float64。</td>
+</tr>
+<tr>
+<td>Conv.U</td>
+<td>将位于计算堆栈顶部的值转换为 unsigned native int，然后将其扩展为 native int。</td>
+</tr>
+<tr>
+<td>Conv.U1</td>
+<td>将位于计算堆栈顶部的值转换为 unsigned int8，然后将其扩展为 int32。</td>
+</tr>
+<tr>
+<td>Conv.U2</td>
+<td>将位于计算堆栈顶部的值转换为 unsigned int16，然后将其扩展为 int32。</td>
+</tr>
+<tr>
+<td>Conv.U4</td>
+<td>将位于计算堆栈顶部的值转换为 unsigned int32，然后将其扩展为 int32。</td>
+</tr>
+<tr>
+<td>Conv.U8</td>
+<td>将位于计算堆栈顶部的值转换为 unsigned int64，然后将其扩展为 int64。</td>
+</tr>
+<tr>
+<td>Cpblk</td>
+<td>将指定数目的字节从源地址复制到目标地址。</td>
+</tr>
+<tr>
+<td>Cpobj</td>
+<td>将位于对象（&amp;、* 或 native int 类型）地址的值类型复制到目标对象（&amp;、* 或 native int 类型）的地址。</td>
+</tr>
+<tr>
+<td>Div</td>
+<td>将两个值相除并将结果作为浮点（F 类型）或商（int32 类型）推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Div.Un</td>
+<td>两个无符号整数值相除并将结果 ( int32 ) 推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Dup</td>
+<td>复制计算堆栈上当前最顶端的值，然后将副本推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Endfilter</td>
+<td>将控制从异常的 filter 子句转移回公共语言结构 (CLI) 异常处理程序。</td>
+</tr>
+<tr>
+<td>Endfinally</td>
+<td>将控制从异常块的 fault 或 finally 子句转移回公共语言结构 (CLI) 异常处理程序。</td>
+</tr>
+<tr>
+<td>Initblk</td>
+<td>将位于特定地址的内存的指定块初始化为给定大小和初始值。</td>
+</tr>
+<tr>
+<td>Initobj</td>
+<td>将位于指定地址的值类型的每个字段初始化为空引用或适当的基元类型的 0。</td>
+</tr>
+<tr>
+<td>Isinst</td>
+<td>测试对象引用（O 类型）是否为特定类的实例。</td>
+</tr>
+<tr>
+<td>Jmp</td>
+<td>退出当前方法并跳至指定方法。</td>
+</tr>
+<tr>
+<td>Ldarg</td>
+<td>将参数（由指定索引值引用）加载到堆栈上。</td>
+</tr>
+<tr>
+<td>Ldarg.0</td>
+<td>将索引为 0 的参数加载到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldarg.1</td>
+<td>将索引为 1 的参数加载到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldarg.2</td>
+<td>将索引为 2 的参数加载到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldarg.3</td>
+<td>将索引为 3 的参数加载到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldarg.S</td>
+<td>将参数（由指定的短格式索引引用）加载到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldarga</td>
+<td>将参数地址加载到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldarga.S</td>
+<td>以短格式将参数地址加载到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldc.I4</td>
+<td>将所提供的 int32 类型的值作为 int32 推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldc.I4.0</td>
+<td>将整数值 0 作为 int32 推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldc.I4.1</td>
+<td>将整数值 1 作为 int32 推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldc.I4.2</td>
+<td>将整数值 2 作为 int32 推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldc.I4.3</td>
+<td>将整数值 3 作为 int32 推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldc.I4.4</td>
+<td>将整数值 4 作为 int32 推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldc.I4.5</td>
+<td>将整数值 5 作为 int32 推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldc.I4.6</td>
+<td>将整数值 6 作为 int32 推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldc.I4.7</td>
+<td>将整数值 7 作为 int32 推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldc.I4.8</td>
+<td>将整数值 8 作为 int32 推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldc.I4.M1</td>
+<td>将整数值 -1 作为 int32 推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldc.I4.S</td>
+<td>将提供的 int8 值作为 int32 推送到计算堆栈上（短格式）。</td>
+</tr>
+<tr>
+<td>Ldc.I8</td>
+<td>将所提供的 int64 类型的值作为 int64 推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldc.R4</td>
+<td>将所提供的 float32 类型的值作为 F (float) 类型推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldc.R8</td>
+<td>将所提供的 float64 类型的值作为 F (float) 类型推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldelem</td>
+<td>按照指令中指定的类型，将指定数组索引中的元素加载到计算堆栈的顶部。</td>
+</tr>
+<tr>
+<td>Ldelem.I</td>
+<td>将位于指定数组索引处的 native int 类型的元素作为 native int 加载到计算堆栈的顶部。</td>
+</tr>
+<tr>
+<td>Ldelem.I1</td>
+<td>将位于指定数组索引处的 int8 类型的元素作为 int32 加载到计算堆栈的顶部。</td>
+</tr>
+<tr>
+<td>Ldelem.I2</td>
+<td>将位于指定数组索引处的 int16 类型的元素作为 int32 加载到计算堆栈的顶部。</td>
+</tr>
+<tr>
+<td>Ldelem.I4</td>
+<td>将位于指定数组索引处的 int32 类型的元素作为 int32 加载到计算堆栈的顶部。</td>
+</tr>
+<tr>
+<td>Ldelem.I8</td>
+<td>将位于指定数组索引处的 int64 类型的元素作为 int64 加载到计算堆栈的顶部。</td>
+</tr>
+<tr>
+<td>Ldelem.R4</td>
+<td>将位于指定数组索引处的 float32 类型的元素作为 F 类型（浮点型）加载到计算堆栈的顶部。</td>
+</tr>
+<tr>
+<td>Ldelem.R8</td>
+<td>将位于指定数组索引处的 float64 类型的元素作为 F 类型（浮点型）加载到计算堆栈的顶部。</td>
+</tr>
+<tr>
+<td>Ldelem.Ref</td>
+<td>将位于指定数组索引处的包含对象引用的元素作为 O 类型（对象引用）加载到计算堆栈的顶部。</td>
+</tr>
+<tr>
+<td>Ldelem.U1</td>
+<td>将位于指定数组索引处的 unsigned int8 类型的元素作为 int32 加载到计算堆栈的顶部。</td>
+</tr>
+<tr>
+<td>Ldelem.U2</td>
+<td>将位于指定数组索引处的 unsigned int16 类型的元素作为 int32 加载到计算堆栈的顶部。</td>
+</tr>
+<tr>
+<td>Ldelem.U4</td>
+<td>将位于指定数组索引处的 unsigned int32 类型的元素作为 int32 加载到计算堆栈的顶部。</td>
+</tr>
+<tr>
+<td>Ldelema</td>
+<td>将位于指定数组索引的数组元素的地址作为 &amp; 类型（托管指针）加载到计算堆栈的顶部。</td>
+</tr>
+<tr>
+<td>Ldfld</td>
+<td>查找对象中其引用当前位于计算堆栈的字段的值。</td>
+</tr>
+<tr>
+<td>Ldflda</td>
+<td>查找对象中其引用当前位于计算堆栈的字段的地址。</td>
+</tr>
+<tr>
+<td>Ldftn</td>
+<td>将指向实现特定方法的本机代码的非托管指针（native int 类型）推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldind.I</td>
+<td>将 native int 类型的值作为 native int 间接加载到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldind.I1</td>
+<td>将 int8 类型的值作为 int32 间接加载到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldind.I2</td>
+<td>将 int16 类型的值作为 int32 间接加载到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldind.I4</td>
+<td>将 int32 类型的值作为 int32 间接加载到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldind.I8</td>
+<td>将 int64 类型的值作为 int64 间接加载到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldind.R4</td>
+<td>将 float32 类型的值作为 F (float) 类型间接加载到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldind.R8</td>
+<td>将 float64 类型的值作为 F (float) 类型间接加载到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldind.Ref</td>
+<td>将对象引用作为 O（对象引用）类型间接加载到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldind.U1</td>
+<td>将 unsigned int8 类型的值作为 int32 间接加载到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldind.U2</td>
+<td>将 unsigned int16 类型的值作为 int32 间接加载到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldind.U4</td>
+<td>将 unsigned int32 类型的值作为 int32 间接加载到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldlen</td>
+<td>将从零开始的、一维数组的元素的数目推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldloc</td>
+<td>将指定索引处的局部变量加载到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldloc.0</td>
+<td>将索引 0 处的局部变量加载到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldloc.1</td>
+<td>将索引 1 处的局部变量加载到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldloc.2</td>
+<td>将索引 2 处的局部变量加载到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldloc.3</td>
+<td>将索引 3 处的局部变量加载到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldloc.S</td>
+<td>将特定索引处的局部变量加载到计算堆栈上（短格式）。</td>
+</tr>
+<tr>
+<td>Ldloca</td>
+<td>将位于特定索引处的局部变量的地址加载到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldloca.S</td>
+<td>将位于特定索引处的局部变量的地址加载到计算堆栈上（短格式）。</td>
+</tr>
+<tr>
+<td>Ldnull</td>
+<td>将空引用（O 类型）推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldobj</td>
+<td>将地址指向的值类型对象复制到计算堆栈的顶部。</td>
+</tr>
+<tr>
+<td>Ldsfld</td>
+<td>将静态字段的值推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldsflda</td>
+<td>将静态字段的地址推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldstr</td>
+<td>推送对元数据中存储的字符串的新对象引用。</td>
+</tr>
+<tr>
+<td>Ldtoken</td>
+<td>将元数据标记转换为其运行时表示形式，并将其推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ldvirtftn</td>
+<td>将指向实现与指定对象关联的特定虚方法的本机代码的非托管指针（native int 类型）推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Leave</td>
+<td>退出受保护的代码区域，无条件将控制转移到特定目标指令。</td>
+</tr>
+<tr>
+<td>Leave.S</td>
+<td>退出受保护的代码区域，无条件将控制转移到目标指令（缩写形式）。</td>
+</tr>
+<tr>
+<td>Localloc</td>
+<td>从本地动态内存池分配特定数目的字节并将第一个分配的字节的地址（瞬态指针，* 类型）推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Mkrefany</td>
+<td>将对特定类型实例的类型化引用推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Mul</td>
+<td>将两个值相乘并将结果推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Mul.Ovf</td>
+<td>将两个整数值相乘，执行溢出检查，并将结果推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Mul.Ovf.Un</td>
+<td>将两个无符号整数值相乘，执行溢出检查，并将结果推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Neg</td>
+<td>对一个值执行求反并将结果推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Newarr</td>
+<td>将对新的从零开始的一维数组（其元素属于特定类型）的对象引用推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Newobj</td>
+<td>创建一个值类型的新对象或新实例，并将对象引用（O 类型）推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Nop</td>
+<td>如果修补操作码，则填充空间。尽管可能消耗处理周期，但未执行任何有意义的操作。</td>
+</tr>
+<tr>
+<td>Not</td>
+<td>计算堆栈顶部整数值的按位求补并将结果作为相同的类型推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Or</td>
+<td>计算位于堆栈顶部的两个整数值的按位求补并将结果推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Pop</td>
+<td>移除当前位于计算堆栈顶部的值。</td>
+</tr>
+<tr>
+<td>Prefix1</td>
+<td>基础结构。此指令为保留指令。</td>
+</tr>
+<tr>
+<td>Prefix2</td>
+<td>基础结构。此指令为保留指令。</td>
+</tr>
+<tr>
+<td>Prefix3</td>
+<td>基础结构。此指令为保留指令。</td>
+</tr>
+<tr>
+<td>Prefix4</td>
+<td>基础结构。此指令为保留指令。</td>
+</tr>
+<tr>
+<td>Prefix5</td>
+<td>基础结构。此指令为保留指令。</td>
+</tr>
+<tr>
+<td>Prefix6</td>
+<td>基础结构。此指令为保留指令。</td>
+</tr>
+<tr>
+<td>Prefix7</td>
+<td>基础结构。此指令为保留指令。</td>
+</tr>
+<tr>
+<td>Prefixref</td>
+<td>基础结构。此指令为保留指令。</td>
+</tr>
+<tr>
+<td>Readonly</td>
+<td>指定后面的数组地址操作在运行时不执行类型检查，并且返回可变性受限的托管指针。</td>
+</tr>
+<tr>
+<td>Refanytype</td>
+<td>检索嵌入在类型化引用内的类型标记。</td>
+</tr>
+<tr>
+<td>Refanyval</td>
+<td>检索嵌入在类型化引用内的地址（&amp; 类型）。</td>
+</tr>
+<tr>
+<td>Rem</td>
+<td>将两个值相除并将余数推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Rem.Un</td>
+<td>将两个无符号值相除并将余数推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Ret</td>
+<td>从当前方法返回，并将返回值（如果存在）从调用方的计算堆栈推送到被调用方的计算堆栈上。</td>
+</tr>
+<tr>
+<td>Rethrow</td>
+<td>再次引发当前异常。</td>
+</tr>
+<tr>
+<td>Shl</td>
+<td>将整数值左移（用零填充）指定的位数，并将结果推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Shr</td>
+<td>将整数值右移（保留符号）指定的位数，并将结果推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Shr.Un</td>
+<td>将无符号整数值右移（用零填充）指定的位数，并将结果推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Sizeof</td>
+<td>将提供的值类型的大小（以字节为单位）推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Starg</td>
+<td>将位于计算堆栈顶部的值存储到位于指定索引的参数槽中。</td>
+</tr>
+<tr>
+<td>Starg.S</td>
+<td>将位于计算堆栈顶部的值存储在参数槽中的指定索引处（短格式）。</td>
+</tr>
+<tr>
+<td>Stelem</td>
+<td>用计算堆栈中的值替换给定索引处的数组元素，其类型在指令中指定。</td>
+</tr>
+<tr>
+<td>Stelem.I</td>
+<td>用计算堆栈上的 native int 值替换给定索引处的数组元素。</td>
+</tr>
+<tr>
+<td>Stelem.I1</td>
+<td>用计算堆栈上的 int8 值替换给定索引处的数组元素。</td>
+</tr>
+<tr>
+<td>Stelem.I2</td>
+<td>用计算堆栈上的 int16 值替换给定索引处的数组元素。</td>
+</tr>
+<tr>
+<td>Stelem.I4</td>
+<td>用计算堆栈上的 int32 值替换给定索引处的数组元素。</td>
+</tr>
+<tr>
+<td>Stelem.I8</td>
+<td>用计算堆栈上的 int64 值替换给定索引处的数组元素。</td>
+</tr>
+<tr>
+<td>Stelem.R4</td>
+<td>用计算堆栈上的 float32 值替换给定索引处的数组元素。</td>
+</tr>
+<tr>
+<td>Stelem.R8</td>
+<td>用计算堆栈上的 float64 值替换给定索引处的数组元素。</td>
+</tr>
+<tr>
+<td>Stelem.Ref</td>
+<td>用计算堆栈上的对象 ref 值（O 类型）替换给定索引处的数组元素。</td>
+</tr>
+<tr>
+<td>Stfld</td>
+<td>用新值替换在对象引用或指针的字段中存储的值。</td>
+</tr>
+<tr>
+<td>Stind.I</td>
+<td>在所提供的地址存储 native int 类型的值。</td>
+</tr>
+<tr>
+<td>Stind.I1</td>
+<td>在所提供的地址存储 int8 类型的值。</td>
+</tr>
+<tr>
+<td>Stind.I2</td>
+<td>在所提供的地址存储 int16 类型的值。</td>
+</tr>
+<tr>
+<td>Stind.I4</td>
+<td>在所提供的地址存储 int32 类型的值。</td>
+</tr>
+<tr>
+<td>Stind.I8</td>
+<td>在所提供的地址存储 int64 类型的值。</td>
+</tr>
+<tr>
+<td>Stind.R4</td>
+<td>在所提供的地址存储 float32 类型的值。</td>
+</tr>
+<tr>
+<td>Stind.R8</td>
+<td>在所提供的地址存储 float64 类型的值。</td>
+</tr>
+<tr>
+<td>Stind.Ref</td>
+<td>存储所提供地址处的对象引用值。</td>
+</tr>
+<tr>
+<td>Stloc</td>
+<td>从计算堆栈的顶部弹出当前值并将其存储到指定索引处的局部变量列表中。</td>
+</tr>
+<tr>
+<td>Stloc.0</td>
+<td>从计算堆栈的顶部弹出当前值并将其存储到索引 0 处的局部变量列表中。</td>
+</tr>
+<tr>
+<td>Stloc.1</td>
+<td>从计算堆栈的顶部弹出当前值并将其存储到索引 1 处的局部变量列表中。</td>
+</tr>
+<tr>
+<td>Stloc.2</td>
+<td>从计算堆栈的顶部弹出当前值并将其存储到索引 2 处的局部变量列表中。</td>
+</tr>
+<tr>
+<td>Stloc.3</td>
+<td>从计算堆栈的顶部弹出当前值并将其存储到索引 3 处的局部变量列表中。</td>
+</tr>
+<tr>
+<td>Stloc.S</td>
+<td>从计算堆栈的顶部弹出当前值并将其存储在局部变量列表中的 index 处（短格式）。</td>
+</tr>
+<tr>
+<td>Stobj</td>
+<td>将指定类型的值从计算堆栈复制到所提供的内存地址中。</td>
+</tr>
+<tr>
+<td>Stsfld</td>
+<td>用来自计算堆栈的值替换静态字段的值。</td>
+</tr>
+<tr>
+<td>Sub</td>
+<td>从其他值中减去一个值并将结果推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Sub.Ovf</td>
+<td>从另一值中减去一个整数值，执行溢出检查，并且将结果推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Sub.Ovf.Un</td>
+<td>从另一值中减去一个无符号整数值，执行溢出检查，并且将结果推送到计算堆栈上。</td>
+</tr>
+<tr>
+<td>Switch</td>
+<td>实现跳转表。</td>
+</tr>
+<tr>
+<td>Tailcall</td>
+<td>执行后缀的方法调用指令，以便在执行实际调用指令前移除当前方法的堆栈帧。</td>
+</tr>
+<tr>
+<td>Throw</td>
+<td>引发当前位于计算堆栈上的异常对象。</td>
+</tr>
+<tr>
+<td>Unaligned</td>
+<td>指示当前位于计算堆栈上的地址可能没有与紧接的 ldind、stind、ldfld、stfld、ldobj、stobj、initblk 或 cpblk 指令的自然大小对齐。</td>
+</tr>
+<tr>
+<td>Unbox</td>
+<td>将值类型的已装箱的表示形式转换为其未装箱的形式。</td>
+</tr>
+<tr>
+<td>Unbox.Any</td>
+<td>将指令中指定类型的已装箱的表示形式转换成未装箱形式。</td>
+</tr>
+<tr>
+<td>Volatile</td>
+<td>指定当前位于计算堆栈顶部的地址可以是易失的，并且读取该位置的结果不能被缓存，或者对该地址的多个存储区不能被取消。</td>
+</tr>
+<tr>
+<td>Xor</td>
+<td>计算位于计算堆栈顶部的两个值的按位异或，并且将结果推送到计算堆栈上。</td>
+</tr>
+</tbody></table>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/DotNet/" rel="tag"># DotNet</a>
+              <a href="/tags/CSharp/" rel="tag"># CSharp</a>
+              <a href="/tags/Emit-%E5%8F%8D%E5%B0%84%E5%8F%91%E5%87%BA/" rel="tag"># Emit(反射发出)</a>
+              <a href="/tags/MSIL%E6%8C%87%E4%BB%A4/" rel="tag"># MSIL指令</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/12/11/CSharp%E4%B8%AD%E7%9A%84%E5%A7%94%E6%89%98%E4%B8%8E%E4%BA%8B%E4%BB%B6/" rel="prev" title="CSharp中的委托与事件">
+      <i class="fa fa-chevron-left"></i> CSharp中的委托与事件
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2018/12/11/CSharp%E4%B8%AD%E7%9A%84%E5%A7%94%E6%89%98%EF%BC%8C%E4%BA%8B%E4%BB%B6%E4%B8%8E%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" rel="next" title="CSharp中的委托，事件与设计模式">
+      CSharp中的委托，事件与设计模式 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">309</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">100</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">132</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

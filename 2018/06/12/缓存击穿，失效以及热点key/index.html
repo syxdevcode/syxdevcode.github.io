@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"syxdevcode.github.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="缓存击穿，失效以及热点key缓存击穿缓存一般是Key，value方式存在，当某一个Key不存在时会查询数据库，假如这个Key，一直不存在，则会频繁的请求数据库，对数据库造成访问压力。 1、使用互斥锁在根据key获得的value值为空时，先锁上，再从数据库加载，加载完毕，释放锁。若其他线程发现获取锁失败，则睡眠50ms后重试。 当通过某一个key去查询数据的时候，如果对应在数据库中的数据都不存在（不">
+<meta property="og:type" content="article">
+<meta property="og:title" content="缓存击穿，失效以及热点key">
+<meta property="og:url" content="https://syxdevcode.github.com/2018/06/12/%E7%BC%93%E5%AD%98%E5%87%BB%E7%A9%BF%EF%BC%8C%E5%A4%B1%E6%95%88%E4%BB%A5%E5%8F%8A%E7%83%AD%E7%82%B9key/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="缓存击穿，失效以及热点key缓存击穿缓存一般是Key，value方式存在，当某一个Key不存在时会查询数据库，假如这个Key，一直不存在，则会频繁的请求数据库，对数据库造成访问压力。 1、使用互斥锁在根据key获得的value值为空时，先锁上，再从数据库加载，加载完毕，释放锁。若其他线程发现获取锁失败，则睡眠50ms后重试。 当通过某一个key去查询数据的时候，如果对应在数据库中的数据都不存在（不">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2018-06-12T14:41:31.000Z">
+<meta property="article:modified_time" content="2020-09-28T07:12:37.261Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="分布式">
+<meta property="article:tag" content="缓存">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://syxdevcode.github.com/2018/06/12/%E7%BC%93%E5%AD%98%E5%87%BB%E7%A9%BF%EF%BC%8C%E5%A4%B1%E6%95%88%E4%BB%A5%E5%8F%8A%E7%83%AD%E7%82%B9key/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>缓存击穿，失效以及热点key | syxdevcode博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">syxdevcode博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/syxdevcode" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/06/12/%E7%BC%93%E5%AD%98%E5%87%BB%E7%A9%BF%EF%BC%8C%E5%A4%B1%E6%95%88%E4%BB%A5%E5%8F%8A%E7%83%AD%E7%82%B9key/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          缓存击穿，失效以及热点key
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-06-12 14:41:31" itemprop="dateCreated datePublished" datetime="2018-06-12T14:41:31+00:00">2018-06-12</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-09-28 07:12:37" itemprop="dateModified" datetime="2020-09-28T07:12:37+00:00">2020-09-28</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BC%93%E5%AD%98/" itemprop="url" rel="index"><span itemprop="name">缓存</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="缓存击穿，失效以及热点key"><a href="#缓存击穿，失效以及热点key" class="headerlink" title="缓存击穿，失效以及热点key"></a>缓存击穿，失效以及热点key</h1><h2 id="缓存击穿"><a href="#缓存击穿" class="headerlink" title="缓存击穿"></a>缓存击穿</h2><p>缓存一般是Key，value方式存在，当某一个Key不存在时会查询数据库，假如这个Key，一直不存在，则会频繁的请求数据库，对数据库造成访问压力。</p>
+<h3 id="1、使用互斥锁"><a href="#1、使用互斥锁" class="headerlink" title="1、使用互斥锁"></a>1、使用互斥锁</h3><p>在根据key获得的value值为空时，先锁上，再从数据库加载，加载完毕，释放锁。若其他线程发现获取锁失败，则睡眠50ms后重试。</p>
+<p>当通过某一个key去查询数据的时候，如果对应在数据库中的数据都不存在（不管是数据不存在，还是系统故障），我们将此key对应的value设置为一个默认的值，比如“NULL”，并设置一个缓存的失效时间，它的过期时间会很短，最长不超过五分钟。这时在缓存失效之前，所有通过此key的访问都被缓存挡住了。后面如果此key对应的数据在DB中存在时，缓存失效之后，通过此key再去访问数据，就能拿到新的value了。</p>
+<p>至于锁的类型，单机环境用并发包的Lock类型就行，集群环境则使用分布式锁( redis的setnx)</p>
+<p>** 优点**</p>
+<p>思路简单<br>保证一致性</p>
+<p>** 缺点**</p>
+<p>代码复杂度增大<br>存在死锁的风险</p>
+<p>** SETNX语法**</p>
+<p>SETNX key value</p>
+<p>将 key 的值设为 value ，当且仅当 key 不存在。</p>
+<p>若给定的 key 已经存在，则 SETNX 不做任何动作。</p>
+<p>SETNX 是『SET if Not eXists』(如果不存在，则 SET)的简写。</p>
+<p>可用版本：&gt;= 1.0.0</p>
+<p>时间复杂度： O(1)</p>
+<p>返回值： 设置成功，返回 1。设置失败，返回 0 。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">172.19.0.2:6380&gt; EXISTS job</span><br><span class="line">(integer) 0</span><br><span class="line">172.19.0.2:6380&gt; setnx job &quot;programmer&quot;</span><br><span class="line">(integer) 1</span><br><span class="line">172.19.0.2:6380&gt; setnx job &quot;code-farmer&quot;</span><br><span class="line">(integer) 0</span><br><span class="line">172.19.0.2:6380&gt; get job</span><br><span class="line">&quot;programmer&quot;</span><br></pre></td></tr></table></figure>
+
+<p>.net 代码</p>
+<p>参考：<a target="_blank" rel="noopener" href="http://www.cnblogs.com/yaoshangjin/p/7456378.html">http://www.cnblogs.com/yaoshangjin/p/7456378.html</a></p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;summary&gt;</span></span></span><br><span class="line"><span class="comment"><span class="doctag">///</span> 分布式锁</span></span><br><span class="line"><span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;/summary&gt;</span></span></span><br><span class="line"><span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;param name=&quot;resource&quot;&gt;</span>The thing we are locking on<span class="doctag">&lt;/param&gt;</span></span></span><br><span class="line"><span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;param name=&quot;expirationTime&quot;&gt;</span>The time after which the lock will automatically be expired by Redis<span class="doctag">&lt;/param&gt;</span></span></span><br><span class="line"><span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;param name=&quot;action&quot;&gt;</span>Action to be performed with locking<span class="doctag">&lt;/param&gt;</span></span></span><br><span class="line"><span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;returns&gt;</span>True if lock was acquired and action was performed; otherwise false<span class="doctag">&lt;/returns&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">bool</span> <span class="title">PerformActionWithLock</span>(<span class="params"><span class="keyword">string</span> resource, TimeSpan expirationTime, Action action</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    RedisValue lockToken = Guid.NewGuid().ToString(); <span class="comment">//Environment.MachineName;</span></span><br><span class="line">    RedisKey locKey = resource;</span><br><span class="line">    <span class="keyword">var</span> db = GetDatabase();</span><br><span class="line">    <span class="keyword">if</span> (db.LockTake(locKey, lockToken, expirationTime))</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">try</span></span><br><span class="line">        &#123;</span><br><span class="line">            action();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">finally</span></span><br><span class="line">        &#123;</span><br><span class="line">            db.LockRelease(locKey, lockToken);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>测试代码：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">[<span class="meta">Test</span>]</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">TestLock</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    RedisKey _lockKey = <span class="string">&quot;lock_key&quot;</span>;</span><br><span class="line">    <span class="keyword">var</span> _lockDuration = TimeSpan.FromSeconds(<span class="number">30</span>);</span><br><span class="line">    <span class="keyword">var</span> mainTask = <span class="keyword">new</span> Task(() =&gt; _redisMSConnectionWrapper.PerformActionWithLock(_lockKey, _lockDuration, () =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;1.执行锁内任务-开始&quot;</span>);</span><br><span class="line">        Thread.Sleep(<span class="number">10000</span>);</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;1.执行锁内任务-结束&quot;</span>);</span><br><span class="line">    &#125;));</span><br><span class="line">    mainTask.Start();</span><br><span class="line">    Thread.Sleep(<span class="number">1000</span>);</span><br><span class="line">    <span class="keyword">var</span> subOk = <span class="literal">true</span>;</span><br><span class="line">    <span class="keyword">while</span> (subOk)</span><br><span class="line">    &#123;</span><br><span class="line">        _redisMSConnectionWrapper.PerformActionWithLock(_lockKey, _lockDuration, () =&gt;</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;2.执行锁内任务-开始&quot;</span>);</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;2.执行锁内任务-结束&quot;</span>);</span><br><span class="line">            subOk = <span class="literal">false</span>;</span><br><span class="line">        &#125;);</span><br><span class="line">        Thread.Sleep(<span class="number">1000</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;结束&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2、异步构建缓存"><a href="#2、异步构建缓存" class="headerlink" title="2、异步构建缓存"></a>2、异步构建缓存</h3><p>或者叫”提前”使用互斥锁</p>
+<p>在value内部设置1个超时值(timeout1), timeout1比实际的memcache timeout(timeout2)小。当从cache读取到timeout1发现它已经过期时候，马上延长timeout1并重新设置到cache。然后再从数据库加载数据并设置到cache中。</p>
+<p>** 优点**</p>
+<p>性价最佳，用户无需等待</p>
+<p>** 缺点**</p>
+<p>无法保证缓存一致性</p>
+<h3 id="3、布隆过滤器"><a href="#3、布隆过滤器" class="headerlink" title="3、布隆过滤器"></a>3、布隆过滤器</h3><p>布隆过滤器的巨大用处就是，能够迅速判断一个元素是否在一个集合中。因此他有如下三个使用场景:</p>
+<p>1.网页爬虫对URL的去重，避免爬取相同的URL地址<br>2.反垃圾邮件，从数十亿个垃圾邮件列表中判断某邮箱是否垃圾邮箱（同理，垃圾短信）<br>3.缓存击穿，将已存在的缓存放到布隆过滤器中，当黑客访问不存在的缓存时迅速返回避免缓存及DB挂掉。</p>
+<p>** 布隆过滤器的原理**</p>
+<p>其内部维护一个全为0的bit数组，需要说明的是，布隆过滤器有一个误判率的概念，误判率越低，则数组越长，所占空间越大。误判率越高则数组越小，所占的空间越小。</p>
+<p>** 优点**</p>
+<p>思路简单<br>保证一致性<br>性能强</p>
+<p>** 缺点**</p>
+<p>代码复杂度增大<br>需要另外维护一个集合来存放缓存的Key<br>布隆过滤器不支持删值操作</p>
+<h2 id="缓存雪崩（缓存失效）"><a href="#缓存雪崩（缓存失效）" class="headerlink" title="缓存雪崩（缓存失效）"></a>缓存雪崩（缓存失效）</h2><p>在高并发的环境下，缓存集中在一段时间内大量失效（例如设置缓存时采用了相同的过期时间，导致缓存在某一时刻同时失效），此时有多个进程就会去同时去查询DB，然后再去同时设置缓存。DB访问量会瞬间增大，造成了缓存雪崩。</p>
+<p>解决方法：</p>
+<p>1, 在缓存失效后，通过加锁或者队列来控制读数据库写缓存的线程数量。比如对某个key只允许一个线程查询数据和写缓存，其他线程等待，参考上文：1、使用互斥锁。<br>2, 可以通过缓存reload机制，预先去更新缓存，再即将发生大并发访问前手动触发加载缓存。<br>3, 不同的key，设置不同的过期时间，让缓存失效的时间点尽量均匀,例如在原有的失效时间基础上增加一个随机值，比如1-5分钟随机，这样每一个缓存的过期时间的重复率就会降低，就很难引发集体失效的事件。<br>4, 做二级缓存，或者双缓存策略。A1为原始缓存，A2为拷贝缓存，A1失效时，可以访问A2，A1缓存失效时间设置为短期，A2设置为长期。</p>
+<h2 id="热点key问题"><a href="#热点key问题" class="headerlink" title="热点key问题"></a>热点key问题</h2><p>(1) 这个key是一个热点key（例如一个重要的新闻，一个热门的八卦新闻等等），所以这种key访问量可能非常大。</p>
+<p>(2) 缓存的构建是需要一定时间的。（可能是一个复杂计算，例如复杂的sql、多次IO、多个依赖(各种接口)等等）</p>
+<p>于是就会出现一个致命问题：在缓存失效的瞬间，有大量线程来构建缓存，或者由于设计问题，造成缓存击穿，造成后端负载加大，甚至可能会让系统崩溃。</p>
+<p>解决方法：</p>
+<p>1，使用互斥锁(mutex key):这种解决方案思路比较简单，就是只让一个线程构建缓存，其他线程等待构建缓存的线程执行完，重新从缓存获取数据就可以了，参考上文：1、使用互斥锁。</p>
+<p>2，”提前”使用互斥锁(mutex key)：在value内部设置1个超时值(timeout1), timeout1比实际的memcache timeout(timeout2)小。当从cache读取到timeout1发现它已经过期时候，马上延长timeout1并重新设置到cache。然后再从数据库加载数据并设置到cache中。参考上文：2、异步构建缓存</p>
+<p>3，”永远不过期”：</p>
+<p>这里的“永远不过期”包含两层意思：</p>
+<p>(1) 从redis上看，确实没有设置过期时间，这就保证了，不会出现热点key过期问题，也就是“物理”不过期。</p>
+<p>(2) 从功能上看，如果不过期，那不就成静态的了吗？所以我们把过期时间存在key对应的value里，如果发现要过期了，通过一个后台的异步线程进行缓存的构建，也就是“逻辑”过期</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/rjzheng/p/8908073.html">分布式之缓存击穿</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/wang0112233/article/details/79558612">缓存雪崩、缓存穿透、热点Key解决方案和分析</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/zeb_perfect/article/details/54135506">缓存穿透，缓存击穿，缓存雪崩解决方案分析</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/d5a3668d4dad">缓存击穿、失效以及热点key问题</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" rel="tag"># 分布式</a>
+              <a href="/tags/%E7%BC%93%E5%AD%98/" rel="tag"># 缓存</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/06/12/%E7%BC%93%E5%AD%98%E5%9C%A8%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F%E4%B8%AD%E7%9A%84%E5%BA%94%E7%94%A8/" rel="prev" title="缓存在分布式系统中的应用">
+      <i class="fa fa-chevron-left"></i> 缓存在分布式系统中的应用
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2018/06/13/%E4%B8%80%E8%87%B4%E6%80%A7%E5%93%88%E5%B8%8C%E7%AE%97%E6%B3%95-consistent-hashing/" rel="next" title="一致性哈希算法 consistent hashing">
+      一致性哈希算法 consistent hashing <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%BC%93%E5%AD%98%E5%87%BB%E7%A9%BF%EF%BC%8C%E5%A4%B1%E6%95%88%E4%BB%A5%E5%8F%8A%E7%83%AD%E7%82%B9key"><span class="nav-number">1.</span> <span class="nav-text">缓存击穿，失效以及热点key</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%93%E5%AD%98%E5%87%BB%E7%A9%BF"><span class="nav-number">1.1.</span> <span class="nav-text">缓存击穿</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1%E3%80%81%E4%BD%BF%E7%94%A8%E4%BA%92%E6%96%A5%E9%94%81"><span class="nav-number">1.1.1.</span> <span class="nav-text">1、使用互斥锁</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2%E3%80%81%E5%BC%82%E6%AD%A5%E6%9E%84%E5%BB%BA%E7%BC%93%E5%AD%98"><span class="nav-number">1.1.2.</span> <span class="nav-text">2、异步构建缓存</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3%E3%80%81%E5%B8%83%E9%9A%86%E8%BF%87%E6%BB%A4%E5%99%A8"><span class="nav-number">1.1.3.</span> <span class="nav-text">3、布隆过滤器</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%93%E5%AD%98%E9%9B%AA%E5%B4%A9%EF%BC%88%E7%BC%93%E5%AD%98%E5%A4%B1%E6%95%88%EF%BC%89"><span class="nav-number">1.2.</span> <span class="nav-text">缓存雪崩（缓存失效）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%83%AD%E7%82%B9key%E9%97%AE%E9%A2%98"><span class="nav-number">1.3.</span> <span class="nav-text">热点key问题</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">309</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">100</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">132</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

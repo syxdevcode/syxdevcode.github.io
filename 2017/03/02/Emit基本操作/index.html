@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"syxdevcode.github.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="ILGeneratorILGenerator：生成IL代码 获取ILGenerator类的实例方法：  ConstructorBuilder.GetILGenerator方法DynamicMethod.GetILGenerator 方法MethodBuilder.GetILGenerator 方法  上面涉及到了在Emit中能够动态生成方法的三种途径， ConstructorBuilder类用来配">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Emit基本操作">
+<meta property="og:url" content="https://syxdevcode.github.com/2017/03/02/Emit%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="ILGeneratorILGenerator：生成IL代码 获取ILGenerator类的实例方法：  ConstructorBuilder.GetILGenerator方法DynamicMethod.GetILGenerator 方法MethodBuilder.GetILGenerator 方法  上面涉及到了在Emit中能够动态生成方法的三种途径， ConstructorBuilder类用来配">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2017-03-02T16:32:27.000Z">
+<meta property="article:modified_time" content="2020-09-28T07:12:37.253Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="CSharp基础">
+<meta property="article:tag" content="Emit(反射发出)">
+<meta property="article:tag" content="反射">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://syxdevcode.github.com/2017/03/02/Emit%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Emit基本操作 | syxdevcode博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">syxdevcode博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/syxdevcode" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2017/03/02/Emit%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Emit基本操作
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2017-03-02 16:32:27" itemprop="dateCreated datePublished" datetime="2017-03-02T16:32:27+00:00">2017-03-02</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-09-28 07:12:37" itemprop="dateModified" datetime="2020-09-28T07:12:37+00:00">2020-09-28</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Emit-%E5%8F%8D%E5%B0%84%E5%8F%91%E5%87%BA/" itemprop="url" rel="index"><span itemprop="name">Emit(反射发出)</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="ILGenerator"><a href="#ILGenerator" class="headerlink" title="ILGenerator"></a>ILGenerator</h2><p>ILGenerator：生成IL代码</p>
+<p>获取ILGenerator类的实例方法：</p>
+<blockquote>
+<p>ConstructorBuilder.GetILGenerator方法<br>DynamicMethod.GetILGenerator 方法<br>MethodBuilder.GetILGenerator 方法</p>
+</blockquote>
+<p>上面涉及到了在Emit中能够动态生成方法的三种途径，</p>
+<p>ConstructorBuilder类用来配置的构造函数，构造函数内部的IL要使用它的</p>
+<p>GetILGenerator方法返回的ILGenerator类发出。</p>
+<p>DynamicMethod类，是在当前运行上下文环境中动态生成方法的类，使用该类不必</p>
+<p>事先创建程序集、模块和类型，同样发出其内部的IL使用DynamicMethod.GetILGenerator</p>
+<p>方法返回的ILGenerator类实例.</p>
+<p>最终实现的调用效果：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">Mock&lt;IAssessmentAopAdviceProvider&gt; mocker = <span class="keyword">new</span> Mock&lt;IAssessmentAopAdviceProvider&gt;();</span><br><span class="line"></span><br><span class="line">mocker.Setup(t =&gt; t.Before(<span class="number">3</span>)).Returns(<span class="string">&quot;Hello World!&quot;</span>);</span><br><span class="line"></span><br><span class="line">Console.WriteLine(mocker.Obj.Before(<span class="number">2</span>));</span><br><span class="line"></span><br><span class="line">Console.Read();</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>接收一个接口，初始化一个Mock类的实例，然后通过Setup和Returns扩展方法设定实现</p>
+<p>该接口的实例在指定方法上的返回值。这里我们先不考虑对不同参数的处理逻辑。</p>
+<p>Mock类定义如下：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Mock</span>&lt;<span class="title">T</span>&gt; <span class="keyword">where</span> <span class="title">T</span> : <span class="title">IAssessmentAopAdviceProvider</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> T Obj</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span>; <span class="keyword">set</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> SetupContext Contex &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Mock</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Mock类的Obj属性是特定接口的实例。Contex属性是上下文信息</p>
+<p>Contex类定义如下：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">SetupContext</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> MethodInfo MethodInfo &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>只包含一个MethodInfo属性</p>
+<p>扩展方法：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title">MockExtention</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="title">Mock</span>&lt;<span class="title">T</span>&gt; <span class="title">Setup</span>&lt;<span class="title">T</span>&gt;(<span class="params"><span class="keyword">this</span> Mock&lt;T&gt; mocker, Expression&lt;Action&lt;T&gt;&gt; expression</span>) <span class="keyword">where</span> T : IAssessmentAopAdviceProvider</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        mocker.Contex = <span class="keyword">new</span> SetupContext();</span><br><span class="line"></span><br><span class="line">        mocker.Contex.MethodInfo = expression.ToMethodInfo();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> mocker;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Returns</span>&lt;<span class="title">T</span>&gt;(<span class="params"><span class="keyword">this</span> Mock&lt;T&gt; mocker, <span class="keyword">object</span> returnValue</span>) <span class="keyword">where</span> T : IAssessmentAopAdviceProvider</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">if</span> (mocker.Contex != <span class="literal">null</span> &amp;&amp; mocker.Contex.MethodInfo != <span class="literal">null</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="comment">//这里为简单起见，只考虑IAssessmentAopAdviceProvider接口</span></span><br><span class="line">            mocker.Obj = (T)AdviceProviderFactory.GetProvider(mocker.Contex.MethodInfo.Name, (<span class="keyword">string</span>)returnValue);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> MethodInfo <span class="title">ToMethodInfo</span>(<span class="params"><span class="keyword">this</span> LambdaExpression expression</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">var</span> memberExpression = expression.Body <span class="keyword">as</span> System.Linq.Expressions.MethodCallExpression;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (memberExpression != <span class="literal">null</span>)</span><br><span class="line"></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> memberExpression.Method;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Setup是Mock类的扩展方法，配置要Mock的方法信息;</p>
+<p>Returns扩展方法则调去对应的工厂获取接口的实例。</p>
+<p>ToMethodInfo是LambdaExpression扩展方法，该方法从Lambda表达式中获取MethodInfo.</p>
+<p>对应的工厂方法直接返回IAssessmentAopAdviceProvider接口实例。</p>
+<p>在构造方法中初始化assemblyBuilder和moduleBuilder<br>代码：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">readonly</span> AssemblyName assemblyName = <span class="keyword">new</span> AssemblyName(<span class="string">&quot;EmitTest.MvcAdviceProvider&quot;</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> AssemblyBuilder assemblyBuilder;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> ModuleBuilder moduleBuilder;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="title">AdviceProviderFactory</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    assemblyName.Version = <span class="keyword">new</span> Version(<span class="string">&quot;1.0.0.0&quot;</span>);</span><br><span class="line"></span><br><span class="line">    assemblyBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.RunAndSave);</span><br><span class="line"></span><br><span class="line">    moduleBuilder = assemblyBuilder.DefineDynamicModule(<span class="string">&quot;MvcAdviceProviderModule&quot;</span>, <span class="string">&quot;test.dll&quot;</span>, <span class="literal">true</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>CreateInstance方法负责创建类型和方法的实现：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> IAssessmentAopAdviceProvider <span class="title">CreateInstance</span>(<span class="params"><span class="keyword">string</span> instanceName, <span class="keyword">string</span> methodName, <span class="keyword">string</span> returnValue</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    TypeBuilder typeBuilder = moduleBuilder.DefineType(<span class="string">&quot;MvcAdviceProvider.MvcAdviceProviderType&quot;</span>, TypeAttributes.Public, <span class="keyword">typeof</span>(<span class="keyword">object</span>), <span class="keyword">new</span> Type[] &#123; <span class="keyword">typeof</span>(IAssessmentAopAdviceProvider) &#125;);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// typeBuilder.AddInterfaceImplementation(typeof(IAssessmentAopAdviceProvider));</span></span><br><span class="line"></span><br><span class="line">    MethodBuilder beforeMethodBuilder = typeBuilder.DefineMethod(methodName, MethodAttributes.Public | MethodAttributes.Virtual, <span class="keyword">typeof</span>(<span class="keyword">string</span>), <span class="keyword">new</span> Type[] &#123; <span class="keyword">typeof</span>(<span class="keyword">int</span>) &#125;);</span><br><span class="line"></span><br><span class="line">    beforeMethodBuilder.DefineParameter(<span class="number">1</span>, ParameterAttributes.None, <span class="string">&quot;value&quot;</span>);</span><br><span class="line"></span><br><span class="line">    ILGenerator generator1 = beforeMethodBuilder.GetILGenerator();</span><br><span class="line"></span><br><span class="line">    LocalBuilder local1 = generator1.DeclareLocal(<span class="keyword">typeof</span>(<span class="keyword">string</span>));</span><br><span class="line"></span><br><span class="line">    local1.SetLocalSymInfo(<span class="string">&quot;param1&quot;</span>);</span><br><span class="line"></span><br><span class="line">    generator1.Emit(OpCodes.Nop);</span><br><span class="line"></span><br><span class="line">    generator1.Emit(OpCodes.Ldstr, returnValue);</span><br><span class="line"></span><br><span class="line">    generator1.Emit(OpCodes.Stloc_0);</span><br><span class="line"></span><br><span class="line">    generator1.Emit(OpCodes.Ldloc_0);</span><br><span class="line"></span><br><span class="line">    generator1.Emit(OpCodes.Ret);</span><br><span class="line"></span><br><span class="line">    Type providerType = typeBuilder.CreateType();</span><br><span class="line"></span><br><span class="line">    assemblyBuilder.Save(<span class="string">&quot;test.dll&quot;</span>);</span><br><span class="line"></span><br><span class="line">    IAssessmentAopAdviceProvider provider = Activator.CreateInstance(providerType) <span class="keyword">as</span> IAssessmentAopAdviceProvider;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> provider;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在CreateInstance方法中，首先定义类型：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">TypeBuilder typeBuilder = moduleBuilder.DefineType(<span class="string">&quot;MvcAdviceProvider.MvcAdviceProviderType&quot;</span>, TypeAttributes.Public, <span class="keyword">typeof</span>(<span class="keyword">object</span>), <span class="keyword">new</span> Type[] &#123; <span class="keyword">typeof</span>(IAssessmentAopAdviceProvider) &#125;);</span><br></pre></td></tr></table></figure>
+
+<p>第三个和第四个参数，分别是该类型大的基类型和实现的接口列表。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">MethodBuilder beforeMethodBuilder = typeBuilder.DefineMethod(methodName, MethodAttributes.Public | MethodAttributes.Virtual, <span class="keyword">typeof</span>(<span class="keyword">string</span>), <span class="keyword">new</span> Type[] &#123; <span class="keyword">typeof</span>(<span class="keyword">int</span>) &#125;);</span><br></pre></td></tr></table></figure>
+
+<p>DefineMethod方法中，传人的第一个参数是方法的名称，第二个参数是访问类型，第三个参数是修饰符，第四个参数是方法的参数类型列表。这里需要注意第二个参数，也就是方法的修饰符，因为接口中的方法定义都是virtual的，所以在实现接口的时候，方法也必须声明为MethodAttributes.Virtual。</p>
+<p>定义方法的参数，使用MethodBuilder.DefineParameter方法。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">beforeMethodBuilder.DefineParameter(<span class="number">1</span>, ParameterAttributes.None, <span class="string">&quot;value&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>DefineParameter方法的第一参数指定当前定义的参数在方法参数列表中的顺序，从1开始，如果设置为0则代表方法的返回参数。第二个参数是设置参数的特性，如输入参数，输出参数等等。第三个参数是指定该参数的名称。</p>
+<p>方法定义完毕，接下来就是发出Opcode，返回一个指定的字符串。先获取ILGenerator实例，如下：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ILGenerator generator1 = beforeMethodBuilder.GetILGenerator();</span><br></pre></td></tr></table></figure>
+
+<p>我们若想返回一个字符串，必须先为该字符串声明一个局部变量，可以使用LocalBuilder.DeclareLocal方法，如下：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">LocalBuilder local1 = generator1.DeclareLocal(<span class="keyword">typeof</span>(<span class="keyword">string</span>));</span><br><span class="line"></span><br><span class="line">local1.SetLocalSymInfo(<span class="string">&quot;param1&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>ocal1.SetLocalSymInfo(“param1”)指定局部变量的名称。</p>
+<p>需要注意，如果模块定义时不允许发出符号信息，是无法使用SetLocalSymInfo方法的，AdviceProviderFactory的构造函数中，我们定义模块的代码</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">moduleBuilder = assemblyBuilder.DefineDynamicModule(<span class="string">&quot;MvcAdviceProviderModule&quot;</span>, <span class="string">&quot;test.dll&quot;</span>,<span class="literal">true</span>);</span><br></pre></td></tr></table></figure>
+
+<p>最后一个参数是指定是否允许发出符号信息的。</p>
+<p>发出的Opcode:</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">generator1.Emit(OpCodes.Nop);</span><br><span class="line"></span><br><span class="line">generator1.Emit(OpCodes.Ldstr, returnValue);</span><br><span class="line"></span><br><span class="line">generator1.Emit(OpCodes.Stloc_0);</span><br><span class="line"></span><br><span class="line">generator1.Emit(OpCodes.Ldloc_0);</span><br><span class="line"></span><br><span class="line">generator1.Emit(OpCodes.Ret);</span><br></pre></td></tr></table></figure>
+
+<p>第一条指令不执行任何操作。</p>
+<p>第二条指令加载一个字符串到计算堆栈中。</p>
+<p>第三条指令赋值计算堆栈顶部的数据到局部变量列表中的第一个变量。</p>
+<p>第四条指令加载局部变量列表中的第一个变量的数据引用到计算堆栈。</p>
+<p>第五条指令方法返回。</p>
+<p>整个Emit的过程结束了，接下来要创建实例：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Type providerType = typeBuilder.CreateType();</span><br><span class="line"></span><br><span class="line">assemblyBuilder.Save(<span class="string">&quot;test.dll&quot;</span>);</span><br><span class="line"></span><br><span class="line">IAssessmentAopAdviceProvider provider = Activator.CreateInstance(providerType) <span class="keyword">as</span> IAssessmentAopAdviceProvider;</span><br></pre></td></tr></table></figure>
+
+<p>控制台调用：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Mock&lt;IAssessmentAopAdviceProvider&gt; mocker = <span class="keyword">new</span> Mock&lt;IAssessmentAopAdviceProvider&gt;();</span><br><span class="line"></span><br><span class="line">mocker.Setup(t =&gt; t.Before(<span class="number">3</span>)).Returns(<span class="string">&quot;Hello World!&quot;</span>);</span><br><span class="line"></span><br><span class="line">Console.WriteLine(mocker.Obj.Before(<span class="number">2</span>));</span><br><span class="line"></span><br><span class="line">Console.Read();</span><br></pre></td></tr></table></figure>
+
+<p><a target="_blank" rel="noopener" href="https://github.com/syxdevcode/EmitTest" title="github代码">代码</a></p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/xuanhun/archive/2012/06/22/2558698.html" title="Emit详解">http://www.cnblogs.com/xuanhun/archive/2012/06/22/2558698.html</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/CSharp%E5%9F%BA%E7%A1%80/" rel="tag"># CSharp基础</a>
+              <a href="/tags/Emit-%E5%8F%8D%E5%B0%84%E5%8F%91%E5%87%BA/" rel="tag"># Emit(反射发出)</a>
+              <a href="/tags/%E5%8F%8D%E5%B0%84/" rel="tag"># 反射</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2017/03/02/Emit%E5%AD%A6%E4%B9%A0/" rel="prev" title="Emit学习">
+      <i class="fa fa-chevron-left"></i> Emit学习
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2017/04/28/Hexo%E7%AC%94%E8%AE%B0/" rel="next" title="Hexo笔记">
+      Hexo笔记 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#ILGenerator"><span class="nav-number">1.</span> <span class="nav-text">ILGenerator</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">309</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">100</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">132</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

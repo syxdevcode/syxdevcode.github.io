@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"syxdevcode.github.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="IIS 6.X和IIS7经典模式，采用aspnet_isapi.dll来响应请求；IIS7集成模式则执行单独的管道； 注：ASP.NET WebForm和ASP.NET MVC 同用一套请求处理管道。 创建HttpApplication创建 HttpApplication（即w3wp.exe）对象的时候，先去对象池中查找，没有则创建（编译Global.asax,创建HttpApplication">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ASP.NET请求处理管道">
+<meta property="og:url" content="https://syxdevcode.github.com/2019/02/17/ASP-NET%E8%AF%B7%E6%B1%82%E5%A4%84%E7%90%86%E7%AE%A1%E9%81%93/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="IIS 6.X和IIS7经典模式，采用aspnet_isapi.dll来响应请求；IIS7集成模式则执行单独的管道； 注：ASP.NET WebForm和ASP.NET MVC 同用一套请求处理管道。 创建HttpApplication创建 HttpApplication（即w3wp.exe）对象的时候，先去对象池中查找，没有则创建（编译Global.asax,创建HttpApplication">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://syxdevcode.github.com/img/2012071209470854.png">
+<meta property="og:image" content="https://syxdevcode.github.com/img/190047183794497.png">
+<meta property="og:image" content="https://syxdevcode.github.com/img/051837105625665.jpg">
+<meta property="og:image" content="https://syxdevcode.github.com/img/190104512548523.png">
+<meta property="article:published_time" content="2019-02-17T09:49:32.000Z">
+<meta property="article:modified_time" content="2020-09-28T07:12:37.249Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="DotNet">
+<meta property="article:tag" content="ASP.NET&#x2F;IIS请求处理管道">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://syxdevcode.github.com/img/2012071209470854.png">
+
+<link rel="canonical" href="https://syxdevcode.github.com/2019/02/17/ASP-NET%E8%AF%B7%E6%B1%82%E5%A4%84%E7%90%86%E7%AE%A1%E9%81%93/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>ASP.NET请求处理管道 | syxdevcode博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">syxdevcode博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/syxdevcode" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/02/17/ASP-NET%E8%AF%B7%E6%B1%82%E5%A4%84%E7%90%86%E7%AE%A1%E9%81%93/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          ASP.NET请求处理管道
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-02-17 09:49:32" itemprop="dateCreated datePublished" datetime="2019-02-17T09:49:32+00:00">2019-02-17</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-09-28 07:12:37" itemprop="dateModified" datetime="2020-09-28T07:12:37+00:00">2020-09-28</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ASP-NET-IIS%E8%AF%B7%E6%B1%82%E5%A4%84%E7%90%86%E7%AE%A1%E9%81%93/" itemprop="url" rel="index"><span itemprop="name">ASP.NET/IIS请求处理管道</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><img src="/img/2012071209470854.png" alt="2012071209470854.png"></p>
+<p>IIS 6.X和IIS7经典模式，采用aspnet_isapi.dll来响应请求；<br>IIS7集成模式则执行单独的管道；</p>
+<p>注：<font color=#ff0000 size=4 face="黑体">ASP.NET WebForm和ASP.NET MVC 同用一套请求处理管道。</font></p>
+<h2 id="创建HttpApplication"><a href="#创建HttpApplication" class="headerlink" title="创建HttpApplication"></a>创建HttpApplication</h2><p>创建 <code>HttpApplication</code>（即w3wp.exe）对象的时候，先去对象池中查找，没有则创建（编译Global.asax,创建HttpApplication对象），找到则直接返回对象。</p>
+<p>HttpApplication的工作包括：</p>
+<p>● 初始化的时候加载全部的HttpModule<br>● 接收请求<br>● 在不同阶段引发不同的事件，使得HttpModule通过订阅事件的方式加入到请求的处理过程中<br>● 在一个特定阶段获取一个IHttpHandler实例，最终将请求交给具体的IHttpHandler来实现</p>
+<p><code>HttpApplication</code> 创建之后，则是ASP.NET请求处理管道。</p>
+<h3 id="HttpModules-amp-HttpHandlers"><a href="#HttpModules-amp-HttpHandlers" class="headerlink" title="HttpModules &amp; HttpHandlers"></a>HttpModules &amp; HttpHandlers</h3><p>** HttpModules**</p>
+<p>所有的HttpModules都实现了IHttpModule接口,可以实现 <code>IHttpModule</code> 接口自定义 <code>HttpModule</code>。</p>
+<p>** HttpHandlers**</p>
+<p>当某个请求与一个规则匹配后，ASP.NET会调用匹配的HttpHandlerFactory的GetHandler方法来获取一个HttpHandler实例， 最后由一个HttpHandler实例来处理当前请求，生成响应内容</p>
+<p>所有的 <code>HttpHandlers</code> 都实现了 <code>IHttpHandler</code> 接口,可以实现 <code>IHttpHandler</code> 接口自定义 <code>HttpHandler</code>。</p>
+<p>如图：</p>
+<p><img src="/img/190047183794497.png" alt="190047183794497.png"></p>
+<h2 id="Asp-Net请求处理事件"><a href="#Asp-Net请求处理事件" class="headerlink" title="Asp.Net请求处理事件"></a>Asp.Net请求处理事件</h2><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>、BeginRequest：HTTP管道开始处理请求时，会触发BeginRequest事件</span><br><span class="line"></span><br><span class="line"><span class="number">2</span>、AuthenticateRequest：安全模块对请求进行身份验证时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">3</span>、PostAuthenticateRequest：安全模块对请求进行身份验证后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">4</span>、AuthorizeRequest：安全模块对请求进程授权时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">5</span>、PostAuthorizeRequest：安全模块对请求进程授权后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">6</span>、ResolveRequestCache：缓存模块利用缓存直接对请求进程响应时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">7</span>、PostResolveRequestCache：缓存模块利用缓存直接对请求进程响应后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">8</span>、PostMapRequestHandler：对于访问不同的资源类型，ASP.NET具有不同的HttpHandler对其进程处理。</span><br><span class="line">对于每个请求，ASP.NET会根据扩展名选择匹配相应的HttpHandler类型，成功匹配后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">9</span>、AcquireRequestState：状态管理模块获取基于当前请求相应的状态(比如SessionState)时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">10</span>、PostAcquireRequestState：状态管理模块获取基于当前请求相应的状态(比如SessionState)后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">11</span>、PreRequestHandlerExecute：在实行HttpHandler前触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">12</span>、PostRequestHandlerExecute：在实行HttpHandler后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">13</span>、ReleaseRequestState：状态管理模块释放基于当前请求相应的状态时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">14</span>、PostReleaseRequestState：状态管理模块释放基于当前请求相应的状态后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">15</span>、UpdateRequestCache：缓存模块将HttpHandler处理请求得到的相应保存到输出缓存时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">16</span>、PostUpdateRequestCache：缓存模块将HttpHandler处理请求得到的相应保存到输出缓存后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">17</span>、LogRequest：为当前请求进程日志记录时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">18</span>、PostLogReques：为当前请求进程日志记录后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">19</span>、EndRequest：整个请求处理完成后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">20</span>、PreSendRequestHeaders：.Net4<span class="number">.0</span>新增，可以根据发送的Header设置一些参数，</span><br><span class="line">例如，设置一个特殊的Header通知浏览器启用压缩来提高网络传输速度</span><br><span class="line"></span><br><span class="line"><span class="number">21</span>、PreSendRequestContent：.Net4<span class="number">.0</span>新增，恰好在 ASP.NET 向客户端发送内容之前发生。</span><br><span class="line">例如，在此事件压缩输出到浏览器的流。</span><br></pre></td></tr></table></figure>
+
+<p><font color=##ff0000 size=4 face="黑体">webform 和 mvc 共用一套管道，在第7个事件 <code>PostResolveRequestCache</code> 会根据Url去路由表匹配所有的路由规则，<br>如果匹配到了路由，则证明请求是MVC程序,反之，则是WebForm。</font></p>
+<h2 id="WebForm-管道事件摘要"><a href="#WebForm-管道事件摘要" class="headerlink" title="WebForm 管道事件摘要"></a>WebForm 管道事件摘要</h2><p>1，第八个事件 <code>PostMapRequestHandler</code> 创建Page类对象并转换为IHttpHandler接口。</p>
+<p>在这个事件中，对于访问不同的资源类型，ASP.NET具有不同的HttpHandler对其进程处理。对于每个请求，ASP.NET会通过扩展名选择匹配相应的HttpHandler类型，成功匹配后，该实现被触发。因此，如果请求的扩展名是.aspx，便会生成Page类对象，而Page类对象是实现了IHttpHandler接口的。</p>
+<p>2，在第九个到第十事件之间根据SessionId获取Session</p>
+<p>第九到第十个事件是：<code>AcquireRequestState</code>，<code>PostAcquireRequestState</code>。</p>
+<p>这期间首先会接收到浏览器发过来的SessionId，然后先会将IHttpHandler接口尝试转换为IRequiresSessionState接口，如果转换成功，ASP.NET会根据这个SessionId到服务器的Session池中去查找所对应的Session对象，并将这个Session对象赋值到HttpContext对象的Session属性。如果尝试转换为IRequiresSessionState接口不成功，则不加载Session。</p>
+<p>3，在第十一个事件与第十二个事件之间执行页面生命周期</p>
+<p>第十一和第十二个事件是：<code>PreRequestHandlerExecute</code>，<code>PostRequestHandlerExecute</code>。在这两个事件之间，ASP.NET最终通过请求资源类型相对应的HttpHandler实现对请求的处理，其实现方式是调用在第八个事件创建的页面对象的ProcessRequest方法。</p>
+<p><img src="/img/051837105625665.jpg" alt="051837105625665.jpg"></p>
+<p>在 <code>FrameworkInitialize()</code> 这个方法内部就开始打造WebForm的页面控件树，在其中调用了ProcessRequestMain方法，在这个方法里面就执行了整个ASP.NET WebFom页面生命周期。</p>
+<h2 id="MVC-管道事件摘要"><a href="#MVC-管道事件摘要" class="headerlink" title="MVC 管道事件摘要"></a>MVC 管道事件摘要</h2><p>在ASP.NET MVC中，最核心的当属“路由系统”，而路由系统的核心则源于一个强大的 <code>System.Web.Routing.dll</code> 组件。</p>
+<p><font color=##ff0000 size=4 face="黑体">在这个System.Web.Routing.dll中，有一个最重要的类叫做UrlRoutingModule , ASP.NET MVC的入口在 <code>UrlRoutingModule</code>，它是一个实现了<code>IHttpModule</code> 接口的类,订阅了 <code>HttpApplication</code> 的第7个管道事件 <code>PostResolveRequestCahce</code> 对请求进行了拦截。</font></p>
+<p>1,IIS网站的配置可以分为两个块：全局 Web.config 和本站 Web.config。Asp.Net Routing属于全局性的，所以它配置在全局Web.Config 中，我们可以在如下路径中找到：“$\Windows\Microsoft.NET\Framework\版本号\Config\Web.config“</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> encoding=<span class="string">&quot;utf-8&quot;</span>?&gt;</span><br><span class="line"> &lt;!-- the root web configuration file --&gt;</span><br><span class="line"> &lt;configuration&gt;</span><br><span class="line">     &lt;system.web&gt;</span><br><span class="line">         &lt;httpModules&gt;</span><br><span class="line">             &lt;<span class="keyword">add</span> name=<span class="string">&quot;UrlRoutingModule-4.0&quot;</span> type=<span class="string">&quot;System.Web.Routing.UrlRoutingModule&quot;</span> /&gt;</span><br><span class="line">         &lt;/httpModules&gt;</span><br><span class="line">    &lt;/system.web&gt;</span><br><span class="line"> &lt;/configuration&gt;</span><br></pre></td></tr></table></figure>
+
+<p>2,通过在全局Web.Config中注册 <code>System.Web.Routing.UrlRoutingModule</code>，IIS请求处理管道接到请求后，就会加载 UrlRoutingModule类型的Init()方法，第7个管道事件 <code>PostResolveRequestCahce</code> 对请求进行了拦截。</p>
+<p>3,在第七个事件中创建实现了IHttpHandler接口的MvcHandler</p>
+<p>第七个事件：<code>PostResolveRequestCache</code></p>
+<p>当请求到达 <code>UrlRoutingModule</code> 的时候，<code>UrlRoutingModule</code> 取出请求中的 Controller、Action等RouteData信息，与路由表中的所有规则进行匹配，若匹配，把请求交给 <code>IRouteHandler</code>，即 <code>MVCRouteHandler</code>。我们可以看下<code>UrlRoutingModule</code> 的源码来看看，以下是几句核心的代码：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">PostResolveRequestCache</span>(<span class="params">HttpContextBase context</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">// 通过RouteCollection的静态方法GetRouteData获取到封装路由信息的RouteData实例</span></span><br><span class="line">    RouteData routeData = <span class="keyword">this</span>.RouteCollection.GetRouteData(context);</span><br><span class="line">    <span class="keyword">if</span> (routeData != <span class="literal">null</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// 再从RouteData中获取MVCRouteHandler</span></span><br><span class="line">        IRouteHandler routeHandler = routeData.RouteHandler;</span><br><span class="line">        ......</span><br><span class="line">        <span class="keyword">if</span> (!(routeHandler <span class="keyword">is</span> StopRoutingHandler))</span><br><span class="line">        &#123;</span><br><span class="line">            ......</span><br><span class="line">            <span class="comment">// 调用 IRouteHandler.GetHttpHandler()，获取的IHttpHandler 类型实例，它是由 IRouteHandler.GetHttpHandler获取的</span></span><br><span class="line">            IHttpHandler httpHandler = routeHandler.GetHttpHandler(requestContext);</span><br><span class="line">            ......</span><br><span class="line">            <span class="comment">// 合适条件下，把之前将获取的IHttpHandler 类型实例 映射到IIS HTTP处理管道中</span></span><br><span class="line">            context.RemapHandler(httpHandler);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>MVCRouteHandler</code> 的作用是用来生成实现 <code>IHttpHandler</code> 接口的 <code>MvcHandler</code>：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">namespace</span> <span class="title">System.Web.Routing</span></span><br><span class="line">&#123;  </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">interface</span> <span class="title">IRouteHandler</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function">IHttpHandler <span class="title">GetHttpHandler</span>(<span class="params">RequestContext requestContext</span>)</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>获取 <code>MvcRouteHadnler</code> :</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 继承HttpApplication</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">MvcApplication</span> : <span class="title">System.Web.HttpApplication</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 第一个管道事件</span></span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">Application_Start</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        ......</span><br><span class="line">        <span class="comment">//注册路由</span></span><br><span class="line">        RouteConfig.RegisterRoutes(RouteTable.Routes);</span><br><span class="line">        BundleConfig.RegisterBundles(BundleTable.Bundles);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">RouteConfig</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">RegisterRoutes</span>(<span class="params">RouteCollection routes</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        routes.IgnoreRoute(<span class="string">&quot;&#123;resource&#125;.axd/&#123;*pathInfo&#125;&quot;</span>);</span><br><span class="line">        <span class="comment">// MapRoute位于System.Web.Mvc.RouteCollectionExtensions</span></span><br><span class="line">        routes.MapRoute(</span><br><span class="line">            name: <span class="string">&quot;Default&quot;</span>,</span><br><span class="line">            url: <span class="string">&quot;&#123;controller&#125;/&#123;action&#125;/&#123;id&#125;&quot;</span>,</span><br><span class="line">            defaults: <span class="keyword">new</span> &#123; controller = <span class="string">&quot;Home&quot;</span>, action = <span class="string">&quot;Index&quot;</span>, id = UrlParameter.Optional &#125;</span><br><span class="line">        );</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// System.Web.Mvc.RouteCollectionExtensions 扩展方法</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Route <span class="title">MapRoute</span>(<span class="params"><span class="keyword">this</span> RouteCollection routes, <span class="keyword">string</span> name, <span class="keyword">string</span> url, <span class="keyword">object</span> defaults, <span class="keyword">object</span> constraints, <span class="keyword">string</span>[] namespaces</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    ......</span><br><span class="line">　　　<span class="comment">// 通过Route类的构造函数把 MvcRouteHandler 注入到路由中</span></span><br><span class="line">    Route route = <span class="keyword">new</span> Route(url, <span class="keyword">new</span> MvcRouteHandler())             &#123;</span><br><span class="line">        Defaults = <span class="keyword">new</span> RouteValueDictionary(defaults),</span><br><span class="line">        Constraints = <span class="keyword">new</span> RouteValueDictionary(constraints),</span><br><span class="line">        DataTokens = <span class="keyword">new</span> RouteValueDictionary()</span><br><span class="line">    &#125;;</span><br><span class="line">    ......</span><br><span class="line">    <span class="keyword">return</span> route;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在第11和第12个事件之间调用了 <code>MvcHandler</code> 的 <code>ProcessRequest</code> 方法处理ASP.NET MVC。</p>
+<p>第十一和第十二个事件是：<code>PreRequestHandlerExecute</code>，<code>PostRequestHandlerExecute</code>。</p>
+<p>获取 <code>MvcHandler</code>:</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">IHttpHandler httpHandler = routeHandler.GetHttpHandler(requestContext);</span><br><span class="line">context.RemapHandler(httpHandler);</span><br><span class="line"></span><br><span class="line"><span class="comment">// MvcHandlerd的实现</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">virtual</span> IHttpHandler <span class="title">GetHttpHandler</span>(<span class="params">RequestContext requestContext</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">　　requestContext.HttpContext.SetSessionStateBehavior(GetSessionStateBehavior(requestContext));</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> MvcHandler(requestContext);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如图：</p>
+<p><img src="/img/190104512548523.png" alt="190104512548523.png"></p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/artech/archive/2009/06/20/1507165.html">再谈IIS与ASP.NET管道</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/zhangyihui/p/5082394.html">【深入ASP.NET原理系列】–ASP.NET请求管道、应用程序生命周期、整体运行机制</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/darrenji/p/3795661.html">ASP.NET MVC请求处理管道生命周期的19个关键环节(1-6)</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/darrenji/p/3795676.html">ASP.NET MVC请求处理管道生命周期的19个关键环节(7-12)</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/edisonchou/p/4201855.html">ASP.Net请求处理机制初步探索之旅 - Part 3 管道</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/DotNet/" rel="tag"># DotNet</a>
+              <a href="/tags/ASP-NET-IIS%E8%AF%B7%E6%B1%82%E5%A4%84%E7%90%86%E7%AE%A1%E9%81%93/" rel="tag"># ASP.NET/IIS请求处理管道</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/02/15/ASP-NET%E5%9C%A8IIS%E8%BF%90%E8%A1%8C%E6%A8%A1%E5%BC%8F/" rel="prev" title="ASP.NET在IIS运行模式">
+      <i class="fa fa-chevron-left"></i> ASP.NET在IIS运行模式
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/02/18/ASP-NET-WebForm%E9%A1%B5%E9%9D%A2%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/" rel="next" title="ASP.NET WebForm页面生命周期">
+      ASP.NET WebForm页面生命周期 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9B%E5%BB%BAHttpApplication"><span class="nav-number">1.</span> <span class="nav-text">创建HttpApplication</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#HttpModules-amp-HttpHandlers"><span class="nav-number">1.1.</span> <span class="nav-text">HttpModules &amp; HttpHandlers</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Asp-Net%E8%AF%B7%E6%B1%82%E5%A4%84%E7%90%86%E4%BA%8B%E4%BB%B6"><span class="nav-number">2.</span> <span class="nav-text">Asp.Net请求处理事件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#WebForm-%E7%AE%A1%E9%81%93%E4%BA%8B%E4%BB%B6%E6%91%98%E8%A6%81"><span class="nav-number">3.</span> <span class="nav-text">WebForm 管道事件摘要</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MVC-%E7%AE%A1%E9%81%93%E4%BA%8B%E4%BB%B6%E6%91%98%E8%A6%81"><span class="nav-number">4.</span> <span class="nav-text">MVC 管道事件摘要</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">309</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">100</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">132</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

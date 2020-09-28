@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"syxdevcode.github.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="转载自： .NET中间语言（IL）1 .NET中间语言（IL）2 .NET CLR 和 Java VM 都是堆栈式虚拟机（Stack-Based VM），也就是说，它们的指令集（Instruction Set）都是采用堆栈运算的方式：执行时的数据都是先放在堆栈中，再进行运算。 Java VM 有约 200 个指令（Instruction），每个指令都是 1 byte 的 opcode（操作码），后">
+<meta property="og:type" content="article">
+<meta property="og:title" content=".NET中间语言（IL）">
+<meta property="og:url" content="https://syxdevcode.github.com/2020/01/08/NET%E4%B8%AD%E9%97%B4%E8%AF%AD%E8%A8%80%EF%BC%88IL%EF%BC%89/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="转载自： .NET中间语言（IL）1 .NET中间语言（IL）2 .NET CLR 和 Java VM 都是堆栈式虚拟机（Stack-Based VM），也就是说，它们的指令集（Instruction Set）都是采用堆栈运算的方式：执行时的数据都是先放在堆栈中，再进行运算。 Java VM 有约 200 个指令（Instruction），每个指令都是 1 byte 的 opcode（操作码），后">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://syxdevcode.github.com/img/dd229210.il_f1(zh-tw,msdn.10).jpg">
+<meta property="og:image" content="https://syxdevcode.github.com/img/dd229210.il_f2(zh-tw,msdn.10).jpg">
+<meta property="og:image" content="https://syxdevcode.github.com/img/dd229210.il_f3(zh-tw,msdn.10).jpg">
+<meta property="og:image" content="https://syxdevcode.github.com/img/dd229210.il_f4(zh-tw,msdn.10).jpg">
+<meta property="og:image" content="https://syxdevcode.github.com/img/dd229210.il_f5(zh-tw,msdn.10).jpg">
+<meta property="og:image" content="https://syxdevcode.github.com/img/dd229210.il_f6(zh-tw,msdn.10).jpg">
+<meta property="og:image" content="https://syxdevcode.github.com/img/dd229210.il_f7(zh-tw,msdn.10).jpg">
+<meta property="og:image" content="https://syxdevcode.github.com/img/dd229210.il_f8(zh-tw,msdn.10).jpg">
+<meta property="og:image" content="https://syxdevcode.github.com/img/dd229210.il_f9(zh-tw,msdn.10).jpg">
+<meta property="og:image" content="https://syxdevcode.github.com/img/dd229210.il_f10(zh-tw,msdn.10).jpg">
+<meta property="og:image" content="https://syxdevcode.github.com/img/dd229211.il_f11(zh-tw,msdn.10).jpg">
+<meta property="og:image" content="https://syxdevcode.github.com/img/dd229211.il_f12(zh-tw,msdn.10).jpg">
+<meta property="og:image" content="https://syxdevcode.github.com/img/dd229211.il_f13(zh-tw,msdn.10).jpg">
+<meta property="og:image" content="https://syxdevcode.github.com/img/dd229211.il_f14(zh-tw,msdn.10).jpg">
+<meta property="og:image" content="https://syxdevcode.github.com/img/dd229211.il_f15(zh-tw,msdn.10).jpg">
+<meta property="og:image" content="https://syxdevcode.github.com/img/dd229211.il_f16(zh-tw,msdn.10).jpg">
+<meta property="og:image" content="https://syxdevcode.github.com/img/dd229211.il_f17(zh-tw,msdn.10).jpg">
+<meta property="og:image" content="https://syxdevcode.github.com/img/dd229211.il_f18(zh-tw,msdn.10).jpg">
+<meta property="og:image" content="https://syxdevcode.github.com/img/dd229211.il_f19(zh-tw,msdn.10).jpg">
+<meta property="article:published_time" content="2020-01-08T10:10:34.000Z">
+<meta property="article:modified_time" content="2020-09-28T07:12:37.257Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="DotNet">
+<meta property="article:tag" content="CSharp">
+<meta property="article:tag" content="Emit(反射发出)">
+<meta property="article:tag" content="MSIL指令">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://syxdevcode.github.com/img/dd229210.il_f1(zh-tw,msdn.10).jpg">
+
+<link rel="canonical" href="https://syxdevcode.github.com/2020/01/08/NET%E4%B8%AD%E9%97%B4%E8%AF%AD%E8%A8%80%EF%BC%88IL%EF%BC%89/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>.NET中间语言（IL） | syxdevcode博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">syxdevcode博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/syxdevcode" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/01/08/NET%E4%B8%AD%E9%97%B4%E8%AF%AD%E8%A8%80%EF%BC%88IL%EF%BC%89/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          .NET中间语言（IL）
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-01-08 10:10:34" itemprop="dateCreated datePublished" datetime="2020-01-08T10:10:34+00:00">2020-01-08</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-09-28 07:12:37" itemprop="dateModified" datetime="2020-09-28T07:12:37+00:00">2020-09-28</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/MSIL%E6%8C%87%E4%BB%A4/" itemprop="url" rel="index"><span itemprop="name">MSIL指令</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>转载自：</p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-tw/previous-versions/dd229210%28v%3dmsdn.10%29">.NET中间语言（IL）1</a></p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-tw/previous-versions/dd229211%28v%3dmsdn.10%29">.NET中间语言（IL）2</a></p>
+<p>.NET CLR 和 Java VM 都是堆栈式虚拟机（Stack-Based VM），也就是说，它们的指令集（Instruction Set）都是采用堆栈运算的方式：执行时的数据都是先放在堆栈中，再进行运算。 Java VM 有约 200 个指令（Instruction），每个指令都是 1 byte 的 opcode（操作码），后面接不等数目的参数；.NET CLR 有超过 220 个指令，但是有些指令使用相同的 opcode，所以 opcode 的 数目比指令数略少。 特别注意，.NET 的 opcode 长度并不固定，大部分的 opcode 长度是 1 byte，少部分是 2 byte。</p>
+<p>本文章以一个实际的例子，让你了解堆栈式 VM 的运作原理，并对 .NET IL（Intermediate Language）有最基本的领略。</p>
+<p>下面是一个简单的 C# 原始码：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Test</span> &#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params">String[] args</span>)</span> &#123;</span><br><span class="line">        <span class="keyword">int</span> i=<span class="number">1</span>;</span><br><span class="line">        <span class="keyword">int</span> j=<span class="number">2</span>;</span><br><span class="line">        <span class="keyword">int</span> k=<span class="number">3</span>;</span><br><span class="line">        <span class="keyword">int</span> answer = i+j+k;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;i+j+k=&quot;</span>+answer);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>将此原始码编译之后，可以得到一个 EXE 档案。 我们可以透过 ILDASM. EXE 来反组译 EXE 以观察 IL。 我将 Main() 的 IL 反组译条列如下，这里共有十八道 IL 指令，有的指令（例如 ldstr 与 box）后面需要接参数，有的指令（例如 ldc.i4.1 与 add）后面不需要接参数。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">ldc.i4<span class="number">.1</span></span><br><span class="line">stloc<span class="number">.0</span></span><br><span class="line">ldc.i4<span class="number">.2</span></span><br><span class="line">stloc<span class="number">.1</span></span><br><span class="line">ldc.i4<span class="number">.3</span></span><br><span class="line">stloc<span class="number">.2</span></span><br><span class="line">ldloc<span class="number">.0</span></span><br><span class="line">ldloc<span class="number">.1</span></span><br><span class="line"><span class="keyword">add</span></span><br><span class="line">ldloc<span class="number">.2</span></span><br><span class="line"><span class="keyword">add</span></span><br><span class="line">stloc<span class="number">.3</span></span><br><span class="line">ldstr      <span class="string">&quot;i+j+k=&quot;</span></span><br><span class="line">ldloc<span class="number">.3</span></span><br><span class="line">box        [mscorlib]System.Int32</span><br><span class="line">call       string [mscorlib]System.String::Concat(object, object)</span><br><span class="line">call       void [mscorlib]System.Console::WriteLine(string)</span><br><span class="line">ret</span><br></pre></td></tr></table></figure>
+
+<p>此程序执行时，关键的内存有三种，分别是：</p>
+<ul>
+<li><p><strong>Managed Heap：</strong>这是动态配置（Dynamic Allocation）的内存，由 Garbage Collector（GC）在执行时自动管理，整个 Process 共享一个 Managed Heap。</p>
+</li>
+<li><p><strong>Call Stack：</strong>这是由 .NET CLR 在执行时自动管理的内存，每个 Thread 都有自己专属的 Call Stack。 每呼叫一次 method，就会使得 Call Stack 上多了一个 Record Frame；呼叫完毕之后，此 Record Frame 会被丢弃。 一般来说，Record Frame 内纪录着 method 参数（Parameter）、返回地址（Return Address）、以及局部变量（Local Variable）。 Java VM 和 .NET CLR 都是使用 0, 1, 2… 编号的方式来识别局部变量。</p>
+</li>
+<li><p><strong>Evaluation Stack：</strong>这是由 .NET CLR 在执行时自动管理的内存，每个 Thread 都有自己专属的 Evaluation Stack。 前面所谓的堆栈式虚拟机，指的就是这个堆栈。</p>
+</li>
+</ul>
+<p>后面有一连串的示意图，用来解说在执行时此三种内存的变化。 首先，在进入 Main() 之后，尚未执行任何指令之前，内存的状况如图 1 所示：</p>
+<p><img src="/img/dd229210.il_f1(zh-tw,msdn.10).jpg" alt="dd229210.il_f1(zh-tw,msdn.10).jpg"><br>图 1</p>
+<p>接着要执行第一道指令 ldc.i4.1。 此指令的意思是：在 Evaluation Stack 置入一个 4 byte 的常数，其值为 1。 执行完此道指令之后，内存的变化如图 2 所示：</p>
+<p><img src="/img/dd229210.il_f2(zh-tw,msdn.10).jpg" alt="dd229210.il_f2(zh-tw,msdn.10).jpg"><br>图 2</p>
+<p>接着要执行第二道指令 stloc.0。 此指令的意思是：从 Evaluation Stack 取出一个值，放到第 0 号变量（V0）中。 这里的第 0 号变量其实就是原始码中的 i。 执行完此道指令之后，内存的变化如图 3 所示：</p>
+<p><img src="/img/dd229210.il_f3(zh-tw,msdn.10).jpg" alt="dd229210.il_f3(zh-tw,msdn.10).jpg"><br>图 3</p>
+<p>后面的第三道指令和第五道指令雷同于第一道指令，且第四道指令和第六道指令雷同于第二道指令。 为了节省篇幅，我不在此一一赘述。 提醒大家第 1 号变量（V1）其实就是原始码中的 j，且第 2 号变量（V2）其实就是源码中的 k。 图 4<del>7 分别是执行完第三</del>六道指令之后，内存的变化图：</p>
+<p><img src="/img/dd229210.il_f4(zh-tw,msdn.10).jpg" alt="dd229210.il_f4(zh-tw,msdn.10).jpg"><br>图 4</p>
+<p><img src="/img/dd229210.il_f5(zh-tw,msdn.10).jpg" alt="dd229210.il_f5(zh-tw,msdn.10).jpg"><br>图 5</p>
+<p><img src="/img/dd229210.il_f6(zh-tw,msdn.10).jpg" alt="dd229210.il_f6(zh-tw,msdn.10).jpg"><br>图 6</p>
+<p><img src="/img/dd229210.il_f7(zh-tw,msdn.10).jpg" alt="dd229210.il_f7(zh-tw,msdn.10).jpg"><br>图 7</p>
+<p>接着要执行第七道指令 ldloc.0 以及第八道指令 ldloc.1：分别将 V0（也就是 i）和 V1（也就是 j）的值放到 Evaluation Stack，这是相加前的准备动作。 图 8 与图 9 分别是执行完第七、第八道指令之后，内存的变化图：</p>
+<p><img src="/img/dd229210.il_f8(zh-tw,msdn.10).jpg" alt="dd229210.il_f8(zh-tw,msdn.10).jpg"><br>图 8</p>
+<p><img src="/img/dd229210.il_f9(zh-tw,msdn.10).jpg" alt="dd229210.il_f9(zh-tw,msdn.10).jpg"><br>图 9</p>
+<p>接着要执行第九道指令 add。 此指令的意思是：从 Evaluation Stack 取出两个值（也就是 i 和 j），相加之后将结果放回 Evaluation Stack 中。 执行完此道指令之后，内存的变化如图 10 所示：</p>
+<p><img src="/img/dd229210.il_f10(zh-tw,msdn.10).jpg" alt="dd229210.il_f10(zh-tw,msdn.10).jpg"><br>图 10</p>
+<p>接着要执行第十道指令 ldloc.2。 此指令的意思是：分别将 V2（也就是 k）的值放到 Evaluation Stack，这是相加前的准备动作。 执行完此道指令之后，内存的变化如图 11 所示：</p>
+<p><img src="/img/dd229211.il_f11(zh-tw,msdn.10).jpg" alt="dd229211.il_f11(zh-tw,msdn.10).jpg"><br>图 11</p>
+<p>接着要执行第十一道指令 add。 从 Evaluation Stack 取出两个值，相加之后将结果放回 Evaluation Stack 中，此为 i+j+k 的值。 执行完此道指令之后，内存的变化如图 12 所示：</p>
+<p><img src="/img/dd229211.il_f12(zh-tw,msdn.10).jpg" alt="dd229211.il_f12(zh-tw,msdn.10).jpg"><br>图 12</p>
+<p>接着要执行第十二道指令 stloc.3。 从 Evaluation Stack 取出一个值，放到第 3 号变量（V3）中。 这里的第3号变量其实就是原始码中的 answer。 执行完此道指令之后，内存的变化如图 13 所示：</p>
+<p><img src="/img/dd229211.il_f13(zh-tw,msdn.10).jpg" alt="dd229211.il_f13(zh-tw,msdn.10).jpg"><br>图 13</p>
+<p>接着要执行第十三道指令 ldstr “i+j+k=”。 此指令的意思是：将 “i+j+k=” 的 Reference 放进 Evaluation Stack。 执行完此道指令之后，内存的变化如图 14 所示：</p>
+<p><img src="/img/dd229211.il_f14(zh-tw,msdn.10).jpg" alt="dd229211.il_f14(zh-tw,msdn.10).jpg"><br>图 14</p>
+<p>接着要执行第十四道指令 ldloc.3。 将 V3 的值放进 Evaluation Stack。 执行完此道指令之后，内存的变化如图 15 所示：</p>
+<p><img src="/img/dd229211.il_f15(zh-tw,msdn.10).jpg" alt="dd229211.il_f15(zh-tw,msdn.10).jpg"><br>图 15</p>
+<p>接着要执行第十五道指令 box [mscorlib]System.Int32。 此指令的意思是：从 Evaluation Stack 中取出一个值，将此 Value Type 包装（box）成为 Reference Type。 执行完此道指令之后，内存的变化如图 16 所示：</p>
+<p><img src="/img/dd229211.il_f16(zh-tw,msdn.10).jpg" alt="dd229211.il_f16(zh-tw,msdn.10).jpg"><br>图 16</p>
+<p>接着要执行第十六道指令 call string [mscorlib] System.String::Concat(object, object)。 此指令的意思是：从 Evaluation Stack 中取出两个值，此二值皆为 Reference Type，下面的值当作第一个参数，上面的值当作第二个参数，呼叫 mscorlib.dll 所提供的 System.String.Concat() method 来将此二参数进行字符串接合（String Concatenation），将接合出来的新字符串放在 Managed Heap，将其 Reference 放进 Evaluation Stack。 值得注意的是：由于 System.String.Concat() 是 static method，所以此处使用的指令是 call，而非 callvirt（呼叫虚拟）。 执行完此道指令之后，内存的变化如图 17 所示：</p>
+<p><img src="/img/dd229211.il_f17(zh-tw,msdn.10).jpg" alt="dd229211.il_f17(zh-tw,msdn.10).jpg"><br>图 17</p>
+<p>请注意：此时 Managed Heap 中的 Int32(6) 以及 String(“i+j+k=”) 已经不再被参考到，所以变成垃圾，等待 GC 的回收。</p>
+<p>接着要执行第十七道指令 call void [mscorlib] System.Console::WriteLine(string)。 此指令的意思是：从 Evaluation Stack 中取出一个值，此值为 Reference Type，将此值当作参数，呼叫 mscorlib.dll 所提供的 System.Console.WriteLine() method 来将此字符串显示在 Console 窗口上。 System.Console.WriteLine() 也是 static method。 执行完此道指令之后，内存的变化如图 18 所示：</p>
+<p><img src="/img/dd229211.il_f18(zh-tw,msdn.10).jpg" alt="dd229211.il_f18(zh-tw,msdn.10).jpg"><br>图 18</p>
+<p>接着要执行第十八道指令 ret。 此指令的意思是：结束此次呼叫（也就是 Main 的呼叫）。 此时会检查 Evaluation Stack 内剩下的数据，由于 Main() 宣告不需要传出值（void），所以 Evaluation Stack 内必须是空的，本范例符合这样的情况，所以此时可以顺利结束此次呼叫。 而 Main 的呼叫一结束，程序也随之结束。 执行完此道指令之后（且在程序结束前），内存的变化如图 19 所示：</p>
+<p><img src="/img/dd229211.il_f19(zh-tw,msdn.10).jpg" alt="dd229211.il_f19(zh-tw,msdn.10).jpg"><br>图 19</p>
+<p>透过此范例，读者应该可以对于 IL 有最基本的认识。 对 IL 感兴趣的读者应该自行阅读 Serge Lidin 所著的《Inside Microsoft .NET IL Assembler》（Microsoft Press 出版）。 我认为：熟知 IL 每道指令的作用，是 .NET 程序员必备的知识。.NET 程序员可以不会用 IL Assembly 写程序，但是至少要看得懂 ILDASM 反组译出来的 IL 组合码。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/DotNet/" rel="tag"># DotNet</a>
+              <a href="/tags/CSharp/" rel="tag"># CSharp</a>
+              <a href="/tags/Emit-%E5%8F%8D%E5%B0%84%E5%8F%91%E5%87%BA/" rel="tag"># Emit(反射发出)</a>
+              <a href="/tags/MSIL%E6%8C%87%E4%BB%A4/" rel="tag"># MSIL指令</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/12/31/vs%E6%8F%92%E4%BB%B6%E6%95%B4%E7%90%86/" rel="prev" title="vs插件整理">
+      <i class="fa fa-chevron-left"></i> vs插件整理
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/01/08/%E4%B8%80%E8%87%B4%E6%80%A7hash%E7%AE%97%E6%B3%95/" rel="next" title="一致性hash算法">
+      一致性hash算法 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">309</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">100</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">132</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

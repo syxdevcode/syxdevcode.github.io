@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"syxdevcode.github.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="Linux logrotate简介Linux logrotate 命令用于管理记录文件。 使用 logrotate 指令，可让你轻松管理系统所产生的记录文件。它提供自动替换，压缩，删除和邮寄记录文件，每个记录文件都可被设置成每日，每周或每月处理，也能在文件太大时立即处理。例如，你可以设置 logrotate，让 &#x2F;var&#x2F;log&#x2F;foo 日志文件每30天轮循，并删除超过6个月的日志。配置完后，lo">
+<meta property="og:type" content="article">
+<meta property="og:title" content="使用Linux自带日志滚动工具logrotate滚动redis日志示例">
+<meta property="og:url" content="https://syxdevcode.github.com/2020/08/06/%E4%BD%BF%E7%94%A8Linux%E8%87%AA%E5%B8%A6%E6%97%A5%E5%BF%97%E6%BB%9A%E5%8A%A8%E5%B7%A5%E5%85%B7logrotate%E6%BB%9A%E5%8A%A8redis%E6%97%A5%E5%BF%97%E7%A4%BA%E4%BE%8B/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="Linux logrotate简介Linux logrotate 命令用于管理记录文件。 使用 logrotate 指令，可让你轻松管理系统所产生的记录文件。它提供自动替换，压缩，删除和邮寄记录文件，每个记录文件都可被设置成每日，每周或每月处理，也能在文件太大时立即处理。例如，你可以设置 logrotate，让 &#x2F;var&#x2F;log&#x2F;foo 日志文件每30天轮循，并删除超过6个月的日志。配置完后，lo">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-08-06T15:51:36.000Z">
+<meta property="article:modified_time" content="2020-09-28T07:12:37.261Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="Linux">
+<meta property="article:tag" content="安装部署">
+<meta property="article:tag" content="CentOS7">
+<meta property="article:tag" content="Redis">
+<meta property="article:tag" content="日志">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://syxdevcode.github.com/2020/08/06/%E4%BD%BF%E7%94%A8Linux%E8%87%AA%E5%B8%A6%E6%97%A5%E5%BF%97%E6%BB%9A%E5%8A%A8%E5%B7%A5%E5%85%B7logrotate%E6%BB%9A%E5%8A%A8redis%E6%97%A5%E5%BF%97%E7%A4%BA%E4%BE%8B/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>使用Linux自带日志滚动工具logrotate滚动redis日志示例 | syxdevcode博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">syxdevcode博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/syxdevcode" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/06/%E4%BD%BF%E7%94%A8Linux%E8%87%AA%E5%B8%A6%E6%97%A5%E5%BF%97%E6%BB%9A%E5%8A%A8%E5%B7%A5%E5%85%B7logrotate%E6%BB%9A%E5%8A%A8redis%E6%97%A5%E5%BF%97%E7%A4%BA%E4%BE%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          使用Linux自带日志滚动工具logrotate滚动redis日志示例
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-08-06 15:51:36" itemprop="dateCreated datePublished" datetime="2020-08-06T15:51:36+00:00">2020-08-06</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-09-28 07:12:37" itemprop="dateModified" datetime="2020-09-28T07:12:37+00:00">2020-09-28</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="Linux-logrotate简介"><a href="#Linux-logrotate简介" class="headerlink" title="Linux logrotate简介"></a>Linux logrotate简介</h2><p><code>Linux logrotate</code> 命令用于管理记录文件。</p>
+<p>使用 <code>logrotate</code> 指令，可让你轻松管理系统所产生的记录文件。它提供自动替换，压缩，删除和邮寄记录文件，每个记录文件都可被设置成每日，每周或每月处理，也能在文件太大时立即处理。例如，你可以设置 <code>logrotate</code>，让 <code>/var/log/foo</code> 日志文件每30天轮循，并删除超过6个月的日志。配置完后，<code>logrotate</code> 的运作完全自动化，不必进行任何进一步的人为干预。</p>
+<p><code>logrotate</code> 需要的 <code>cron</code> 任务应该在安装时就自动创建好了，下面代码以centos7.4为例：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">cat /etc/cron.daily/logrotate</span><br><span class="line"><span class="meta">#!/bin/sh</span></span><br><span class="line"></span><br><span class="line">/usr/sbin/logrotate -s /var/lib/logrotate/logrotate.status /etc/logrotate.conf</span><br><span class="line">EXITVALUE=$?</span><br><span class="line"><span class="keyword">if</span> [ <span class="variable">$EXITVALUE</span> != 0 ]; <span class="keyword">then</span></span><br><span class="line">    /usr/bin/logger -t logrotate <span class="string">&quot;ALERT exited abnormally with [<span class="variable">$EXITVALUE</span>]&quot;</span></span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"><span class="built_in">exit</span> 0</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>Linux系统自带的日志滚动工具 <code>logrotate</code> 由两部分组成：</p>
+<p>一是命令行工具 <code>logrotate</code>;<br>二是后台服务 <code>rsyslogd</code>。</p>
+<p>使用 <code>rsyslogd</code> ，只需简单的配置即可实现日志滚动。<br><code>rsyslogd</code> 的配置文件为 <code>/etc/logrotate.conf</code>，但一般不建议直接修改 <code>logrotate.conf</code> ，而是在目录 <code>/etc/logrotate.d</code> 下新增文件的方式。<br><code>logrotate.conf</code> 会 <code>include</code> 所有 <code>logrotate.d</code> 目录下的文件，<br>语法是一致的，区别是 <code>logrotate.conf</code> 定义了默认的配置，而 <code>logrotate.d</code> 目录下为专有配置。</p>
+<h2 id="Redis日志设置"><a href="#Redis日志设置" class="headerlink" title="Redis日志设置"></a>Redis日志设置</h2><p>截至到 <code>redis-5.0</code> 版本，redis 仍然不会自动滚动日志文件，如果不处理则日志文件日积月累越来越大，最终将导致磁盘满告警，</p>
+<p>使用命令查看磁盘使用情况：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ls -lh</span><br></pre></td></tr></table></figure>
+
+<p>下列为redis的配置示例：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># cat /etc/logrotate.d/redis</span></span><br><span class="line"><span class="comment"># 以下为 redis 文件的内容：</span></span><br><span class="line">/usr/<span class="built_in">local</span>/redis-cluster/<span class="built_in">log</span>/redis-*.<span class="built_in">log</span> &#123;</span><br><span class="line">    monthly</span><br><span class="line">    rotate 5</span><br><span class="line">    minsize 100M</span><br><span class="line">    nocompress</span><br><span class="line">    missingok</span><br><span class="line">    notifempty</span><br><span class="line">    create 0664 root root</span><br><span class="line">    postrotate</span><br><span class="line">        /usr/bin/killall -HUP rsyslogd</span><br><span class="line">    endscript</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>注：<code>postrotate/endscript</code> 可以去掉，即：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># cat /etc/logrotate.d/redis</span></span><br><span class="line"><span class="comment"># 以下为 redis 文件的内容：</span></span><br><span class="line">/usr/<span class="built_in">local</span>/redis-cluster/<span class="built_in">log</span>/redis-*.<span class="built_in">log</span> &#123;</span><br><span class="line">    monthly</span><br><span class="line">    rotate 5</span><br><span class="line">    minsize 100M</span><br><span class="line">    nocompress</span><br><span class="line">    missingok</span><br><span class="line">    notifempty</span><br><span class="line">    create 0664 root root</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>配置项说明：</p>
+<p>可以使用 <code>man logrotate</code> 命令查看详情。</p>
+<p><code>monthly</code>: 日志文件将按月轮循。其它可用值为 <code>daily</code>，<code>weekly</code> 或者 <code>yearly</code>。<br><code>rotate</code> 指定日志文件备份数，一次将存储5个归档日志。对于第六个归档，时间最久的归档将被删除，如果值为0表示不备份<br><code>minsize</code> 表示日志文件达到多大才滚动<br><code>nocompress</code> 表示是否压缩备份的日志文件，取值：<code>compress</code>，<code>nocompress</code><br><code>delaycompress</code>: 总是与 <code>compress</code> 选项一起用，<code>delaycompress</code> 选项指示 <code>logrotate</code> 不要将最近的归档压缩，压缩将在下一次轮循周期进行。这在你或任何软件仍然需要读取最新归档时很有用。<br><code>missingok</code> 在日志轮循期间，任何错误将被忽略<br><code>notifempty</code> 日志文件为空时，不进行轮转，默认值为 <code>ifempty</code><br><code>create</code> 以指定的权限创建全新的日志文件，同时logrotate也会重命名原始日志文件。<code>logrotate</code> 是以 root 运行的，如果目标日志文件非root运行，则这个一定要指定好。<br><code>postrotate/endscript</code>: 在所有其它指令完成后，<code>postrotate</code> 和 <code>endscript</code> 里面指定的命令将被执行。在这种情况下，<code>rsyslogd</code> 进程将立即再次读取其配置并继续运行。</p>
+<p>注意，修改后需要重启下 <code>rsyslogd</code>。如果是 <code>CentOS</code> 可使用下列任意一种方式重启<br>（实际上 <code>systemctl</code> 新方式，而 <code>service</code> 实际也是使用 <code>systemctl</code> ）：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">service rsyslog restart </span><br><span class="line">systemctl restart rsyslog.service</span><br></pre></td></tr></table></figure>
+
+<h2 id="实例"><a href="#实例" class="headerlink" title="实例"></a>实例</h2><p><strong>1，只轮循一个日志文件，日志文件大小可以增长到50MB</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/logrotate.d/log-file</span><br><span class="line"></span><br><span class="line"><span class="comment"># 以下为内容</span></span><br><span class="line">/var/<span class="built_in">log</span>/log-file &#123;</span><br><span class="line">    size=50M</span><br><span class="line">    rotate 5</span><br><span class="line">    create 644 root root</span><br><span class="line">    postrotate</span><br><span class="line">        /usr/bin/killall -HUP rsyslogd</span><br><span class="line">    endscript</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>日志文件以创建日期命名</strong></p>
+<p>使用 <code>dateext</code> 实现。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/logrotate.d/log-file</span><br><span class="line"></span><br><span class="line"><span class="comment"># 以下为内容</span></span><br><span class="line">/var/<span class="built_in">log</span>/log-file &#123;</span><br><span class="line">    monthly</span><br><span class="line">    rotate 5</span><br><span class="line">    dateext</span><br><span class="line">    create 644 root root</span><br><span class="line">    postrotate</span><br><span class="line">        /usr/bin/killall -HUP rsyslogd</span><br><span class="line">    endscript</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="手动运行"><a href="#手动运行" class="headerlink" title="手动运行"></a>手动运行</h2><p>logrotate可以在任何时候从命令行手动调用。</p>
+<p>要调用为 <code>/etc/lograte.d/</code> 下配置的所有日志调用 <code>logrotate</code> ：</p>
+<p><code>logrotate /etc/logrotate.conf</code> </p>
+<p>要为某个特定的配置调用 <code>logrotate</code> ：</p>
+<p><code>logrotate /etc/logrotate.d/log-file</code> </p>
+<p><strong>logrotate参数说明</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># -d 选项以预演方式运行logrotate</span></span><br><span class="line">logrotate -d /etc/logrotate.d/log-file </span><br><span class="line"></span><br><span class="line"><span class="comment"># -f 强制logrotate轮循日志文件</span></span><br><span class="line"><span class="comment"># -v 参数提供了详细的输出。</span></span><br><span class="line">logrotate -vf /etc/logrotate.d/log-file</span><br><span class="line"></span><br><span class="line"><span class="comment"># 输出到指定的文件</span></span><br><span class="line"><span class="comment"># 注：logrotate自身的日志通常存放于/var/lib/logrotate/status目录。</span></span><br><span class="line">logrotate -vf –s /var/<span class="built_in">log</span>/logrotate-status /etc/logrotate.d/log-file</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://blog.chinaunix.net/uid-20682147-id-5818053.html">使用Linux自带日志滚动工具logrotate滚动redis日志示例</a></p>
+<p><a target="_blank" rel="noopener" href="https://linux.cn/article-4126-1.html">Linux日志文件总管——logrotate</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.runoob.com/linux/linux-comm-logrotate.html">Linux logrotate命令</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Linux/" rel="tag"># Linux</a>
+              <a href="/tags/%E5%AE%89%E8%A3%85%E9%83%A8%E7%BD%B2/" rel="tag"># 安装部署</a>
+              <a href="/tags/CentOS7/" rel="tag"># CentOS7</a>
+              <a href="/tags/Redis/" rel="tag"># Redis</a>
+              <a href="/tags/%E6%97%A5%E5%BF%97/" rel="tag"># 日志</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/08/06/CentOS7%E6%89%A7%E8%A1%8CShell%E8%84%9A%E6%9C%AC/" rel="prev" title="CentOS7执行Shell脚本">
+      <i class="fa fa-chevron-left"></i> CentOS7执行Shell脚本
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/08/06/Linux%20Crontab%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E8%AF%A6%E8%A7%A3/" rel="next" title="Linux Crontab定时任务详解">
+      Linux Crontab定时任务详解 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Linux-logrotate%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">Linux logrotate简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Redis%E6%97%A5%E5%BF%97%E8%AE%BE%E7%BD%AE"><span class="nav-number">2.</span> <span class="nav-text">Redis日志设置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E4%BE%8B"><span class="nav-number">3.</span> <span class="nav-text">实例</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%89%8B%E5%8A%A8%E8%BF%90%E8%A1%8C"><span class="nav-number">4.</span> <span class="nav-text">手动运行</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">309</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">100</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">132</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
