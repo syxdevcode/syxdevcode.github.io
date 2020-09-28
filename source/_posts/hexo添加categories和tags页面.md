@@ -7,7 +7,7 @@ categories:
 - Hexo
 ---
 
-默认是没有 `categories` 和 `tags` 的
+默认是没有 `categories` 和 `tags` 的：
 
 ```sh
 hexo new page "tags"
