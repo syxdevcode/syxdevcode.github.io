@@ -41,7 +41,7 @@ BsonDocument方式，适合能熟练使用MongoDB Shell的开发者。MongoDB Dr
 
 `MongoDB` 允许使用其它类型的数据作为ID，例如：`string`，`int`，`long`，`GUID` 等，但这就需要你自己去保证这些数据不超限并且唯一。
 
-
+## 2. 简单字段
 
 
 
