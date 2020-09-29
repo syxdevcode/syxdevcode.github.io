@@ -30,7 +30,7 @@ categories:
 
 ### ID字段
 
-`MongoDB` 数据集中存放的数据，称之为文档（`Document`）。每个文档在存放时，都需要有一个ID，而这个 `ID` 的名称，固定叫 `_id`。
+`MongoDB` 数据集中存放的数据，称之为文档（`Document`）。每个文档在存放时，都需要有一个ID，而这个 `ID` 的名称，固定叫 `_id`，类型是 `MongoDB.Bson.ObjectId`。
 
 当建立映射时，如果给出 `_id` 字段，则 `MongoDB` 会采用这个 `ID` 做为这个文档的 `ID` ，如果不给出，`MongoDB` 会自动添加一个 `_id` 字段。在使用上是完全一样的。唯一的区别是，如果映射类中不写 `_id`，则 `MongoDB` 自动添加 `_id` 时，会用 `ObjectId` 作为这个字段的数据类型。
 

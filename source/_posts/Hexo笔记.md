@@ -1,8 +1,8 @@
 ---
 title: Hexo笔记
 date: 2017-04-28 09:47:46
-tags: hexo
-categories: hexo
+tags: Hexo
+categories: Hexo
 ---
 # Hexo 笔迹
 

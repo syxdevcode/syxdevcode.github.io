@@ -2,11 +2,10 @@
 title: Hexo 部署到 Github Pages 文件夹大小写问题
 date: 2018-12-11 15:15:52
 tags:
-- hexo
+- Hexo
 categories: 
-- hexo
+- Hexo
 ---
-# Hexo 部署到 Github Pages 文件夹大小写问题
 
 解决办法:
 
