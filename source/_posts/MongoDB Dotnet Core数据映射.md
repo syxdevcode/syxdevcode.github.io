@@ -2,12 +2,9 @@
 title: MongoDB Dotnet Core数据映射
 date: 2020-09-28 13:56:36
 tags:
-- Linux
-- NoSQL
-- CentOS7
-- Windows
+- DotNetCore
+- CSharp
 - MongoDB
-- 安装部署
 categories:
 - MongoDB
 ---
