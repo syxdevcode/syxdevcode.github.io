@@ -40,6 +40,10 @@ namespace MongoDBTest
             Console.WriteLine("-----------Query输出---------------");
             await Query("a");
 
+            Console.WriteLine("-----------SkipAndSortAndLimitAndProjections输出---------------");
+            var request = new PageRequest {PageIndex = 1, PageSize = 2};
+            await SkipAndSortAndLimitAndProjections(request);
+
             Console.ReadKey();
         }
 
@@ -81,17 +85,40 @@ namespace MongoDBTest
                     Console.WriteLine();
                 }
             }
-            Console.WriteLine($"Total Batch: { batch}");
+        }
+
+        /// <summary>
+        /// Skip, Sort, Limit, Projections
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        private static async Task SkipAndSortAndLimitAndProjections(PageRequest request)
+        {
+            var count = 0;
+            await _collection.Find(FilterDefinition<CollectionModel>.Empty)
+                .Skip((request.PageIndex - 1) * request.PageSize)
+                .Limit(request.PageSize)
+                //.Sort(Builders<CollectionModel>.Sort.Descending("title"))
+                //.Sort(Builders<CollectionModel>.Sort.Descending(x => x.title).Ascending(x => x.content))
+                .Sort("{title: 1}")
+                .Project(x => new { x.m_id, x.title, x.content, x.userinfo })
+                .ForEachAsync(
+                    obj =>
+                    {
+                        Console.WriteLine($"S/N: {count}, \t Id: {obj.m_id}, title: {obj.title}, content: {obj.content}, serinfo.name: {obj?.userinfo?.name}");
+                        count++;
+                    });
         }
 
         private static async Task InsertOneAsyncTest()
         {
             CollectionModel model = new CollectionModel();
             model.title = "A1";
+            model.content = "可以测试";
             model.userinfo = new UserModel
             {
                 name = "测试",
-                addressList = new List<AddressModel> 
+                addressList = new List<AddressModel>
                 {
                     new AddressModel { address = "北京" },
                     new AddressModel { address = "上海" }
