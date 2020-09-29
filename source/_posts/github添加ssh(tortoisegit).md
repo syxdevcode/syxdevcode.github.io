@@ -3,7 +3,7 @@ title: github添加ssh(tortoisegit)
 date: 2020-02-29 14:20:23
 tags:
 - Git
-- hexo
+- Hexo
 - SSH
 categories: Git
 ---

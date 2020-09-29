@@ -3,7 +3,7 @@ title: 解决ssh-keygen不是内部或外部命令
 date: 2019-04-11 16:08:08
 tags: 
 - Git
-- hexo
+- Hexo
 - SSH
 categories: Git
 ---
