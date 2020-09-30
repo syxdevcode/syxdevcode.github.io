@@ -173,6 +173,8 @@ ulimit 命令分软限制和硬限制，加-H就是硬限制，加-S就是软限
 ```sh
 * soft nofile 65535
 * hard nofile 65535
+* soft nproc 65535
+* hard nproc 65535
 
 # 可以使用下面一行来替代上面
 * - nofile 65535

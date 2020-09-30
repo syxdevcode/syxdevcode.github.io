@@ -102,7 +102,7 @@ root      6339  0.0  0.0 112724   992 pts/1    S+   10:42   0:00 grep --color=au
 
 ### 公共配置 ：redis.conf
 
-```sh
+```yaml
 # Redis configuration file example.
 #
 # Note that in order to read the configuration file, Redis must be
