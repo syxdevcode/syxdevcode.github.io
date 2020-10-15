@@ -153,6 +153,18 @@ static async Task Test(){
 
 例如：async void 方法中引发的异常无法在该方法外部被捕获或十分难以测试 async void 方法。
 
+#### async和await总结
+
+async/await 本质上只是一个语法糖，它并不产生线程，只是在编译时把语句的执行逻辑改了，相当于过去我们用callback，这里编译器自动实现了。
+
+线程的转换是通过SynchronizationContext来实现，如果做了Task.ConfigureAwait(false)操作，运行MoveNext时就只是在线程池中拿个空闲线程出来执行；如果Task.ConfigureAwait(true)-(默认)，则会在异步操作前Capture当前线程的SynchronizationContext，异步操作之后运行MoveNext时通过SynchronizationContext转到目标之前的线程。
+
+一般是想更新UI则需要用到 SynchronizationContext，如果异步操作完成还需要做大量运算，则可以考虑Task.ConfigureAwait(false)把计算放到后台算，防止UI卡死。
+
+另外还有在异步操作前做的ExecutionContext.FastCapture，获取当前线程的执行上下文，注意，如果Task.ConfigureAwait(false)，会有个IgnoreSynctx的标记，表示在ExecutionContext.Capture里不做SynchronizationContext.Capture操作，Capture到的执行上下文用来在awaiter completed后给MoveNext用，使MoveNext可以有和前面线程同样的上下文。
+
+通过SynchronizationContext.Post操作，可以使异步异常在最开始的try..catch块中轻松捕获。
+
 ### 调用异步方法
 
 在一个异步方法里，可以调用一个或多个异步方法，如何编码取决于异步方法间结果是否相互依赖。
@@ -253,6 +265,8 @@ static async Task ThrowAfter(int ms, string message)
 参考：
 
 [异步编程 In .NET](http://www.cnblogs.com/jesse2013/p/Asynchronous-Programming-In-DotNet.html)
+
+[async/await IL翻译](https://www.cnblogs.com/CrabMan/p/5436083.html)
 
 [async & await 的前世今生（Updated）](http://www.cnblogs.com/jesse2013/p/async-and-await.html)
 
