@@ -34,7 +34,7 @@
 <meta property="og:image" content="https://syxdevcode.github.com/img/net-mem-06-generation.png">
 <meta property="og:image" content="https://syxdevcode.github.com/img/151257-20160309235625475-414934067.png">
 <meta property="article:published_time" content="2018-12-14T14:33:47.000Z">
-<meta property="article:modified_time" content="2020-10-15T07:12:58.596Z">
+<meta property="article:modified_time" content="2020-10-15T07:17:02.241Z">
 <meta property="article:author" content="syxdevcode">
 <meta property="article:tag" content="DotNet">
 <meta property="article:tag" content="CSharp">
@@ -231,7 +231,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-10-15 07:12:58" itemprop="dateModified" datetime="2020-10-15T07:12:58+00:00">2020-10-15</time>
+                <time title="修改时间：2020-10-15 07:17:02" itemprop="dateModified" datetime="2020-10-15T07:17:02+00:00">2020-10-15</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -411,9 +411,9 @@
 <li>下一个 GC 执行时，将释放已经被调用 Finalize 方法的那些对象实例。</li>
 </ul>
 <p>简单总结：Finalize() 可以确保非托管资源会被释放，但需要很多额外的工作（比如终结对象特殊管理），而且 GC 需要执行两次才会真正释放资源。唯一的优点就是不需要显示调用。</p>
-<h3 id="Finalization-Queue-和-Freachable-Queue"><a href="#Finalization-Queue-和-Freachable-Queue" class="headerlink" title="Finalization Queue 和 Freachable Queue"></a>Finalization Queue 和 Freachable Queue</h3><p>　　这两个队列和 .NET 对象所提供的 Finalize 方法有关。这两个队列并不用于存储真正的对象，而是存储一组指向对象的指针。当程序中使用了new操作符在Managed Heap上分配空间时，GC会对其进行分析，如果该对象含有 Finalize 方法则在 Finalization Queue中添加一个指向该对象的指针。</p>
-<p>　　在GC被启动以后，经过 Mark 阶段分辨出哪些是垃圾。再在垃圾中搜索，如果发现垃圾中有被 Finalization Queue 中的指针所指向的对象，则将这个对象从垃圾中分离出来，并将指向它的指针移动到 Freachable Queue 中。这个过程被称为是对象的复生（Resurrection），本来死去的对象就这样被救活了。为什么要救活它呢？因为这个对象的 Finalize 方法还没有被执行，所以不能让它死去。Freachable Queue 平时不做什么事，但是一旦里面被添加了指针之后，它就会去触发所指对象的 Finalize 方法执行，之后将这个指针从队列中剔除，这是对象就可以安静的死去了。</p>
-<p>　　.NET Framework 的 System.GC 类提供了控制Finalize的两个方法，ReRegisterForFinalize 和 SuppressFinalize。前者是请求系统完成对象的 Finalize 方法，后者是请求系统不要完成对象的 Finalize 方法。ReRegisterForFinalize 方法其实就是将指向对象的指针重新添加到 Finalization Queue 中。这就出现了一个很有趣的现象，因为在 Finalization Queue 中的对象可以复生，如果在对象的 Finalize 方法中调用ReRegisterForFinalize 方法，这样就形成了一个在堆上永远不会死去的对象，像凤凰涅槃一样每次死的时候都可以复生。</p>
+<h3 id="Finalization-Queue-和-Freachable-Queue"><a href="#Finalization-Queue-和-Freachable-Queue" class="headerlink" title="Finalization Queue 和 Freachable Queue"></a>Finalization Queue 和 Freachable Queue</h3><p>　　这两个队列和 .NET 对象所提供的 Finalize 方法有关。这两个队列并不用于存储真正的对象，而是存储一组指向对象的指针。当程序中使用了 new 操作符在 Managed Heap 上分配空间时，GC 会对其进行分析，如果该对象含有 Finalize 方法则在 Finalization Queue 中添加一个指向该对象的指针。</p>
+<p>　　在 GC 被启动以后，经过 Mark 阶段分辨出哪些是垃圾。再在垃圾中搜索，如果发现垃圾中有被 Finalization Queue 中的指针所指向的对象，则将这个对象从垃圾中分离出来，并将指向它的指针移动到 Freachable Queue 中。这个过程被称为是对象的复生（Resurrection），本来死去的对象就这样被救活了。为什么要救活它呢？因为这个对象的 Finalize 方法还没有被执行，所以不能让它死去。Freachable Queue 平时不做什么事，但是一旦里面被添加了指针之后，它就会去触发所指对象的 Finalize 方法执行，之后将这个指针从队列中剔除，这是对象就可以安静的死去了。</p>
+<p>　　.NET Framework 的 System.GC 类提供了控制Finalize的两个方法，ReRegisterForFinalize 和 SuppressFinalize。前者是请求系统完成对象的 Finalize 方法，后者是请求系统不要完成对象的 Finalize 方法。ReRegisterForFinalize 方法其实就是将指向对象的指针重新添加到 Finalization Queue 中。这就出现了一个很有趣的现象，因为在 Finalization Queue 中的对象可以复生，如果在对象的 Finalize 方法中调用 ReRegisterForFinalize 方法，这样就形成了一个在堆上永远不会死去的对象，像凤凰涅槃一样每次死的时候都可以复生。</p>
 <h3 id="手动确定性终结化"><a href="#手动确定性终结化" class="headerlink" title="手动确定性终结化"></a>手动确定性终结化</h3><p>手动确定性终结化，需要客户端释放资源。</p>
 <h3 id="自动非确定性终结化"><a href="#自动非确定性终结化" class="headerlink" title="自动非确定性终结化"></a>自动非确定性终结化</h3><p>Finalize 来自 System.Object 中受保护的虚方法 Finalize，无法被子类显示重写，也无法显示调用。她的作用就是用来释放非托管资源，由 GC 来执行回收，因此可以保证非托管资源可以被释放。</p>
 <ul>
