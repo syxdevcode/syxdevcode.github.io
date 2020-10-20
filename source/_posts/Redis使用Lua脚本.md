@@ -111,4 +111,6 @@ Lua 脚本在 Redis 中是以原子方式执行的，在 Redis 服务器执行EV
 
 [一网打尽Redis Lua脚本并发原子组合操作](https://mp.weixin.qq.com/s/hwa0tm1apVursY6KvB3FfA)
 
+[EVAL Script](http://redisdoc.com/script/eval.html)
+
 [Redis Eval 命令](https://www.runoob.com/redis/scripting-eval.html)
