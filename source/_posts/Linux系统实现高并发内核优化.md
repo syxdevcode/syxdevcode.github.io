@@ -208,6 +208,12 @@ net.ipv4.tcp_timestamps = 0
 net.ipv4.tcp_sack = 1
 ```
 
+查看系统级文件句柄修改，是否生效
+
+```sh
+sysctl -p
+```
+
 备忘录：
 
 ```sh

@@ -21,13 +21,27 @@ categories:
 
 参考：[Linux设置TCP监听队列](https://syxdevcode.github.io/2020/08/04/Linux%E8%AE%BE%E7%BD%AETCP%E7%9B%91%E5%90%AC%E9%98%9F%E5%88%97/)
 
+在 /etc/sysctl.conf 添加：
+
+net.core.somaxconn=32767
+
+执行命令 sysctl -p 以生效
+
 ### OOM相关：vm.overcommit_memory
 
 参考：[Linux OOM机制简介](https://syxdevcode.github.io/2020/08/05/Linux%20OOM%E6%9C%BA%E5%88%B6%E7%AE%80%E4%BB%8B/)
 
+在 /etc/sysctl.conf 添加：
+
+vm.overcommit_memory=1
+
+执行命令 sysctl -p 以生效
+
 ### Linux Transparent HugePages(透明大页)
 
 参考：[Linux Transparent HugePages(透明大页)](https://syxdevcode.github.io/2020/08/05/Linux%20Transparent%20HugePages(%E9%80%8F%E6%98%8E%E5%A4%A7%E9%A1%B5)/)
+
+将 echo never > /sys/kernel/mm/transparent_hugepage/enabled 加入到文件 /etc/rc.local 中
 
 ## 目录结构
 
@@ -140,9 +154,12 @@ loglevel notice
 # 密码
 requirepass password
 
+# 主库master要求密码验证，从库配置文件中 master 密码配置
+masterauth password
+
 # 可选
 # 最大连接数
-maxclients 100000
+maxclients 1000000
 
 # 可选
 # 客户端多长（秒）时间没发包过来关闭它，0表示永不关闭

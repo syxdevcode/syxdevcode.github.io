@@ -57,8 +57,12 @@ ls -lh
 ```sh
 # cat /etc/logrotate.d/redis
 # 以下为 redis 文件的内容：
-/usr/local/redis-cluster/log/redis-*.log {
+/usr/local/redis-cluster/log/redis-6379.log
+/usr/local/redis-cluster/log/redis-6380.log
+/usr/local/redis-cluster/log/redis-6381.log
+{
     monthly
+    size=150M
     rotate 5
     minsize 100M
     nocompress
@@ -76,8 +80,12 @@ ls -lh
 ```sh
 # cat /etc/logrotate.d/redis
 # 以下为 redis 文件的内容：
-/usr/local/redis-cluster/log/redis-*.log {
+/usr/local/redis-cluster/log/redis-6379.log
+/usr/local/redis-cluster/log/redis-6380.log
+/usr/local/redis-cluster/log/redis-6381.log
+{
     monthly
+    size=150M
     rotate 5
     minsize 100M
     nocompress
@@ -91,15 +99,16 @@ ls -lh
 
 可以使用 `man logrotate` 命令查看详情。
 
-`monthly`: 日志文件将按月轮循。其它可用值为 `daily`，`weekly` 或者 `yearly`。
-`rotate` 指定日志文件备份数，一次将存储5个归档日志。对于第六个归档，时间最久的归档将被删除，如果值为0表示不备份
-`minsize` 表示日志文件达到多大才滚动
-`nocompress` 表示是否压缩备份的日志文件，取值：`compress`，`nocompress`
-`delaycompress`: 总是与 `compress` 选项一起用，`delaycompress` 选项指示 `logrotate` 不要将最近的归档压缩，压缩将在下一次轮循周期进行。这在你或任何软件仍然需要读取最新归档时很有用。
-`missingok` 在日志轮循期间，任何错误将被忽略
-`notifempty` 日志文件为空时，不进行轮转，默认值为 `ifempty`
-`create` 以指定的权限创建全新的日志文件，同时logrotate也会重命名原始日志文件。`logrotate` 是以 root 运行的，如果目标日志文件非root运行，则这个一定要指定好。
-`postrotate/endscript`: 在所有其它指令完成后，`postrotate` 和 `endscript` 里面指定的命令将被执行。在这种情况下，`rsyslogd` 进程将立即再次读取其配置并继续运行。
+* `monthly`: 日志文件将按月轮循。其它可用值为 `daily`，`weekly` 或者 `yearly`。
+* `rotate` 指定日志文件备份数，一次将存储5个归档日志。对于第六个归档，时间最久的归档将被删除，如果值为0表示不备份
+* `minsize` 表示日志文件达到多大才滚动
+* `nocompress` 表示是否压缩备份的日志文件，取值：`compress`，`nocompress`
+* `delaycompress`: 总是与 `compress` 选项一起用，`delaycompress` 选项指示 `logrotate` 不要将最近的归档压缩，压缩将在下一次轮循周期进行。这在你或任何软件仍然需要读取最新归档时很有用。
+* `missingok` 在日志轮循期间，任何错误将被忽略
+* `notifempty` 日志文件为空时，不进行轮转，默认值为 `ifempty`
+* `create` 以指定的权限创建全新的日志文件，同时logrotate也会重命名原始日志文件。`logrotate` 是以 root 运行的，如果目标日志文件非root运行，则这个一定要指定好。
+* `postrotate/endscript`: 在所有其它指令完成后，`postrotate` 和 `endscript` 里面指定的命令将被执行。在这种情况下，`rsyslogd` 进程将立即再次读取其配置并继续运行。
+* size : size 当日志文件到达指定的大小时才转储，Size 可以指定 bytes (缺省)以及KB (sizek)或者MB (sizem)。
 
 注意，修改后需要重启下 `rsyslogd`。如果是 `CentOS` 可使用下列任意一种方式重启
 （实际上 `systemctl` 新方式，而 `service` 实际也是使用 `systemctl` ）：
@@ -178,5 +187,7 @@ logrotate -vf –s /var/log/logrotate-status /etc/logrotate.d/log-file
 [使用Linux自带日志滚动工具logrotate滚动redis日志示例](http://blog.chinaunix.net/uid-20682147-id-5818053.html)
 
 [Linux日志文件总管——logrotate](https://linux.cn/article-4126-1.html)
+
+[利用Linux自带的logrotate管理日志](https://www.cnblogs.com/miaocbin/p/11540312.html)
 
 [Linux logrotate命令](https://www.runoob.com/linux/linux-comm-logrotate.html)
