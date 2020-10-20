@@ -124,7 +124,7 @@ systemctl restart rsyslog.service
 ```sh
 # 创建文件
 touch /var/log/log-file
-head -c 50M < /dev/urandom > /var/log/log-file 
+head -c 50M < /dev/urandom > /var/log/log-file
 
 # 编辑配置
 vim /etc/logrotate.d/log-file
@@ -142,7 +142,7 @@ vim /etc/logrotate.d/log-file
 
 ## 手动运行
 
-logrotate可以在任何时候从命令行手动调用。
+logrotate 可以在任何时候从命令行手动调用。
 
 要调用为 `/etc/lograte.d/` 下配置的所有日志调用 `logrotate` ：
 
