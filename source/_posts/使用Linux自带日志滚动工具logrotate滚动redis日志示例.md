@@ -62,10 +62,10 @@ ls -lh
 /usr/local/redis-cluster/log/redis-6381.log
 {
     monthly
-    size=150M
     rotate 5
     minsize 100M
     nocompress
+    dateext
     missingok
     notifempty
     create 0664 root root
@@ -85,10 +85,10 @@ ls -lh
 /usr/local/redis-cluster/log/redis-6381.log
 {
     monthly
-    size=150M
     rotate 5
     minsize 100M
     nocompress
+    dateext
     missingok
     notifempty
     create 0664 root root
@@ -108,7 +108,7 @@ ls -lh
 * `notifempty` 日志文件为空时，不进行轮转，默认值为 `ifempty`
 * `create` 以指定的权限创建全新的日志文件，同时logrotate也会重命名原始日志文件。`logrotate` 是以 root 运行的，如果目标日志文件非root运行，则这个一定要指定好。
 * `postrotate/endscript`: 在所有其它指令完成后，`postrotate` 和 `endscript` 里面指定的命令将被执行。在这种情况下，`rsyslogd` 进程将立即再次读取其配置并继续运行。
-* size : size 当日志文件到达指定的大小时才转储，Size 可以指定 bytes (缺省)以及KB (sizek)或者MB (sizem)。
+* `dateext`：就是切割后的日志文件以当前日期为格式结尾，如 xxx.log-20201016 这样,如果注释掉,切割出来是按数字递增,即前面说的 xxx.log-1这种格式。
 
 注意，修改后需要重启下 `rsyslogd`。如果是 `CentOS` 可使用下列任意一种方式重启
 （实际上 `systemctl` 新方式，而 `service` 实际也是使用 `systemctl` ）：
@@ -120,34 +120,20 @@ systemctl restart rsyslog.service
 
 ## 实例
 
-**1，只轮循一个日志文件，日志文件大小可以增长到50MB**
+**创建测试日志文件**
 
 ```sh
+# 创建文件
+touch /var/log/log-file
+head -c 50M < /dev/urandom > /var/log/log-file 
+
+# 编辑配置
 vim /etc/logrotate.d/log-file
 
 # 以下为内容
 /var/log/log-file {
-    size=50M
+    minsize 50M
     rotate 5
-    create 644 root root
-    postrotate
-        /usr/bin/killall -HUP rsyslogd
-    endscript
-}
-```
-
-**日志文件以创建日期命名**
-
-使用 `dateext` 实现。
-
-```sh
-vim /etc/logrotate.d/log-file
-
-# 以下为内容
-/var/log/log-file {
-    monthly
-    rotate 5
-    dateext
     create 644 root root
     postrotate
         /usr/bin/killall -HUP rsyslogd
@@ -187,7 +173,5 @@ logrotate -vf –s /var/log/logrotate-status /etc/logrotate.d/log-file
 [使用Linux自带日志滚动工具logrotate滚动redis日志示例](http://blog.chinaunix.net/uid-20682147-id-5818053.html)
 
 [Linux日志文件总管——logrotate](https://linux.cn/article-4126-1.html)
-
-[利用Linux自带的logrotate管理日志](https://www.cnblogs.com/miaocbin/p/11540312.html)
 
 [Linux logrotate命令](https://www.runoob.com/linux/linux-comm-logrotate.html)
