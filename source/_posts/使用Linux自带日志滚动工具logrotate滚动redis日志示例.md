@@ -29,7 +29,6 @@ if [ $EXITVALUE != 0 ]; then
     /usr/bin/logger -t logrotate "ALERT exited abnormally with [$EXITVALUE]"
 fi
 exit 0
-
 ```
 
 Linux系统自带的日志滚动工具 `logrotate` 由两部分组成：
