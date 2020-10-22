@@ -28,4 +28,7 @@ df -hT
 
 # 重新挂载系统分区
 mount -a
+
+# 卸载
+umount /media/cdrom
 ```
