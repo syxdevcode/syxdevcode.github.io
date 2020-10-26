@@ -185,6 +185,156 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/10/26/Linux-lsof%E5%91%BD%E4%BB%A4/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/10/26/Linux-lsof%E5%91%BD%E4%BB%A4/" class="post-title-link" itemprop="url">Linux lsof命令</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-10-26 17:12:53 / 修改时间：09:34:14" itemprop="dateCreated datePublished" datetime="2020-10-26T17:12:53+00:00">2020-10-26</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux%E5%9F%BA%E7%A1%80%E5%91%BD%E4%BB%A4/" itemprop="url" rel="index"><span itemprop="name">Linux基础命令</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>lsof 命令用于查看你进程开打的文件，打开文件的进程，进程打开的端口(TCP、UDP)。找回/恢复删除的文件。是十分方便的系统监视工具，因为lsof命令需要访问核心内存和各种文件，所以需要 root 用户执行。</p>
+<p>在 linux 环境下，任何事物都以文件的形式存在，通过文件不仅仅可以访问常规数据，还可以访问网络连接和硬件。所以如传输控制协议 (TCP) 和用户数据报协议 (UDP) 套接字等，系统在后台都为该应用程序分配了一个文件描述符，无论这个文件的本质如何，该文件描述符为应用程序与基础操作系统之间的交互提供了通用接口。因为应用程序打开文件的描述符列表提供了大量关于这个应用程序本身的信息，因此通过lsof工具能够查看这个列表对系统监测以及排错将是很有帮助的。</p>
+<h2 id="语法"><a href="#语法" class="headerlink" title="语法"></a>语法</h2><p>lsof(选项)</p>
+<h3 id="选项"><a href="#选项" class="headerlink" title="选项"></a>选项</h3><ul>
+<li>-a：列出打开文件存在的进程；</li>
+<li>-c&lt;进程名&gt;：列出指定进程所打开的文件；</li>
+<li>-g：列出GID号进程详情；</li>
+<li>-d&lt;文件号&gt;：列出占用该文件号的进程；</li>
+<li>+d&lt;目录&gt;：列出目录下被打开的文件；</li>
+<li>+D&lt;目录&gt;：递归列出目录下被打开的文件；</li>
+<li>-n&lt;目录&gt;：列出使用NFS的文件；</li>
+<li>-i&lt;条件&gt;：列出符合条件的进程。（4、6、协议、:端口、 @ip ）</li>
+<li>-p&lt;进程号&gt;：列出指定进程号所打开的文件；</li>
+<li>-u：列出UID号进程详情；</li>
+<li>-h：显示帮助信息；</li>
+<li>-v：显示版本信息。</li>
+</ul>
+<h3 id="实例"><a href="#实例" class="headerlink" title="实例"></a>实例</h3><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">lsof -i:3306 <span class="comment"># -i:port 显示与指定端口相关信息</span></span><br><span class="line">lsof-i  <span class="comment"># 显示所有连接</span></span><br><span class="line">lsof-i 6 <span class="comment"># 仅获取IPv6流量</span></span><br><span class="line">lsof  -iTCP <span class="comment"># 仅显示TCP连接</span></span><br><span class="line">lsof  -i@172.16.12.5 <span class="comment"># 使用@host来显示指定到指定主机的连接</span></span><br><span class="line">lsof  -i@172.16.12.5:22 <span class="comment"># 使用@host:port显示基于主机与端口的连接</span></span><br><span class="line"></span><br><span class="line">lsof  -i -sTCP:LISTEN <span class="comment"># 找出正等候连接的端口</span></span><br><span class="line">lsof  -i |  grep  -i LISTEN</span><br><span class="line"></span><br><span class="line">lsof  -i -sTCP:ESTABLISHED <span class="comment"># 显示任何已经连接的连接</span></span><br><span class="line">lsof  -i |  grep  -i ESTABLISHED</span><br><span class="line"></span><br><span class="line">lsof  -u root <span class="comment"># -u显示指定用户打开了什么</span></span><br><span class="line">lsof  -u ^root <span class="comment"># 显示除指定用户以外的其它所有用户</span></span><br><span class="line"><span class="built_in">kill</span>  -9  `lsof -t -u toor` <span class="comment"># 杀死指定用户所做的一切事情</span></span><br><span class="line">lsof  -c syslog-ng <span class="comment"># 使用-c 查看指定的命令正在使用的文件和网络连接</span></span><br><span class="line">lsof  -p 10075 <span class="comment"># 使用-p查看指定进程ID已打开的内容</span></span><br><span class="line">lsof  -t -c Mail <span class="comment"># -t选项只返回PID</span></span><br><span class="line">lsof  /var/<span class="built_in">log</span>/messages/ <span class="comment"># 显示与指定目录交互的所有一切</span></span><br><span class="line">lsof  /home/ldjc/log.txt <span class="comment"># 显示与指定文件交互的所有一切</span></span><br><span class="line">lsof  -u root -i @1.1.1.1 <span class="comment"># 显示 用户 连接到 主机ip 所做的一切</span></span><br><span class="line"><span class="built_in">kill</span>  -HUP `lsof -t -c sshd` <span class="comment"># 同时使用-t和-c选项以给进程发送 HUP 信号</span></span><br><span class="line">lsof  +L1 <span class="comment"># 显示所有打开的链接数小于1的文件</span></span><br><span class="line">lsof  -i @fw.google.com:2150=2180 <span class="comment"># 显示某个端口范围的打开的连接</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="lsof-输出各列信息的意义"><a href="#lsof-输出各列信息的意义" class="headerlink" title="lsof 输出各列信息的意义"></a>lsof 输出各列信息的意义</h3><ul>
+<li>COMMAND：进程的名称</li>
+<li>PID：进程标识符</li>
+<li>PPID：父进程标识符（需要指定-R参数）</li>
+<li>USER：进程所有者</li>
+<li>PGID：进程所属组</li>
+<li>FD：文件描述符，应用程序通过文件描述符识别该文件。</li>
+</ul>
+<h3 id="文件描述符列表"><a href="#文件描述符列表" class="headerlink" title="文件描述符列表"></a>文件描述符列表</h3><ul>
+<li>cwd：表示current work dirctory，即：应用程序的当前工作目录，这是该应用程序启动的目录，除非它本身对这个目录进行更改</li>
+<li>txt：该类型的文件是程序代码，如应用程序二进制文件本身或共享库，如上列表中显示的 /sbin/init 程序</li>
+<li>lnn：library references (AIX);</li>
+<li>er：FD information error (see NAME column);</li>
+<li>jld：jail directory (FreeBSD);</li>
+<li>ltx：shared library text (code and data);</li>
+<li>mxx ：hex memory-mapped type number xx.</li>
+<li>m86：DOS Merge mapped file;</li>
+<li>mem：memory-mapped file;</li>
+<li>mmap：memory-mapped device;</li>
+<li>pd：parent directory;</li>
+<li>rtd：root directory;</li>
+<li>tr：kernel trace file (OpenBSD);</li>
+<li>v86  VP/ix mapped file;</li>
+<li>0：表示标准输出</li>
+<li>1：表示标准输入</li>
+<li>2：表示标准错误</li>
+</ul>
+<p>一般在标准输出、标准错误、标准输入后还跟着文件状态模式：</p>
+<ul>
+<li>u：表示该文件被打开并处于读取/写入模式。</li>
+<li>r：表示该文件被打开并处于只读模式。</li>
+<li>w：表示该文件被打开并处于。</li>
+<li>空格：表示该文件的状态模式为unknow，且没有锁定。</li>
+<li>-：表示该文件的状态模式为unknow，且被锁定。</li>
+</ul>
+<p>同时在文件状态模式后面，还跟着相关的锁：</p>
+<ul>
+<li>N：for a Solaris NFS lock of unknown type;</li>
+<li>r：for read lock on part of the file;</li>
+<li>R：for a read lock on the entire file;</li>
+<li>w：for a write lock on part of the file;（文件的部分写锁）</li>
+<li>W：for a write lock on the entire file;（整个文件的写锁）</li>
+<li>u：for a read and write lock of any length;</li>
+<li>U：for a lock of unknown type;</li>
+<li>x：for an SCO OpenServer Xenix lock on part      of the file;</li>
+<li>X：for an SCO OpenServer Xenix lock on the      entire file;</li>
+<li>space：if there is no lock.</li>
+</ul>
+<p>文件类型：</p>
+<ul>
+<li>DIR：表示目录。</li>
+<li>CHR：表示字符类型。</li>
+<li>BLK：块设备类型。</li>
+<li>UNIX： UNIX 域套接字。</li>
+<li>FIFO：先进先出 (FIFO) 队列。</li>
+<li>IPv4：网际协议 (IP) 套接字。</li>
+<li>DEVICE：指定磁盘的名称</li>
+<li>SIZE：文件的大小</li>
+<li>NODE：索引节点（文件在磁盘上的标识）</li>
+<li>NAME：打开文件的确切名称</li>
+</ul>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://man.linuxde.net/lsof">lsof命令</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/a3aa6b01b2e1">Linux 命令神器：lsof</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/10/22/CentOS7-%E6%8F%90%E7%A4%BA-lsof-%E6%9C%AA%E6%89%BE%E5%88%B0%E5%91%BD%E4%BB%A4/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -216,7 +366,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-10-26 09:09:32" itemprop="dateModified" datetime="2020-10-26T09:09:32+00:00">2020-10-26</time>
+                <time title="修改时间：2020-10-26 09:34:14" itemprop="dateModified" datetime="2020-10-26T09:34:14+00:00">2020-10-26</time>
               </span>
 
           
@@ -285,7 +435,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-10-26 09:09:32" itemprop="dateModified" datetime="2020-10-26T09:09:32+00:00">2020-10-26</time>
+                <time title="修改时间：2020-10-26 09:34:14" itemprop="dateModified" datetime="2020-10-26T09:34:14+00:00">2020-10-26</time>
               </span>
 
           
@@ -366,7 +516,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-10-26 09:09:32" itemprop="dateModified" datetime="2020-10-26T09:09:32+00:00">2020-10-26</time>
+                <time title="修改时间：2020-10-26 09:34:14" itemprop="dateModified" datetime="2020-10-26T09:34:14+00:00">2020-10-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -440,7 +590,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-10-26 09:09:32" itemprop="dateModified" datetime="2020-10-26T09:09:32+00:00">2020-10-26</time>
+                <time title="修改时间：2020-10-26 09:34:14" itemprop="dateModified" datetime="2020-10-26T09:34:14+00:00">2020-10-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -553,7 +703,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-10-26 09:09:32" itemprop="dateModified" datetime="2020-10-26T09:09:32+00:00">2020-10-26</time>
+                <time title="修改时间：2020-10-26 09:34:14" itemprop="dateModified" datetime="2020-10-26T09:34:14+00:00">2020-10-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -995,7 +1145,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-10-26 09:09:32" itemprop="dateModified" datetime="2020-10-26T09:09:32+00:00">2020-10-26</time>
+                <time title="修改时间：2020-10-26 09:34:14" itemprop="dateModified" datetime="2020-10-26T09:34:14+00:00">2020-10-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1156,7 +1306,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-10-26 09:09:32" itemprop="dateModified" datetime="2020-10-26T09:09:32+00:00">2020-10-26</time>
+                <time title="修改时间：2020-10-26 09:34:14" itemprop="dateModified" datetime="2020-10-26T09:34:14+00:00">2020-10-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1244,7 +1394,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-10-26 09:09:32" itemprop="dateModified" datetime="2020-10-26T09:09:32+00:00">2020-10-26</time>
+                <time title="修改时间：2020-10-26 09:34:14" itemprop="dateModified" datetime="2020-10-26T09:34:14+00:00">2020-10-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1384,7 +1534,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-10-26 09:09:32" itemprop="dateModified" datetime="2020-10-26T09:09:32+00:00">2020-10-26</time>
+                <time title="修改时间：2020-10-26 09:34:14" itemprop="dateModified" datetime="2020-10-26T09:34:14+00:00">2020-10-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1544,7 +1694,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-10-26 09:09:32" itemprop="dateModified" datetime="2020-10-26T09:09:32+00:00">2020-10-26</time>
+                <time title="修改时间：2020-10-26 09:34:14" itemprop="dateModified" datetime="2020-10-26T09:34:14+00:00">2020-10-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1664,7 +1814,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-10-26 09:09:32" itemprop="dateModified" datetime="2020-10-26T09:09:32+00:00">2020-10-26</time>
+                <time title="修改时间：2020-10-26 09:34:14" itemprop="dateModified" datetime="2020-10-26T09:34:14+00:00">2020-10-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1740,7 +1890,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-10-26 09:09:32" itemprop="dateModified" datetime="2020-10-26T09:09:32+00:00">2020-10-26</time>
+                <time title="修改时间：2020-10-26 09:34:14" itemprop="dateModified" datetime="2020-10-26T09:34:14+00:00">2020-10-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1909,7 +2059,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-10-26 09:09:32" itemprop="dateModified" datetime="2020-10-26T09:09:32+00:00">2020-10-26</time>
+                <time title="修改时间：2020-10-26 09:34:14" itemprop="dateModified" datetime="2020-10-26T09:34:14+00:00">2020-10-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1991,7 +2141,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-10-26 09:09:32" itemprop="dateModified" datetime="2020-10-26T09:09:32+00:00">2020-10-26</time>
+                <time title="修改时间：2020-10-26 09:34:14" itemprop="dateModified" datetime="2020-10-26T09:34:14+00:00">2020-10-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2028,88 +2178,6 @@
 <li>十一月 November，缩写 Nov</li>
 <li>十二月 December，缩写 Dec</li>
 </ul>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/09/28/linux%E6%9F%A5%E7%9C%8B%E7%B3%BB%E7%BB%9F%E6%97%A5%E5%BF%97/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/09/28/linux%E6%9F%A5%E7%9C%8B%E7%B3%BB%E7%BB%9F%E6%97%A5%E5%BF%97/" class="post-title-link" itemprop="url">linux查看系统日志</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-09-28 10:19:47" itemprop="dateCreated datePublished" datetime="2020-09-28T10:19:47+00:00">2020-09-28</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-10-26 09:09:32" itemprop="dateModified" datetime="2020-10-26T09:09:32+00:00">2020-10-26</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Linux%E5%9F%BA%E7%A1%80%E5%91%BD%E4%BB%A4/" itemprop="url" rel="index"><span itemprop="name">Linux基础命令</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="常见文件注解"><a href="#常见文件注解" class="headerlink" title="常见文件注解"></a>常见文件注解</h2><p>linux系统文件通常在 <code>/var/log</code></p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 系统启动后的信息和错误日志</span></span><br><span class="line">/var/<span class="built_in">log</span>/message</span><br><span class="line"></span><br><span class="line"><span class="comment"># 与安全相关的日志信息</span></span><br><span class="line">/var/<span class="built_in">log</span>/secure</span><br><span class="line"></span><br><span class="line"><span class="comment"># 与邮件相关的日志信息</span></span><br><span class="line">/var/<span class="built_in">log</span>/maillog</span><br><span class="line"></span><br><span class="line"><span class="comment"># 与定时任务相关的日志信息</span></span><br><span class="line">/var/<span class="built_in">log</span>/cron</span><br><span class="line"></span><br><span class="line"><span class="comment"># 与UUCP和news设备相关的日志信息</span></span><br><span class="line">/var/<span class="built_in">log</span>/spooler</span><br><span class="line"></span><br><span class="line"><span class="comment"># 守护进程启动和停止相关的日志消息</span></span><br><span class="line">/var/<span class="built_in">log</span>/boot.log</span><br><span class="line"></span><br><span class="line"><span class="comment"># 永久记录每个用户登录、注销及系统的启动、停机的事件</span></span><br><span class="line">/var/<span class="built_in">log</span>/wtmp</span><br><span class="line"></span><br><span class="line"><span class="comment"># 记录当前正在登录系统的用户信息</span></span><br><span class="line">/var/run/utmp</span><br><span class="line"></span><br><span class="line"><span class="comment"># 记录失败的登录尝试信息</span></span><br><span class="line">/var/<span class="built_in">log</span>/btmp</span><br></pre></td></tr></table></figure>
-
-<h2 id="历史记录"><a href="#历史记录" class="headerlink" title="历史记录"></a>历史记录</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看重启的命令</span></span><br><span class="line">last | grep reboot</span><br><span class="line"></span><br><span class="line"><span class="comment"># 历史操作</span></span><br><span class="line"><span class="built_in">history</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 立即清空当前所有的历史记录</span></span><br><span class="line"><span class="built_in">history</span> -c </span><br></pre></td></tr></table></figure>
-
-<h2 id="最近重启记录"><a href="#最近重启记录" class="headerlink" title="最近重启记录"></a>最近重启记录</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看所有重启日志信息</span></span><br><span class="line">last reboot</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看最近的一条</span></span><br><span class="line">last reboot | head -1</span><br><span class="line"></span><br><span class="line">last -x|grep shutdown | head -1</span><br><span class="line"></span><br><span class="line"><span class="comment"># -x：显示系统关机和运行等级改变信息</span></span><br><span class="line">last</span><br><span class="line">last -x</span><br><span class="line">last -x reboot</span><br><span class="line">last -x shutdown</span><br><span class="line"></span><br><span class="line"><span class="comment"># 开机时间</span></span><br><span class="line">uptime -s</span><br></pre></td></tr></table></figure>
-
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/gzy19870815/article/details/88632729">linux系统重启 查看日志及历史记录</a></p>
 
       
     </div>
@@ -2194,7 +2262,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">320</span>
+          <span class="site-state-item-count">321</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
