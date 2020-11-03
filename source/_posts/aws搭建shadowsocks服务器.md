@@ -5,10 +5,10 @@ tags:
 - Linux
 - AWS
 - Ubuntu
-- shadowsocks
+- Shadowsocks
 - 安装部署
 categories:
-- shadowsocks
+- Shadowsocks
 ---
 # aws搭建shadowsocks服务器
 
