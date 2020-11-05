@@ -31,14 +31,19 @@ categories:
 
 Debian / Ubuntu:
 
-```linux
-apt-get install python-pip
+```sh
+sudo apt update 
+sudo apt install python2
+curl https://bootstrap.pypa.io/get-pip.py --output get-pip.py
+sudo python2 get-pip.py
+pip2 --version
+
 pip install shadowsocks
 ```
 
 CentOS:
 
-```linux
+```sh
 yum install python-setuptools && easy_install pip
 pip install shadowsocks
 ```
@@ -49,7 +54,7 @@ pip install shadowsocks
 
 shadowsocks安装完毕后，可以查看使用ssserver命令进行查看
 
-```linux
+```sh
 ubuntu@ip-172-31-16-20:~$ ssserver -h
 usage: ssserver [OPTION]...
 A fast tunnel proxy that helps you bypass firewalls.
@@ -83,7 +88,7 @@ Online help: <https://github.com/shadowsocks/shadowsocks>
 
 which ssserver
 
-```linux
+```sh
 ubuntu@ip-172-31-16-20:~$ which ssserver
 /usr/local/bin/ssserver
 ```
@@ -92,68 +97,58 @@ ubuntu@ip-172-31-16-20:~$ which ssserver
 
 ### 配置文件启动
 
-````linux
+````sh
 sudo mkdir /etc/shadowsocks
 
 sudo vim /etc/shadowsocks/config.json
 {
-
-“server”:”0.0.0.0″,
-
-“server_port”:1194,
-
-“local_address”:”127.0.0.1″,
-
-“local_port”:1080,
-
-“password”:”123qwe$%^″,
-
-“timeout”:300,
-
-“method”:”aes-256-cfb”,
-
-“fast_open”:false,
-
-“workers”: 1
-
+	"server":"0.0.0.0",
+	"server_port":1194,
+	"local_address":"127.0.0.1",
+	"local_port":1080,
+	"password":"123qwe$%^",
+	"timeout":300,
+	"method":"aes-256-cfb",
+	"fast_open":false,
+	"workers": 1
 }
 ````
 
 启动：
 
-```linux
+```sh
 sudo ssserver -c /etc/shadowsocks/config.json -d start
 netstat -tunlp
-netstat -anp  ###显示系统端口使用情况
+netstat -anp  ##显示系统端口使用情况
 ```
 
 停止：
 
-```linux
+```sh
 sudo ssserver -c /etc/shadowsocks/config.json -d stop
 ```
 
 ### 命令启动
 
- ```linux
+ ```sh
 sudo ssserver -p 443 -k password -m rc4-md5
  ```
 
  如果要后台运行：
 
-```linux
+```sh
 sudo ssserver -p 443 -k password -m rc4-md5 --user nobody -d start
 ```
 
 如果要停止：
 
-```linux
+```sh
 sudo ssserver -d stop
 ```
 
 如果要检查日志：
 
-```linux
+```sh
 sudo less /var/log/shadowsocks.log
 ```
 
@@ -166,13 +161,13 @@ sudo less /var/log/shadowsocks.log
 
 #### 下载shadowsocks镜像
 
-```linux
+```sh
 docker pull oddrationale/docker-shadowsocks
 ```
 
 #### 运行设置shadowsocks
 
-```linux
+```sh
 docker run --rm -d -p 8388:8388 oddrationale/docker-shadowsocks -s 0.0.0.0 -p 8388 -k 'paaassswwword' -m aes-256-cfb
 ```
 
@@ -182,7 +177,7 @@ docker run --rm -d -p 8388:8388 oddrationale/docker-shadowsocks -s 0.0.0.0 -p 83
 
 停止容器：
 
-```linux
+```sh
 docker stop --time=20 container_name
 ```
 
