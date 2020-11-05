@@ -5,6 +5,7 @@ tags:
 - Linux
 - AWS
 - Ubuntu
+- Python2
 - Shadowsocks
 - 安装部署
 categories:
