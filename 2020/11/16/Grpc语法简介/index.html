@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"syxdevcode.github.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="定义消息类型先看一个 proto3 的查找请求参数的消息格式的例子，这个请求参数例子模仿分页查找请求，他有一个请求参数字符串，有一个当前页的参数还有一个每页返回数据大小的参数，proto 文件内容如下： 1234567syntax &#x3D; &quot;proto3&quot;;message SearchRequest &amp;#123;  string query &#x3D; 1;  int32 page_num">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Grpc语法简介">
+<meta property="og:url" content="https://syxdevcode.github.com/2020/11/16/Grpc%E8%AF%AD%E6%B3%95%E7%AE%80%E4%BB%8B/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="定义消息类型先看一个 proto3 的查找请求参数的消息格式的例子，这个请求参数例子模仿分页查找请求，他有一个请求参数字符串，有一个当前页的参数还有一个每页返回数据大小的参数，proto 文件内容如下： 1234567syntax &#x3D; &quot;proto3&quot;;message SearchRequest &amp;#123;  string query &#x3D; 1;  int32 page_num">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-11-16T16:23:11.000Z">
+<meta property="article:modified_time" content="2020-11-17T09:59:25.072Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="DotNetCore">
+<meta property="article:tag" content="Grpc">
+<meta property="article:tag" content="Protobuf">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://syxdevcode.github.com/2020/11/16/Grpc%E8%AF%AD%E6%B3%95%E7%AE%80%E4%BB%8B/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Grpc语法简介 | syxdevcode博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">syxdevcode博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/syxdevcode" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/11/16/Grpc%E8%AF%AD%E6%B3%95%E7%AE%80%E4%BB%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Grpc语法简介
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-11-16 16:23:11" itemprop="dateCreated datePublished" datetime="2020-11-16T16:23:11+00:00">2020-11-16</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-11-17 09:59:25" itemprop="dateModified" datetime="2020-11-17T09:59:25+00:00">2020-11-17</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Grpc/" itemprop="url" rel="index"><span itemprop="name">Grpc</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="定义消息类型"><a href="#定义消息类型" class="headerlink" title="定义消息类型"></a>定义消息类型</h2><p>先看一个 proto3 的查找请求参数的消息格式的例子，这个请求参数例子模仿分页查找请求，他有一个请求参数字符串，有一个当前页的参数还有一个每页返回数据大小的参数，proto 文件内容如下：</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">syntax = <span class="string">&quot;proto3&quot;</span>;</span><br><span class="line"></span><br><span class="line">message SearchRequest &#123;</span><br><span class="line">  <span class="built_in">string</span> query = <span class="number">1</span>;</span><br><span class="line">  int32 page_number = <span class="number">2</span>;</span><br><span class="line">  int32 result_per_page = <span class="number">3</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>第一行的含义是限定该文件使用的是 proto3 的语法，如果没有，则默认为 syntax = “proto3”;</li>
+<li>SearchRequest 定义有三个承载消息的属性，每一个被定义在 SearchRequest 消息体中的字段，都是由 数据类型 和 属性名称 组成。</li>
+</ul>
+<h3 id="指定字段类型"><a href="#指定字段类型" class="headerlink" title="指定字段类型"></a>指定字段类型</h3><p>在上面的例子中，所有的属性都是标量，两个整型 ( page_number 、 result_per_page )和一个字符串( query )，你还可以在指定复合类型，包括 枚举类型 或者 其他的消息类型。</p>
+<h3 id="分配标量"><a href="#分配标量" class="headerlink" title="分配标量"></a>分配标量</h3><p>每一个被定义在消息中的字段都会被分配给一个唯一的标量，这些标量用于标识你定义在二进制消息格式中的属性，标量一旦被定义就不允许在使用过程中再次被改变。标量的值在1～15的这个范围里占一个字节编码</p>
+<h3 id="指定属性规则"><a href="#指定属性规则" class="headerlink" title="指定属性规则"></a>指定属性规则</h3><p>消息属性规则如下：</p>
+<ul>
+<li>singular: 一个正确的消息可以有零个或者多个这样的消息属性(但是不要超过一个).</li>
+<li>repeated: 这个属性可以在一个正确的消息格式中重复任意次数(包括零次),</li>
+</ul>
+<p>在 proto3 中，标量数字类型的重复字段默认使用压缩编码。</p>
+<h3 id="添加更多的消息类型"><a href="#添加更多的消息类型" class="headerlink" title="添加更多的消息类型"></a>添加更多的消息类型</h3><p>在一个 proto 文件中可以定义多个消息类型，你可以在一个文件中定义一些相关的消息类型，上面的例子 proto 文件中只有一个请求查找的消息类型，现在可以为他多添加一个响应的消息类型，具体如下：</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">syntax = <span class="string">&quot;proto3&quot;</span>;</span><br><span class="line"></span><br><span class="line">message SearchRequest &#123;</span><br><span class="line">  <span class="built_in">string</span> query = <span class="number">1</span>;</span><br><span class="line">  int32 page_number = <span class="number">2</span>;</span><br><span class="line">  int32 result_per_page = <span class="number">3</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">message SearchResponse &#123;</span><br><span class="line">    ....</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="添加注释"><a href="#添加注释" class="headerlink" title="添加注释"></a>添加注释</h3><p>proto 文件中的注释使用的是 /c++ 中的单行注释 // 语法风格。</p>
+<p>如下：</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">message SearchRequest &#123;</span><br><span class="line">  <span class="built_in">string</span> query = <span class="number">1</span>;</span><br><span class="line">  int32 page_number = <span class="number">2</span>;  <span class="comment">// 当前页数</span></span><br><span class="line">  int32 result_per_page = <span class="number">3</span>;  <span class="comment">// 每页数据返回的数据量</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="保留属性"><a href="#保留属性" class="headerlink" title="保留属性"></a>保留属性</h3><p>为了避免在加载相同的 .proto 的旧版本，包括数据损坏，隐含的错误等，这可能会导致严重的问题的方法是指定删除的字段的字段标签（和/或名称，也可能导致 JSON 序列化的问题）被保留。 如果将来的用户尝试使用这些字段标识符，协议缓冲区编译器将会报错。</p>
+<p>保留字段的使用例子:</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">message Foo &#123;</span><br><span class="line">  reserved <span class="number">2</span>;</span><br><span class="line">  reserved <span class="string">&quot;foo&quot;</span>, <span class="string">&quot;bar&quot;</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上述例子定义保留属性为 “foo”, “bar” ，定义保留属性位置为2，即在2这个位置上不可以定义属性，如: string name=2; 是不允许的，编译器在编译 proto 文件的时候如果发现，2这个位置上有属性被定义则会报错。</p>
+<h2 id="数据类型"><a href="#数据类型" class="headerlink" title="数据类型"></a>数据类型</h2><p>.proto文件的值类型和 java 的值类型的对照表:</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">.proto Type	Java Type</span><br><span class="line"><span class="built_in">double</span>	    <span class="built_in">double</span></span><br><span class="line"><span class="built_in">float</span>	    <span class="built_in">float</span></span><br><span class="line">int32	    <span class="built_in">int</span></span><br><span class="line">int64	    <span class="built_in">long</span></span><br><span class="line">uint32	    <span class="built_in">int</span></span><br><span class="line">uint64	    <span class="built_in">long</span></span><br><span class="line">sint32	    <span class="built_in">int</span></span><br><span class="line">sint64	    <span class="built_in">long</span></span><br><span class="line">fixed32	    <span class="built_in">int</span></span><br><span class="line">fixed64	    <span class="built_in">long</span></span><br><span class="line">sfixed32	<span class="built_in">int</span></span><br><span class="line">sfixed64	<span class="built_in">long</span></span><br><span class="line"><span class="built_in">bool</span>	    boolean</span><br><span class="line"><span class="built_in">string</span>	    String</span><br><span class="line">bytes	    ByteString</span><br></pre></td></tr></table></figure>
+
+<h2 id="默认值"><a href="#默认值" class="headerlink" title="默认值"></a>默认值</h2><p>当 proto 消息被解析成具体的语言的时候，如果消息编码没包含特定的元素，则消息对象中的属性会被设置默认值，这些默认值具体如下：</p>
+<ul>
+<li>string 类型,默认值是空字符串,注意不是null</li>
+<li>bytes 类型,默认值是空bytes</li>
+<li>bool 类型，默认值是false</li>
+<li>数字 类型,默认值是0</li>
+<li>枚举 类型,默认值是第一个枚举值,即0</li>
+<li>repeated 修饰的属性，默认值是空（在相对应的编程语言中通常是一个空的list）.</li>
+</ul>
+<h2 id="枚举"><a href="#枚举" class="headerlink" title="枚举"></a>枚举</h2><p>proto 允许你在定义的消息类型的时候定义枚举类型，如下例,在消息类型中定义并使用枚举类型：</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">message SearchRequest &#123;</span><br><span class="line">  <span class="built_in">string</span> query = <span class="number">1</span>;</span><br><span class="line">  int32 page_number = <span class="number">2</span>;</span><br><span class="line">  int32 result_per_page = <span class="number">3</span>;</span><br><span class="line">  <span class="built_in">enum</span> Corpus &#123;</span><br><span class="line">    UNIVERSAL = <span class="number">0</span>;</span><br><span class="line">    WEB = <span class="number">1</span>;</span><br><span class="line">    IMAGES = <span class="number">2</span>;</span><br><span class="line">    LOCAL = <span class="number">3</span>;</span><br><span class="line">    NEWS = <span class="number">4</span>;</span><br><span class="line">    PRODUCTS = <span class="number">5</span>;</span><br><span class="line">    VIDEO = <span class="number">6</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  Corpus corpus = <span class="number">4</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如上例中所示， Corpus 枚举类型的第一个枚举值是0，每一个枚举值定义都会与一个常量映射，而这些常量的第一个常量值必须为0，原因如下：</p>
+<p>必须有一个0作为值，以至于我们可是使用0作为默认值<br>第一个元素的值取0，用于与第一个元素枚举值作为默认值的proto2语义兼容<br>枚举类型允许你定义别名，别名的作用是分配不中的标量，使用相同的常量值，使用别名只需要在定义枚举类型的第一行中添加 allow_alias 选项，并将值设置为 true 即可，如果没有设置该值就是用别名，在编译的时候会报错。</p>
+<p>官网例子如下：</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">enum</span> EnumAllowingAlias &#123;</span><br><span class="line">  option allow_alias = <span class="literal">true</span>;</span><br><span class="line">  UNKNOWN = <span class="number">0</span>;</span><br><span class="line">  STARTED = <span class="number">1</span>;</span><br><span class="line">  RUNNING = <span class="number">1</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="built_in">enum</span> EnumNotAllowingAlias &#123;</span><br><span class="line">  UNKNOWN = <span class="number">0</span>;</span><br><span class="line">  STARTED = <span class="number">1</span>;</span><br><span class="line">  <span class="comment">//如果解除这个注释编译器在编译该proto文的时候会报错</span></span><br><span class="line">  <span class="comment">// RUNNING = 1;  </span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>proto 支持的枚举值的范围是 32 位的整形，即 Java 中的 int 类型,其他请参看官网。</p>
+<h2 id="引用其他的消息类型"><a href="#引用其他的消息类型" class="headerlink" title="引用其他的消息类型"></a>引用其他的消息类型</h2><p>你可以在定义消息类型的时候饮用其他已经定义好的消息类型作为新消息类型的属性，官网例子如下：</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">message SearchResponse &#123;</span><br><span class="line">  repeated Result results = <span class="number">1</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">message Result &#123;</span><br><span class="line">  <span class="built_in">string</span> url = <span class="number">1</span>;</span><br><span class="line">  <span class="built_in">string</span> title = <span class="number">2</span>;</span><br><span class="line">  repeated <span class="built_in">string</span> snippets = <span class="number">3</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在上面的消息例子中，SearchResponse 这个响应消息类型的属性 results，返回的是一个 Result 类型的消息列表。</p>
+<h3 id="导入其他proto中定义的消息"><a href="#导入其他proto中定义的消息" class="headerlink" title="导入其他proto中定义的消息"></a>导入其他proto中定义的消息</h3><p>在上面的例子中，Result 和 SearchResponse 消息类型被定义在同一个 .proto 文件中，如果把他们分成两个文件定义，应该如何引用呢？</p>
+<p>proto 中为我们提供了 import 关键字用于引入不同 .proto 文件中的消息类型,你可以在你的 .proto 文件的顶部加入如下语句因为其他 .proto 文件的消息类型：<code>import &quot;myproject/other_protos.proto&quot;</code>;</p>
+<p>例子：</p>
+<ul>
+<li>文件名称 search_response.proto</li>
+</ul>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">syntax = <span class="string">&quot;proto3&quot;</span>;</span><br><span class="line">import <span class="string">&quot;test/result.proto&quot;</span>;</span><br><span class="line">package test1;</span><br><span class="line"></span><br><span class="line">message SearchResponse &#123;</span><br><span class="line">  <span class="comment">//包名.消息名</span></span><br><span class="line">  repeated test2.Result results = <span class="number">1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>文件名称 result.proto,在与search_response.proto同级目录的test下</li>
+</ul>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">syntax = <span class="string">&quot;proto3&quot;</span>;</span><br><span class="line">package test2;</span><br><span class="line"></span><br><span class="line">message Result &#123;</span><br><span class="line">  <span class="built_in">string</span> url = <span class="number">1</span>;</span><br><span class="line">  <span class="built_in">string</span> title = <span class="number">2</span>;</span><br><span class="line">  repeated <span class="built_in">string</span> snippets = <span class="number">3</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果两个 .proto 文件在同一个目录下直接这样 import “result.proto”; 倒入即可。</p>
+<h2 id="内嵌类型"><a href="#内嵌类型" class="headerlink" title="内嵌类型"></a>内嵌类型</h2><p>我们还可以在消息类型中定义消息，例子如下：</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">message SearchResponse &#123;</span><br><span class="line">  message Result &#123;</span><br><span class="line">    <span class="built_in">string</span> url = <span class="number">1</span>;</span><br><span class="line">    <span class="built_in">string</span> title = <span class="number">2</span>;</span><br><span class="line">    repeated <span class="built_in">string</span> snippets = <span class="number">3</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  repeated Result results = <span class="number">1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在上面的例子中在 SearchResponse 消息体中定义了一个 Result 消息并使用。</p>
+<p>如果想在其他的消息体引用 Result 这个消息，可以 Parent.Type 这样引用，例子：</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">message SomeOtherMessage &#123;</span><br><span class="line">  SearchResponse.Result result = <span class="number">1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>消息还可以深层的嵌套定义，如下例子：</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">message Outer &#123;                  <span class="comment">// Level 0</span></span><br><span class="line">  message MiddleAA &#123;  <span class="comment">// Level 1</span></span><br><span class="line">    message Inner &#123;   <span class="comment">// Level 2</span></span><br><span class="line">      int64 ival = <span class="number">1</span>;</span><br><span class="line">      <span class="built_in">bool</span>  booly = <span class="number">2</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  message MiddleBB &#123;  <span class="comment">// Level 1</span></span><br><span class="line">    message Inner &#123;   <span class="comment">// Level 2</span></span><br><span class="line">      int32 ival = <span class="number">1</span>;</span><br><span class="line">      <span class="built_in">bool</span>  booly = <span class="number">2</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Map"><a href="#Map" class="headerlink" title="Map"></a>Map</h2><p>proto 支持 map 属性类型的定义，语法如下：</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">map&lt;key_type,value_type&gt; map_field = N;</span><br></pre></td></tr></table></figure>
+
+<p>key_type 可以是任何整数或字符串类型（除浮点类型和字节之外的任何标量类型,枚举类型也是不合法的key类型），value_type可以是任何类型的数据。</p>
+<h2 id="包"><a href="#包" class="headerlink" title="包"></a>包</h2><p>可以为 proto 文件指定包名，防止消息命名冲突。</p>
+<p>例子如下：</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">package foo.bar;</span><br><span class="line">message Open &#123; ... &#125;</span><br></pre></td></tr></table></figure>
+
+<p>当你在为消息类型定义属性的时候，你可以通过 命名.类型 的形式来使用已经定义好的消息类型，如下：</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Message Foo &#123;</span><br><span class="line">  ...</span><br><span class="line">  foo.bar.Open open = <span class="number">1</span>;</span><br><span class="line">  ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="服务定义"><a href="#服务定义" class="headerlink" title="服务定义"></a>服务定义</h2><p>如果你想在 RPC 中使用已经定义好的消息类型，你可以在 .proto 文件中定一个消息服务接口, protocol buffer 编译器会生成对应语言的接口代码。</p>
+<p>接口定义例子：</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">service SearchService &#123;</span><br><span class="line">    <span class="comment">//  方法名  方法参数                 返回值</span></span><br><span class="line">    <span class="function">rpc <span class="title">Search</span>(<span class="params">SearchRequest</span>) <span class="title">returns</span> (<span class="params">SearchResponse</span>)</span>; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="选项"><a href="#选项" class="headerlink" title="选项"></a>选项</h2><ul>
+<li>file_extension：文件扩展</li>
+<li>base_namespace：命名空间</li>
+</ul>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://developers.google.com/protocol-buffers/docs/reference/csharp-generated#compiler_options">https://developers.google.com/protocol-buffers/docs/reference/csharp-generated#compiler_options</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/DotNetCore/" rel="tag"><i class="fa fa-tag"></i> DotNetCore</a>
+              <a href="/tags/Grpc/" rel="tag"><i class="fa fa-tag"></i> Grpc</a>
+              <a href="/tags/Protobuf/" rel="tag"><i class="fa fa-tag"></i> Protobuf</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/11/05/AttributeError-lib-x86-64-linux-gnu-libcrypto-so-1-1-undefined-symbol-EVP-CIPHER-CTX-cleanup/" rel="prev" title="AttributeError: /lib/x86_64-linux-gnu/libcrypto.so.1.1: undefined symbol: EVP_CIPHER_CTX_cleanup">
+      <i class="fa fa-chevron-left"></i> AttributeError: /lib/x86_64-linux-gnu/libcrypto.so.1.1: undefined symbol: EVP_CIPHER_CTX_cleanup
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9A%E4%B9%89%E6%B6%88%E6%81%AF%E7%B1%BB%E5%9E%8B"><span class="nav-number">1.</span> <span class="nav-text">定义消息类型</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8C%87%E5%AE%9A%E5%AD%97%E6%AE%B5%E7%B1%BB%E5%9E%8B"><span class="nav-number">1.1.</span> <span class="nav-text">指定字段类型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%86%E9%85%8D%E6%A0%87%E9%87%8F"><span class="nav-number">1.2.</span> <span class="nav-text">分配标量</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8C%87%E5%AE%9A%E5%B1%9E%E6%80%A7%E8%A7%84%E5%88%99"><span class="nav-number">1.3.</span> <span class="nav-text">指定属性规则</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B7%BB%E5%8A%A0%E6%9B%B4%E5%A4%9A%E7%9A%84%E6%B6%88%E6%81%AF%E7%B1%BB%E5%9E%8B"><span class="nav-number">1.4.</span> <span class="nav-text">添加更多的消息类型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B7%BB%E5%8A%A0%E6%B3%A8%E9%87%8A"><span class="nav-number">1.5.</span> <span class="nav-text">添加注释</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BF%9D%E7%95%99%E5%B1%9E%E6%80%A7"><span class="nav-number">1.6.</span> <span class="nav-text">保留属性</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B"><span class="nav-number">2.</span> <span class="nav-text">数据类型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%BB%98%E8%AE%A4%E5%80%BC"><span class="nav-number">3.</span> <span class="nav-text">默认值</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9E%9A%E4%B8%BE"><span class="nav-number">4.</span> <span class="nav-text">枚举</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%95%E7%94%A8%E5%85%B6%E4%BB%96%E7%9A%84%E6%B6%88%E6%81%AF%E7%B1%BB%E5%9E%8B"><span class="nav-number">5.</span> <span class="nav-text">引用其他的消息类型</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AF%BC%E5%85%A5%E5%85%B6%E4%BB%96proto%E4%B8%AD%E5%AE%9A%E4%B9%89%E7%9A%84%E6%B6%88%E6%81%AF"><span class="nav-number">5.1.</span> <span class="nav-text">导入其他proto中定义的消息</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%86%85%E5%B5%8C%E7%B1%BB%E5%9E%8B"><span class="nav-number">6.</span> <span class="nav-text">内嵌类型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Map"><span class="nav-number">7.</span> <span class="nav-text">Map</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8C%85"><span class="nav-number">8.</span> <span class="nav-text">包</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9C%8D%E5%8A%A1%E5%AE%9A%E4%B9%89"><span class="nav-number">9.</span> <span class="nav-text">服务定义</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%89%E9%A1%B9"><span class="nav-number">10.</span> <span class="nav-text">选项</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">324</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">106</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">139</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
