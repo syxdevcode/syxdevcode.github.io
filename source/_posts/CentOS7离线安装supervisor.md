@@ -111,7 +111,7 @@ asp net core 站点：
 [program:WebApplication1]
 command=/root/dotnet/dotnet WebApplication1.dll
 directory=/test/webapi
-environment=ASPNETCORE__ENVIRONMENT=Production ;,ASPNETCORE_URLS="http://0.0.0.0:5100"
+environment=ASPNETCORE_ENVIRONMENT=Production;,ASPNETCORE_URLS="http://0.0.0.0:5100"
 stopsignal=INT
 stderr_logfile=/var/log/WebApplication1/WebApplication1.err.log
 stdout_logfile=/var/log/WebApplication1/WebApplication1.out.log
