@@ -10,6 +10,8 @@ categories:
 - Tomcat
 ---
 
+注：tomcat 8不生效
+
 ## 修改context.xml
 
 `vim /usr/local/apache-tomcat-8.5.40/conf/context.xml`
