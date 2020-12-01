@@ -185,6 +185,113 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/11/CSharp%E4%B8%AD%E7%9A%84%E5%A7%94%E6%89%98%EF%BC%8C%E4%BA%8B%E4%BB%B6%E4%B8%8E%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/12/11/CSharp%E4%B8%AD%E7%9A%84%E5%A7%94%E6%89%98%EF%BC%8C%E4%BA%8B%E4%BB%B6%E4%B8%8E%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" class="post-title-link" itemprop="url">CSharp中的委托，事件与设计模式</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-12-11 11:10:54" itemprop="dateCreated datePublished" datetime="2018-12-11T11:10:54+00:00">2018-12-11</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-12-01 09:34:29" itemprop="dateModified" datetime="2020-12-01T09:34:29+00:00">2020-12-01</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%A7%94%E6%89%98%E4%B8%8E%E4%BA%8B%E4%BB%B6/" itemprop="url" rel="index"><span itemprop="name">委托与事件</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="CSharp中的委托，事件与设计模式"><a href="#CSharp中的委托，事件与设计模式" class="headerlink" title="CSharp中的委托，事件与设计模式"></a>CSharp中的委托，事件与设计模式</h1><h2 id="Observer设计模式"><a href="#Observer设计模式" class="headerlink" title="Observer设计模式"></a>Observer设计模式</h2><p>假设我们有个高档的热水器，我们给它通上电，当水温超过95度的时候：1、扬声器会开始发出语音，告诉你水的温度；2、液晶屏也会改变水温的显示，来提示水已经快烧开了。</p>
+<p>现在我们需要写个程序来模拟这个烧水的过程，我们将定义一个类来代表热水器，我们管它叫：Heater，它有代表水温的字段，叫做temperature；当然，还有必不可少的给水加热方法BoilWater()，一个发出语音警报的方法MakeAlert()，一个显示水温的方法，ShowMsg()。</p>
+<p>我们先了解一下Observer设计模式，Observer设计模式中主要包括如下两类对象：</p>
+<ul>
+<li>1,Subject：监视对象，它往往包含着其他对象所感兴趣的内容。在本范例中，热水器就是一个监视对象，它包含的其他对象所感兴趣的内容，就是temprature字段，当这个字段的值快到100时，会不断把数据发给监视它的对象。</li>
+<li>2,Observer：监视者，它监视Subject，当Subject中的某件事发生的时候，会告知Observer，而Observer则会采取相应的行动。在本范例中，Observer有警报器和显示器，它们采取的行动分别是发出警报和显示水温。</li>
+</ul>
+<p>在本例中，事情发生的顺序应该是这样的：</p>
+<ul>
+<li>1,警报器和显示器告诉热水器，它对它的温度比较感兴趣(注册)。</li>
+<li>2,热水器知道后保留对警报器和显示器的引用。</li>
+<li>3,热水器进行烧水这一动作，当水温超过95度时，通过对警报器和显示器的引用，自动调用警报器的MakeAlert()方法、显示器的ShowMsg()方法。</li>
+</ul>
+<p>Observer设计模式：Observer设计模式是为了定义对象间的一种一对多的依赖关系，以便于当一个对象的状态改变时，其他依赖于它的对象会被自动告知并更新。Observer模式是一种松耦合的设计模式。</p>
+<h2 id="实现范例的Observer设计模式"><a href="#实现范例的Observer设计模式" class="headerlink" title="实现范例的Observer设计模式"></a>实现范例的Observer设计模式</h2><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Collections.Generic;</span><br><span class="line"><span class="keyword">using</span> System.Text;</span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">Delegate</span> &#123;</span><br><span class="line">    <span class="comment">// 热水器</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Heater</span> &#123;</span><br><span class="line">       <span class="keyword">private</span> <span class="built_in">int</span> temperature;</span><br><span class="line">       <span class="function"><span class="keyword">public</span> <span class="built_in">delegate</span> <span class="keyword">void</span> <span class="title">BoilHandler</span>(<span class="params"><span class="built_in">int</span> param</span>)</span>;   <span class="comment">//声明委托</span></span><br><span class="line">       <span class="keyword">public</span> <span class="keyword">event</span> BoilHandler BoilEvent;        <span class="comment">//声明事件</span></span><br><span class="line"></span><br><span class="line">       <span class="comment">// 烧水</span></span><br><span class="line">       <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">BoilWater</span>(<span class="params"></span>)</span> &#123;</span><br><span class="line">           <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt;= <span class="number">100</span>; i++) &#123;</span><br><span class="line">              temperature = i;</span><br><span class="line"></span><br><span class="line">              <span class="keyword">if</span> (temperature &gt; <span class="number">95</span>) &#123;</span><br><span class="line">                  <span class="keyword">if</span> (BoilEvent != <span class="literal">null</span>) &#123; <span class="comment">//如果有对象注册</span></span><br><span class="line">                      BoilEvent(temperature);  <span class="comment">//调用所有注册对象的方法</span></span><br><span class="line">                  &#125;</span><br><span class="line">              &#125;</span><br><span class="line">           &#125;</span><br><span class="line">       &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 警报器</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Alarm</span> &#123;</span><br><span class="line">       <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">MakeAlert</span>(<span class="params"><span class="built_in">int</span> param</span>)</span> &#123;</span><br><span class="line">           Console.WriteLine(<span class="string">&quot;Alarm：嘀嘀嘀，水已经 &#123;0&#125; 度了：&quot;</span>, param);</span><br><span class="line">       &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 显示器</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Display</span> &#123;</span><br><span class="line">       <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">ShowMsg</span>(<span class="params"><span class="built_in">int</span> param</span>)</span> &#123; <span class="comment">//静态方法</span></span><br><span class="line">           Console.WriteLine(<span class="string">&quot;Display：水快烧开了，当前温度：&#123;0&#125;度。&quot;</span>, param);</span><br><span class="line">       &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">class</span> <span class="title">Program</span> &#123;</span><br><span class="line">       <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"></span>)</span> &#123;</span><br><span class="line">           Heater heater = <span class="keyword">new</span> Heater();</span><br><span class="line">           Alarm alarm = <span class="keyword">new</span> Alarm();</span><br><span class="line"></span><br><span class="line">           heater.BoilEvent += alarm.MakeAlert;    <span class="comment">//注册方法</span></span><br><span class="line">           heater.BoilEvent += (<span class="keyword">new</span> Alarm()).MakeAlert;   <span class="comment">//给匿名对象注册方法</span></span><br><span class="line">           heater.BoilEvent += Display.ShowMsg;       <span class="comment">//注册静态方法</span></span><br><span class="line"></span><br><span class="line">           heater.BoilWater();   <span class="comment">//烧水，会自动调用注册过对象的方法</span></span><br><span class="line">       &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">输出为：</span><br><span class="line">Alarm：嘀嘀嘀，水已经 <span class="number">96</span> 度了：</span><br><span class="line">Alarm：嘀嘀嘀，水已经 <span class="number">96</span> 度了：</span><br><span class="line">Display：水快烧开了，当前温度：<span class="number">96</span>度。</span><br><span class="line"><span class="comment">// 省略...</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="Net-Framework中的委托与事件"><a href="#Net-Framework中的委托与事件" class="headerlink" title=".Net Framework中的委托与事件"></a>.Net Framework中的委托与事件</h2><p>尽管上面的范例很好地完成了我们想要完成的工作，但是我们不仅疑惑：为什么.Net Framework 中的事件模型和上面的不同？为什么有很多的EventArgs参数？</p>
+<p>在回答上面的问题之前，我们先搞懂 .Net Framework的编码规范：</p>
+<ul>
+<li>委托类型的名称都应该以EventHandler结束。</li>
+<li>委托的原型定义：有一个void返回值，并接受两个输入参数：一个Object 类型，一个 EventArgs类型(或继承自EventArgs)。</li>
+<li>事件的命名为 委托去掉 EventHandler之后剩余的部分。</li>
+<li>继承自EventArgs的类型应该以EventArgs结尾。</li>
+</ul>
+<p>再做一下说明：</p>
+<ul>
+<li>1,委托声明原型中的Object类型的参数代表了Subject，也就是监视对象，在本例中是 Heater(热水器)。回调函数(比如Alarm的MakeAlert)可以通过它访问触发事件的对象(Heater)。</li>
+<li>2,EventArgs 对象包含了Observer所感兴趣的数据，在本例中是temperature。</li>
+</ul>
+<p>** 上面这些其实不仅仅是为了编码规范而已，这样也使得程序有更大的灵活性**。比如说，如果我们不光想获得热水器的温度，还想在Observer端(警报器或者显示器)方法中获得它的生产日期、型号、价格，那么委托和方法的声明都会变得很麻烦，而如果我们将热水器的引用传给警报器的方法，就可以在方法中直接访问热水器了。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Collections.Generic;</span><br><span class="line"><span class="keyword">using</span> System.Text;</span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">Delegate</span> &#123;</span><br><span class="line">    <span class="comment">// 热水器</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Heater</span> &#123;</span><br><span class="line">       <span class="keyword">private</span> <span class="built_in">int</span> temperature;</span><br><span class="line">       <span class="keyword">public</span> <span class="built_in">string</span> type = <span class="string">&quot;RealFire 001&quot;</span>;       <span class="comment">// 添加型号作为演示</span></span><br><span class="line">       <span class="keyword">public</span> <span class="built_in">string</span> area = <span class="string">&quot;China Xian&quot;</span>;         <span class="comment">// 添加产地作为演示</span></span><br><span class="line">       <span class="comment">//声明委托</span></span><br><span class="line">       <span class="function"><span class="keyword">public</span> <span class="built_in">delegate</span> <span class="keyword">void</span> <span class="title">BoiledEventHandler</span>(<span class="params">Object sender, BoiledEventArgs e</span>)</span>;</span><br><span class="line">       <span class="keyword">public</span> <span class="keyword">event</span> BoiledEventHandler Boiled; <span class="comment">//声明事件</span></span><br><span class="line"></span><br><span class="line">       <span class="comment">// 定义BoiledEventArgs类，传递给Observer所感兴趣的信息</span></span><br><span class="line">       <span class="keyword">public</span> <span class="keyword">class</span> <span class="title">BoiledEventArgs</span> : <span class="title">EventArgs</span> &#123;</span><br><span class="line">           <span class="keyword">public</span> <span class="keyword">readonly</span> <span class="built_in">int</span> temperature;</span><br><span class="line">           <span class="function"><span class="keyword">public</span> <span class="title">BoiledEventArgs</span>(<span class="params"><span class="built_in">int</span> temperature</span>)</span> &#123;</span><br><span class="line">              <span class="keyword">this</span>.temperature = temperature;</span><br><span class="line">           &#125;</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       <span class="comment">// 可以供继承自 Heater 的类重写，以便继承类拒绝其他对象对它的监视</span></span><br><span class="line">       <span class="function"><span class="keyword">protected</span> <span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">OnBoiled</span>(<span class="params">BoiledEventArgs e</span>)</span> &#123;</span><br><span class="line">           <span class="keyword">if</span> (Boiled != <span class="literal">null</span>) &#123; <span class="comment">// 如果有对象注册</span></span><br><span class="line">              Boiled(<span class="keyword">this</span>, e);  <span class="comment">// 调用所有注册对象的方法</span></span><br><span class="line">           &#125;</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       <span class="comment">// 烧水。</span></span><br><span class="line">       <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">BoilWater</span>(<span class="params"></span>)</span> &#123;</span><br><span class="line">           <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt;= <span class="number">100</span>; i++) &#123;</span><br><span class="line">              temperature = i;</span><br><span class="line">              <span class="keyword">if</span> (temperature &gt; <span class="number">95</span>) &#123;</span><br><span class="line">                  <span class="comment">//建立BoiledEventArgs 对象。</span></span><br><span class="line">                  BoiledEventArgs e = <span class="keyword">new</span> BoiledEventArgs(temperature);</span><br><span class="line">                  OnBoiled(e);  <span class="comment">// 调用 OnBolied方法</span></span><br><span class="line">              &#125;</span><br><span class="line">           &#125;</span><br><span class="line">       &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 警报器</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Alarm</span> &#123;</span><br><span class="line">       <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">MakeAlert</span>(<span class="params">Object sender, Heater.BoiledEventArgs e</span>)</span> &#123;</span><br><span class="line">           Heater heater = (Heater)sender;     <span class="comment">//这里是不是很熟悉呢？</span></span><br><span class="line">           <span class="comment">//访问 sender 中的公共字段</span></span><br><span class="line">           Console.WriteLine(<span class="string">&quot;Alarm：&#123;0&#125; - &#123;1&#125;: &quot;</span>, heater.area, heater.type);</span><br><span class="line">           Console.WriteLine(<span class="string">&quot;Alarm: 嘀嘀嘀，水已经 &#123;0&#125; 度了：&quot;</span>, e.temperature);</span><br><span class="line">           Console.WriteLine();</span><br><span class="line">       &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 显示器</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Display</span> &#123;</span><br><span class="line">       <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">ShowMsg</span>(<span class="params">Object sender, Heater.BoiledEventArgs e</span>)</span> &#123;   <span class="comment">//静态方法</span></span><br><span class="line">           Heater heater = (Heater)sender;</span><br><span class="line">           Console.WriteLine(<span class="string">&quot;Display：&#123;0&#125; - &#123;1&#125;: &quot;</span>, heater.area, heater.type);</span><br><span class="line">           Console.WriteLine(<span class="string">&quot;Display：水快烧开了，当前温度：&#123;0&#125;度。&quot;</span>, e.temperature);</span><br><span class="line">           Console.WriteLine();</span><br><span class="line">       &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">class</span> <span class="title">Program</span> &#123;</span><br><span class="line">       <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"></span>)</span> &#123;</span><br><span class="line">           Heater heater = <span class="keyword">new</span> Heater();</span><br><span class="line">           Alarm alarm = <span class="keyword">new</span> Alarm();</span><br><span class="line"></span><br><span class="line">           heater.Boiled += alarm.MakeAlert;   <span class="comment">//注册方法</span></span><br><span class="line">           heater.Boiled += (<span class="keyword">new</span> Alarm()).MakeAlert;      <span class="comment">//给匿名对象注册方法</span></span><br><span class="line">           heater.Boiled += <span class="keyword">new</span> Heater.BoiledEventHandler(alarm.MakeAlert);    <span class="comment">//也可以这么注册</span></span><br><span class="line">           heater.Boiled += Display.ShowMsg;       <span class="comment">//注册静态方法</span></span><br><span class="line"></span><br><span class="line">           heater.BoilWater();   <span class="comment">//烧水，会自动调用注册过对象的方法</span></span><br><span class="line">       &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">输出为：</span><br><span class="line">Alarm：China Xian - RealFire <span class="number">001</span>:</span><br><span class="line">Alarm: 嘀嘀嘀，水已经 <span class="number">96</span> 度了：</span><br><span class="line">Alarm：China Xian - RealFire <span class="number">001</span>:</span><br><span class="line">Alarm: 嘀嘀嘀，水已经 <span class="number">96</span> 度了：</span><br><span class="line">Alarm：China Xian - RealFire <span class="number">001</span>:</span><br><span class="line">Alarm: 嘀嘀嘀，水已经 <span class="number">96</span> 度了：</span><br><span class="line">Display：China Xian - RealFire <span class="number">001</span>:</span><br><span class="line">Display：水快烧开了，当前温度：<span class="number">96</span>度。</span><br><span class="line"><span class="comment">// 省略 ...</span></span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/jimmyzhang/archive/2007/09/23/903360.html">C#中的委托和事件</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/11/DotNet-IL%E6%8C%87%E4%BB%A4%E9%80%9F%E6%9F%A5/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -216,7 +323,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-11-27 08:26:45" itemprop="dateModified" datetime="2020-11-27T08:26:45+00:00">2020-11-27</time>
+                <time title="修改时间：2020-12-01 09:34:29" itemprop="dateModified" datetime="2020-12-01T09:34:29+00:00">2020-12-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1203,7 +1310,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-11-27 08:26:45" itemprop="dateModified" datetime="2020-11-27T08:26:45+00:00">2020-11-27</time>
+                <time title="修改时间：2020-12-01 09:34:29" itemprop="dateModified" datetime="2020-12-01T09:34:29+00:00">2020-12-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1329,7 +1436,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-11-27 08:26:45" itemprop="dateModified" datetime="2020-11-27T08:26:45+00:00">2020-11-27</time>
+                <time title="修改时间：2020-12-01 09:34:29" itemprop="dateModified" datetime="2020-12-01T09:34:29+00:00">2020-12-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1509,7 +1616,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-11-27 08:26:45" itemprop="dateModified" datetime="2020-11-27T08:26:45+00:00">2020-11-27</time>
+                <time title="修改时间：2020-12-01 09:34:29" itemprop="dateModified" datetime="2020-12-01T09:34:29+00:00">2020-12-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1714,7 +1821,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-11-27 08:26:45" itemprop="dateModified" datetime="2020-11-27T08:26:45+00:00">2020-11-27</time>
+                <time title="修改时间：2020-12-01 09:34:29" itemprop="dateModified" datetime="2020-12-01T09:34:29+00:00">2020-12-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1900,7 +2007,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-11-27 08:26:45" itemprop="dateModified" datetime="2020-11-27T08:26:45+00:00">2020-11-27</time>
+                <time title="修改时间：2020-12-01 09:34:29" itemprop="dateModified" datetime="2020-12-01T09:34:29+00:00">2020-12-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2029,7 +2136,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-11-27 08:26:45" itemprop="dateModified" datetime="2020-11-27T08:26:45+00:00">2020-11-27</time>
+                <time title="修改时间：2020-12-01 09:34:29" itemprop="dateModified" datetime="2020-12-01T09:34:29+00:00">2020-12-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2233,7 +2340,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-11-27 08:26:45" itemprop="dateModified" datetime="2020-11-27T08:26:45+00:00">2020-11-27</time>
+                <time title="修改时间：2020-12-01 09:34:29" itemprop="dateModified" datetime="2020-12-01T09:34:29+00:00">2020-12-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2335,7 +2442,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-11-27 08:26:45" itemprop="dateModified" datetime="2020-11-27T08:26:45+00:00">2020-11-27</time>
+                <time title="修改时间：2020-12-01 09:34:29" itemprop="dateModified" datetime="2020-12-01T09:34:29+00:00">2020-12-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2439,7 +2546,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-11-27 08:26:45" itemprop="dateModified" datetime="2020-11-27T08:26:45+00:00">2020-11-27</time>
+                <time title="修改时间：2020-12-01 09:34:29" itemprop="dateModified" datetime="2020-12-01T09:34:29+00:00">2020-12-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2579,7 +2686,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-11-27 08:26:45" itemprop="dateModified" datetime="2020-11-27T08:26:45+00:00">2020-11-27</time>
+                <time title="修改时间：2020-12-01 09:34:29" itemprop="dateModified" datetime="2020-12-01T09:34:29+00:00">2020-12-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2680,7 +2787,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-11-27 08:26:45" itemprop="dateModified" datetime="2020-11-27T08:26:45+00:00">2020-11-27</time>
+                <time title="修改时间：2020-12-01 09:34:29" itemprop="dateModified" datetime="2020-12-01T09:34:29+00:00">2020-12-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2782,7 +2889,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-11-27 08:26:45" itemprop="dateModified" datetime="2020-11-27T08:26:45+00:00">2020-11-27</time>
+                <time title="修改时间：2020-12-01 09:34:29" itemprop="dateModified" datetime="2020-12-01T09:34:29+00:00">2020-12-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2916,7 +3023,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-11-27 08:26:45" itemprop="dateModified" datetime="2020-11-27T08:26:45+00:00">2020-11-27</time>
+                <time title="修改时间：2020-12-01 09:34:29" itemprop="dateModified" datetime="2020-12-01T09:34:29+00:00">2020-12-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2947,91 +3054,6 @@
 
 <p>:!wq<br>退出保存</p>
 <p>sudoers的权限是0440，即只有root才能读。在你用root或sudo后强行保存（wq!）即可。</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/08/02/Centos7%E5%AE%89%E8%A3%85Docker-Compose/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/08/02/Centos7%E5%AE%89%E8%A3%85Docker-Compose/" class="post-title-link" itemprop="url">Centos7安装Docker-Compose</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-08-02 10:32:55" itemprop="dateCreated datePublished" datetime="2018-08-02T10:32:55+00:00">2018-08-02</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-11-27 08:26:45" itemprop="dateModified" datetime="2020-11-27T08:26:45+00:00">2020-11-27</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Docker-Compose/" itemprop="url" rel="index"><span itemprop="name">Docker Compose</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="下载包"><a href="#下载包" class="headerlink" title="下载包"></a>下载包</h1><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo curl -L https://github.com/docker/compose/releases/download/<span class="number">1.22</span>.<span class="number">0</span>/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose</span><br></pre></td></tr></table></figure>
-
-<p>注意出现：<code>curl: (35) Peer reports incompatible or unsupported protocol version.</code></p>
-<p>需要更新nss,curl</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo yum update nss curl</span><br></pre></td></tr></table></figure>
-
-<h1 id="授权"><a href="#授权" class="headerlink" title="授权"></a>授权</h1><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo chmod +x /usr/<span class="built_in">local</span>/bin/docker-compose</span><br></pre></td></tr></table></figure>
-
-<h1 id="查看版本"><a href="#查看版本" class="headerlink" title="查看版本"></a>查看版本</h1><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker-compose --version</span><br></pre></td></tr></table></figure>
-
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://docs.docker.com/compose/install/#install-compose">https://docs.docker.com/compose/install/#install-compose</a></p>
 
       
     </div>
@@ -3116,20 +3138,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">326</span>
+          <span class="site-state-item-count">327</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">106</span>
+        <span class="site-state-item-count">107</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">139</span>
+        <span class="site-state-item-count">141</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
