@@ -44,7 +44,7 @@ useradd -g mysql mysql
 passwd mysql
 ```
 
-注：
+注：永久性删除用户账号
 
 ```sh
 userdel peter
@@ -67,8 +67,8 @@ Linux - Generic
 ## 上传离线包到服务器
 
 ```sh
-tar -zxvf mysql-5.7.30-linux-glibc2.12-x86_64.tar.gz
-mv mysql-5.7.30-linux-glibc2.12-x86_64 mysql
+tar -zxvf mysql-5.7.31-linux-glibc2.12-x86_64.tar.gz
+mv mysql-5.7.31-linux-glibc2.12-x86_64 mysql
 mv mysql /usr/local
 ```
 
@@ -94,6 +94,9 @@ cd /usr/local/mysql
 touch my.cnf #或者cd ''>my.conf
 
 # 编辑my.cnf
+# 注意：/etc/目录下可能会存在 my.cnf,需要删除
+# ls /etc/ | grep my.cnf
+# rm -rf /etc/my.cnf
 vim my.cnf
 ```
 
@@ -178,6 +181,9 @@ cp ./support-files/mysql.server /etc/init.d/mysqld
 chmod +x /etc/init.d/mysqld
 chown 777 my.cnf
 chown -R mysql:mysql data
+mkdir /var/lib/mysql/
+chown -R mysql:mysql /var/lib/mysql/
+
 ls -l
 ```
 
@@ -301,7 +307,7 @@ skip-grant-tables=1
 使用命令重启mysql:
 
 ```sh
-[root@ mysql]# service mysqld restart
+service mysqld restart
 Shutting down MySQL..                                      [  OK  ]
 Starting MySQL.                                            [  OK  ]
 ```
