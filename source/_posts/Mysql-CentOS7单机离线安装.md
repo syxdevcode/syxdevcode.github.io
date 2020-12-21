@@ -94,10 +94,14 @@ cd /usr/local/mysql
 touch my.cnf #或者cd ''>my.conf
 
 # 编辑my.cnf
-# 注意：/etc/目录下可能会存在 my.cnf,需要删除
-# ls /etc/ | grep my.cnf
-# rm -rf /etc/my.cnf
 vim my.cnf
+```
+
+**注意：/etc/目录下可能会存在 my.cnf,需要删除**
+
+```sh
+ls /etc/ | grep my.cnf
+rm -rf /etc/my.cnf
 ```
 
 my.cnf:
@@ -351,6 +355,9 @@ Database changed
 mysql> update user set host='%' where user='root';
 Query OK, 1 row affected (0.00 sec)
 Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> FLUSH PRIVILEGES;
+Query OK, 0 rows affected (0.00 sec)
 
 mysql> select host,user from user;
 +-----------+---------------+

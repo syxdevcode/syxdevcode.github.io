@@ -20,7 +20,7 @@ Ubuntu 与之对应的是 /ect/bash.bashrc。
 
 ## ~/.bash_profile（ubuntu为 ~/.profile）
 
-每个用户都可使用该文件输入专用于自己使用的 shell 信息，当用户登录时，该文件仅仅执行一次！默认情况下,它设置一些环境变量，执行用户的 ~/.bashrc 文件。 此文件类似于 /etc/profile，也是需要需要 source 才会生效，/etc/profile 对所有用户生效，~/.bash_profile 只对当前用户生效。
+每个用户都可使用该文件输入专用于自己使用的 shell 信息，当用户登录时，该文件仅仅执行一次！默认情况下,它设置一些环境变量，执行用户的 `~/.bashrc` 文件。 此文件类似于 /etc/profile，也是需要需要 source 才会生效，/etc/profile 对所有用户生效，~/.bash_profile 只对当前用户生效。
 
 ## ~/.bashrc
 
