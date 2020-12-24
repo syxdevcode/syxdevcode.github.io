@@ -108,7 +108,7 @@ Max realtime timeout      unlimited            unlimited            us
 
 ## Red Hat系统修改
 
-查看 `/etc/sysctl.conf` 和 `/etc/sysctl.d/*.conf` 的设置，如果需要修改 `sysctl.conf`，则修改后须执行 `sysctl –p` 使修改生效。
+查看 `/etc/sysctl.conf` 和 `/etc/sysctl.d/*.conf` 的设置，修改 `sysctl.conf`，修改后须执行 `sysctl -p` 使修改生效。
 
 ```sh
 fs.file-max=6523120
@@ -123,7 +123,7 @@ fs.file-max=6523120
 
 **免密登陆**
 
-用户不会进行登陆验证过程，所以不会加载 limits.conf 文件，建议通过 `/etc/profile` 添加 `ulimit –n 1048576` 命令设置，重新登陆或者执行 `source /etc/profile` 命令，然后启动服务程序；
+用户不会进行登陆验证过程，所以不会加载 limits.conf 文件，建议通过 `/etc/profile` 添加 `ulimit -n 1048576` 命令设置，重新登陆或者执行 `source /etc/profile` 命令，然后启动服务程序；
 
 ## 查看用户级的最大限制
 
