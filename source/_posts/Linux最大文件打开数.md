@@ -23,6 +23,7 @@ linux最大打开文件句柄数，即打开文件数最大限制，就是规定
 
 ```sh
 # nr_open是单个进程可分配的最大文件数
+# 一般默认为：1024*1024=1048576
 cat /proc/sys/fs/nr_open
 
 # file-max是内核可分配的最大文件数
@@ -31,17 +32,53 @@ cat /proc/sys/fs/file-max
 
 在Linux下有时会遇到 `Socket/File : Can't open so many files` 的问题。其实Linux是有文件句柄限制的，而且Linux默认一般都是1024（阿里云主机默认是65535）。在生产环境中很容易到达这个值，因此这里就会成为系统的瓶颈。
 
+## Linux资源的限制
+
+### 登陆时限制
+
+Linux对用户使用资源的限制通过 PAM 对登陆用户进行身份验证并设置相应的限制。
+
+具体顺序如下。从用户登陆开始，操作系统会依次执行如下三部
+
+* 1. /etc/pam.d/login
+* 2. /etc/pam.d/system-auth
+* 3. /lib64/security/pam_limits.so
+
+**1，/etc/pam.d/login 中调用system-auth**
+
+```sh
+cat /etc/pam.d/login
+```
+
+![微信截图_20201224172412.png](/img/微信截图_20201224172412.png)
+
+**2，在/etc/pam.d/system-auth 调用 pam_limits.so**
+
+```sh
+/etc/pam.d/system-auth
+```
+
+![微信截图_20201224172513.png](/img/微信截图_20201224172513.png)
+
+**3，通过grep查看 /lib64/security/pam_limits.so 可以看到 limits.conf和limits.d/*.conf**
+
+```sh
+grep -a "/etc/security/limits." /lib64/security/pam_limits.so
+```
+
+![微信截图_20201224172633.png](/img/微信截图_20201224172633.png)
+
 ## Centos7系统修改
 
-在Centos7系统中，使用 `Systemd` 替代了之前的SysV。`/etc/security/limits.conf` 文件的配置作用域缩小了。`/etc/security/limits.conf` 的配置，只适用于通过PAM认证登录用户的资源限制，它对 `systemd` 的 `service` 的资源限制不生效。因此登录用户的限制，通过 `/etc/security/limits.conf` 与 `/etc/security/limits.d` 下的文件设置即可。
+在Centos7系统中，使用 `Systemd` 替代了之前的 SysV。`/etc/security/limits.conf` 文件的配置作用域缩小了。`/etc/security/limits.conf` 的配置，只适用于通过PAM认证登录用户的资源限制，它对 `systemd` 的 `service` 的资源限制不生效。因此登录用户的限制，通过 `/etc/security/limits.conf` 与 `/etc/security/limits.d` 下的文件设置即可。
 
 对于 `systemd service` 的资源设置，则需修改全局配置，全局配置文件放在 `/etc/systemd/system.conf` 和 `/etc/systemd/user.conf`。`system.conf` 是系统实例使用的，`user.conf` 是用户实例使用的。
 
 ```sh
 # vim /etc/systemd/system.conf
 [Manager]
-DefaultLimitNOFILE=1024000
-DefaultLimitNPROC=1024000
+DefaultLimitNOFILE=1048576
+DefaultLimitNPROC=1048576
 ```
 
 `reboot` 重启后生效。
@@ -55,8 +92,8 @@ Max data size             unlimited            unlimited            bytes
 Max stack size            8388608              unlimited            bytes     
 Max core file size        0                    unlimited            bytes     
 Max resident set          unlimited            unlimited            bytes     
-Max processes             1024000              1024000              processes 
-Max open files            1024000              1024000              files     
+Max processes             1048576              1048576              processes 
+Max open files            1048576              1048576              files     
 Max locked memory         65536                65536                bytes     
 Max address space         unlimited            unlimited            bytes     
 Max file locks            unlimited            unlimited            locks     
@@ -66,14 +103,33 @@ Max nice priority         0                    0
 Max realtime priority     0                    0                    
 Max realtime timeout      unlimited            unlimited            us        
 [root@host-192-175-32-22 bin]# ulimit -n
-1024000
+1048576
 ```
+
+## Red Hat系统修改
+
+查看 `/etc/sysctl.conf` 和 `/etc/sysctl.d/*.conf` 的设置，如果需要修改 `sysctl.conf`，则修改后须执行 `sysctl –p` 使修改生效。
+
+```sh
+fs.file-max=6523120
+```
+
+查看 `/etc/security/limits.conf` 以及 `/etc/security/limits.d/*.conf` 。操作系统默认先加载 limits.conf 后加载 limits.d/*.conf，所以相同配置后面会覆盖前面，如：`/etc/security/limits.d/90-nproc.conf`
+
+```sh
+*          -       nofile    1048576
+*          -       nproc     1048576
+```
+
+**免密登陆**
+
+用户不会进行登陆验证过程，所以不会加载 limits.conf 文件，建议通过 `/etc/profile` 添加 `ulimit –n 1048576` 命令设置，重新登陆或者执行 `source /etc/profile` 命令，然后启动服务程序；
 
 ## 查看用户级的最大限制
 
 `ulimit -a` 或者 `ulimit -n`
 
-`ulimit -n`，默认是1024，向阿里云华为云这种云主机一般是65535。
+`ulimit -n`，默认是1024，向阿里云华为云这种云主机一般是 65535。
 
 ```sh
 [root@host-192-125-30-59 ~]# ulimit -a
@@ -117,15 +173,6 @@ open files （-n）1024 是linux操作系统对一个进程打开的文件句柄
  | -v	 | 进程最大可用的虚拟内存，以 Kbytes 为单位。 | 	ulimit – v 200000；限制最大可用的虚拟内存为 200000 Kbytes。
 
 
-## 查看系统级的最大限制
-
-```sh
-[root@host-192-125-30-59 ~]# cat /proc/sys/fs/file-max
-6523120
-```
-
-`file-max` 是设置系统所有进程一共可以打开的文件数量 。同时一些程序可以通过setrlimit调用，设置每个进程的限制。如果得到大量使用完文件句柄的错误信息，是应该增加这个值。
-
 ## 查看某个进程的最大打开文件数和当前打开文件数
 
 先找到该进程的进程号，然后查看
@@ -159,7 +206,7 @@ ps：如果要查看某个进程的线程的详细信息，`/proc/[pid]/task`
 这个设置是暂时的保留。当退出Shell会话后，该值恢复原值。
 
 ```sh
-ulimit -SHn 102400
+ulimit -SHn 1048576
 ```
 
 `ulimit` 命令分软限制和硬限制，加 `-H` 就是硬限制，加 `-S` 就是软限制。默认显示的是软限制，如果运行 `ulimit` 命令修改时没有加上 `-H` 或 `-S` ，就是两个参数一起改变。
@@ -226,3 +273,5 @@ sysctl -p
 [Linux最大文件打开数](https://www.cnblogs.com/pangguoping/p/5791432.html)
 
 [linux最大打开文件句柄数](https://www.cnblogs.com/xulan0922/p/11937472.html)
+
+[修改RedHat 7.2 进程最大句柄数限制](https://www.cnblogs.com/ibyte/p/9762248.html)
