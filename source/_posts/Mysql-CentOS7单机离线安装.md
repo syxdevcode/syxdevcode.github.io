@@ -340,10 +340,6 @@ quit;
 
 之后把 my.cnf 的 `skip-grant-tables=1` 这行注释掉
 
-5、重启服务
-
-`service mysqld restart`
-
 ## 添加远程访问权限
 
 ```sh
@@ -374,6 +370,8 @@ mysql> select host,user from user;
 
 ```sh
 /etc/init.d/mysqld restart
+# 或
+service mysqld restart
 ```
 
 ## 配置防火墙

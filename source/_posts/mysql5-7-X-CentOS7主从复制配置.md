@@ -52,7 +52,7 @@ categories: MySql
 
 mysqld将数字扩展名附加到二进制日志基本名称以生成二进制日志文件名。每次服务器创建新日志文件时，该数字都会增加，从而创建一系列有序的文件。每次启动或刷新日志时，服务器都会在系列中创建一个新文件。服务器还会在当前日志大小达到 `max_binlog_size` 参数设置的大小后自动创建新的二进制日志文件 。二进制日志文件可能会比 `max_binlog_size` 使用大型事务时更大， 因为事务是以一个部分写入文件，而不是在文件之间分割。
 
-为了跟踪已使用的二进制日志文件， mysqld还创建了一个二进制日志索引文件，其中包含所有使用的二进制日志文件的名称。默认情况下，它具有与二进制日志文件相同的基本名称，并带有扩展名 `.index`。在mysqld运行时，您不应手动编辑此文件。
+为了跟踪已使用的二进制日志文件， mysqld 还创建了一个二进制日志索引文件，其中包含所有使用的二进制日志文件的名称。默认情况下，它具有与二进制日志文件相同的基本名称，并带有扩展名 `.index`。在 mysqld 运行时，您不应手动编辑此文件。
 
 `二进制日志文件` 通常表示包含数据库事件的单个编号文件。
 `二进制日志` 表示含编号的二进制日志文件集加上索引文件。
@@ -123,7 +123,9 @@ mkdir /usr/local/mysql/binlogs
 chown mysql.mysql /usr/local/mysql/binlogs
 ```
 
-重启：`/etc/init.d/mysqld restart`
+重启：
+
+/etc/init.d/mysqld restart
 
 如果省略 `server-id`（或将其显式设置为默认值0），则主服务器拒绝来自从服务器的任何连接。
 
@@ -162,7 +164,30 @@ binlog-do-db=test
 log-bin=mysql-bin
 ```
 
-**创建用于复制数据的用户**
+**主服务器创建用于复制数据的用户**
+
+语法：
+
+`grant 权限 on 数据库对象 to 用户`
+
+`grant 权限1,权限2,…权限n on 数据库名称.表名称 to 用户名@用户地址 identified by ‘连接口令’ WITH GRANT OPTION;`
+
+示例：
+
+`GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY '123456' WITH GRANT OPTION;`
+
+取消权限：`revoke all on *.* from root@localhost; `
+
+最后执行：`flush privileges`;
+
+GRANT：赋权命令
+ALL PRIVILEGES：当前用户的所有权限
+ON：介词
+*.*：当前用户对所有数据库和表的相应操作权限
+TO：介词
+‘root’@’%’：权限赋给root用户，所有ip都能连接
+IDENTIFIED BY ‘123456’：连接时输入密码，密码为123456
+WITH GRANT OPTION：允许级联赋权，表示该用户可以将自己拥有的权限授权给别人。
 
 ```sh
 # 连接到mysql，输入密码
@@ -174,9 +199,15 @@ create user 'slave'@'%' identified by '123456';
 CREATE USER 'slave'@'%'
 
 # 设置用户权限
+# 授予复制账号 REPLICATION CLIENT 权限，复制用户可以使用 
+# SHOW MASTER STATUS, SHOW SLAVE STATUS 和 SHOW BINARY LOGS来确定复制状态。
+# 授予复制账号 REPLICATION SLAVE 权限，复制才能真正地工作。
 grant replication slave,replication client on *.* to 'slave'@'%';
 # 或
 GRANT REPLICATION SLAVE ON *.*  TO  'slave'@'%'  identified by '123456';
+
+# 查看用户
+select host,user from user;
 
 # 刷新权限
 flush privileges;
@@ -187,11 +218,15 @@ show grants for 'slave'@'%';
 
 **备份主服务器数据**
 
+使用 scp 或 rsync 等工具，把备份出来的数据传输到从服务器中。
+
 ```sh
 # 进入 mysql 安装目录
 cd /usr/local/mysql/bin
 # 如果不使用 --master-data 参数，则需要手动锁定单独会话中的所有表
 ./mysqldump -u用户名 -p密码 --all-databases --master-data=1 > dbdump.db
+# 或 备份指定库
+./mysqldump -uroot -proot --databases db1 db2 > dbdump.db
 
 # 或
 # 1，加锁
@@ -263,15 +298,6 @@ reset slave;
 
 # 开启slave
 start slave;
-
-# 停止master
-stop master;
-
-# 重置master
-reset master;
-
-# 开启master
-start master;
 
 # 查看主从服务器进程
 show processlist;
@@ -360,7 +386,7 @@ mysql> show variables like "slave_parallel_type";
 ```sh
 # 停止之前可以查看目前的线程数
 show processlist;
-stop slave
+stop slave;
 ```
 
 **配置并发线程的方式**
@@ -387,7 +413,7 @@ mysql> show variables like "slave_parallel_workers";
 **启动从服务器的复制链路**
 
 ```sh
-mysql> start slave
+mysql> start slave;
 ```
 
 参考：
@@ -395,3 +421,5 @@ mysql> start slave
 [Mysql 主从复制](https://www.jianshu.com/p/faf0127f1cb2)
 
 [MySQL 主从复制原理与实践详解](https://www.jb51.net/article/186349.htm)
+
+[MySQL5.6 新特性之GTID](https://www.cnblogs.com/zhoujinyi/p/4717951.html)
