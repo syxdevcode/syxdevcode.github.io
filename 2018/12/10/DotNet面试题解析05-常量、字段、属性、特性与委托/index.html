@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
 <meta name="theme-color" content="#222">
-<meta name="generator" content="Hexo 5.2.0">
+<meta name="generator" content="Hexo 5.3.0">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
@@ -34,7 +34,7 @@
 <meta property="og:image" content="https://syxdevcode.github.com/img/151257-20160308203234335-1390533361.png">
 <meta property="og:image" content="https://syxdevcode.github.com/img/151257-20160308203236460-853216066.png">
 <meta property="article:published_time" content="2018-12-10T11:18:34.000Z">
-<meta property="article:modified_time" content="2020-12-24T09:57:35.832Z">
+<meta property="article:modified_time" content="2020-12-30T01:59:01.061Z">
 <meta property="article:author" content="syxdevcode">
 <meta property="article:tag" content="DotNet">
 <meta property="article:tag" content="CSharp">
@@ -231,7 +231,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-12-24 09:57:35" itemprop="dateModified" datetime="2020-12-24T09:57:35+00:00">2020-12-24</time>
+                <time title="修改时间：2020-12-30 01:59:01" itemprop="dateModified" datetime="2020-12-30T01:59:01+00:00">2020-12-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -262,7 +262,6 @@
 </ul>
 <p>关于常量不支持跨程序集版本更新，举个简单的例子来说明：</p>
 <figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">A</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">const</span> <span class="built_in">int</span> PORT = <span class="number">10086</span>;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">Print</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        Console.WriteLine(A.PORT);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
 <p>上面一段非常简单代码，其生产的 IL 代码如下，在使用常量变量的地方，把她的值拷过来了（把常量的值内联到使用的地方），与常量变量 A.PORT 没有关系了。假如 A 引用了 B 程序集（ B.dll 文件）中的一个常量，如果后面单独修改B程序集中的常量值，只是重新编译了 B，而没有编译程序集 A，就会出问题了，就是上面所说的不支持跨程序集版本更新。常量值更新后，所有使用该常量的代码都必须重新编译，这是我们在使用常量时必须要注意的一个问题。</p>
 <ul>
 <li>不要随意使用常量，特别是有可能变化的数据；</li>
@@ -272,22 +271,17 @@
 <h3 id="枚举"><a href="#枚举" class="headerlink" title="枚举"></a>枚举</h3><p>枚举 enum 也有类似的问题，其根源和const一样.</p>
 <p>下面的是一个简单的枚举定义，她的 IL 代码定义和 const 定义是一样一样的！枚举的成员定义和常量定义一样，因此枚举其实本质上就相当是一个常量集合。</p>
 <figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="built_in">enum</span> EnumType : <span class="built_in">int</span></span><br><span class="line">&#123;</span><br><span class="line">    None=<span class="number">0</span>,</span><br><span class="line">    Int=<span class="number">1</span>,</span><br><span class="line">    String=<span class="number">2</span>,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
 <p><img src="/img/151257-20160308203230647-581894993.png" alt="151257-20160308203230647-581894993.png"></p>
 <h3 id="字段"><a href="#字段" class="headerlink" title="字段"></a>字段</h3><p>字段的内联初始化问题</p>
 <figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">SomeType</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="built_in">int</span> Age = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">private</span> DateTime StartTime = DateTime.Now;</span><br><span class="line">    <span class="keyword">private</span> <span class="built_in">string</span> Name = <span class="string">&quot;三体&quot;</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
 <p>定义字段并初始化值，是一种很常见的代码编写习惯。但注意了，看看 IL 代码结构，一行代码（定义字段+赋值）被拆成了两块，最终的赋值都在构造函数里执行的。</p>
 <p><img src="/img/151257-20160308203231741-1268662687.png" alt="151257-20160308203231741-1268662687.png"></p>
 <p>如果有多个构造函数，就像下面这样，有多个构造函数，会造成在两个构造函数 .ctor 中重复产生对字段赋值的 IL 代码，这就造成了不必要的代码膨胀。这个其实也很好解决，在非默认构造函数后加一个 “:this()” 就OK了，或者显示的在构造函数里初始化字段。</p>
 <figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">SomeType</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">private</span> DateTime _startTime = DateTime.Now;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SomeType</span>(<span class="params"></span>)</span> &#123; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SomeType</span>(<span class="params"><span class="built_in">string</span> name</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
 <p>改进之后：</p>
 <figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">SomeType</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">//改进</span></span><br><span class="line">    <span class="keyword">private</span> DateTime _startTime;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SomeType</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        _startTime = DateTime.Now;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SomeType</span>(<span class="params"><span class="built_in">string</span> name</span>):<span class="title">base</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
 <h3 id="属性"><a href="#属性" class="headerlink" title="属性"></a>属性</h3><p>属性是面向对象编程的基本概念，提供了对私有字段的访问封装，在 C# 中以 get 和 set 访问器方法实现对可读可写属性的操作，提供了安全和灵活的数据访问封装。我们看看属性的本质，主要手段还是 IL 代码：</p>
 <figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">SomeType</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">int</span> Index &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SomeType</span>(<span class="params"></span>)</span> &#123; &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
 <p><img src="/img/151257-20160308203232913-500597794.png" alt="151257-20160308203232913-500597794.png"></p>
 <p>上面定义的属性Index被分成了三个部分：</p>
 <ul>
@@ -305,7 +299,6 @@
 </ul>
 <p>委托的本质——是一个类。</p>
 <figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="built_in">delegate</span> <span class="keyword">void</span> <span class="title">ShowMessageHandler</span>(<span class="params"><span class="built_in">string</span> mes</span>)</span>;</span><br></pre></td></tr></table></figure>
-
 <p><img src="/img/151257-20160308203234335-1390533361.png" alt="151257-20160308203234335-1390533361.png"></p>
 <ul>
 <li>编译器自动帮我们创建了一个类 ShowMessageHandler，继承自 System.MulticastDelegate（她又继承自 System.Delegate ），这是一个多播委托；</li>
@@ -314,12 +307,10 @@
 </ul>
 <p>当我们调用委托的时候，其实就是调用委托对象的 Invoke 方法，可以验证一下，下面的调用代码会被编译为对委托对象的 Invoke 方法调用：</p>
 <figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> ShowMessageHandler ShowMessage;</span><br><span class="line"></span><br><span class="line"><span class="comment">//调用</span></span><br><span class="line"><span class="keyword">this</span>.ShowMessage(<span class="string">&quot;123&quot;</span>);</span><br></pre></td></tr></table></figure>
-
 <h3 id="事件"><a href="#事件" class="headerlink" title="事件"></a>事件</h3><p>Event 封装了委托类型的变量，使得：在类的内部，不管你声明它是 public 还是 protected ，它总是 private 的。在类的外部，注册 “+=” 和 注销“-=” 的访问限定符与你在声明事件时使用的访问符相同。</p>
 <p>声明一个事件不过类似于声明一个进行了封装的委托类型的变量而已。</p>
 <h2 id="NET的闭包"><a href="#NET的闭包" class="headerlink" title=".NET的闭包"></a>.NET的闭包</h2><p>闭包提供了一种类似脚本语言函数式编程的便捷、可以共享数据，但也存在一些隐患。</p>
 <figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">List&lt;Action&gt; acs = <span class="keyword">new</span> List&lt;Action&gt;(<span class="number">5</span>);</span><br><span class="line"><span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; <span class="number">5</span>; i++)</span><br><span class="line">&#123;</span><br><span class="line">    acs.Add(() =&gt; &#123; Console.WriteLine(i); &#125;);</span><br><span class="line">&#125;</span><br><span class="line">acs.ForEach(ac =&gt; ac()); <span class="comment">// 输出了 5 5 5 5 5，全是5</span></span><br></pre></td></tr></table></figure>
-
 <p>上面的代码中的 Action 就是 .NET 为我们定义好的一个无参数无返回值的委托，从上一节我们知道委托实质是一个类，理解这一点是解决本题的关键。在这个地方委托方法共享使用了一个局部变量i，那生成的类会是什么样的呢？看看IL代码：</p>
 <p><img src="/img/151257-20160308203236460-853216066.png" alt="151257-20160308203236460-853216066.png"></p>
 <p>共享的局部变量被提升为委托类的一个字段了：</p>
@@ -330,7 +321,6 @@
 </ul>
 <p>修改以后：</p>
 <figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">List&lt;Action&gt; acss = <span class="keyword">new</span> List&lt;Action&gt;(<span class="number">5</span>);</span><br><span class="line"><span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; <span class="number">5</span>; i++)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">int</span> m = i;</span><br><span class="line">    acss.Add(() =&gt; &#123; Console.WriteLine(m); &#125;);</span><br><span class="line">&#125;</span><br><span class="line">acss.ForEach(ac =&gt; ac()); <span class="comment">// 输出了 0 1 2 3 4</span></span><br></pre></td></tr></table></figure>
-
 <h2 id="题目答案解析"><a href="#题目答案解析" class="headerlink" title="题目答案解析"></a>题目答案解析</h2><h3 id="1-const和readonly有什么区别？"><a href="#1-const和readonly有什么区别？" class="headerlink" title="1. const和readonly有什么区别？"></a>1. const和readonly有什么区别？</h3><p>const 关键字用来声明编译时常量，readonly 用来声明运行时常量。都可以标识一个常量，主要有以下区别：<br>1、初始化位置不同。const 必须在声明的同时赋值；readonly 即可以在声明处赋值，也可以在构造方法里赋值。<br>2、修饰对象不同。const 即可以修饰类的字段，也可以修饰局部变量；readonly 只能修饰类的字段 。<br>3、const是编译时常量，在编译时确定该值，且值在编译时被内联到代码中；readonly 是运行时常量，在运行时确定该值。<br>4、const 默认是静态的；而 readonly 如果设置成静态需要显示声明 。<br>5、支持的类型时不同，const 只能修饰基元类型或值为 null 的其他引用类型；readonly 可以是任何类型。</p>
 <h3 id="2-哪些类型可以定义为常量？常量const有什么风险？"><a href="#2-哪些类型可以定义为常量？常量const有什么风险？" class="headerlink" title="2. 哪些类型可以定义为常量？常量const有什么风险？"></a>2. 哪些类型可以定义为常量？常量const有什么风险？</h3><p>基元类型或值为 null 的其他引用类型，常量的风险就是不支持跨程序集版本更新，常量值更新后，所有使用该常量的代码都必须重新编译。</p>
 <h3 id="3-字段与属性有什么异同？"><a href="#3-字段与属性有什么异同？" class="headerlink" title="3. 字段与属性有什么异同？"></a>3. 字段与属性有什么异同？</h3><ul>
@@ -349,7 +339,6 @@
 <h3 id="5-自动属性有什么风险？"><a href="#5-自动属性有什么风险？" class="headerlink" title="5. 自动属性有什么风险？"></a>5. 自动属性有什么风险？</h3><p>因为自动属性的私有字段是由编译器命名的，后期不宜随意修改，比如在序列化中会导致字段值丢失。</p>
 <h3 id="6-特性是什么？如何使用？"><a href="#6-特性是什么？如何使用？" class="headerlink" title="6. 特性是什么？如何使用？"></a>6. 特性是什么？如何使用？</h3><p>特性与属性是完全不相同的两个概念，只是在名称上比较相近。Attribute 特性就是关联了一个目标对象的一段配置信息，本质上是一个类，其为目标元素提供关联附加信息，这段附加信息存储在 dll 内的元数据，它本身没什么意义。运行期以反射的方式来获取附加信息。</p>
 <h3 id="7-下面的代码输出什么结果？为什么？"><a href="#7-下面的代码输出什么结果？为什么？" class="headerlink" title="7. 下面的代码输出什么结果？为什么？"></a>7. 下面的代码输出什么结果？为什么？</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">List&lt;Action&gt; acs = <span class="keyword">new</span> List&lt;Action&gt;(<span class="number">5</span>);</span><br><span class="line"><span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; <span class="number">5</span>; i++)</span><br><span class="line">&#123;</span><br><span class="line">    acs.Add(() =&gt; &#123; Console.WriteLine(i); &#125;);</span><br><span class="line">&#125;</span><br><span class="line">acs.ForEach(ac =&gt; ac());</span><br></pre></td></tr></table></figure>
-
 <p>输出了 5 5 5 5 5，全是5！因为闭包中的共享变量i会被提升为委托对象的公共字段，生命周期延长了。</p>
 <h3 id="8-C-中的委托是什么？事件是不是一种委托？"><a href="#8-C-中的委托是什么？事件是不是一种委托？" class="headerlink" title="8. C#中的委托是什么？事件是不是一种委托？"></a>8. C#中的委托是什么？事件是不是一种委托？</h3><p>什么是委托？简单来说，委托类似于 C 或 C++ 中的函数指针，允许将方法作为参数进行传递。</p>
 <ul>
@@ -462,7 +451,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">330</span>
+          <span class="site-state-item-count">331</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>

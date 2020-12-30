@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
 <meta name="theme-color" content="#222">
-<meta name="generator" content="Hexo 5.2.0">
+<meta name="generator" content="Hexo 5.3.0">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
@@ -47,7 +47,7 @@
 <meta property="og:image" content="https://syxdevcode.github.com/img/dd229211.il_f18(zh-tw,msdn.10).jpg">
 <meta property="og:image" content="https://syxdevcode.github.com/img/dd229211.il_f19(zh-tw,msdn.10).jpg">
 <meta property="article:published_time" content="2020-01-08T10:10:34.000Z">
-<meta property="article:modified_time" content="2020-12-24T09:57:35.832Z">
+<meta property="article:modified_time" content="2020-12-30T01:59:01.065Z">
 <meta property="article:author" content="syxdevcode">
 <meta property="article:tag" content="DotNet">
 <meta property="article:tag" content="CSharp">
@@ -244,7 +244,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-12-24 09:57:35" itemprop="dateModified" datetime="2020-12-24T09:57:35+00:00">2020-12-24</time>
+                <time title="修改时间：2020-12-30 01:59:01" itemprop="dateModified" datetime="2020-12-30T01:59:01+00:00">2020-12-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -274,10 +274,8 @@
 <p>本文章以一个实际的例子，让你了解堆栈式 VM 的运作原理，并对 .NET IL（Intermediate Language）有最基本的领略。</p>
 <p>下面是一个简单的 C# 原始码：</p>
 <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Test</span> &#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params">String[] args</span>)</span> &#123;</span><br><span class="line">        <span class="built_in">int</span> i=<span class="number">1</span>;</span><br><span class="line">        <span class="built_in">int</span> j=<span class="number">2</span>;</span><br><span class="line">        <span class="built_in">int</span> k=<span class="number">3</span>;</span><br><span class="line">        <span class="built_in">int</span> answer = i+j+k;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;i+j+k=&quot;</span>+answer);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
 <p>将此原始码编译之后，可以得到一个 EXE 档案。 我们可以透过 ILDASM. EXE 来反组译 EXE 以观察 IL。 我将 Main() 的 IL 反组译条列如下，这里共有十八道 IL 指令，有的指令（例如 ldstr 与 box）后面需要接参数，有的指令（例如 ldc.i4.1 与 add）后面不需要接参数。</p>
 <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">ldc.i4<span class="number">.1</span></span><br><span class="line">stloc<span class="number">.0</span></span><br><span class="line">ldc.i4<span class="number">.2</span></span><br><span class="line">stloc<span class="number">.1</span></span><br><span class="line">ldc.i4<span class="number">.3</span></span><br><span class="line">stloc<span class="number">.2</span></span><br><span class="line">ldloc<span class="number">.0</span></span><br><span class="line">ldloc<span class="number">.1</span></span><br><span class="line"><span class="keyword">add</span></span><br><span class="line">ldloc<span class="number">.2</span></span><br><span class="line"><span class="keyword">add</span></span><br><span class="line">stloc<span class="number">.3</span></span><br><span class="line">ldstr      <span class="string">&quot;i+j+k=&quot;</span></span><br><span class="line">ldloc<span class="number">.3</span></span><br><span class="line">box        [mscorlib]System.Int32</span><br><span class="line">call       string [mscorlib]System.String::Concat(object, object)</span><br><span class="line">call       void [mscorlib]System.Console::WriteLine(string)</span><br><span class="line">ret</span><br></pre></td></tr></table></figure>
-
 <p>此程序执行时，关键的内存有三种，分别是：</p>
 <ul>
 <li><p><strong>Managed Heap：</strong>这是动态配置（Dynamic Allocation）的内存，由 Garbage Collector（GC）在执行时自动管理，整个 Process 共享一个 Managed Heap。</p>
@@ -423,7 +421,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">330</span>
+          <span class="site-state-item-count">331</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
