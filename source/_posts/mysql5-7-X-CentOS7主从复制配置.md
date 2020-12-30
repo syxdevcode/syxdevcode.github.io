@@ -363,15 +363,12 @@ Command: Binlog Dump
 
 ## 配置多线程复制
 
-多线程复制在 5.6 中被引入，并且在 5.7 中得到了进一步的完善。
+多线程复制在 5.6 中被引入，并且在 5.7 中得到了进一步的完善。5.7 中是基于逻辑时钟的方式进行的多线程复制。
 
-5.7 中是基于逻辑时钟的方式进行的多线程复制。
+### 临时配置
 
-### 配置过程
-
-**从库上查看默认的多线程复制类型**
-
-```sql
+```sh
+# 1，从库上查看默认的多线程复制类型
 mysql> show variables like "slave_parallel_type";
 +---------------------+----------+
 | Variable_name       | Value    |
@@ -379,41 +376,60 @@ mysql> show variables like "slave_parallel_type";
 | slave_parallel_type | DATABASE |
 +---------------------+----------+
 1 row in set (0.00 sec)
-```
 
-**从库上停止目前正在运行复制链路**
+#2，停止之前可以查看目前的线程数
 
-```sh
-# 停止之前可以查看目前的线程数
 show processlist;
 stop slave;
-```
 
-**配置并发线程的方式**
-
-```sh
+# 3，配置并发线程的方式
 mysql> set global slave_parallel_type = "logical_clock";
 Query OK, 0 rows affected (0.00 sec)
-```
 
-**配置并发数量**
-
-```sh
+# 4，配置并发数量
 mysql> set global slave_parallel_workers = 4;
 Query OK, 0 rows affected (0.00 sec)
+
 mysql> show variables like "slave_parallel_workers";
 +------------------------+-------+
 | Variable_name          | Value |
 +------------------------+-------+
-| slave_parallel_workers | 4     |
+| slave_parallel_workers | 16     |
 +------------------------+-------+
 1 row in set (0.00 sec)
+
+# 5，启动从服务器的复制链路
+mysql> start slave;
 ```
 
-**启动从服务器的复制链路**
+### 永久生效
+
+vim /usr/local/mysql/my.cnf
+
+在 [mysqld] 下添加：
 
 ```sh
-mysql> start slave;
+slave-parallel-type=LOGICAL_CLOCK
+slave-parallel-workers=16
+master_info_repository=TABLE
+relay_log_info_repository=TABLE
+relay_log_recovery=ON
+```
+
+重启mysql
+
+```sh
+/etc/init.d/mysqld restart
+
+# 或
+service mysqld restart
+```
+
+验证：
+
+```sh
+show variables like "slave_parallel_type";
+show variables like "slave_parallel_workers";
 ```
 
 参考：
@@ -423,3 +439,5 @@ mysql> start slave;
 [MySQL 主从复制原理与实践详解](https://www.jb51.net/article/186349.htm)
 
 [MySQL5.6 新特性之GTID](https://www.cnblogs.com/zhoujinyi/p/4717951.html)
+
+[[MySQL] 号称永久解决了复制延迟问题的并行复制，MySQL5.7](https://www.cnblogs.com/langdashu/p/6125621.html)

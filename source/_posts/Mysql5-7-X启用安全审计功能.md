@@ -43,10 +43,10 @@ mysql> show global variables like 'plugin_dir';
 cp /ldjc/mariadb-10.5.8-linux-x86_64/lib/plugin/server_audit.so /usr/local/mysql/lib/plugin/
 
 # 授予执行权限
-chmod  +x  /usr/local/mysql/lib/plugin/server_audit.so
+chmod +x /usr/local/mysql/lib/plugin/server_audit.so
 
 # 安装
-# 或者 在 my.cnf 中配置： server_audit=FORCE_PLUS_PERMANENT
+# 或者 在 my.cnf 中配置：plugin_load=server_audit=server_audit.so
 install plugin server_audit soname 'server_audit.so';
 
 # 备注：
@@ -66,6 +66,8 @@ chgrp -R mysql /usr/local/mysql/auditlogs
 ```
 
 4，修改my.cnf配置文件
+
+vim /usr/local/mysql/my.cnf
 
 在 [mysqld] 标签下添加：
 
