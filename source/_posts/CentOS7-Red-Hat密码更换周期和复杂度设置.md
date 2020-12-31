@@ -151,6 +151,8 @@ ocredit       = -1
 
 ### Centos7 继续使用 pam_cracklib 模块检验密码复杂度
 
+vim /etc/pam.d/system-auth
+
 ```sh
 # 添加到 pam_pwquality.so 所在行的上行
 password    requisite     pam_cracklib.so try_first_pass retry=3 type=  minlen=8 ucredit=-1 lcredit=-1 ocredit=-1 dcredit=-1
@@ -158,8 +160,10 @@ password    requisite     pam_cracklib.so try_first_pass retry=3 type=  minlen=8
 
 ### Read Hat配置密码复杂度
 
+vim /etc/pam.d/system-auth
+
 ```sh
-password   requisite      pam_cracklib.so retry=3 difok=3 minlen=8 ucredit=-1 lcredit=-2 dcredit=-1 ocredit=-1
+password   requisite      pam_cracklib.so retry=3 difok=3 minlen=8 ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1
 ```
 
 参考：
