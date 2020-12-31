@@ -4,6 +4,7 @@ date: 2020-12-31 11:15:17
 tags:
 - Linux
 - CentOS7
+- Red Hat
 - 安全策略
 - Linux基础
 categories: Linux基础
