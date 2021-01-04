@@ -36,3 +36,23 @@ Python3 中默认编码为 UTF-8，因此在使用 Python3 时，通常不需指
 >>> keyword.kwlist
 ['False', 'None', 'True', '__peg_parser__', 'and', 'as', 'assert', 'async', 'await', 'break', 'class', 'continue', 'def', 'del', 'elif', 'else', 'except', 'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is', 'lambda', 'nonlocal', 'not', 'or', 'pass', 'raise', 'return', 'try', 'while', 'with', 'yield']
 ```
+
+## 注释
+
+* 单行注释以 # 开头。
+* 多行注释可以用多个 # 号，三个单引号（'''）或三个双引号（"""）。
+
+```py
+# 第一个注释
+# 第二个注释
+ 
+'''
+第三注释
+第四注释
+'''
+ 
+"""
+第五注释
+第六注释
+"""
+```
