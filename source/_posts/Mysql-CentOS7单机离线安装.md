@@ -127,7 +127,9 @@ basedir=/usr/local/mysql
 # set the data store dir
 datadir=/usr/local/mysql/data
 # set the number of allow max connnection
-max_connections=30000
+# 设置置 MySQL 的最大连接，按你实际情况适当设置。出现 'Too many connections' 错误，是因为 max_connections 的值太低，需要设置更高的链接数，
+# max_connection 值被设高之后的缺陷是当服务器运行超过设置阈值或更高的活动事务时会变的没有响应。
+max_connections=3000
 character-set-client-handshake = FALSE
 # set server charactre default encoding
 character-set-server=utf8mb4
@@ -417,3 +419,5 @@ source /sql/data1.sql
 参考：
 
 [centos7下使用mysql离线安装包安装mysql5.7](https://www.cnblogs.com/yy3b2007com/p/10497787.html)
+
+[对mysql的高并发优化配置的一些思考](https://blog.51cto.com/xiaozhagn/2073900)
