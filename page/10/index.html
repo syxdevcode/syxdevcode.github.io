@@ -185,6 +185,254 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/09/25/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%8825%EF%BC%89-%20MultiTenancy%20%E8%A7%A3%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/09/25/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%8825%EF%BC%89-%20MultiTenancy%20%E8%A7%A3%E6%9E%90/" class="post-title-link" itemprop="url">ABP框架学习记录（25）- MultiTenancy 解析</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-09-25 13:48:54" itemprop="dateCreated datePublished" datetime="2019-09-25T13:48:54+00:00">2019-09-25</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ABP/" itemprop="url" rel="index"><span itemprop="name">ABP</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="ABP框架学习记录（25）-MultiTenancy-解析"><a href="#ABP框架学习记录（25）-MultiTenancy-解析" class="headerlink" title="ABP框架学习记录（25）- MultiTenancy 解析"></a>ABP框架学习记录（25）- MultiTenancy 解析</h1><h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>多租户和单租户托管是SaaS公司提供服务的两种方式。多租户托管是指在同一软件实例上存在许多客户端，它们共享基础结构，数据库和/或应用程序服务器。它便宜一些，但是有风险。单租户是指租户不共享任何东西。它更昂贵并且需要更多的管理，因为它需要为每个客户端运行完整的软件堆栈。</p>
+<p>软件即服务（SaaS）产品可以具有各种级别的多租户。在应用程序服务器级别，可以有一个具有负载均衡功能的应用程序服务器池，可以为多个客户端提供服务。在数据库级别，每个租户可以有一个数据库，也可以在所有租户之间共享一个数据库。</p>
+<h2 id="详解"><a href="#详解" class="headerlink" title="详解"></a>详解</h2><p>MultiTenancy：多租户</p>
+<p><code>MultiTenancy</code> 在ABP项目的目录位置：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190925151033.png" alt="QQ截图20190925151033.png"></p>
+<p><code>MultiTenancySides</code>：标识是租户，租主；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190925153759.png" alt="QQ截图20190925153759.png"></p>
+<p><code>MultiTenancySideAttribute</code>：声明多租户 特性；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190925162718.png" alt="QQ截图20190925162718.png"></p>
+<p><code>TenantInfo</code>：租户信息，只有Id,和租户名称；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190925155312.png" alt="QQ截图20190925155312.png"></p>
+<p><code>ITenantStore</code>：查找租户信息；</p>
+<p><code>NullTenantStore</code>：默认实现 <code>ITenantStore</code> 接口，</p>
+<p>在 <code>AbpKernelModule</code> 注册，如果没有注册过，则注册 <code>NullTenantStore</code>：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190925160412.png" alt="QQ截图20190925160412.png"></p>
+<p><code>Abp.Zero.Common</code> 项目中，<code>TenantStore</code> 实现 <code>ITenantStore</code>:</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190925160718.png" alt="QQ截图20190925160718.png"></p>
+<p><code>TenantResolverCacheItem</code>：租户获取缓存项</p>
+<p><code>ITenantResolverCache</code>：定义获取租户缓存接口；</p>
+<p><code>NullTenantResolverCache</code>：<code>ITenantResolverCache</code> 接口的空实现；</p>
+<p><code>Abp.AspNetCore.MultiTenancy</code> 项目， 在 <code>HttpContextTenantResolverCache</code> 类实现 <code>HttpContextTenantResolverCache</code> 接口：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190925162409.png" alt="QQ截图20190925162409.png"></p>
+<p><code>ITenantResolveContributor</code>：定义租户解析参与者接口；即实际解析租户的实现类</p>
+<p>例如，在 <code>Abp.AspNetCore.MultiTenancy</code> 项目的 <code>DomainTenantResolveContributor</code> 类：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190925163152.png" alt="QQ截图20190925163152.png"></p>
+<p><code>ITenantResolver/TenantResolver</code>：租户解析者，相当于 <code>Manager</code> 的角色；</p>
+<p>匹配到真正的 <code>ITenantResolveContributor</code> 接口实现：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190925163736.png" alt="QQ截图20190925163736.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190925163623.png" alt="QQ截图20190925163623.png"></p>
+<h2 id="Abp-Zero-Common"><a href="#Abp-Zero-Common" class="headerlink" title="Abp.Zero.Common"></a>Abp.Zero.Common</h2><p><code>AbpTenantManager</code>：管理 租户信息，包括持久化，<code>Feature</code>等；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190925165017.png" alt="QQ截图20190925165017.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190925170710.png" alt="QQ截图20190925170710.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190925170749.png" alt="QQ截图20190925170749.png"></p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://shareplm.com/single-tenant-vs-multi-tenant-hosting/">Single-tenant vs multi-tenant hosting</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/09/23/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%8824%EF%BC%89-%20Notifications%20%E8%A7%A3%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/09/23/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%8824%EF%BC%89-%20Notifications%20%E8%A7%A3%E6%9E%90/" class="post-title-link" itemprop="url">ABP框架学习记录（24）- Notifications 解析</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-09-23 09:39:48" itemprop="dateCreated datePublished" datetime="2019-09-23T09:39:48+00:00">2019-09-23</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ABP/" itemprop="url" rel="index"><span itemprop="name">ABP</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="ABP框架学习记录（24）-Notifications-解析"><a href="#ABP框架学习记录（24）-Notifications-解析" class="headerlink" title="ABP框架学习记录（24）- Notifications 解析"></a>ABP框架学习记录（24）- Notifications 解析</h1><p><code>Notifications</code> 封装了通知的功能，实现 <code>Notification</code> 的定义，存储，发送，订阅等功能，支持租户通知，用户通知。通过 <code>IRealTimeNotifier</code> 接口，实现统一的 <code>Notification</code> 功能。支持 <code>SignalR</code>。</p>
+<p><code>Notifications</code> 在ABP项目中的位置：<br><img src="/img/QQ%E6%88%AA%E5%9B%BE20190923141119.png" alt="QQ截图20190923141119.png"></p>
+<h2 id="表-实体类对应"><a href="#表-实体类对应" class="headerlink" title="表-实体类对应"></a>表-实体类对应</h2><p>首先，介绍关于 <code>Notifications</code> 的表-实体类；</p>
+<p><code>NotificationInfo</code>：用于存储需要发送的通知；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190923181330.png" alt="QQ截图20190923181330.png"></p>
+<p><code>NotificationSubscriptionInfo</code>: 用于存储 通知订阅。</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190923181457.png" alt="QQ截图20190923181457.png"></p>
+<p><code>TenantNotificationInfo</code>: 分配给其相关租户的通知。</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924092140.png" alt="QQ截图20190924092140.png"></p>
+<p><code>UserNotificationInfo</code>：用户存储用户通知</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924092240.png" alt="QQ截图20190924092240.png"></p>
+<h2 id="通知数据"><a href="#通知数据" class="headerlink" title="通知数据"></a>通知数据</h2><p><code>NotificationData</code>：用户 通知数据的 存储；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924134512.png" alt="QQ截图20190924134512.png"></p>
+<p><code>MessageNotificationData</code>：继承 <code>NotificationData</code>, 可以用户简单的通知消息；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924134619.png" alt="QQ截图20190924134619.png"></p>
+<p><code>LocalizableMessageNotificationData</code>：继承 <code>NotificationData</code>, 可以用户表示本地的通知消息数据；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924134652.png" alt="QQ截图20190924134652.png"></p>
+<h2 id="通知定义管理"><a href="#通知定义管理" class="headerlink" title="通知定义管理"></a>通知定义管理</h2><p><code>NotificationDefinition</code>：定义通知</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924143636.png" alt="QQ截图20190924143636.png"></p>
+<p><code>NotificationDefinitionManager</code>：实现 <code>INotificationDefinitionManager</code> 接口，用于管理 <code>NotificationDefinition</code>;</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924143805.png" alt="QQ截图20190924143805.png"></p>
+<p><code>AbpKernelModule</code>：<code>PostInitialize</code> 方法中初始化；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924144304.png" alt="QQ截图20190924144304.png"></p>
+<p><code>NotificationDefinitionContext</code>：定义 <code>NotificationDefinition</code> 上下文；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924143854.png" alt="QQ截图20190924143854.png"></p>
+<p><code>NotificationDefinitionManagerExtensions</code>：扩展方法，获取给定用户的所有通知；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924144047.png" alt="QQ截图20190924144047.png"></p>
+<h2 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h2><p><code>INotificationConfiguration</code>：配置通知；</p>
+<p><code>NotificationConfiguration</code>：实现 <code>INotificationConfiguration</code> 接口；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924150138.png" alt="QQ截图20190924150138.png"></p>
+<p><code>AbpCoreInstaller</code> 中注册：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924150305.png" alt="QQ截图20190924150305.png"></p>
+<h2 id="持久化"><a href="#持久化" class="headerlink" title="持久化"></a>持久化</h2><p><code>INotificationStore</code>：定义通知持久化接口；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924151312.png" alt="QQ截图20190924151312.png"></p>
+<p><code>Abp.Zero.Common</code> 项目中，使用仓储模式，提供 <code>INotificationStore</code> 接口的实现 <code>NotificationStore</code>；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924151629.png" alt="QQ截图20190924151629.png"></p>
+<p><code>UserNotificationState</code>：定义通知的状态，已读，未读；</p>
+<h2 id="管理用户通知"><a href="#管理用户通知" class="headerlink" title="管理用户通知"></a>管理用户通知</h2><p><code>IUserNotificationManager</code>：定义用户通知管理接口；</p>
+<p><code>UserNotificationManager</code>：实现 <code>IUserNotificationManager</code> 接口；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924165743.png" alt="QQ截图20190924165743.png"></p>
+<p><code>UserNotification</code>：表示发送给用户的通知；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924165934.png" alt="QQ截图20190924165934.png"></p>
+<p><code>TenantNotification</code>：代表租户/用户 已经发送的通知；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924170219.png" alt="QQ截图20190924170219.png"></p>
+<h2 id="发布通知"><a href="#发布通知" class="headerlink" title="发布通知"></a>发布通知</h2><p><code>INotificationPublisher</code>：定义发布通知的接口；</p>
+<p><code>NotificationPublisher</code>：实现 <code>INotificationPublisher</code> 接口；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924170626.png" alt="QQ截图20190924170626.png"></p>
+<p><code>PublishAsync</code> 异步方法:</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924170842.png" alt="QQ截图20190924170842.png"></p>
+<p><code>NotificationDistributionJob</code>：后台工作，去通知用户；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924172001.png" alt="QQ截图20190924172001.png"></p>
+<h2 id="订阅通知"><a href="#订阅通知" class="headerlink" title="订阅通知"></a>订阅通知</h2><p><code>NotificationSubscription</code>：表示一个用户订阅的通知；</p>
+<p><code>INotificationSubscriptionManager</code>：管理订阅通知；</p>
+<p><code>NotificationSubscriptionManager</code>：实现 <code>INotificationSubscriptionManager</code>；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924171659.png" alt="QQ截图20190924171659.png"></p>
+<h2 id="通知设置"><a href="#通知设置" class="headerlink" title="通知设置"></a>通知设置</h2><p><code>NotificationSettingNames</code>：定义通知开关 配置名；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924172434.png" alt="QQ截图20190924172434.png"></p>
+<p><code>NotificationSettingProvider</code>：适配器</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924172654.png" alt="QQ截图20190924172654.png"></p>
+<p><code>AbpKernelModule</code> 模块初始化：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924172751.png" alt="QQ截图20190924172751.png"></p>
+<h2 id="发送通知"><a href="#发送通知" class="headerlink" title="发送通知"></a>发送通知</h2><p><code>INotificationDistributer</code>：定义发送给用户通知的接口；</p>
+<p><code>DefaultNotificationDistributer</code>：实现 <code>INotificationDistributer</code> 接口；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924173343.png" alt="QQ截图20190924173343.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924173922.png" alt="QQ截图20190924173922.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924174210.png" alt="QQ截图20190924174210.png"></p>
+<p><code>IRealTimeNotifier</code>：定义向用户发送实时通知的接口；</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/09/21/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%8823%EF%BC%89-%20SignalR%20%E8%A7%A3%E6%9E%90/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -216,7 +464,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -311,7 +559,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -404,7 +652,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -500,7 +748,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -663,7 +911,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -748,7 +996,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -939,7 +1187,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1112,7 +1360,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1284,7 +1532,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1466,7 +1714,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1650,7 +1898,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1823,7 +2071,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1997,7 +2245,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2140,352 +2388,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/09/09/%E5%8D%95%E8%AF%8D%E6%94%B6%E5%BD%954/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/09/09/%E5%8D%95%E8%AF%8D%E6%94%B6%E5%BD%954/" class="post-title-link" itemprop="url">单词收录4</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-09-09 11:28:13" itemprop="dateCreated datePublished" datetime="2019-09-09T11:28:13+00:00">2019-09-09</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%8D%95%E8%AF%8D%E6%94%B6%E5%BD%95/" itemprop="url" rel="index"><span itemprop="name">单词收录</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="单词收录4"><a href="#单词收录4" class="headerlink" title="单词收录4"></a>单词收录4</h1><p>whilst：同时，时时，有时；当…的时候</p>
-<p>invoke：调用，实行，引起；</p>
-<p>break down：分解；发生故障；失败；毁掉；制服</p>
-<p>segments：片段</p>
-<p>definition：定义</p>
-<p>Additionally：此外，又，加之</p>
-<p>whitespace ：空白，空格</p>
-<p>several：几个的，各自的</p>
-<p>Greater：比较大的</p>
-<p>specified：指定的，规定的</p>
-<p>Predicate Validator：谓语验证器</p>
-<p>perform ：执行，完成</p>
-<p>logic：逻辑</p>
-<p>Regular：正式的，定期</p>
-<p>regular expression validator：正则表达式验证</p>
-<p>responsible ：负责的，有责任的，可靠的；</p>
-<p>that leverages：利用</p>
-<p>leverages：手段，影响力</p>
-<p>Inversion ：反演</p>
-<p>IOC：Inversion of Control 控制反转</p>
-<p>Although：尽管，虽然，但是，然而</p>
-<p>entire：全部的，整个的，全体的</p>
-<p>still：仍然，平静</p>
-<p>inspect：检查，视察，检阅</p>
-<p>extracted：萃取，提取</p>
-<p>respect ：遵守</p>
-<p>resolution：解决，解析</p>
-<p>Specifying：说明，指定；</p>
-<p>either：也，任何一个，两者之中任一的</p>
-<p>Cascade mode：串联模式</p>
-<p>whether：是否</p>
-<p>previous：以前的，过去的</p>
-<p>As well as：和…一样</p>
-<p>individual：个人，个体，独特的</p>
-<p>inherit：继承</p>
-<p>fewer：较少的</p>
-<p>indicating：表明，指示</p>
-<p>either：任何一个，两者中的任一</p>
-<p>Alternatively：非此即彼；二者择一地；作为一种选择</p>
-<p>scenarios：场景，情节</p>
-<p>maintaining：维护；保养</p>
-<p>Manual：手册，指南</p>
-<p>satellite：卫星</p>
-<p>routine：程序，日常，例行的</p>
-<p>integration：集成，综合</p>
-<p>instantiate：示例，举例</p>
-<p>achieved：获得，完成，取得</p>
-<p>contract：契约，合同</p>
-<p>directly：一….就，直接的，立即</p>
-<p>recent：最近</p>
-<p>mention：提及，说起</p>
-<p>probably：大概，或许，很可能</p>
-<p>rather：宁可，相当，当然；</p>
-<p>generic：类的，一般的</p>
-<p>appropriate：适当的，恰当的，合适的</p>
-<p>attempt：试图，企图</p>
-<p>Scanner：扫描仪，扫描器</p>
-<p>explicitly：明确的，明白的</p>
-<p>Actual：真实的，目前的</p>
-<p>fanout：分列，展开</p>
-<p>direct：直接的，管理，指挥</p>
-<p>topic：主题，题目</p>
-<p>language agnostic：语言无关的</p>
-<p>flexibly：灵活的，柔软的；</p>
-<p>wide：广泛的</p>
-<p>range：范围，幅度</p>
-<p>means：手段，方法</p>
-<p>mean：平均值，平均的</p>
-<p>significant：象征，重大的，有意义的；</p>
-<p>Typically：代表性的，作为特色的</p>
-<p>extensive：大量的</p>
-<p>existing：目前的，现存的</p>
-<p>transports：运输工具；</p>
-<p>Mass Transit：公共交通，集体运输</p>
-<p>architecture：建筑学，架构</p>
-<p>framework：框架，骨架，架构</p>
-<p>reliable：可靠的</p>
-<p>scalable：可扩展的；</p>
-<p>often：经常</p>
-<p>the back story：后面的故事</p>
-<p>large：大的</p>
-<p>going on：发生，进行</p>
-<p>under the hood：在底层，在后台</p>
-<p>Ordinal：有序</p>
-<p>Hierarchy：层次，等级制度</p>
-<p>Discussion group：讨论组</p>
-<p>permissions：许可，权限</p>
-<p>various：多种多样的</p>
-<p>rates：比率，等级</p>
-<p>per：每，每一，按照</p>
-<p>purge：净化，清洗</p>
-<p>hang：悬挂，中止，暂停，垂下</p>
-<p>fetches：获取</p>
-<p>covered：覆盖，包括，掩护</p>
-<p>subjects：学科，科目</p>
-<p>performance：性能，绩效，表演，执行</p>
-<p>counters：计数器，抵制</p>
-<p>prerequisites：预备知识，先决条件</p>
-<p>syntax：语法，语句</p>
-<p>trigger event：触发事件</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/09/09/%E5%8D%95%E8%AF%8D%E6%94%B6%E5%BD%953/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/09/09/%E5%8D%95%E8%AF%8D%E6%94%B6%E5%BD%953/" class="post-title-link" itemprop="url">单词收录3</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-09-09 11:28:10" itemprop="dateCreated datePublished" datetime="2019-09-09T11:28:10+00:00">2019-09-09</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%8D%95%E8%AF%8D%E6%94%B6%E5%BD%95/" itemprop="url" rel="index"><span itemprop="name">单词收录</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="单词收录3"><a href="#单词收录3" class="headerlink" title="单词收录3"></a>单词收录3</h1><p>Encrypt  ：加密</p>
-<p>Decrypt：  解密</p>
-<p>secret ： 秘密，机密，秘诀</p>
-<p>Ticket ： 票</p>
-<p>Renew  ：使更新，更新</p>
-<p>Expiration  ：终结</p>
-<p>Lssue  ：发行，流出</p>
-<p>implemented： 实现</p>
-<p>credentials：  证书</p>
-<p>section：   截面，部分</p>
-<p>profile ：  侧面，剖面，外形</p>
-<p>anonymous ： 匿名</p>
-<p>Provider ：供应者</p>
-<p>filter： 过滤器</p>
-<p>Pattern：  模式</p>
-<p>specification： 规格，说明书</p>
-<p>pipeline ：管道</p>
-<p>Protocol： 协议</p>
-<p>Scheme：  计划</p>
-<p>Environment ：环境</p>
-<p>Forgot ： 忘记</p>
-<p>Factor：  因素，代理人</p>
-<p>Purpose ： 目的</p>
-<p>Migrations ： 迁移</p>
-<p>Infrastructure： 基础设施</p>
-<p>Stage： 阶段，举行</p>
-<p>integrated ：完整的，综合的</p>
-<p>Persistent：  持久的，稳固</p>
-<p>elapsed ：  运行，消耗时间</p>
-<p>graphic ：  图表的，形象的</p>
-<p>rasterlayer： 栅格图层</p>
-<p>schedule a demo ： 安排一次演示</p>
-<p>seminar：  研讨会</p>
-<p>Training  ：培训</p>
-<p>Garden  ：花园</p>
-<p>Advanced ：高级</p>
-<p>varies：  使重合的</p>
-<p>variety ：多样的，种类。</p>
-<p>category：  种类，分类</p>
-<p>fixed：  固执的</p>
-<p>Timestamp  ：时间戳</p>
-<p>official ： 官方的</p>
-<p>Distributed ：分布式的</p>
-<p>flush  ：激动，冲洗</p>
-<p>community  ：社区</p>
-<p>catalog   ：目录</p>
-<p>Certification ：  证明，保证</p>
-<p>Platform  ： 平台</p>
-<p>features ： 产品特点</p>
-<p>sandbox   ：沙盒</p>
-<p>reference  ： 参考</p>
-<p>stack  ：堆，堆叠</p>
-<p>heap ： 堆，许多，累计</p>
-<p>Queue  ：队列</p>
-<p>Intern   ：驻留，实习</p>
-<p>Capacity  ： 容量，能力</p>
-<p>Oriented ：  朝向，调整</p>
-<p>concurrent  ： 并发，同时发生的</p>
-<p>Male   ：男人，男性，雄性动物</p>
-<p>Female  ： 女人，女性，雌性动物</p>
-<p>given  ： 考虑到，鉴于，给予</p>
-<p>resolve  ： 解决，决定</p>
-<p>richly  ： 丰富的</p>
-<p>interactive  ： 交互式的；</p>
-<p>available  ： 可获得的</p>
-<p>forking and contribution ：  分支和贡献</p>
-<p>toward ： 对于，接近，即将到来的</p>
-<p>unstable ： 不稳定的</p>
-<p>Process Explorer ： 进程监视工具</p>
-<p>Explorer ： 探索，探险家</p>
-<p>internals  ：内部构件</p>
-<p>suite ： 套</p>
-<p>Pane  ：面板</p>
-<p>quota ： 配额，定额</p>
-<p>Mutex ： 互斥</p>
-<p>Foreground ： 前景</p>
-<p>architecture ： 体系结构</p>
-<p>dependency ： 依赖</p>
-<p>mocked ： 欺骗</p>
-<p>diagram ： 图标</p>
-<p>practices ： 实践</p>
-<p>optimize ： 优化，</p>
-<p>complex ： 复杂</p>
-<p>criticized  ： 批评</p>
-<p>Audit ： 审计</p>
-<p>persist ： 坚持，固执</p>
-<p>persistence：  持久化</p>
-<p>Privilege ：  权利，基本权利</p>
-<p>tutorial ：  指导</p>
-<p>Engine ：  引擎</p>
-<p>Faint ： 晕倒</p>
-<p>Monitor ：  监视器</p>
-<p>Acquire：   获取，捕获</p>
-<p>Release ：  释放，发布</p>
-<p>Pulse：   使跳动</p>
-<p>Upgrade  ： 升级，上升</p>
-<p>Downgrade  ： 退步</p>
-<p>period ： 周期</p>
-<p>due  ： 到期</p>
-<p>otherwise ： 否则</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -2555,7 +2457,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">336</span>
+          <span class="site-state-item-count">338</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>

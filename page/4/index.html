@@ -185,6 +185,163 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/09/04/ASP-Net-Core-3-1%E8%AE%B0%E5%BD%95%E8%AF%B7%E6%B1%82,%E5%93%8D%E5%BA%94/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/09/04/ASP-Net-Core-3-1%E8%AE%B0%E5%BD%95%E8%AF%B7%E6%B1%82,%E5%93%8D%E5%BA%94/" class="post-title-link" itemprop="url">ASP.Net Core 3.1记录请求,响应</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-09-04 17:18:32" itemprop="dateCreated datePublished" datetime="2020-09-04T17:18:32+00:00">2020-09-04</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/DotNetCore/" itemprop="url" rel="index"><span itemprop="name">DotNetCore</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="中间件"><a href="#中间件" class="headerlink" title="中间件"></a>中间件</h2><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> Model.Base;</span><br><span class="line"><span class="keyword">using</span> Service.MonitorLog;</span><br><span class="line"><span class="keyword">using</span> Microsoft.AspNetCore.Builder;</span><br><span class="line"><span class="keyword">using</span> Microsoft.AspNetCore.Http;</span><br><span class="line"><span class="keyword">using</span> Microsoft.Extensions.DependencyInjection;</span><br><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Diagnostics;</span><br><span class="line"><span class="keyword">using</span> System.IO;</span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">Test</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title">CustomLoggingMiddleware</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">UseCustomLogging</span>(<span class="params"><span class="keyword">this</span> IApplicationBuilder app</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            app.Use(<span class="keyword">async</span> (context, next) =&gt;</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">var</span> requestContent = <span class="string">&quot;&quot;</span>;</span><br><span class="line">                <span class="keyword">var</span> contentType = context.Request.ContentType;</span><br><span class="line">                context.Request.EnableBuffering();</span><br><span class="line">                <span class="comment">// 只接受json格式参数，防止文件流等参数超长</span></span><br><span class="line">                <span class="keyword">if</span> (!<span class="built_in">string</span>.IsNullOrWhiteSpace(contentType) &amp;&amp; contentType.Contains(<span class="string">&quot;json&quot;</span>, StringComparison.OrdinalIgnoreCase))</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="keyword">var</span> requestReader = <span class="keyword">new</span> StreamReader(context.Request.Body);</span><br><span class="line">                    requestContent = <span class="keyword">await</span> requestReader.ReadToEndAsync();</span><br><span class="line">                &#125;</span><br><span class="line">                context.Request.Body.Position = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">                monitorlog ml = <span class="keyword">new</span> monitorlog();</span><br><span class="line"></span><br><span class="line">                <span class="keyword">var</span> dt = DateTime.Now;</span><br><span class="line"></span><br><span class="line">                ml.id = <span class="number">0</span>;</span><br><span class="line">                ml.jkmc = context.Request.Path;</span><br><span class="line">                ml.qqfs = context.Request.Method;</span><br><span class="line">                ml.qqcs_txt = requestContent;</span><br><span class="line"></span><br><span class="line">                Stream originalBody = context.Response.Body;</span><br><span class="line">                <span class="keyword">try</span></span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="keyword">await</span> <span class="keyword">using</span> <span class="keyword">var</span> memStream = <span class="keyword">new</span> MemoryStream();</span><br><span class="line">                    context.Response.Body = memStream;</span><br><span class="line">                    <span class="keyword">await</span> next();</span><br><span class="line">                    memStream.Position = <span class="number">0</span>;</span><br><span class="line">                    <span class="built_in">string</span> responseBody = <span class="keyword">await</span> (<span class="keyword">new</span> StreamReader(memStream)).ReadToEndAsync();</span><br><span class="line">                    ml.xyjg_txt = responseBody;</span><br><span class="line"></span><br><span class="line">                    memStream.Position = <span class="number">0</span>;</span><br><span class="line">                    <span class="keyword">await</span> memStream.CopyToAsync(originalBody);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">finally</span></span><br><span class="line">                &#123;</span><br><span class="line">                    context.Response.Body = originalBody;</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">                ml.statuscode = context.Response.StatusCode;</span><br><span class="line">                <span class="keyword">if</span> (ml.statuscode == <span class="number">200</span>)</span><br><span class="line">                    <span class="keyword">await</span> MonitorLog.SaveMonitorLog(ml);</span><br><span class="line">            &#125;);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h2><p>在 <code>Startup.cs</code> 的 <code>Configure</code> 方法添加如下代码：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">app.UseCustomLogging();</span><br></pre></td></tr></table></figure>
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/31/Tomcat%E7%BB%91%E5%AE%9AIPV4%E7%AB%AF%E5%8F%A3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/31/Tomcat%E7%BB%91%E5%AE%9AIPV4%E7%AB%AF%E5%8F%A3/" class="post-title-link" itemprop="url">Tomcat绑定IPV4端口</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-08-31 14:11:46" itemprop="dateCreated datePublished" datetime="2020-08-31T14:11:46+00:00">2020-08-31</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Tomcat/" itemprop="url" rel="index"><span itemprop="name">Tomcat</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="linux平台"><a href="#linux平台" class="headerlink" title="linux平台"></a>linux平台</h2><p>在 <code>&lt;tomcat&gt;/bin</code> 目录下 <code>catalina.sh</code>，添加如下内容：</p>
+<p><code>vim catalina.sh</code>，然后输入 <code>/</code> 搜索 <code>JAVA_OPTS</code>,</p>
+<p><code>n</code> 向下查找<br><code>N</code> 向上查找</p>
+<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20200831141600.png" alt="微信截图_20200831141600.png"></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 添加以下内容</span></span><br><span class="line">JAVA_OPTS=<span class="string">&quot;<span class="variable">$JAVA_OPTS</span> -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true &quot;</span></span><br></pre></td></tr></table></figure>
+<h2 id="windows"><a href="#windows" class="headerlink" title="windows"></a>windows</h2><p>编辑 bin 目录下的 <code>catalina.bat</code> 文件，改成以下内容：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">set</span> <span class="string">&quot;JAVA_OPTS=%JAVA_OPTS% -Djava.net.preferIPv4Stack=true %JSSE_OPTS%&quot;</span></span><br></pre></td></tr></table></figure>
+<p>参考</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/weiqubo/article/details/49820101">如何让tomcat只支持ipv4</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/31/Linux-cp%E5%91%BD%E4%BB%A4/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -216,7 +373,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -306,7 +463,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -381,7 +538,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -462,7 +619,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -601,7 +758,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -685,7 +842,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -853,7 +1010,7 @@ mount /dev/unicomvg/unicomvol /data/wwwroot</code></pre>
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -950,7 +1107,7 @@ mount /dev/unicomvg/unicomvol /data/wwwroot</code></pre>
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1039,7 +1196,7 @@ mount /dev/unicomvg/unicomvol /data/wwwroot</code></pre>
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1144,7 +1301,7 @@ mount /dev/unicomvg/unicomvol /data/wwwroot</code></pre>
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1228,7 +1385,7 @@ mount /dev/unicomvg/unicomvol /data/wwwroot</code></pre>
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1317,7 +1474,7 @@ mount /dev/unicomvg/unicomvol /data/wwwroot</code></pre>
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1456,7 +1613,7 @@ mount /dev/unicomvg/unicomvol /data/wwwroot</code></pre>
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1615,223 +1772,6 @@ mount /dev/unicomvg/unicomvol /data/wwwroot</code></pre>
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/26/Linux%E8%BD%AF%E7%A1%AC%E9%93%BE%E6%8E%A5%E4%B9%8B-ln%E5%91%BD%E4%BB%A4/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/08/26/Linux%E8%BD%AF%E7%A1%AC%E9%93%BE%E6%8E%A5%E4%B9%8B-ln%E5%91%BD%E4%BB%A4/" class="post-title-link" itemprop="url">Linux软硬链接之-ln命令</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-08-26 09:37:02" itemprop="dateCreated datePublished" datetime="2020-08-26T09:37:02+00:00">2020-08-26</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Linux%E5%9F%BA%E7%A1%80%E5%91%BD%E4%BB%A4/" itemprop="url" rel="index"><span itemprop="name">Linux基础命令</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>Linux具有为一个文件起多个名字的功能，称为链接。被链接的文件可以存放在相同的目录下，但是必须有不同的文件名，而不用在硬盘上为同样的数据重复备份。另外，被链接的文件也可以有相同的文件名，但是存放在不同的目录下，这样只要对一个目录下的该文件进行修改，就可以完成对所有目录下同名链接文件的修改。对于某个文件的各链接文件，我们可以给它们指定不同的存取权限，以控制对信息的共享和增强安全性。</p>
-<p>Linux链接分两种，</p>
-<ul>
-<li>硬链接（Hard Link）；</li>
-<li>软链接，即符号链接（Symbolic Link）。默认情况下，ln命令产生硬链接。</li>
-</ul>
-<p>硬链接的意思是一个档案可以有多个名称，而软链接的方式则是产生一个特殊的档案，该档案的内容是指向另一个档案的位置信息。<strong>硬链接是存在同一个文件系统中，而软链接却可以跨越不同的文件系统。</strong></p>
-<p><strong>不论是硬链接或软链接都不会将原本的档案复制一份，只会占用非常少量的磁碟空间。</strong></p>
-<h3 id="软连接"><a href="#软连接" class="headerlink" title="软连接"></a>软连接</h3><ul>
-<li>软链接，以路径的形式存在。类似于Windows操作系统中的快捷方式</li>
-<li>软链接可以 跨文件系统 ，硬链接不可以</li>
-<li>软链接可以对一个不存在的文件名进行链接</li>
-<li>软链接可以对目录进行链接</li>
-</ul>
-<h3 id="硬链接"><a href="#硬链接" class="headerlink" title="硬链接"></a>硬链接</h3><ul>
-<li>硬链接，以文件副本的形式存在。但不占用实际空间。</li>
-<li>不允许给目录创建硬链接</li>
-<li>硬链接只有在同一个文件系统中才能创建</li>
-<li>硬链接只能在同一个分区内建立。</li>
-</ul>
-<p>硬连接指通过索引节点来进行连接。在Linux的文件系统中，保存在磁盘分区中的文件不管是什么类型都给它分配一个编号，称为 <code>索引节点号(Inode Index)</code>。多个文件名指向同一索引节点是存在的。一般这种连接就是硬连接。硬连接的作用是允许一个文件拥有多个有效路径名，这样用户就可以建立硬连接到重要文件，以防止<code>误删</code> 的功能。 </p>
-<p>硬连接 inode 会指向文件内容所在的数据块。与此同时，该文件内容所在的数据块的引用计数会加 1。当此数据块的引用计数大于等于 2 时，则表示有多个文件同时指向了这一数据块。一个文件修改，多个文件都会生效。当删除其中某个文件时，对另一个文件不会有影响，仅仅是数据块的引用计数减 1。当引用计数为 0 时，则系统才会清除此数据块。</p>
-<p>因为对应该目录的索引节点有一个以上的连接。只删除一个连接并不影响索引节点本身和其它的连接，只有当最后一个连接被删除后，文件的数据块及目录的连接才会被释放。</p>
-<p>硬连接 inode 会指向文件内容所在的数据块。与此同时，该文件内容所在的数据块的引用计数会加 1。当此数据块的引用计数大于等于 2 时，则表示有多个文件同时指向了这一数据块。一个文件修改，多个文件都会生效。当删除其中某个文件时，对另一个文件不会有影响，仅仅是数据块的引用计数减 1。当引用计数为 0 时，则系统才会清除此数据块。</p>
-<p><strong>所以，文件真正删除的条件是与之相关的所有硬连接文件均被删除。</strong></p>
-<h2 id="ln命令"><a href="#ln命令" class="headerlink" title="ln命令"></a>ln命令</h2><p>ln命令为某一个文件在另外一个位置建立一个同步的链接。</p>
-<p>语法：</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ln [参数] [源文件或目录] [目标文件或目录]</span><br><span class="line"></span><br><span class="line"><span class="comment"># 其中参数的格式为</span></span><br><span class="line">ln [-bdfinsvF] [-S backup-suffix] [-V &#123;numbered,existing,simple&#125;] [--<span class="built_in">help</span>] [--version] [--]</span><br></pre></td></tr></table></figure>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 删除，覆盖目标文件之前的备份；</span></span><br><span class="line">-b 或 --backup</span><br><span class="line"></span><br><span class="line"><span class="comment"># 建立目录的硬连接；</span></span><br><span class="line">-d 或 -F 或 --directory</span><br><span class="line"></span><br><span class="line"><span class="comment"># 强行建立文件或目录的连接，不论文件或目录是否存在；</span></span><br><span class="line">-f 或 --force</span><br><span class="line"></span><br><span class="line"><span class="comment"># 覆盖既有文件之前先询问用户；</span></span><br><span class="line">-i 或 --interactive</span><br><span class="line"></span><br><span class="line"><span class="comment"># 把符号连接的目的目录视为一般文件；</span></span><br><span class="line">-n 或 --no-dereference</span><br><span class="line"></span><br><span class="line"><span class="comment"># 对源文件建立软链接（符号连接），而非硬连接；</span></span><br><span class="line">-s 或 --symbolic</span><br><span class="line"></span><br><span class="line"><span class="comment"># 用 -b 参数备份目标文件后，备份文件的字尾会被加上一个备份字符串，</span></span><br><span class="line"><span class="comment"># 预设的备份字符串是符号 ~，用户可通过 -S 参数来改变它；</span></span><br><span class="line">-S&lt;字尾备份字符串&gt; 或 --suffix=&lt;字尾备份字符串&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 显示指令执行过程；</span></span><br><span class="line">-v 或 --verbose</span><br><span class="line"></span><br><span class="line"><span class="comment"># 用 -b 参数备份目标文件后，备份文件的字尾会被加上一个备份字符串，</span></span><br><span class="line"><span class="comment"># 这个字符串不仅可用 -S 参数变更，当使用 -V 参数&lt;备份方式&gt; </span></span><br><span class="line"><span class="comment"># 指定不同备份方式时，也会产生不同字尾的备份字符串；</span></span><br><span class="line">-V&lt;备份方式&gt; 或 --version-control=&lt;备份方式&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 在线帮助；</span></span><br><span class="line">--<span class="built_in">help</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 显示版本信息。</span></span><br><span class="line">--version</span><br></pre></td></tr></table></figure>
-<h3 id="实例"><a href="#实例" class="headerlink" title="实例"></a>实例</h3><p><strong>建立硬链接</strong></p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建文件</span></span><br><span class="line">touch source.txt</span><br><span class="line"></span><br><span class="line"><span class="comment"># 创建硬链接</span></span><br><span class="line">ln source.txt hardsource.txt</span><br><span class="line"></span><br><span class="line"><span class="comment"># -i 选项表示列出每个文件的 inode 节点 ID</span></span><br><span class="line"><span class="comment"># 可以发现 source.txt 和 hardsource.txt 的 inode 号完全一致，</span></span><br><span class="line"><span class="comment"># 说明它们都指向了同一个数据块。</span></span><br><span class="line">ls -il</span><br><span class="line">总用量 0</span><br><span class="line">1042588 -rw-r--r-- 2 root root 0 8月  26 10:55 hardsource.txt</span><br><span class="line">1042588 -rw-r--r-- 2 root root 0 8月  26 10:55 source.txt</span><br></pre></td></tr></table></figure>
-<p><strong>软连接</strong></p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建软链接</span></span><br><span class="line">ln -s source.txt softsource.txt</span><br><span class="line"></span><br><span class="line"><span class="comment"># 列出 文件列表</span></span><br><span class="line"><span class="comment"># 注意：软链接文件的权限栏首字符为 l（L的小写字母），这也是软链接文件区别于普通文件的地方之一。</span></span><br><span class="line">ls -il</span><br><span class="line">总用量 0</span><br><span class="line">1042588 -rw-r--r-- 2 root root  0 8月  26 10:55 hardsource.txt</span><br><span class="line">1042589 lrwxrwxrwx 1 root root 10 8月  26 10:59 softsource.txt -&gt; source.txt</span><br><span class="line">1042588 -rw-r--r-- 2 root root  0 8月  26 10:55 source.txt</span><br></pre></td></tr></table></figure>
-
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/25/Linux%E7%8B%AC%E7%AB%8B%E6%9C%8D%E5%8A%A1%E7%AE%A1%E7%90%86/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/08/25/Linux%E7%8B%AC%E7%AB%8B%E6%9C%8D%E5%8A%A1%E7%AE%A1%E7%90%86/" class="post-title-link" itemprop="url">Linux独立服务管理</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-08-25 13:54:29" itemprop="dateCreated datePublished" datetime="2020-08-25T13:54:29+00:00">2020-08-25</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Linux%E6%9C%8D%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">Linux服务</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="独立服务启动管理"><a href="#独立服务启动管理" class="headerlink" title="独立服务启动管理"></a>独立服务启动管理</h2><h3 id="使用-etc-init-d-目录中的启动脚本来启动独立的服务"><a href="#使用-etc-init-d-目录中的启动脚本来启动独立的服务" class="headerlink" title="使用/etc/init.d/目录中的启动脚本来启动独立的服务"></a>使用/etc/init.d/目录中的启动脚本来启动独立的服务</h3><p>所有独立服务的启动脚本都存放在 <code>/etc/init.d/</code> 目录中，调用这些脚本就可以启动独立的服务（推荐启动方式）。</p>
-<p>命令格式如下：</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/etc/init.d 独立服务名 start | stop |status | restart |...</span><br></pre></td></tr></table></figure>
-<p>参数：</p>
-<ul>
-<li>start：启动服务；</li>
-<li>stop：停止服务；</li>
-<li>status：查看服务状态；</li>
-<li>restart：重启动服务；</li>
-</ul>
-<h3 id="使用service命令来启动独立的服务"><a href="#使用service命令来启动独立的服务" class="headerlink" title="使用service命令来启动独立的服务"></a>使用service命令来启动独立的服务</h3><p>CentOS 可以依赖 <code>service</code> 命令来启动独立的服务。<code>service</code> 命令实际上只是一个脚本，这个脚本仍然需要调用 <code>/etc/init.d/</code> 中的启动脚本来启动独立的服务。</p>
-<p><strong>注意：</strong>service 命令是红帽系列 Linux 的专有命令，其他的 Linux 发行版本不一定拥有这条命令。</p>
-<p>命令格式：</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">service 独立服务名 start | stop | restart |...</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看所有独立服务的启动状态</span></span><br><span class="line">service --status -all</span><br></pre></td></tr></table></figure>
-<h2 id="独立服务的自启动管理"><a href="#独立服务的自启动管理" class="headerlink" title="独立服务的自启动管理"></a>独立服务的自启动管理</h2><h3 id="chkconfig-服务自启动管理命令"><a href="#chkconfig-服务自启动管理命令" class="headerlink" title="chkconfig 服务自启动管理命令"></a>chkconfig 服务自启动管理命令</h3><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">chkconfig [--level 运行级别] [独立服务名] [on|off]</span><br></pre></td></tr></table></figure>
-<p>如果在 0~6 这 7 个运行级别中服务都显示”关闭”，则该服务不自启动。如果在某个运行级别中显示”启用”，则代表在进入这个运行级别时，该服务开机自启动。</p>
-<h3 id="修改-etc-rc-d-rc-local-文件，设置服务自启动"><a href="#修改-etc-rc-d-rc-local-文件，设置服务自启动" class="headerlink" title="修改 /etc/rc.d/rc.local 文件，设置服务自启动"></a>修改 /etc/rc.d/rc.local 文件，设置服务自启动</h3><p>在文件 <code>/etc/rc.d/rc.local</code> 中加入服务的启动命令。这个文件是在系统启动时，在输入用户名和密码之前最后读取的文件（注意：<code>/etc/rc.d/rc.local</code> 和 <code>/etc/rc.local</code> 文件是软链接，修改哪个文件都可以）。这个文件中有什么命令，都会在系统启动时调用。</p>
-<p>推荐使用这种方法管理服务的自启动，有两点好处：</p>
-<ul>
-<li>第一，如果都采用这种方法管理服务的自启动，当我们碰到一台陌生的服务器时，只要查看这个文件就知道这台服务器到底自启动了哪些服务，便于集中管理。</li>
-<li>第二，chkconfig 命令只能识别 RPM 包默认安装的服务，而不能识别源码包安装的服务。 源码包安装的服务的自启动也是通过 <code>/etc/rc.d/rc.local</code> 文件实现的，所以不会出现同一台服务器自启动了两种安装方法的同一个服务。</li>
-</ul>
-<p><strong>注意</strong> 修改 <code>/etc/rc.d/rc.local</code> 配置文件的自启动方法和 <code>chkconfig</code> 命令的自启动方法是两种不同的自启动方法。所以，就算通过修改 <code>/etc/rc.d/rc.local</code> 配置文件的方法让某个独立的服务自启动了，执行 <code>chkconfig --list</code> 命令并不到有什么变化。</p>
-<h3 id="使用-ntsysv-命令管理自启动"><a href="#使用-ntsysv-命令管理自启动" class="headerlink" title="使用 ntsysv 命令管理自启动"></a>使用 ntsysv 命令管理自启动</h3><p>ntsysv 命令调用窗口模式来管理服务的自启动</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 命令格式</span></span><br><span class="line">ntsysv [--level 运行级别]</span><br><span class="line"></span><br><span class="line"><span class="comment"># 只设定2、3、5级别的服务自启动</span></span><br><span class="line">ntsysv --level 235</span><br><span class="line"></span><br><span class="line"><span class="comment"># 按默认的运行级别设置服务自启动</span></span><br><span class="line">ntsysv</span><br></pre></td></tr></table></figure>
-<p>执行命令后，会和 setup 命令类似，出现命令界面</p>
-<p><img src="/img/2-1Q02415591C13.jpg" alt="2-1Q02415591C13.jpg"></p>
-<ul>
-<li>上下键：在不同服务之间移动；</li>
-<li>空格键：选定或取消服务的自启动。也就是在服务之前是否输入”*”；</li>
-<li>Tab键：在不同项目之间切换；</li>
-<li>F1键：显示服务的说明；</li>
-</ul>
-<p><strong>总结：</strong>只要是 RPM 包默认安装的服务都能被 <code>ntsysv</code> 命令管理,包括 <code>独立服务的自启动</code>，<code>基于 xinetd 服务的自启动</code>。</p>
-<p><strong>注意：</strong> <code>ntsysv</code> 命令是红帽系列 Linux 的专有命令，其他的 Linux 发行版本不一定拥有这条命令，而且条命令也不能管理源码包安装的服务。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://c.biancheng.net/view/1053.html">Linux独立服务管理</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1901,7 +1841,7 @@ mount /dev/unicomvg/unicomvol /data/wwwroot</code></pre>
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">336</span>
+          <span class="site-state-item-count">338</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>

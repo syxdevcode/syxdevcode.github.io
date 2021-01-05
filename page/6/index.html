@@ -185,6 +185,226 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/06/Linux%20Crontab%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E8%AF%A6%E8%A7%A3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/06/Linux%20Crontab%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E8%AF%A6%E8%A7%A3/" class="post-title-link" itemprop="url">Linux Crontab定时任务详解</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-08-06 17:38:28" itemprop="dateCreated datePublished" datetime="2020-08-06T17:38:28+00:00">2020-08-06</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Crontab/" itemprop="url" rel="index"><span itemprop="name">Crontab</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="Linux-crontab简介"><a href="#Linux-crontab简介" class="headerlink" title="Linux crontab简介"></a>Linux crontab简介</h2><p>Linux crontab是用来定期执行程序的命令。<br>当安装完成操作系统之后，默认便会启动此任务调度命令。</p>
+<p>注意：新创建的 cron 任务，不会马上执行，至少要过 2 分钟后才可以，当然你可以重启 cron 来马上执行。</p>
+<p>crontab命令用于设置周期性被执行的指令。该命令从标准输入设备读取指令，并将其存放于 <code>/etc/crontab</code> 文件中，以供之后读取和执行。</p>
+<p>cron 系统调度进程。 可以使用它在每天的非高峰负荷时间段运行作业，或在一周或一月中的不同时段运行。cron是系统主要的调度进程，可以在无需人工干预的情况下运行作业。crontab命令允许用户提交、编辑或删除相应的作业。每一个用户都可以有一个crontab文件来保存调度信息。</p>
+<p>linux 任务调度的工作主要分为以下两类：</p>
+<p>1、系统执行的工作：系统周期性所要执行的工作，如备份系统数据、清理缓存<br>2、个人执行的工作：某个用户定期要做的工作，例如每隔10分钟检查邮件服务器是否有新信，这些工作可由每个用户自行设置</p>
+<h2 id="crontab-命令"><a href="#crontab-命令" class="headerlink" title="crontab 命令"></a>crontab 命令</h2><p>crontab命令是 <code>cron table</code> 的简写，它是 cron 的配置文件，也可以叫它作业列表，我们可以在以下文件夹内找到相关配置文件。</p>
+<p><code>/var/spool/cron/</code> 目录下存放的是每个用户包括root的crontab任务，每个任务以创建者的名字命名<br><code>/etc/crontab</code> 这个文件负责调度各种管理和维护任务。<br><code>/etc/cron.d/</code> 这个目录用来存放任何要执行的crontab文件或脚本。</p>
+<p><strong><code>/etc/crontab</code></strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">more /etc/crontab</span><br><span class="line">SHELL=/bin/bash</span><br><span class="line">PATH=/sbin:/bin:/usr/sbin:/usr/bin</span><br><span class="line">MAILTO=root</span><br><span class="line"></span><br><span class="line"><span class="comment"># For details see man 4 crontabs</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Example of job definition:</span></span><br><span class="line"><span class="comment"># .---------------- minute (0 - 59)</span></span><br><span class="line"><span class="comment"># |  .------------- hour (0 - 23)</span></span><br><span class="line"><span class="comment"># |  |  .---------- day of month (1 - 31)</span></span><br><span class="line"><span class="comment"># |  |  |  .------- month (1 - 12) OR jan,feb,mar,apr ...</span></span><br><span class="line"><span class="comment"># |  |  |  |  .---- day of week (0 - 6) (Sunday=0 or 7) OR sun,mon,tue,wed,thu,fri,sat</span></span><br><span class="line"><span class="comment"># |  |  |  |  |</span></span><br><span class="line"><span class="comment"># *  *  *  *  * user-name  command to be executed</span></span><br></pre></td></tr></table></figure>
+<p><strong><code>/var/spool/cron</code></strong></p>
+<p>每个用户都会生成一个自动生成一个自己的 <code>crontab</code> 文件，一般位于 <code>/var/spool/cron</code> 目录下</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /var/spool/cron</span><br></pre></td></tr></table></figure>
+<p>如果你用命令 <code>crontab -r</code> 就会删除当前用户的crontab文件，例如你切换到oracle账号下，执行了该命令，那么 <code>/var/spool/cron/oracle</code> 文件就会删除，如果要创建该文件只需要用 <code>crontab -e</code> 命令即可。注意，普通用户一般没有权限访问 <code>/var/spool/cron</code></p>
+<p>我们还可以把脚本放在 <code>/etc/cron.hourly</code>、<code>/etc/cron.daily</code>、<code>/etc/cron.weekly</code>、<code>/etc/cron.monthly</code> 目录中，让它每小时/天/星期、月执行一次。</p>
+<p>系统管理员可以通过 cron.deny 和 cron.allow 这两个文件来禁止或允许用户拥有自己的crontab文件。</p>
+<p><code>/etc/cron.deny</code> 表示不能使用 <code>crontab</code> 命令的用户</p>
+<p><code>/etc/cron.allow</code> 表示能使用 <code>crontab</code> 的用户。</p>
+<p>默认情况下，<code>cron.allow</code> 文件不存在。如果两个文件同时存在，那么 <code>/etc/cron.allow</code> 优先。如果两个文件都不存在，那么只有超级用户可以安排作业。</p>
+<p><strong><code>ls -lrt cron*</code></strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">ls -lrt cron*</span><br><span class="line">-rw-r--r--. 1 root root 451 6月  10 2014 crontab</span><br><span class="line">-rw-------. 1 root root   0 11月 20 2018 cron.deny</span><br><span class="line"></span><br><span class="line">cron.weekly:</span><br><span class="line">总用量 0</span><br><span class="line"></span><br><span class="line">cron.monthly:</span><br><span class="line">总用量 0</span><br><span class="line"></span><br><span class="line">cron.hourly:</span><br><span class="line">总用量 4</span><br><span class="line">-rwxr-xr-x. 1 root root 392 11月 20 2018 0anacron</span><br><span class="line"></span><br><span class="line">cron.daily:</span><br><span class="line">总用量 8</span><br><span class="line">-rwxr-xr-x. 1 root root 618 10月 30 2018 man-db.cron</span><br><span class="line">-rwx------. 1 root root 219 10月 31 2018 logrotate</span><br><span class="line"></span><br><span class="line">cron.d:</span><br><span class="line">总用量 4</span><br><span class="line">-rw-r--r--. 1 root root 128 11月 20 2018 0hourl</span><br></pre></td></tr></table></figure>
+<h2 id="CRONTAB在线手册"><a href="#CRONTAB在线手册" class="headerlink" title="CRONTAB在线手册"></a>CRONTAB在线手册</h2><p>注意：不同版本的Linux系统，可能crontab手册内容有所出入，请以实际版本为准。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">man crontab | more</span><br></pre></td></tr></table></figure>
+<h2 id="注意事项"><a href="#注意事项" class="headerlink" title="注意事项"></a>注意事项</h2><p>配置定时任务时，需要注意两个问题：</p>
+<p>1: 在SHELL中设置了必要的环境变量；例如一个shell脚本手工执行OK，但是配置成后台作业执行时，获取不到ORACLE的环境变量，这是因为crontab环境变量问题，Crontab的环境默认情况下并不包含系统中当前用户的环境。所以，你需要在shell脚本中添加必要的环境变量的设置</p>
+<p>2: 尽量所有的文件都采用完全路径方式，避免使用相对路径。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.jb51.net/article/98640.htm">Linux crontab定时任务配置方法(详解)</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.runoob.com/w3cnote/linux-crontab-tasks.html">Linux Crontab 定时任务</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.runoob.com/linux/linux-comm-crontab.html">Linux crontab 命令</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.linuxidc.com/Linux/2019-03/157851.htm">CentOS安装配置Crontab定时任务</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/06/%E4%BD%BF%E7%94%A8Linux%E8%87%AA%E5%B8%A6%E6%97%A5%E5%BF%97%E6%BB%9A%E5%8A%A8%E5%B7%A5%E5%85%B7logrotate%E6%BB%9A%E5%8A%A8redis%E6%97%A5%E5%BF%97%E7%A4%BA%E4%BE%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/06/%E4%BD%BF%E7%94%A8Linux%E8%87%AA%E5%B8%A6%E6%97%A5%E5%BF%97%E6%BB%9A%E5%8A%A8%E5%B7%A5%E5%85%B7logrotate%E6%BB%9A%E5%8A%A8redis%E6%97%A5%E5%BF%97%E7%A4%BA%E4%BE%8B/" class="post-title-link" itemprop="url">使用Linux自带日志滚动工具logrotate滚动redis日志示例</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-08-06 15:51:36" itemprop="dateCreated datePublished" datetime="2020-08-06T15:51:36+00:00">2020-08-06</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="Linux-logrotate简介"><a href="#Linux-logrotate简介" class="headerlink" title="Linux logrotate简介"></a>Linux logrotate简介</h2><p><code>Linux logrotate</code> 命令用于管理记录文件。</p>
+<p>使用 <code>logrotate</code> 指令，可让你轻松管理系统所产生的记录文件。它提供自动替换，压缩，删除和邮寄记录文件，每个记录文件都可被设置成每日，每周或每月处理，也能在文件太大时立即处理。例如，你可以设置 <code>logrotate</code>，让 <code>/var/log/foo</code> 日志文件每30天轮循，并删除超过6个月的日志。配置完后，<code>logrotate</code> 的运作完全自动化，不必进行任何进一步的人为干预。</p>
+<p><code>logrotate</code> 需要的 <code>cron</code> 任务应该在安装时就自动创建好了，下面代码以centos7.4为例：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">cat /etc/cron.daily/logrotate</span><br><span class="line"><span class="meta">#!/bin/sh</span></span><br><span class="line"></span><br><span class="line">/usr/sbin/logrotate -s /var/lib/logrotate/logrotate.status /etc/logrotate.conf</span><br><span class="line">EXITVALUE=$?</span><br><span class="line"><span class="keyword">if</span> [ <span class="variable">$EXITVALUE</span> != 0 ]; <span class="keyword">then</span></span><br><span class="line">    /usr/bin/logger -t logrotate <span class="string">&quot;ALERT exited abnormally with [<span class="variable">$EXITVALUE</span>]&quot;</span></span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"><span class="built_in">exit</span> 0</span><br></pre></td></tr></table></figure>
+<p>Linux系统自带的日志滚动工具 <code>logrotate</code> 由两部分组成：</p>
+<p>一是命令行工具 <code>logrotate</code>;<br>二是后台服务 <code>rsyslogd</code>。</p>
+<p>使用 <code>rsyslogd</code> ，只需简单的配置即可实现日志滚动。<br><code>rsyslogd</code> 的配置文件为 <code>/etc/logrotate.conf</code>，但一般不建议直接修改 <code>logrotate.conf</code> ，而是在目录 <code>/etc/logrotate.d</code> 下新增文件的方式。<br><code>logrotate.conf</code> 会 <code>include</code> 所有 <code>logrotate.d</code> 目录下的文件，<br>语法是一致的，区别是 <code>logrotate.conf</code> 定义了默认的配置，而 <code>logrotate.d</code> 目录下为专有配置。</p>
+<h2 id="Redis日志设置"><a href="#Redis日志设置" class="headerlink" title="Redis日志设置"></a>Redis日志设置</h2><p>截至到 <code>redis-5.0</code> 版本，redis 仍然不会自动滚动日志文件，如果不处理则日志文件日积月累越来越大，最终将导致磁盘满告警，</p>
+<p>使用命令查看磁盘使用情况：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ls -lh</span><br></pre></td></tr></table></figure>
+<p>下列为redis的配置示例：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># cat /etc/logrotate.d/redis</span></span><br><span class="line"><span class="comment"># 以下为 redis 文件的内容：</span></span><br><span class="line">/usr/<span class="built_in">local</span>/redis-cluster/<span class="built_in">log</span>/redis-6379.log</span><br><span class="line">/usr/<span class="built_in">local</span>/redis-cluster/<span class="built_in">log</span>/redis-6380.log</span><br><span class="line">/usr/<span class="built_in">local</span>/redis-cluster/<span class="built_in">log</span>/redis-6381.log</span><br><span class="line">&#123;</span><br><span class="line">    monthly</span><br><span class="line">    rotate 5</span><br><span class="line">    minsize 100M</span><br><span class="line">    nocompress</span><br><span class="line">    dateext</span><br><span class="line">    missingok</span><br><span class="line">    notifempty</span><br><span class="line">    create 0664 root root</span><br><span class="line">    postrotate</span><br><span class="line">        /usr/bin/killall -HUP rsyslogd</span><br><span class="line">    endscript</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>注：<code>postrotate/endscript</code> 可以去掉，即：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># cat /etc/logrotate.d/redis</span></span><br><span class="line"><span class="comment"># 以下为 redis 文件的内容：</span></span><br><span class="line">/usr/<span class="built_in">local</span>/redis-cluster/<span class="built_in">log</span>/redis-6379.log</span><br><span class="line">/usr/<span class="built_in">local</span>/redis-cluster/<span class="built_in">log</span>/redis-6380.log</span><br><span class="line">/usr/<span class="built_in">local</span>/redis-cluster/<span class="built_in">log</span>/redis-6381.log</span><br><span class="line">&#123;</span><br><span class="line">    monthly</span><br><span class="line">    rotate 5</span><br><span class="line">    minsize 100M</span><br><span class="line">    nocompress</span><br><span class="line">    dateext</span><br><span class="line">    missingok</span><br><span class="line">    notifempty</span><br><span class="line">    create 0664 root root</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>配置项说明：</p>
+<p>可以使用 <code>man logrotate</code> 命令查看详情。</p>
+<ul>
+<li><code>monthly</code>: 日志文件将按月轮循。其它可用值为 <code>daily</code>，<code>weekly</code> 或者 <code>yearly</code>。</li>
+<li><code>rotate</code> 指定日志文件备份数，一次将存储5个归档日志。对于第六个归档，时间最久的归档将被删除，如果值为0表示不备份</li>
+<li><code>minsize</code> 表示日志文件达到多大才滚动</li>
+<li><code>nocompress</code> 表示是否压缩备份的日志文件，取值：<code>compress</code>，<code>nocompress</code></li>
+<li><code>delaycompress</code>: 总是与 <code>compress</code> 选项一起用，<code>delaycompress</code> 选项指示 <code>logrotate</code> 不要将最近的归档压缩，压缩将在下一次轮循周期进行。这在你或任何软件仍然需要读取最新归档时很有用。</li>
+<li><code>missingok</code> 在日志轮循期间，任何错误将被忽略</li>
+<li><code>notifempty</code> 日志文件为空时，不进行轮转，默认值为 <code>ifempty</code></li>
+<li><code>create</code> 以指定的权限创建全新的日志文件，同时logrotate也会重命名原始日志文件。<code>logrotate</code> 是以 root 运行的，如果目标日志文件非root运行，则这个一定要指定好。</li>
+<li><code>postrotate/endscript</code>: 在所有其它指令完成后，<code>postrotate</code> 和 <code>endscript</code> 里面指定的命令将被执行。在这种情况下，<code>rsyslogd</code> 进程将立即再次读取其配置并继续运行。</li>
+<li><code>dateext</code>：就是切割后的日志文件以当前日期为格式结尾，如 xxx.log-20201016 这样,如果注释掉,切割出来是按数字递增,即前面说的 xxx.log-1这种格式。</li>
+</ul>
+<p>注意，修改后需要重启下 <code>rsyslogd</code>。如果是 <code>CentOS</code> 可使用下列任意一种方式重启<br>（实际上 <code>systemctl</code> 新方式，而 <code>service</code> 实际也是使用 <code>systemctl</code> ）：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">service rsyslog restart </span><br><span class="line">systemctl restart rsyslog.service</span><br></pre></td></tr></table></figure>
+<h2 id="实例"><a href="#实例" class="headerlink" title="实例"></a>实例</h2><p><strong>创建测试日志文件</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建文件</span></span><br><span class="line">touch /var/<span class="built_in">log</span>/log-file</span><br><span class="line">head -c 50M &lt; /dev/urandom &gt; /var/<span class="built_in">log</span>/log-file</span><br><span class="line"></span><br><span class="line"><span class="comment"># 编辑配置</span></span><br><span class="line">vim /etc/logrotate.d/log-file</span><br><span class="line"></span><br><span class="line"><span class="comment"># 以下为内容</span></span><br><span class="line">/var/<span class="built_in">log</span>/log-file &#123;</span><br><span class="line">    minsize 50M</span><br><span class="line">    rotate 5</span><br><span class="line">    create 644 root root</span><br><span class="line">    postrotate</span><br><span class="line">        /usr/bin/killall -HUP rsyslogd</span><br><span class="line">    endscript</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="手动运行"><a href="#手动运行" class="headerlink" title="手动运行"></a>手动运行</h2><p>logrotate 可以在任何时候从命令行手动调用。</p>
+<p>要调用为 <code>/etc/lograte.d/</code> 下配置的所有日志调用 <code>logrotate</code> ：</p>
+<p><code>logrotate /etc/logrotate.conf</code> </p>
+<p>要为某个特定的配置调用 <code>logrotate</code> ：</p>
+<p><code>logrotate /etc/logrotate.d/log-file</code> </p>
+<p><strong>logrotate参数说明</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># -d 选项以预演方式运行logrotate</span></span><br><span class="line">logrotate -d /etc/logrotate.d/log-file </span><br><span class="line"></span><br><span class="line"><span class="comment"># -f 强制logrotate轮循日志文件</span></span><br><span class="line"><span class="comment"># -v 参数提供了详细的输出。</span></span><br><span class="line">logrotate -vf /etc/logrotate.d/log-file</span><br><span class="line"></span><br><span class="line"><span class="comment"># 输出到指定的文件</span></span><br><span class="line"><span class="comment"># 注：logrotate自身的日志通常存放于/var/lib/logrotate/status目录。</span></span><br><span class="line">logrotate -vf –s /var/<span class="built_in">log</span>/logrotate-status /etc/logrotate.d/log-file</span><br></pre></td></tr></table></figure>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://blog.chinaunix.net/uid-20682147-id-5818053.html">使用Linux自带日志滚动工具logrotate滚动redis日志示例</a></p>
+<p><a target="_blank" rel="noopener" href="https://linux.cn/article-4126-1.html">Linux日志文件总管——logrotate</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.runoob.com/linux/linux-comm-logrotate.html">Linux logrotate命令</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/06/CentOS7%E6%89%A7%E8%A1%8CShell%E8%84%9A%E6%9C%AC/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -216,7 +436,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -296,7 +516,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -390,7 +610,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -488,7 +708,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -598,7 +818,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -679,7 +899,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -775,7 +995,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1002,7 +1222,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1149,7 +1369,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1306,7 +1526,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1391,7 +1611,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1485,7 +1705,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1560,7 +1780,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
+                <time title="修改时间：2021-01-05 09:21:23" itemprop="dateModified" datetime="2021-01-05T09:21:23+00:00">2021-01-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1587,174 +1807,6 @@
 <p>正确做法：返回包的前一目录进行运行；</p>
 <p>正确示例：</p>
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">PS E:\java\javademo\src&gt; javac -encoding UTF-<span class="number">8</span> ServerSocketTest/GreetingServer.java</span><br><span class="line">PS E:\java\javademo\src&gt; java ServerSocketTest/GreetingServer</span><br></pre></td></tr></table></figure>
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/07/20/java%E9%94%99%E8%AF%AF%EF%BC%9A%E7%BC%96%E7%A0%81GBK%E7%9A%84%E4%B8%8D%E5%8F%AF%E6%98%A0%E5%B0%84%E5%AD%97%E7%AC%A6/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/07/20/java%E9%94%99%E8%AF%AF%EF%BC%9A%E7%BC%96%E7%A0%81GBK%E7%9A%84%E4%B8%8D%E5%8F%AF%E6%98%A0%E5%B0%84%E5%AD%97%E7%AC%A6/" class="post-title-link" itemprop="url">java错误：编码GBK的不可映射字符</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-07-20 13:43:37" itemprop="dateCreated datePublished" datetime="2020-07-20T13:43:37+00:00">2020-07-20</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>当Java源代码中包含中文字符时，我们在用javac编译时会出现“错误：编码GBK的不可映射字符”。</p>
-<p>由于JDK是国际版的，我们在用javac编译时，编译程序首先会获得我们操作系统默认采用的编码格式（GBK），然后JDK就把Java源文件从GBK编码格式转换为Java内部默认的Unicode格式放入内存中，然后javac把转换后的Unicode格式的文件编译成class类文件，此时，class文件是Unicode编码的，它暂存在内存中，紧接着，JDK将此以Unicode格式编码的class文件保存到操作系统中形成我们见到的class文件。当我们不加设置就编译时，相当于使用了参数：<code>javac -encoding GBK Test.java</code>，就会出现不兼容的情况。</p>
-<p>使用-encoding参数指明编码方式：<code>javac -encoding UTF-8 Test.java</code>，就可以了。</p>
-<p>转载：<a target="_blank" rel="noopener" href="https://www.cnblogs.com/lucky-zhangcd/p/8409810.html">错误：编码GBK的不可映射字符</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/07/16/win10%E9%85%8D%E7%BD%AEjava%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/07/16/win10%E9%85%8D%E7%BD%AEjava%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F/" class="post-title-link" itemprop="url">win10配置java环境变量</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-07-16 15:15:37" itemprop="dateCreated datePublished" datetime="2020-07-16T15:15:37+00:00">2020-07-16</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-04 13:27:49" itemprop="dateModified" datetime="2021-01-04T13:27:49+00:00">2021-01-04</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="打开环境变量窗口"><a href="#打开环境变量窗口" class="headerlink" title="打开环境变量窗口"></a>打开环境变量窗口</h2><p>右键 This PC(此电脑) -&gt; Properties（属性） -&gt; Advanced system settings（高级系统设置） -&gt; Environment Variables（环境变量）</p>
-<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20200716151758.png" alt="微信截图_20200716151758.png"></p>
-<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20200716151834.png" alt="微信截图_20200716151834.png"></p>
-<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20200716151910.png" alt="微信截图_20200716151910.png"></p>
-<h2 id="新建JAVA-HOME-变量"><a href="#新建JAVA-HOME-变量" class="headerlink" title="新建JAVA_HOME 变量"></a>新建JAVA_HOME 变量</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">变量名：JAVA_HOME</span><br><span class="line">变量值：电脑上JDK安装的绝对路径</span><br></pre></td></tr></table></figure>
-<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20200716152023.png" alt="微信截图_20200716152023.png"></p>
-<h2 id="新建-修改-CLASSPATH-变量"><a href="#新建-修改-CLASSPATH-变量" class="headerlink" title="新建/修改 CLASSPATH 变量"></a>新建/修改 CLASSPATH 变量</h2><p>如果存在 <code>CLASSPATH</code> 变量，选中点击 Edit(编辑)。</p>
-<p>如果没有，点击 New（新建）… 新建。</p>
-<p>输入/在已有的变量值后面添加：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">变量名：CLASSPATH</span><br><span class="line">变量值：.;%JAVA_HOME%\lib\dt.jar;%JAVA_HOME%\lib\tools.jar;</span><br></pre></td></tr></table></figure>
-<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20200716152137.png" alt="微信截图_20200716152137.png"></p>
-<h2 id="修改Path-变量"><a href="#修改Path-变量" class="headerlink" title="修改Path 变量"></a>修改Path 变量</h2><p>由于 win10 的不同，当选中 Path 变量的时候，系统会很方便的把所有不同路径都分开了，不会像 win7 或者 win8 那样连在一起。</p>
-<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20200716152234.png" alt="微信截图_20200716152234.png"></p>
-<p>新建两条路径：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">%JAVA_HOME%\bin</span><br><span class="line">%JAVA_HOME%\jre\bin</span><br></pre></td></tr></table></figure>
-<h2 id="验证"><a href="#验证" class="headerlink" title="验证"></a>验证</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">java</span><br><span class="line">java -version</span><br><span class="line">javac</span><br></pre></td></tr></table></figure>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://www.runoob.com/w3cnote/windows10-java-setup.html">Windows 10 配置Java 环境变量</a></p>
-
       
     </div>
 
@@ -1838,7 +1890,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">336</span>
+          <span class="site-state-item-count">338</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
