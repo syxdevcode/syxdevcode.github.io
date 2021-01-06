@@ -224,6 +224,9 @@ netstat -nat|awk '{print awk $NF}'|sort|uniq -c|sort -n
 # 查看IP连接数状况
 netstat -nat|grep ":80"|awk '{print $5}' |awk -F: '{print $1}' | sort| uniq -c|sort -n
 
+# 查看活动连接数
+ss -n | grep ESTAB | wc -l 
+
 # 统计当前各种状态的连接的数量的命令
 netstat -n | awk '/^tcp/ {++S[$NF]} END {for(a in S) print a, S[a]}'
 
