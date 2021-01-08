@@ -149,7 +149,7 @@ net.core.netdev_max_backlog = 262144
 # 用于设定系统中最多有多少个TCP套接字不被关联到任何一个用户文件句柄上，
 # 如果超过这个数值，孤立链接将立即被复位并打印出警号信息，这个限制只是为了防止简单的DoS攻击，不能过分依靠这个限制甚至
 # 人为减小这个值，更多的情况是增加这个值，该参数对应系统路径为：/proc/sys/net/ipv4/tcp_max_orphans
-net.ipv4.tcp_max_orphans = 262144
+net.ipv4.tcp_max_orphans = 3276800
 
 #开启窗口缩放功能，要支持超过64KB的TCP窗口，必须启用该值,TCP连接双方都启用时才生效
 net.ipv4.tcp_window_scaling = 1
@@ -161,13 +161,20 @@ net.core.rmem_max = 16777216
 net.core.wmem_max = 16777216
 
 # 接受缓冲的大小:MIN，DEFAULT,MAX
+# 即TCP读取缓冲区，单位为字节byte
 # net.ipv4.tcp_mem[0]:低于此值，TCP没有内存压力。
 # net.ipv4.tcp_mem[1]:在此值下，进入内存压力阶段。
 # net.ipv4.tcp_mem[2]:高于此值，TCP拒绝分配socket。
-net.ipv4.tcp_rmem = 4096 87380 4194304
+net.ipv4.tcp_rmem = 4096  87380 16777216
 
 # socket的发送缓存区分配的MIN，DEFAULT,MAX
-net.ipv4.tcp_wmem = 4096 16384 4194304
+# 发送缓冲区，单位是字节byte
+net.ipv4.tcp_wmem = 4096 16384 16777216
+
+# 1低于此值,TCP没有内存压力,2在此值下,进入内存压力阶段，3高于此值,TCP拒绝分配socket.
+# 内存单位是页，1页等于4096字节，1 Page = 4096 Bytes
+# 32GB内存机器建议：8G  12G  16G
+net.ipv4.tcp_mem = 2097152 3145728 4194304
 
 # 禁用时间戳，时间戳可以避免序列号的卷绕
 net.ipv4.tcp_timestamps = 0
@@ -178,31 +185,29 @@ net.ipv4.tcp_sack = 1
 # 单独一个进程最多可以同时建立20000多个TCP客户端连接
 net.ipv4.ip_conntrack_max = 20000
 
-# 可选
-# 1低于此值,TCP没有内存压力,2在此值下,进入内存压力阶段，3高于此值,TCP拒绝分配socket.上述内存单位是页
-net.ipv4.tcp_mem = 94500000 915000000 927000000
 ```
 
-`/etc/sysctl.conf`
+/etc/sysctl.conf
 
 ```sh
 net.ipv4.tcp_fin_timeout = 30
 net.ipv4.tcp_tw_reuse = 1
 net.ipv4.tcp_tw_recycle = 1
 net.ipv4.tcp_syncookies = 1
-net.ipv4.ip_local_port_range = 1024 65535
+net.ipv4.ip_local_port_range = 1024 65000
 net.ipv4.tcp_max_syn_backlog = 262144
 net.core.somaxconn = 32768
-net.ipv4.tcp_max_tw_buckets = 6000
+net.ipv4.tcp_max_tw_buckets = 300000
 net.ipv4.tcp_syn_retries = 1
 net.ipv4.tcp_synack_retries = 1
 net.core.netdev_max_backlog = 262144
-net.ipv4.tcp_max_orphans = 262144
+net.ipv4.tcp_max_orphans = 3276800
 net.ipv4.tcp_window_scaling = 1
 net.core.rmem_max = 16777216
 net.core.wmem_max = 16777216
-net.ipv4.tcp_rmem = 4096  87380  4194304
-net.ipv4.tcp_wmem = 4096 16384 4194304
+net.ipv4.tcp_rmem = 4096 87380 16777216
+net.ipv4.tcp_wmem = 4096 16384 16777216
+net.ipv4.tcp_mem = 2097152 3145728 4194304
 net.ipv4.tcp_keepalive_time = 300
 net.ipv4.tcp_timestamps = 0
 net.ipv4.tcp_sack = 1
@@ -225,7 +230,7 @@ netstat -nat|awk '{print awk $NF}'|sort|uniq -c|sort -n
 netstat -nat|grep ":80"|awk '{print $5}' |awk -F: '{print $1}' | sort| uniq -c|sort -n
 
 # 查看活动连接数
-ss -n | grep ESTAB | wc -l 
+ss -n | grep ESTAB | wc -l
 
 # 统计当前各种状态的连接的数量的命令
 netstat -n | awk '/^tcp/ {++S[$NF]} END {for(a in S) print a, S[a]}'
@@ -251,9 +256,14 @@ ITMED_WAIT：等待所有分组死掉
 CLOSING：两边同时尝试关闭
 TIME_WAIT：另一边已初始化一个释放
 LAST_ACK：等待所有分组死掉
+
+# 获取当前socket连接状态统计信息
+cat /proc/net/sockstat
 ```
 
 参考：
+
+[Linux内核 TCP/IP、Socket参数调优](https://www.cnblogs.com/zengkefu/p/5749009.html)
 
 [Linux系统优化实现高并发](https://www.cnblogs.com/liluxiang/p/9318493.html)
 
