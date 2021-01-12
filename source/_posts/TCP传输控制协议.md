@@ -1,6 +1,6 @@
 ---
 title: TCP传输控制协议
-date: 2020-09-15 15:05:11
+date: 2021-01-11 15:05:11
 tags:
 - TCP协议
 - 计算机基础
@@ -8,23 +8,46 @@ categories:
 - TCP协议
 ---
 
+## TCP 报文格式简介
+
+* TCP 报文由 `TCP Header` 和 `TCP` 数据组成。
+* **TCP Header 的最大长度为 60 字节(byte)**，而**必须要有的固定长度**也就是图一的前5层的**20字节(byte)**，每层占有32bit，也就是32/8=4字节，5层，5*4 = 20字节，那么第六层的可选项和填充也就是**Tcp Options字段最大为60-20=40字节(byte)**。填充是为了使TCP首部为4字节（32bit）的整数倍。
+
 ## TCP首部格式
 
 ![tcp2.png](/img/tcp2.png)
 
-**Source Port** ：源端口，16位。
-**Destination Port**：目的端口，16位。
+**Source Port**：源端口，16位(bit)，2个字节(byte)。
+**Destination Port**：目的端口，16位，2个字节。
 **Sequence Number**：发送数据包中的第一个字节的序列号，32位。
-**Acknowledgment Number**:确认序列号，32位。
-**Data Offset**：是数据偏移，4位，该字段的值是TCP首部（包括选项）长度除以4。
-**标志位**：6位，URG表示 `Urgent Pointer` 字段有意义：
+**Acknowledgment Number**：确认序列号，32位。
+**Data Offset**：数据偏移，4位，该字段的值是TCP首部（包括选项）长度除以4。
+**标志位**：6位，URG 表示 `Urgent Pointer` 字段有意义：
 `ACK` 表示 `Acknowledgment Number` 字段有意义
-`PSH` 表示 `Push` 功能，RST表示复位TCP连接
-`SYN` 表示 `SYN` 报文（在建立TCP连接的时候使用）
-`FIN` 表示没有数据需要发送了（在关闭TCP连接的时候使用）
-`Window` 表示接收缓冲区的空闲空间，16位，用来告诉TCP连接对端自己能够接收的最大数据长度。
-**Checksum**：校验和，16位。
-**Urgent Pointers**：紧急指针，16位，只有URG标志位被设置时该字段才有意义，表示紧急数据相对序列号（Sequence Number字段的值）的偏移。
+`PSH` 表示 `Push` 功能，RST 表示复位TCP连接
+`SYN` 表示 `SYN` 报文（在建立 TCP 连接的时候使用）
+`FIN` 表示没有数据需要发送了（在关闭 TCP 连接的时候使用）
+**Window**：窗口，表示接收缓冲区的空闲空间，16位，2个字节，用来告诉TCP连接对端自己能够接收的最大数据长度。
+**Checksum**：校验和，16位，2个字节。
+**Urgent Pointers**：紧急指针，16位,2个字节，只有 URG 标志位被设置时该字段才有意义，表示紧急数据相对序列号（Sequence Number字段的值）的偏移。
+**选项和填充**：最常见的可选字段是最长报文大小，又称为 MSS（Maximum Segment Size），每个连接方通常都在通信的第一个报文段（为建立连接而设置SYN标志为1的那个段）中指明这个选项，它表示本端所能接受的最大报文段的长度。选项长度不一定是32位的整数倍，所以要加填充位，即在这个字段中加入额外的零，以保证TCP头是32的整数倍。
+**数据**：TCP 报文段中的数据部分是可选的。在一个连接建立和一个连接终止时，双方交换的报文段仅有 TCP 首部。如果一方没有数据要发送，也使用没有任何数据的首部来确认收到的数据。在处理超时的许多情况中，也会发送不带任何数据的报文段。
+
+## Tcp Options字段
+
+Tcp Options 字段的最大长度为40字节。Tcp Options 字段的一般数据结构如图所示：
+
+* Kind(1字节)
+* Length(1字节)
+* Info(n字节)
+
+选项的第一个字段 kind 说明选项的类型。有的 TCP 选项没有后面两个字段，仅包含1字节的kind字段。第二个字段length（如果有的话）指定该选项的总长度，该长度包括kind字段和length字段占据的2字节。第三个字段 info（如果有的话）是选项的具体信息。
+
+![tcpoptions.png](/img/tcpoptions.png)
+
+* 第一个kind= 2，表示最大报文段长度（Max Segment Size，MSS），TCP 模块通常将 MSS 设置为（MTU-40, MTU[Maximum Transmission Unit，缩写 MTU，中文名是：最大传输单元]）字节（减掉的这40字节包括20字节的TCP头部和20字节的IP头部）。这样携带 TCP 报文段的IP数据报的长度就不会超过 MTU（假设TCP头部和IP头部都不包含选项字段，并且这也是一般情况），从而避免本机发生IP分片。对以太网而言，MSS 值是1460（1500-40）字节。
+* kind= 4，表示支持 SACK，SACK Block（收到乱序数据）。
+* kind = 8，代表 Timestamps，即时间戳，启用 Timestamp Option 后，每个 TCP Segment 中都会带有 Timestamp Option，其中包含了两个 32bit 的 Timestamp 也就是各四个字节的 Timestamp Value（TSval）和 Timestamp Echo Reply（TSecr）。发送方在发送报文段时把当前时钟的时间值放入时间戳字段，接收方在确认该报文段时把时间戳字段值复制到时间戳回送回答字段。因此，发送方在收到确认报文后，可以准确计算出RTT。
 
 ## 工作方式
 
@@ -70,3 +93,11 @@ TCP三次握手的过程如下：
 四元组：源IP地址、目的IP地址、源端口、目的端口
 五元组：源IP地址、目的IP地址、协议号、源端口、目的端口
 七元组：源IP地址、目的IP地址、协议号、源端口、目的端口、服务类型、接口索引
+
+参考：
+
+[Tcp报文简介以及头部选项字段(Tcp Options字段)](https://blog.csdn.net/Hollake/article/details/89327474)
+
+[常用的TCP Option](https://blog.csdn.net/blakegao/article/details/19419237)
+
+[浅析TCP中时间戳选项timestamp](https://blog.csdn.net/mary19920410/article/details/77255967)
