@@ -11,7 +11,7 @@ categories:
 ## TCP 报文格式简介
 
 * TCP 报文由 `TCP Header` 和 `TCP` 数据组成。
-* **TCP Header 的最大长度为 60 字节(byte)**，而**必须要有的固定长度**也就是图一的前5层的**20字节(byte)**，每层占有32bit，也就是32/8=4字节，5层，5*4 = 20字节，那么第六层的可选项和填充也就是**Tcp Options字段最大为60-20=40字节(byte)**。填充是为了使TCP首部为4字节（32bit）的整数倍。
+* **TCP Header 的最大长度为 60 字节(byte)**，而**必须要有的固定长度**也就是图一的前5层的**20字节(byte)**，每层占有 `32bit`，也就是 `32/8=4` 字节，5层，`5*4 = 20` 字节，那么第六层的可选项和填充也就是**Tcp Options字段最大为60-20=40字节(byte)**。填充是为了使TCP首部为4字节（32bit）的整数倍。
 
 ## TCP首部格式
 
@@ -19,12 +19,12 @@ categories:
 
 **Source Port**：源端口，16位(bit)，2个字节(byte)。
 **Destination Port**：目的端口，16位，2个字节。
-**Sequence Number**：发送数据包中的第一个字节的序列号，32位。
+**Sequence Number**：序号，发送数据包中的第一个字节的序列号，32位。
 **Acknowledgment Number**：确认序列号，32位。
 **Data Offset**：数据偏移，4位，该字段的值是TCP首部（包括选项）长度除以4。
 **标志位**：6位，URG 表示 `Urgent Pointer` 字段有意义：
 `ACK` 表示 `Acknowledgment Number` 字段有意义
-`PSH` 表示 `Push` 功能，RST 表示复位TCP连接
+`PSH` 表示 `Push` 功能，RST 表示复位 TCP 连接
 `SYN` 表示 `SYN` 报文（在建立 TCP 连接的时候使用）
 `FIN` 表示没有数据需要发送了（在关闭 TCP 连接的时候使用）
 **Window**：窗口，表示接收缓冲区的空闲空间，16位，2个字节，用来告诉TCP连接对端自己能够接收的最大数据长度。

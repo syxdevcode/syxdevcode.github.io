@@ -49,8 +49,8 @@ net.ipv4.tcp_tw_reuse = 1
 
 # # 表示开启TCP链接中TIME_WAIT sockets的快速回收，
 # 该参数对应系统路径为：/proc/sys/net/ipv4/tcp_tw_recycle
-# 默认为0 表示关闭
-net.ipv4.tcp_tw_recycle = 1
+# 默认为0 表示关闭，建议为0
+net.ipv4.tcp_tw_recycle = 0
 ```
 
 <details>
@@ -129,7 +129,7 @@ listen方法指定的backlog是在用户态指定的，内核态的参数优先�
 # 对于Aapache，Nginx等服务器来说可以将其调低一点，如改为 5000-30000，不用业务的服务器也可以给大一点，
 # 比如LVS，Squid，该参数对应系统路径为：/proc/sys/net/ipv4/tcp_max_tw_buckets
 # #1st低于此值,TCP没有内存压力,2nd进入内存压力阶段,3rdTCP拒绝分配socket(单位：内存页)
-net.ipv4.tcp_max_tw_buckets = 6000
+net.ipv4.tcp_max_tw_buckets = 30000
 
 # 外向syn握手重试次数
 # 该参数对应系统路径为：/proc/sys/net/ipv4/tcp_syn_retries，默认是6
@@ -183,6 +183,7 @@ net.ipv4.tcp_timestamps = 0
 net.ipv4.tcp_sack = 1
 
 # 单独一个进程最多可以同时建立20000多个TCP客户端连接
+# 不建议自行设置
 net.ipv4.ip_conntrack_max = 20000
 
 ```
@@ -192,12 +193,12 @@ net.ipv4.ip_conntrack_max = 20000
 ```sh
 net.ipv4.tcp_fin_timeout = 30
 net.ipv4.tcp_tw_reuse = 1
-net.ipv4.tcp_tw_recycle = 1
+net.ipv4.tcp_tw_recycle = 0
 net.ipv4.tcp_syncookies = 1
 net.ipv4.ip_local_port_range = 1024 65000
 net.ipv4.tcp_max_syn_backlog = 262144
-net.core.somaxconn = 32768
-net.ipv4.tcp_max_tw_buckets = 300000
+net.core.somaxconn = 65535
+net.ipv4.tcp_max_tw_buckets = 30000
 net.ipv4.tcp_syn_retries = 1
 net.ipv4.tcp_synack_retries = 1
 net.core.netdev_max_backlog = 262144
