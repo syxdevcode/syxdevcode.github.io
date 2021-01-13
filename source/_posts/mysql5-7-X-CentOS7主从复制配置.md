@@ -204,7 +204,7 @@ CREATE USER 'slave'@'%'
 # 授予复制账号 REPLICATION SLAVE 权限，复制才能真正地工作。
 grant replication slave,replication client on *.* to 'slave'@'%';
 # 或
-GRANT REPLICATION SLAVE ON *.*  TO  'slave'@'%'  identified by '123456';
+GRANT REPLICATION SLAVE ON *.*  TO  'slave'@'%' identified by '123456';
 
 # 查看用户
 select host,user from user;
