@@ -1,11 +1,11 @@
 ---
-title: 使用ab进行站点压力测试
+title: 使用Apache Benchmark进行站点压力测试
 date: 2017-05-27 11:11:18
 tags:
-- ab
+- Apache Benchmark
 - 压力测试
 categories:
-- ab
+- Apache Benchmark
 ---
 # 使用ab进行站点压力测试
 
