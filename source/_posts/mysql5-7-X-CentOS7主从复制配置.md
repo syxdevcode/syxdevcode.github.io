@@ -176,11 +176,14 @@ log-bin=mysql-bin
 
 `GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY '123456' WITH GRANT OPTION;`
 
-取消权限：`revoke all on *.* from root@localhost; `
+取消权限：
+`revoke all on *.* from root@localhost; `
 
-最后执行：`flush privileges`;
+最后执行：
+`flush privileges`;
 
-GRANT：赋权命令
+**GRANT：赋权命令**
+
 ALL PRIVILEGES：当前用户的所有权限
 ON：介词
 *.*：当前用户对所有数据库和表的相应操作权限
@@ -204,7 +207,7 @@ CREATE USER 'slave'@'%'
 # 授予复制账号 REPLICATION SLAVE 权限，复制才能真正地工作。
 grant replication slave,replication client on *.* to 'slave'@'%';
 # 或
-GRANT REPLICATION SLAVE ON *.*  TO  'slave'@'%'  identified by '123456';
+GRANT REPLICATION SLAVE ON *.*  TO  'slave'@'%' identified by '123456';
 
 # 查看用户
 select host,user from user;

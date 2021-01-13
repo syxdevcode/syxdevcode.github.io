@@ -47,10 +47,10 @@ net.ipv4.tcp_fin_timeout = 30
 # 表示关闭，该参数对应系统路径为：/proc/sys/net/ipv4/tcp_tw_reuse 0
 net.ipv4.tcp_tw_reuse = 1
 
-# # 表示开启TCP链接中TIME_WAIT sockets的快速回收，
+# 表示开启TCP链接中TIME_WAIT sockets的快速回收，
 # 该参数对应系统路径为：/proc/sys/net/ipv4/tcp_tw_recycle
-# 默认为0 表示关闭
-net.ipv4.tcp_tw_recycle = 1
+# 默认为0 表示关闭，建议为0
+net.ipv4.tcp_tw_recycle = 0
 ```
 
 <details>
@@ -129,7 +129,7 @@ listen方法指定的backlog是在用户态指定的，内核态的参数优先�
 # 对于Aapache，Nginx等服务器来说可以将其调低一点，如改为 5000-30000，不用业务的服务器也可以给大一点，
 # 比如LVS，Squid，该参数对应系统路径为：/proc/sys/net/ipv4/tcp_max_tw_buckets
 # #1st低于此值,TCP没有内存压力,2nd进入内存压力阶段,3rdTCP拒绝分配socket(单位：内存页)
-net.ipv4.tcp_max_tw_buckets = 6000
+net.ipv4.tcp_max_tw_buckets = 30000
 
 # 外向syn握手重试次数
 # 该参数对应系统路径为：/proc/sys/net/ipv4/tcp_syn_retries，默认是6
@@ -144,7 +144,7 @@ net.ipv4.tcp_synack_retries = 1
 # 表示当每个网络接口接收数据包的速率比内核处理这些包的速率快时，允许发送到队列的数据包最大数，
 # 该参数对应系统路径为：/proc/sys/net/ipv4/netdev_max_backlog
 # 默认没有这个配置，需要自己生成
-net.core.netdev_max_backlog = 262144
+net.core.netdev_max_backlog = 2000
 
 # 用于设定系统中最多有多少个TCP套接字不被关联到任何一个用户文件句柄上，
 # 如果超过这个数值，孤立链接将立即被复位并打印出警号信息，这个限制只是为了防止简单的DoS攻击，不能过分依靠这个限制甚至
@@ -155,36 +155,37 @@ net.ipv4.tcp_max_orphans = 3276800
 net.ipv4.tcp_window_scaling = 1
 
 # 表示套接字接收缓冲区的内存最大值
-net.core.rmem_max = 16777216
+net.core.rmem_max = 5242880
 
 # 表示套接字发送缓冲区大小的最大值,会覆盖 net.ipv4.tcp_wmem的MAX值
-net.core.wmem_max = 16777216
+net.core.wmem_max = 5242880
 
 # 接受缓冲的大小:MIN，DEFAULT,MAX
 # 即TCP读取缓冲区，单位为字节byte
-# net.ipv4.tcp_mem[0]:低于此值，TCP没有内存压力。
-# net.ipv4.tcp_mem[1]:在此值下，进入内存压力阶段。
-# net.ipv4.tcp_mem[2]:高于此值，TCP拒绝分配socket。
-net.ipv4.tcp_rmem = 4096  87380 16777216
+net.ipv4.tcp_rmem = 16384 32768 5242880
 
 # socket的发送缓存区分配的MIN，DEFAULT,MAX
 # 发送缓冲区，单位是字节byte
-net.ipv4.tcp_wmem = 4096 16384 16777216
+net.ipv4.tcp_wmem = 16384 32768 5242880
 
 # 1低于此值,TCP没有内存压力,2在此值下,进入内存压力阶段，3高于此值,TCP拒绝分配socket.
+# net.ipv4.tcp_mem[0]:低于此值，TCP没有内存压力。
+# net.ipv4.tcp_mem[1]:在此值下，进入内存压力阶段。
+# net.ipv4.tcp_mem[2]:高于此值，TCP拒绝分配socket。
 # 内存单位是页，1页等于4096字节，1 Page = 4096 Bytes
-# 32GB内存机器建议：8G  12G  16G
+# 32GB内存机器,最小值、压力值、最大值：8G  12G  16G
 net.ipv4.tcp_mem = 2097152 3145728 4194304
 
 # 禁用时间戳，时间戳可以避免序列号的卷绕
 net.ipv4.tcp_timestamps = 0
 
 # 定义SYN重试次数
+# 避免重复发送数据包
 net.ipv4.tcp_sack = 1
 
 # 单独一个进程最多可以同时建立20000多个TCP客户端连接
+# 不建议自行设置
 net.ipv4.ip_conntrack_max = 20000
-
 ```
 
 /etc/sysctl.conf
@@ -196,17 +197,18 @@ net.ipv4.tcp_tw_recycle = 1
 net.ipv4.tcp_syncookies = 1
 net.ipv4.ip_local_port_range = 1024 65000
 net.ipv4.tcp_max_syn_backlog = 262144
-net.core.somaxconn = 32768
-net.ipv4.tcp_max_tw_buckets = 300000
+net.core.somaxconn = 65535
+net.ipv4.tcp_max_tw_buckets = 30000
 net.ipv4.tcp_syn_retries = 1
 net.ipv4.tcp_synack_retries = 1
-net.core.netdev_max_backlog = 262144
-net.ipv4.tcp_max_orphans = 3276800
+net.core.netdev_max_backlog = 2000
 net.ipv4.tcp_window_scaling = 1
-net.core.rmem_max = 16777216
-net.core.wmem_max = 16777216
-net.ipv4.tcp_rmem = 4096 87380 16777216
-net.ipv4.tcp_wmem = 4096 16384 16777216
+net.core.rmem_max = 5242880
+net.core.rmem_default = 256960
+net.core.wmem_max = 5242880
+net.core.wmem_default = 256960
+net.ipv4.tcp_rmem = 16384 32768 5242880
+net.ipv4.tcp_wmem = 16384 32768 5242880
 net.ipv4.tcp_mem = 2097152 3145728 4194304
 net.ipv4.tcp_keepalive_time = 300
 net.ipv4.tcp_timestamps = 0
@@ -222,15 +224,27 @@ sysctl -p
 备忘录：
 
 ```sh
+# 获取操作系统参数的类型
+sysctl -a|awk -F "." '{print $1}'|sort -k1|uniq
+
+# 获取net类型下的子类型
+sysctl -a|grep "^net."|awk -F "[.| ]" '{print $2}'|sort -k1|uniq
+
+# 获取有关服务器套接字缓冲区的信息
+sysctl -a|grep "^net."|grep "[r|w|_]mem[_| ]"
+
 # 查看当前的连接数状况
 # SYN_RECV表示正在等待处理的请求数；ESTABLISHED表示正常数据传输状态；TIME_WAIT表示处理完毕，等待超时结束的请求数
 netstat -nat|awk '{print awk $NF}'|sort|uniq -c|sort -n
 
 # 查看IP连接数状况
-netstat -nat|grep ":80"|awk '{print $5}' |awk -F: '{print $1}' | sort| uniq -c|sort -n
+netstat -nat|grep ":8011"|awk '{print $5}' |awk -F: '{print $1}' | sort| uniq -c|sort -n
 
 # 查看活动连接数
 ss -n | grep ESTAB | wc -l
+
+# 获取当前socket连接状态统计信息
+cat /proc/net/sockstat
 
 # 统计当前各种状态的连接的数量的命令
 netstat -n | awk '/^tcp/ {++S[$NF]} END {for(a in S) print a, S[a]}'
@@ -256,9 +270,6 @@ ITMED_WAIT：等待所有分组死掉
 CLOSING：两边同时尝试关闭
 TIME_WAIT：另一边已初始化一个释放
 LAST_ACK：等待所有分组死掉
-
-# 获取当前socket连接状态统计信息
-cat /proc/net/sockstat
 ```
 
 参考：
