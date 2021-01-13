@@ -23,6 +23,9 @@ TO user [IDENTIFIED BY [PASSWORD] 'password']
 
 ```sh
 GRANT SELECT,INSERT,DELETE,UPDATE ON *.* TO 'root'@'192.125.30.123' IDENTIFIED BY '123456' WITH GRANT OPTION;
+
+# 刷新
+FLUSH PRIVILEGES;
 ```
 
 * priv_type 参数表示权限类型；
@@ -98,4 +101,7 @@ GRANT SELECT,INSERT SLAVE ON *.*  TO  'slave'@'localhost' identified by '123456'
 
 # 查询用户权限
 SHOW GRANTS FOR 'slave'@'localhost';
+
+# 刷新
+FLUSH PRIVILEGES;
 ```
