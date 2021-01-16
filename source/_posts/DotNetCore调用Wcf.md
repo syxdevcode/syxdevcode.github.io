@@ -4,9 +4,9 @@ date: 2020-12-01 11:31:57
 tags:
 - DotNetCore
 - Net5
-- Wcf
+- WCF
 categories: 
-- Wcf
+- WCF
 ---
 
 ## 安装dotnet-svcutil
