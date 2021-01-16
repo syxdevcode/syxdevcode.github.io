@@ -185,6 +185,95 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/05/19/%E8%A7%A3%E5%86%B3unix%20tmp%20supervisor%20sock%20no%20such%20file/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/05/19/%E8%A7%A3%E5%86%B3unix%20tmp%20supervisor%20sock%20no%20such%20file/" class="post-title-link" itemprop="url">解决unix tmp supervisor sock no such file</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-05-19 10:30:08" itemprop="dateCreated datePublished" datetime="2020-05-19T10:30:08+00:00">2020-05-19</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-01-16 03:37:04" itemprop="dateModified" datetime="2021-01-16T03:37:04+00:00">2021-01-16</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/supervisor/" itemprop="url" rel="index"><span itemprop="name">supervisor</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="原因"><a href="#原因" class="headerlink" title="原因"></a>原因</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">unix:///tmp/supervisor.sock no such file</span><br></pre></td></tr></table></figure>
+<p>supervisor 默认配置会把 socket 文件和 pid 守护进程生成在/tmp/目录下，/tmp/目录是缓存目录，Linux 会根据不同情况自动删除其下面的文件。</p>
+<h2 id="修改配置"><a href="#修改配置" class="headerlink" title="修改配置"></a>修改配置</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">vi /etc/supervisord.conf</span><br><span class="line"></span><br><span class="line"><span class="comment"># 英文分号后的内容为注释</span></span><br><span class="line">[unix_http_server]</span><br><span class="line">;file=/tmp/supervisor.sock   ; (the path to the socket file)</span><br><span class="line">file=/var/run/supervisor.sock   ; 修改为 /var/run 目录，避免被系统删除</span><br><span class="line"></span><br><span class="line">[supervisord]</span><br><span class="line">;logfile=/tmp/supervisord.log ; (main <span class="built_in">log</span> file;default <span class="variable">$CWD</span>/supervisord.log)</span><br><span class="line">logfile=/var/<span class="built_in">log</span>/supervisord.log ; 修改为 /var/<span class="built_in">log</span> 目录，避免被系统删除</span><br><span class="line">pidfile=/var/run/supervisord.pid ; 修改为 /var/run 目录，避免被系统删除</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">[supervisorctl]</span><br><span class="line">; 必须和<span class="string">&#x27;unix_http_server&#x27;</span>里面的设定匹配</span><br><span class="line">;serverurl=unix:///tmp/supervisor.sock ; use a unix:// URL  <span class="keyword">for</span> a unix socket</span><br><span class="line">serverurl=unix:///var/run/supervisor.sock ; 修改为 /var/run 目录，避免被系统删除</span><br></pre></td></tr></table></figure>
+<p>可选：</p>
+<ul>
+<li>修改权限</li>
+</ul>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo chmod 777 /run</span><br><span class="line">sudo chmod 777 /var/<span class="built_in">log</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>创建supervisor.sock</li>
+</ul>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo touch /var/run/supervisor.sock</span><br><span class="line">sudo chmod 777 /var/run/supervisor.sock</span><br></pre></td></tr></table></figure>
+<h2 id="更新配置文件"><a href="#更新配置文件" class="headerlink" title="更新配置文件"></a>更新配置文件</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">supervisorctl update</span><br></pre></td></tr></table></figure>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://hacpai.com/article/1546398597198">“unix:///tmp/supervisor.sock no such file” 错误处理 (亲测)</a></p>
+<p>[<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_28885149/article/details/79364685]">https://blog.csdn.net/qq_28885149/article/details/79364685]</a>(解决unix:///tmp/supervisor.sock no such file的问题)</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/05/13/CentOS7%E9%98%B2%E7%81%AB%E5%A2%99%E8%AE%BE%E7%BD%AE/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -216,7 +305,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-13 14:32:00" itemprop="dateModified" datetime="2021-01-13T14:32:00+00:00">2021-01-13</time>
+                <time title="修改时间：2021-01-16 03:37:04" itemprop="dateModified" datetime="2021-01-16T03:37:04+00:00">2021-01-16</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -289,7 +378,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-13 14:32:00" itemprop="dateModified" datetime="2021-01-13T14:32:00+00:00">2021-01-13</time>
+                <time title="修改时间：2021-01-16 03:37:04" itemprop="dateModified" datetime="2021-01-16T03:37:04+00:00">2021-01-16</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -416,7 +505,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-13 14:32:00" itemprop="dateModified" datetime="2021-01-13T14:32:00+00:00">2021-01-13</time>
+                <time title="修改时间：2021-01-16 03:37:04" itemprop="dateModified" datetime="2021-01-16T03:37:04+00:00">2021-01-16</time>
               </span>
 
           
@@ -503,7 +592,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-13 14:32:00" itemprop="dateModified" datetime="2021-01-13T14:32:00+00:00">2021-01-13</time>
+                <time title="修改时间：2021-01-16 03:37:04" itemprop="dateModified" datetime="2021-01-16T03:37:04+00:00">2021-01-16</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -611,7 +700,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-13 14:32:00" itemprop="dateModified" datetime="2021-01-13T14:32:00+00:00">2021-01-13</time>
+                <time title="修改时间：2021-01-16 03:37:04" itemprop="dateModified" datetime="2021-01-16T03:37:04+00:00">2021-01-16</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -724,7 +813,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-13 14:32:00" itemprop="dateModified" datetime="2021-01-13T14:32:00+00:00">2021-01-13</time>
+                <time title="修改时间：2021-01-16 03:37:04" itemprop="dateModified" datetime="2021-01-16T03:37:04+00:00">2021-01-16</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -805,7 +894,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-13 14:32:00" itemprop="dateModified" datetime="2021-01-13T14:32:00+00:00">2021-01-13</time>
+                <time title="修改时间：2021-01-16 03:37:04" itemprop="dateModified" datetime="2021-01-16T03:37:04+00:00">2021-01-16</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -902,7 +991,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-13 14:32:00" itemprop="dateModified" datetime="2021-01-13T14:32:00+00:00">2021-01-13</time>
+                <time title="修改时间：2021-01-16 03:37:04" itemprop="dateModified" datetime="2021-01-16T03:37:04+00:00">2021-01-16</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -978,7 +1067,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-13 14:32:00" itemprop="dateModified" datetime="2021-01-13T14:32:00+00:00">2021-01-13</time>
+                <time title="修改时间：2021-01-16 03:37:04" itemprop="dateModified" datetime="2021-01-16T03:37:04+00:00">2021-01-16</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1069,7 +1158,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-13 14:32:00" itemprop="dateModified" datetime="2021-01-13T14:32:00+00:00">2021-01-13</time>
+                <time title="修改时间：2021-01-16 03:37:04" itemprop="dateModified" datetime="2021-01-16T03:37:04+00:00">2021-01-16</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1161,7 +1250,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-13 14:32:00" itemprop="dateModified" datetime="2021-01-13T14:32:00+00:00">2021-01-13</time>
+                <time title="修改时间：2021-01-16 03:37:04" itemprop="dateModified" datetime="2021-01-16T03:37:04+00:00">2021-01-16</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1240,7 +1329,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-13 14:32:00" itemprop="dateModified" datetime="2021-01-13T14:32:00+00:00">2021-01-13</time>
+                <time title="修改时间：2021-01-16 03:37:04" itemprop="dateModified" datetime="2021-01-16T03:37:04+00:00">2021-01-16</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1337,7 +1426,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-13 14:32:00" itemprop="dateModified" datetime="2021-01-13T14:32:00+00:00">2021-01-13</time>
+                <time title="修改时间：2021-01-16 03:37:04" itemprop="dateModified" datetime="2021-01-16T03:37:04+00:00">2021-01-16</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1419,7 +1508,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-13 14:32:00" itemprop="dateModified" datetime="2021-01-13T14:32:00+00:00">2021-01-13</time>
+                <time title="修改时间：2021-01-16 03:37:04" itemprop="dateModified" datetime="2021-01-16T03:37:04+00:00">2021-01-16</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1472,96 +1561,6 @@
 <p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/JeffreyZhao/archive/2009/07/22/thread-pool-1-the-goal-and-the-clr-thread-pool.html">浅谈线程池（上）：线程池的作用及CLR线程池</a></p>
 <p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/JeffreyZhao/archive/2009/07/24/thread-pool-2-dedicate-pool-and-io-pool.html">浅谈线程池（中）：独立线程池的作用及IO线程池</a></p>
 <p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/JeffreyZhao/archive/2009/10/20/thread-pool-3-lab.html">浅谈线程池（下）：相关试验及注意事项</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/01/10/%E7%90%86%E8%A7%A3.Net%20Standard/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/01/10/%E7%90%86%E8%A7%A3.Net%20Standard/" class="post-title-link" itemprop="url">理解.Net Standard</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-01-10 17:11:22" itemprop="dateCreated datePublished" datetime="2020-01-10T17:11:22+00:00">2020-01-10</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-13 14:32:00" itemprop="dateModified" datetime="2021-01-13T14:32:00+00:00">2021-01-13</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Net-Standard/" itemprop="url" rel="index"><span itemprop="name">.Net Standard</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>.NET Standard 是一项 API 规范，每一个特定的版本，都定义了必须实现的基类库（NETStandard.Library）。</p>
-<p>如图：</p>
-<p><img src="/img/dotnet-tomorrow.png" alt="dotnet-tomorrow.png"></p>
-<p>托管框架的每一种实现都有一套自己的基类库。基类库（BCL）包含诸如异常处理、字符串、XML、I/O、网络和集合这样的类。</p>
-<p>.NET Standard 是一项实现BCL 的规范。由于.NET 实现需要遵循这项规范，所以应用程序开发人员就不用担心每一种托管框架实现的BCL 不同。</p>
-<p>框架类库（FCL），如 WPF、WCF、ASP.NET，不包含在 BCL 中，因此，也就不包含在.NET Standard 中。</p>
-<p>.NET Standard 与.NET 实现之间的关系就和 HTML 规范与浏览器之间的关系一样。后者是前者的实现。</p>
-<p>因此，.NET Framework、Xamarin 和.NET Core，每一种托管框架都实现了.NET Standard 中的 BCL。随着计算机工业不断推出新的硬件和操作系统，将来还会出现新的.NET 托管框架。该标准让应用程序开发人员知道，他们可以依赖于一套始终如一的 API。</p>
-<p>每个.NET 版本都对应一个.NET Standard 版本。</p>
-<p>版本对应图：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20200110132446.png" alt="QQ截图20200110132446.png"></p>
-<p>API 一致，将应用程序移植到不同的托管实现以及提供工具都会更简单。</p>
-<p>.NET Standard 被定义为一个单独的 NuGet 包，因为所有的.NET 实现都必须支持它。工具变得简单了，因为对于特定的版本，它们有一套相同的 API。你还可以针对多个.NET 实现构建一个库项目。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://devblogs.microsoft.com/dotnet/introducing-net-standard/">Introducing .NET Standard</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.infoq.cn/article/2017/10/dotnet-core-standard-difference/">.NET Core 和.NET Standard 有什么不同</a></p>
-<p><a target="_blank" rel="noopener" href="https://github.com/dotnet/standard/blob/master/docs/versions.md">.NET Standard Versions</a></p>
 
       
     </div>
@@ -1646,7 +1645,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">343</span>
+          <span class="site-state-item-count">344</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -1659,7 +1658,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">152</span>
+        <span class="site-state-item-count">151</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
