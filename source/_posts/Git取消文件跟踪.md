@@ -21,5 +21,7 @@ git rm --f 1.txt    # 删除readme1.txt的跟踪，并且删除本地文件。
 ```sh
 git rm -r --cached .
 git add .
+
+# 提交暂存区到本地仓库中
 git commit -m 'update .gitignore'
 ```
