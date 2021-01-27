@@ -7,5 +7,12 @@ tags:
 categories: Python3
 ---
 
-
-
+{% post_link Python3学习-基础语法 %}
+<br/>
+{% post_link Python3学习-基本数据类型 %}
+<br/>
+{% post_link Python3学习-运算符 %}
+<br/>
+{% post_link Python3学习-基本语句 %}
+<br/>
+{% post_link Python3学习-函数 %}
