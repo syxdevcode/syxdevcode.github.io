@@ -105,13 +105,15 @@ vim /etc/supervisord.d/WebApplication1.conf
 
 注意：supervisor配置文件中的注释使用英文分号 `;`
 
+配置文件名需要与program标签内名称一致！！！
+
 asp net core 站点：
 
 ```conf
 [program:WebApplication1]
 command=/root/dotnet/dotnet WebApplication1.dll
 directory=/test/webapi
-environment=ASPNETCORE_ENVIRONMENT=Production;,ASPNETCORE_URLS="http://0.0.0.0:5100"
+environment=ASPNETCORE_ENVIRONMENT=Production
 stopsignal=INT
 stderr_logfile=/var/log/WebApplication1/WebApplication1.err.log
 stdout_logfile=/var/log/WebApplication1/WebApplication1.out.log
