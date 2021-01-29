@@ -185,6 +185,106 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/13/DotNet%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F-Memory-Leak-%E4%BA%8B%E4%BB%B6-Event/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/12/13/DotNet%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F-Memory-Leak-%E4%BA%8B%E4%BB%B6-Event/" class="post-title-link" itemprop="url">DotNet内存泄漏(Memory Leak)-事件(Event)</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-12-13 11:06:53" itemprop="dateCreated datePublished" datetime="2018-12-13T11:06:53+00:00">2018-12-13</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-01-29 07:14:05" itemprop="dateModified" datetime="2021-01-29T07:14:05+00:00">2021-01-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%A7%94%E6%89%98%E4%B8%8E%E4%BA%8B%E4%BB%B6/" itemprop="url" rel="index"><span itemprop="name">委托与事件</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="DotNet内存泄漏-Memory-Leak-事件-Event"><a href="#DotNet内存泄漏-Memory-Leak-事件-Event" class="headerlink" title="DotNet内存泄漏(Memory Leak)-事件(Event)"></a>DotNet内存泄漏(Memory Leak)-事件(Event)</h1><p>通过<a target="_blank" rel="noopener" href="http://www.cnblogs.com/artech/archive/2009/12/03/1616507.html">事件(Event)，绝大多数内存泄漏（Memory Leak）的元凶[上篇]</a>这篇文章的实例，学习内存泄漏。</p>
+<p><a target="_blank" rel="noopener" href="https://pan.baidu.com/s/1_zrGMRwiyB6Kky8t5kgFlA">代码下载</a><br>提取码：xazz</p>
+<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20181213135838.png" alt="微信截图_20181213135838.png"></p>
+<p>&emsp;&emsp;我们这个应用程序叫做TodoListManager，因为通过它可以实时查看属于用户的“待办事宜（Todolist）”。这是一个GUI的应用，有两个Windows Form组成：左侧的窗体是一个程序的主界面（为了简单起见，我甚至没有将其做成MDI窗体），点击Todo List菜单项，右面的Form被显示出来：所有的代码事宜将会全部列出，为了保证记录的实时显示，每隔5秒钟数据自动刷新一次。</p>
+<p>&emsp;&emsp;首先定义表示每一项TotoList Item定义了一个相应的类型：MyEvent（不是我们谈到的导致内存泄漏的事件）。Event仅仅包含简单的属性：主题（Subject），截至日期（DueDate）和相应的描述性文字（Description），Event定义如下：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">namespace</span> <span class="title">WindowsFormsApp1</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">class</span> <span class="title">MyEvent</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="built_in">string</span> Subject &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">        <span class="keyword">public</span> DateTime DueDate &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">        <span class="keyword">public</span> <span class="built_in">string</span> Description &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="title">MyEvent</span>(<span class="params"><span class="built_in">string</span> subject, DateTime dueDate, <span class="built_in">string</span> desc</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            <span class="keyword">if</span> (<span class="built_in">string</span>.IsNullOrEmpty(subject))</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentNullException(<span class="string">&quot;subject&quot;</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">this</span>.Subject = subject;</span><br><span class="line">            <span class="keyword">this</span>.DueDate = dueDate;</span><br><span class="line">            <span class="keyword">this</span>.Description = desc ?? <span class="built_in">string</span>.Empty;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;然后将所有逻辑（实际上仅仅是定期获取TodoList列表而已）定义在下面一个叫做TodoListManager的类型中。将其定义成Singleton的形式，并采用<code>System.Threading.Timer</code>实现定时地获取Todo List的操作。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">namespace</span> <span class="title">WindowsFormsApp1</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">class</span> <span class="title">TodoListManager</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">readonly</span> TodoListManager instance = <span class="keyword">new</span> TodoListManager();</span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">event</span> EventHandler&lt;TodoListEventArgs&gt; TodoListChanged;</span><br><span class="line">        <span class="keyword">private</span> Timer todoListRefreshSchedler;</span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="title">TodoListManager</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            todoListRefreshSchedler = <span class="keyword">new</span> Timer</span><br><span class="line">            (</span><br><span class="line">                state =&gt;</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="keyword">if</span> (<span class="literal">null</span> == TodoListChanged)</span><br><span class="line">                    &#123;</span><br><span class="line">                        <span class="keyword">return</span>;</span><br><span class="line">                    &#125;</span><br><span class="line"></span><br><span class="line">                    TodoListChanged(<span class="literal">null</span>, <span class="keyword">new</span> TodoListEventArgs(GetTodolist()));</span><br><span class="line">                &#125;</span><br><span class="line">           , <span class="literal">null</span>, <span class="number">0</span>, <span class="number">5000</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">static</span> TodoListManager Instance</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">get</span></span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">return</span> instance;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="function"><span class="keyword">private</span> List&lt;MyEvent&gt; <span class="title">GetTodolist</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            <span class="keyword">var</span> list = <span class="keyword">new</span> List&lt;MyEvent&gt;();</span><br><span class="line">            list.Add(<span class="keyword">new</span> MyEvent(<span class="string">&quot;Meeting with Testing Team&quot;</span>, DateTime.Today.AddDays(<span class="number">2</span>), <span class="string">&quot;NIL&quot;</span>));</span><br><span class="line">            list.Add(<span class="keyword">new</span> MyEvent(<span class="string">&quot;Deliver progress report to manager &quot;</span>, DateTime.Today.AddDays(<span class="number">7</span>), <span class="string">&quot;NIL&quot;</span>));</span><br><span class="line">            <span class="keyword">return</span> list;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;对于Timer的每一个轮询，都会处触发一个类型为<code>EventHandler&lt;TodoListEventArgs&gt;</code>的事件，通过注册这个事件，可以通过类型为TodoListEventArgs的事件参数得到最新的TodoList的列表，TodoListEventArgs定义如下：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">TodoListEventArgs</span> : <span class="title">EventArgs</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> IEnumerable&lt;MyEvent&gt; TodoList</span><br><span class="line">    &#123; <span class="keyword">get</span>; <span class="keyword">private</span> <span class="keyword">set</span>; &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">TodoListEventArgs</span>(<span class="params">IEnumerable&lt;MyEvent&gt; todoList</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="literal">null</span> == todoList)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentNullException(<span class="string">&quot;todoList&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">this</span>.TodoList = todoList;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;在窗体Load的时候注册TodoListManager的TodoListChanged事件，并将获取到的TodoList列表绑定到DataGridView上面。由于TodoListManager异步工作的原因，借助了SynchronizationContext这么一个对象实现对数据的绑定。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Threading;</span><br><span class="line"><span class="keyword">using</span> System.Windows.Forms;</span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">WindowsFormsApp1</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">partial</span> <span class="keyword">class</span> <span class="title">ToDoListForm</span> : <span class="title">Form</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">static</span> SynchronizationContext SynchronizationContext &#123; <span class="keyword">get</span>; <span class="keyword">private</span> <span class="keyword">set</span>; &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="title">ToDoListForm</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            InitializeComponent();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">ToDoListForm_Load</span>(<span class="params"><span class="built_in">object</span> sender, EventArgs e</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            SynchronizationContext = SynchronizationContext.Current;</span><br><span class="line">            TodoListManager.Instance.TodoListChanged += TodoListManager_TodoListChanged;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">TodoListManager_TodoListChanged</span>(<span class="params"><span class="built_in">object</span> sender, TodoListEventArgs e</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            SynchronizationContext.Post(</span><br><span class="line">                state =&gt;</span><br><span class="line">                &#123;</span><br><span class="line">                    BindingSource bindingSource = <span class="keyword">new</span> BindingSource();</span><br><span class="line">                    bindingSource.DataSource = e.TodoList;</span><br><span class="line">                    <span class="keyword">this</span>.dataGridViewTodoList.DataSource = bindingSource;</span><br><span class="line">                &#125;, <span class="literal">null</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在整个应用级别定义了一个静态的System.Threading.Timer，让它每隔半秒调用一次GC.Collect()。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Windows.Forms;</span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">WindowsFormsApp1</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">internal</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">static</span> System.Threading.Timer gcScheduler = <span class="keyword">new</span> System.Threading.Timer</span><br><span class="line">            (state =&gt; GC.Collect(), <span class="literal">null</span>, <span class="number">0</span>, <span class="number">500</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;summary&gt;</span></span></span><br><span class="line">        <span class="comment"><span class="doctag">///</span> 应用程序的主入口点。</span></span><br><span class="line">        <span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;/summary&gt;</span></span></span><br><span class="line">        [<span class="meta">STAThread</span>]</span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            Application.EnableVisualStyles();</span><br><span class="line">            Application.SetCompatibleTextRenderingDefault(<span class="literal">false</span>);</span><br><span class="line">            Application.Run(<span class="keyword">new</span> MainForm());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>查看内存泄漏，需要借助响应的Memory Profiling工具:</p>
+<p>JetBrains的<code>dotTrace</code>（免费），<br>RedGate的<code>ANTS Memory Profiler</code>(收费)</p>
+<p>&emsp;&emsp;ANTS Memory Profiler通过这样的原理来确定你的应用程序是否有泄漏问题：如果你怀疑某个操作会导致应该被GC回收的对象没有被回收，那么你在之前对内存分配情况拍一张快照（Snapshot），然后执行该操作，在操作完成并确定GC完成相应的回收操作后，在拍一张快照。通过对比，找出多余的对象，并根据具体的情况分析该对象是否应该被GC回收，如果是的，怎意味着你的程序存在着内存泄漏问题。</p>
+<p>通过ANTS Memory Profiler启动我们的应用程序后，在一开始的时候我们拍摄一张反映程序初始状态的内存快照，然后选择File\Todo List打开TodoListForm，等待一定的时间，再将TodoListForm关闭。为了让GC有充分的时间进行垃圾回收，不妨再作相应的等待，然后拍下第二张快照。在Class List视图中，你会发现原本应该被垃圾回收的TodoListForm窗体对象还存在于内存之中。</p>
+<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20181213144749.png" alt="微信截图_20181213144749.png"></p>
+<p>&emsp;&emsp;通过上图可以看得，该对象被TodoListManager的一个类型为<code>EventHandler&lt;TodoListEventArgs&gt;</code>的事件引用，这个对象实际上是一个Delegate对象，而TodoListForm作为这个Delegate对象的Target。通过上面给出的代码，我们不难想出是由于在TodoListForm实现了对TodoListManager的TotoListChanged事件注册导致了TodoListManager不能被垃圾回收。</p>
+<p>&emsp;&emsp;对于GUI应用可视化树形结构来说，一个窗体被关闭，照例说它应该成为垃圾对象，GC在执行垃圾回收的时候就可以将其清楚的。但是，由于该对象注册了一个事件到一个生命周期很长的对象（在本例中，TodoManager是一个Singletone对象，具有和整个应用程序一样的生命周期），它就是被这么一个对象长期引用，进而阻止 GC对其的回收工作。</p>
+<p>&emsp;&emsp;短暂生命周期注册事件到长期生命周期对象上，在该对象被Dispose的时候，应该解除事件的注册。你可以通过实现System.IDisposable接口，将解除事件注册的操作放在Dispose方法中。对于本里来说，你可以将相应的操作注册到Form的Closing、Closed或者Disposed事件中。比如在下面代码中，我为TodoListForm添加了如下一个Closing事件处理程序：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Threading;</span><br><span class="line"><span class="keyword">using</span> System.Windows.Forms;</span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">WindowsFormsApp1</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">partial</span> <span class="keyword">class</span> <span class="title">ToDoListForm</span> : <span class="title">Form</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">static</span> SynchronizationContext SynchronizationContext &#123; <span class="keyword">get</span>; <span class="keyword">private</span> <span class="keyword">set</span>; &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="title">ToDoListForm</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            InitializeComponent();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">ToDoListForm_Load</span>(<span class="params"><span class="built_in">object</span> sender, EventArgs e</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            SynchronizationContext = SynchronizationContext.Current;</span><br><span class="line">            TodoListManager.Instance.TodoListChanged += TodoListManager_TodoListChanged;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">TodoListManager_TodoListChanged</span>(<span class="params"><span class="built_in">object</span> sender, TodoListEventArgs e</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            SynchronizationContext.Post(</span><br><span class="line">                state =&gt;</span><br><span class="line">                &#123;</span><br><span class="line">                    BindingSource bindingSource = <span class="keyword">new</span> BindingSource();</span><br><span class="line">                    bindingSource.DataSource = e.TodoList;</span><br><span class="line">                    <span class="keyword">this</span>.dataGridViewTodoList.DataSource = bindingSource;</span><br><span class="line">                &#125;, <span class="literal">null</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">ToDoListForm_FormClosing</span>(<span class="params"><span class="built_in">object</span> sender, FormClosingEventArgs e</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            TodoListManager.Instance.TodoListChanged -= TodoListManager_TodoListChanged;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>修改之后，按照上面的流程利用<code>ANTS Memory Profiler</code>在第二个快照中，你将再也看不到TodoListForm的身影（如下图）。</p>
+<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20181213145711.png" alt="微信截图_20181213145711.png"></p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/artech/archive/2009/12/03/1616507.html">事件(Event)，绝大多数内存泄漏（Memory Leak）的元凶[上篇]</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/12/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9006-%E5%A7%94%E6%89%98/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -216,7 +316,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-28 09:07:35" itemprop="dateModified" datetime="2021-01-28T09:07:35+00:00">2021-01-28</time>
+                <time title="修改时间：2021-01-29 07:14:05" itemprop="dateModified" datetime="2021-01-29T07:14:05+00:00">2021-01-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -311,7 +411,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-28 09:07:35" itemprop="dateModified" datetime="2021-01-28T09:07:35+00:00">2021-01-28</time>
+                <time title="修改时间：2021-01-29 07:14:05" itemprop="dateModified" datetime="2021-01-29T07:14:05+00:00">2021-01-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -484,7 +584,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-28 09:07:35" itemprop="dateModified" datetime="2021-01-28T09:07:35+00:00">2021-01-28</time>
+                <time title="修改时间：2021-01-29 07:14:05" itemprop="dateModified" datetime="2021-01-29T07:14:05+00:00">2021-01-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -574,7 +674,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-28 09:07:35" itemprop="dateModified" datetime="2021-01-28T09:07:35+00:00">2021-01-28</time>
+                <time title="修改时间：2021-01-29 07:14:05" itemprop="dateModified" datetime="2021-01-29T07:14:05+00:00">2021-01-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -679,7 +779,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-28 09:07:35" itemprop="dateModified" datetime="2021-01-28T09:07:35+00:00">2021-01-28</time>
+                <time title="修改时间：2021-01-29 07:14:05" itemprop="dateModified" datetime="2021-01-29T07:14:05+00:00">2021-01-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1666,7 +1766,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-28 09:07:35" itemprop="dateModified" datetime="2021-01-28T09:07:35+00:00">2021-01-28</time>
+                <time title="修改时间：2021-01-29 07:14:05" itemprop="dateModified" datetime="2021-01-29T07:14:05+00:00">2021-01-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1780,7 +1880,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-28 09:07:35" itemprop="dateModified" datetime="2021-01-28T09:07:35+00:00">2021-01-28</time>
+                <time title="修改时间：2021-01-29 07:14:05" itemprop="dateModified" datetime="2021-01-29T07:14:05+00:00">2021-01-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1949,7 +2049,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-28 09:07:35" itemprop="dateModified" datetime="2021-01-28T09:07:35+00:00">2021-01-28</time>
+                <time title="修改时间：2021-01-29 07:14:05" itemprop="dateModified" datetime="2021-01-29T07:14:05+00:00">2021-01-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2146,7 +2246,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-28 09:07:35" itemprop="dateModified" datetime="2021-01-28T09:07:35+00:00">2021-01-28</time>
+                <time title="修改时间：2021-01-29 07:14:05" itemprop="dateModified" datetime="2021-01-29T07:14:05+00:00">2021-01-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2315,7 +2415,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-28 09:07:35" itemprop="dateModified" datetime="2021-01-28T09:07:35+00:00">2021-01-28</time>
+                <time title="修改时间：2021-01-29 07:14:05" itemprop="dateModified" datetime="2021-01-29T07:14:05+00:00">2021-01-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2439,7 +2539,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-28 09:07:35" itemprop="dateModified" datetime="2021-01-28T09:07:35+00:00">2021-01-28</time>
+                <time title="修改时间：2021-01-29 07:14:05" itemprop="dateModified" datetime="2021-01-29T07:14:05+00:00">2021-01-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2638,7 +2738,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-28 09:07:35" itemprop="dateModified" datetime="2021-01-28T09:07:35+00:00">2021-01-28</time>
+                <time title="修改时间：2021-01-29 07:14:05" itemprop="dateModified" datetime="2021-01-29T07:14:05+00:00">2021-01-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2734,7 +2834,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-28 09:07:35" itemprop="dateModified" datetime="2021-01-28T09:07:35+00:00">2021-01-28</time>
+                <time title="修改时间：2021-01-29 07:14:05" itemprop="dateModified" datetime="2021-01-29T07:14:05+00:00">2021-01-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2835,7 +2935,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-28 09:07:35" itemprop="dateModified" datetime="2021-01-28T09:07:35+00:00">2021-01-28</time>
+                <time title="修改时间：2021-01-29 07:14:05" itemprop="dateModified" datetime="2021-01-29T07:14:05+00:00">2021-01-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2926,101 +3026,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/08/14/CentOS7%E5%AE%89%E8%A3%85MariaDB/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/08/14/CentOS7%E5%AE%89%E8%A3%85MariaDB/" class="post-title-link" itemprop="url">CentOS7安装MariaDB</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-08-14 15:08:05" itemprop="dateCreated datePublished" datetime="2018-08-14T15:08:05+00:00">2018-08-14</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-01-28 09:07:35" itemprop="dateModified" datetime="2021-01-28T09:07:35+00:00">2021-01-28</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/MariaDB/" itemprop="url" rel="index"><span itemprop="name">MariaDB</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="CentOS7安装MariaDB"><a href="#CentOS7安装MariaDB" class="headerlink" title="CentOS7安装MariaDB"></a>CentOS7安装MariaDB</h1><h2 id="MariaDB简介"><a href="#MariaDB简介" class="headerlink" title="MariaDB简介"></a>MariaDB简介</h2><p>官网：<a target="_blank" rel="noopener" href="https://mariadb.org/">https://mariadb.org/</a></p>
-<p>MariaDB Github地址：<a target="_blank" rel="noopener" href="https://github.com/MariaDB/server">https://github.com/MariaDB/server</a></p>
-<h2 id="安装MariaDB"><a href="#安装MariaDB" class="headerlink" title="安装MariaDB"></a>安装MariaDB</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">su root <span class="comment">## 切换root用户</span></span><br><span class="line">yum -y install mariadb-server mariadb <span class="comment">## 下载MariaDB</span></span><br><span class="line">yum -y install mariadb-server mariadb <span class="comment">## 启动MariaDB服务</span></span><br><span class="line">systemctl <span class="built_in">enable</span> mariadb <span class="comment">## 设置默认开机启动 可选</span></span><br></pre></td></tr></table></figure>
-<h2 id="测试是否成功"><a href="#测试是否成功" class="headerlink" title="测试是否成功"></a>测试是否成功</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost toor]<span class="comment"># mysql</span></span><br><span class="line">Welcome to the MariaDB monitor.  Commands end with ; or \g.</span><br><span class="line">Your MariaDB connection id is 2</span><br><span class="line">Server version: 5.5.56-MariaDB MariaDB Server</span><br><span class="line"></span><br><span class="line">Copyright (c) 2000, 2017, Oracle, MariaDB Corporation Ab and others.</span><br><span class="line"></span><br><span class="line">Type <span class="string">&#x27;help;&#x27;</span> or <span class="string">&#x27;\h&#x27;</span> <span class="keyword">for</span> <span class="built_in">help</span>. Type <span class="string">&#x27;\c&#x27;</span> to clear the current input statement.</span><br></pre></td></tr></table></figure>
-<h2 id="运行一次mysql-secure-installation安全配置向导"><a href="#运行一次mysql-secure-installation安全配置向导" class="headerlink" title="运行一次mysql_secure_installation安全配置向导"></a>运行一次mysql_secure_installation安全配置向导</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#由于一开始安装MariaDB数据库后, root用户默认密码为空, 所以只需要按Enter键</span></span><br><span class="line">Enter current password <span class="keyword">for</span> root (enter <span class="keyword">for</span> none):</span><br><span class="line">OK, successfully used password, moving on...</span><br><span class="line"></span><br><span class="line"><span class="comment">#是否设置root用户的新密码</span></span><br><span class="line">Set root password? [Y/n] y</span><br><span class="line"></span><br><span class="line"><span class="comment">#录入新密码</span></span><br><span class="line">New password:</span><br><span class="line"></span><br><span class="line"><span class="comment">#确认新密码</span></span><br><span class="line">Re-enter new password:</span><br><span class="line"></span><br><span class="line"><span class="comment">#是否删除匿名用户,生产环境建议删除</span></span><br><span class="line">Remove anonymous users? [Y/n] y</span><br><span class="line">... Success!</span><br><span class="line"></span><br><span class="line"><span class="comment">#是否禁止root远程登录,根据自己的需求选择</span></span><br><span class="line">Disallow root login remotely? [Y/n] n</span><br><span class="line">... skipping.</span><br><span class="line"></span><br><span class="line"><span class="comment">#是否删除test数据库</span></span><br><span class="line">Remove <span class="built_in">test</span> database and access to it? [Y/n] y</span><br><span class="line"></span><br><span class="line"><span class="comment">#是否重新加载权限表</span></span><br><span class="line">Reload privilege tables now? [Y/n] y</span><br><span class="line"> ... Success!</span><br></pre></td></tr></table></figure>
-<h2 id="开放端口"><a href="#开放端口" class="headerlink" title="开放端口"></a>开放端口</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">firewall-cmd --zone=public --add-port=3306/tcp --permanent</span><br><span class="line">firewall-cmd --reload</span><br></pre></td></tr></table></figure>
-<h2 id="开放远程连接"><a href="#开放远程连接" class="headerlink" title="开放远程连接"></a>开放远程连接</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql -u root -p <span class="comment">## 登录mysql xing123123</span></span><br></pre></td></tr></table></figure>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#任何远程主机都可以访问数据库</span></span><br><span class="line">mysql&gt; grant all privileges on *.* to <span class="string">&#x27;root&#x27;</span>@<span class="string">&#x27;%&#x27;</span> identified by <span class="string">&#x27;123456&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">#使修改生效</span></span><br><span class="line">mysql&gt; flush privileges;</span><br><span class="line">mysql&gt; <span class="built_in">exit</span></span><br></pre></td></tr></table></figure>
-<h2 id="修改编码为UTF-8"><a href="#修改编码为UTF-8" class="headerlink" title="修改编码为UTF-8"></a>修改编码为UTF-8</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/my.cnf</span><br></pre></td></tr></table></figure>
-<p>添加以下内容：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[mysqld]</span><br><span class="line">character-set-server=utf8</span><br></pre></td></tr></table></figure>
-<p>需要重启数据库</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">## 查看数据库编码</span></span><br><span class="line"></span><br><span class="line"> mysql -uroot -p</span><br><span class="line">show variables like <span class="string">&#x27;character%&#x27;</span>;</span><br></pre></td></tr></table></figure>
-<p>结果：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">MariaDB [(none)]&gt; show variables like <span class="string">&#x27;character%&#x27;</span>;</span><br><span class="line">+--------------------------+----------------------------+</span><br><span class="line">| Variable_name            | Value                      |</span><br><span class="line">+--------------------------+----------------------------+</span><br><span class="line">| character_set_client     | utf8                       |</span><br><span class="line">| character_set_connection | utf8                       |</span><br><span class="line">| character_set_database   | utf8                       |</span><br><span class="line">| character_set_filesystem | binary                     |</span><br><span class="line">| character_set_results    | utf8                       |</span><br><span class="line">| character_set_server     | utf8                       |</span><br><span class="line">| character_set_system     | utf8                       |</span><br><span class="line">| character_sets_dir       | /usr/share/mysql/charsets/ |</span><br><span class="line">+--------------------------+----------------------------+</span><br><span class="line">8 rows <span class="keyword">in</span> <span class="built_in">set</span> (0.00 sec)</span><br></pre></td></tr></table></figure>
-<h2 id="使用mysql-workbench连接"><a href="#使用mysql-workbench连接" class="headerlink" title="使用mysql workbench连接"></a>使用mysql workbench连接</h2><p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20180905104709.png" alt="微信截图_20180905104709.png"></p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/toubennuhai/article/details/70808610">Centos7 安装配置MariaDB</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/17/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/17/">17</a><span class="page-number current">18</span><a class="page-number" href="/page/19/">19</a><span class="space">&hellip;</span><a class="page-number" href="/page/23/">23</a><a class="extend next" rel="next" href="/page/19/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
+    <a class="extend prev" rel="prev" href="/page/17/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/17/">17</a><span class="page-number current">18</span><a class="page-number" href="/page/19/">19</a><span class="space">&hellip;</span><a class="page-number" href="/page/24/">24</a><a class="extend next" rel="next" href="/page/19/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
   </nav>
 
 
@@ -3086,7 +3095,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">345</span>
+          <span class="site-state-item-count">346</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
