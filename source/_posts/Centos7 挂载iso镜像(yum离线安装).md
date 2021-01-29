@@ -50,6 +50,8 @@ enable=1
 gpgcheck=0
 ```
 
+介绍：
+
 ```sh
 [local]　　　　　　　　　　　　　　 #库名称
 name=local　　               #名称描述
