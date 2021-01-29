@@ -20,7 +20,7 @@ uname -a
 
 ```sh
 # 这个命令适用于所有的Linux发行版，包括RedHat、SUSE、Debian…等发行版。
-# 如果未安装，需要 yum install redhat-lsb -y
+# 如果未安装，需要命令：yum install redhat-lsb -y
 lsb_release -a
 
 # 只适合Redhat系的Linux
