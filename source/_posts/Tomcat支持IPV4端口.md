@@ -1,5 +1,5 @@
 ---
-title: Tomcat绑定IPV4端口
+title: Tomcat支持IPV4端口
 date: 2020-08-31 14:11:46
 tags:
 - Linux
@@ -10,7 +10,29 @@ categories:
 - Tomcat
 ---
 
-## linux平台
+## 支持IPV4端口
+
+`/conf/context.xml`
+
+```xml
+<Connector port="80" maxHttpHeaderSize="8192" 
+            maxThreads="300" minSpareThreads="25" maxSpareThreads="75"
+            enableLookups="false" redirectPort="8443" acceptCount="100"
+            connectionTimeout="20000" disableUploadTimeout="true" />
+```
+
+添加： `address="0.0.0.0"`
+
+```xml
+<Connector port="80" maxHttpHeaderSize="8192" address="0.0.0.0"
+            maxThreads="300" minSpareThreads="25" maxSpareThreads="75"
+            enableLookups="false" redirectPort="8443" acceptCount="100"
+            connectionTimeout="20000" disableUploadTimeout="true" />
+```
+
+## 只支持IP4
+
+### linux平台
 
 在 `<tomcat>/bin` 目录下 `catalina.sh`，添加如下内容：
 
@@ -26,7 +48,7 @@ categories:
 JAVA_OPTS="$JAVA_OPTS -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true "
 ```
 
-## windows
+### windows
 
 编辑 bin 目录下的 `catalina.bat` 文件，改成以下内容：
 

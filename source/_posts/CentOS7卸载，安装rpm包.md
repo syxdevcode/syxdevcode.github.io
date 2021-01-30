@@ -11,10 +11,10 @@ categories:
 
 ```sh
 # 强制卸载：
-rpm -e –-nodeps xxxxxx.rpm
+rpm -e --nodeps xxxxxx.rpm
 
 # 强制安装：
-rpm -ivh –-nodeps xxxxxx.rpm
+rpm -ivh --nodeps xxxxxx.rpm
 ```
 
 示例：
