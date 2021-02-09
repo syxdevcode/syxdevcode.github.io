@@ -28,6 +28,10 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON *.* TO 'root'@'192.125.30.123' IDENTIFIED B
 FLUSH PRIVILEGES;
 ```
 
+取消权限：
+
+`revoke all on *.* from root@localhost;`
+
 * priv_type 参数表示权限类型；
 * columns_list 参数表示权限作用于哪些列上，省略该参数时，表示作用于整个表；
 * database.table 用于指定权限的级别；
