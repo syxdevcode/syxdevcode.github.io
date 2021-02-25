@@ -5,8 +5,10 @@ tags:
 - TCP协议
 - 计算机基础
 - 网络基础
+- IP网络
+- Ethernet
 categories:
-- 网络基础
+- Ethernet
 ---
 
 循环冗余检验CRC是一种检验方法，而FCS是添加在数据后面的帧检验序列。CRC 检验只能保证接收端接收到的帧没有差错，至于有没有出现帧丢失，帧重复，帧失序，是无法判断的。
@@ -26,6 +28,7 @@ FCS 字段：包含帧的 32 位循环冗余校验 (CRC), 数据链路层帧方�
 ![ethernetframe-802.3.png](/img/ethernet-frame-802-3.png)
 
 octets：（Bytes）字节
+Frame：帧
 
 参考：
 
