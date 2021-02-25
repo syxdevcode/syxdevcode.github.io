@@ -11,6 +11,11 @@ categories:
 - Ethernet
 ---
 
+![ethernet-frame.gif](/img/ethernet-frame.gif)
+
+octets：（Bytes）字节
+Frame：帧
+
 ## Ethernet帧格式历史
 
 1980 DEC,Intel,Xerox 制订了 Ethernet I 的标准
@@ -170,11 +175,6 @@ SNAP Frame 与 802.3/802.2 Frame 的最大区别是增加了一个 5 Bytes 的 S
 Ethernet V2可以装载的最大数据长度是1500字节，而IEEE 802.3可以装载的最大数据是1492字节（SNAP）或是1497字节; Ethernet V2 不提供 MAC层 的数据填充功能，而IEEE 802.3不仅提供该功能，还具备服务访问点（SAP）和SNAP层，能够提供更有效的数据链路层控制和更好的传输保证。那么我们可以得出这样的结 论：Ethernet V2比IEEE802.3更适合于传输大量的数据，但Ethernet V2缺乏数据链路层的控制，不利于传输需要严格传输控制的数据，这也正是IEEE802.3的优势所在，越需要严格传输控制的应用，越需要用 IEEE802.3或SNAP来封装，但IEEE802.3也不可避免的带来数据装载量的损失，因此该格式的封装往往用在较少数据量承载但又需要严格控制 传输的应用中。
 
 在实际应用中，我们会发现，大多数应用的以太网数据包是Ethernet V2的帧（如HTTP、FTP、SMTP、POP3等应用），而交换机之间的BPDU（桥协议数据单元）数据包则是IEEE 802.3的帧，VLAN Trunk协议如802.1Q和Cisco的CDP（思科发现协议）等则是采用IEEE802.3 SNAP的帧。利用Sniffer等协议分析工具去捕捉数据包。
-
-![ethernetframe-802.3.png](/img/ethernet-frame-802-3.png)
-
-octets：（Bytes）字节
-Frame：帧
 
 参考：
 

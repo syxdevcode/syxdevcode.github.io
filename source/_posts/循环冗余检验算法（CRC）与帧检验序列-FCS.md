@@ -25,7 +25,7 @@ categories:
 
 FCS 字段：包含帧的 32 位循环冗余校验 (CRC), 数据链路层帧方式接入协议（LAPF）中的字段，是一个16比特的序列。它具有很强的检错能力，它能检测出在任何位置上的 3 个以内的错误、所有的奇数个错误、16个比特之内的连续错误以及大部分的大量突发错误。
 
-![ethernetframe-802.3.png](/img/ethernet-frame-802-3.png)
+![ethernet-frame.gif](/img/ethernet-frame.gif)
 
 octets：（Bytes）字节
 Frame：帧
