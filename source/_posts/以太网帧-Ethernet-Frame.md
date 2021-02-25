@@ -28,7 +28,7 @@ Frame：帧
 
 1985 IEEE 推出 IEEE 802.3 规范,
 
-后来为解决 EthernetII 与 802.3 帧格式 的兼容问题,推出折衷的 Ethernet SNAP 格式
+后来为解决 Ethernet II 与 802.3 帧格式 的兼容问题,推出折衷的 Ethernet SNAP 格式
 
 (其中早期的 Ethernet I 已经完全被其他帧格式取代了 ,所以现在 Ethernet 只能见到后面几种 Ethernet的帧格式,现在大部分的网络设备都支持这几种 Ethernet 的帧格式,如:cisco 的路由器再设定 Ethernet 接口时可以指定不同的以太网的帧格式:arpa,sap,snap,novell-ether)
 
