@@ -185,6 +185,129 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/02/17/ASP-NET%E8%AF%B7%E6%B1%82%E5%A4%84%E7%90%86%E7%AE%A1%E9%81%93/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/02/17/ASP-NET%E8%AF%B7%E6%B1%82%E5%A4%84%E7%90%86%E7%AE%A1%E9%81%93/" class="post-title-link" itemprop="url">ASP.NET请求处理管道</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-02-17 09:49:32" itemprop="dateCreated datePublished" datetime="2019-02-17T09:49:32+00:00">2019-02-17</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-02-25 07:14:57" itemprop="dateModified" datetime="2021-02-25T07:14:57+00:00">2021-02-25</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ASP-NET-IIS%E8%AF%B7%E6%B1%82%E5%A4%84%E7%90%86%E7%AE%A1%E9%81%93/" itemprop="url" rel="index"><span itemprop="name">ASP.NET/IIS请求处理管道</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><img src="/img/2012071209470854.png" alt="2012071209470854.png"></p>
+<p>IIS 6.X和IIS7经典模式，采用aspnet_isapi.dll来响应请求；<br>IIS7集成模式则执行单独的管道；</p>
+<p>注：<font color=#ff0000 size=4 face="黑体">ASP.NET WebForm和ASP.NET MVC 同用一套请求处理管道。</font></p>
+<h2 id="创建HttpApplication"><a href="#创建HttpApplication" class="headerlink" title="创建HttpApplication"></a>创建HttpApplication</h2><p>创建 <code>HttpApplication</code>（即w3wp.exe）对象的时候，先去对象池中查找，没有则创建（编译Global.asax,创建HttpApplication对象），找到则直接返回对象。</p>
+<p>HttpApplication的工作包括：</p>
+<p>● 初始化的时候加载全部的HttpModule<br>● 接收请求<br>● 在不同阶段引发不同的事件，使得HttpModule通过订阅事件的方式加入到请求的处理过程中<br>● 在一个特定阶段获取一个IHttpHandler实例，最终将请求交给具体的IHttpHandler来实现</p>
+<p><code>HttpApplication</code> 创建之后，则是ASP.NET请求处理管道。</p>
+<h3 id="HttpModules-amp-HttpHandlers"><a href="#HttpModules-amp-HttpHandlers" class="headerlink" title="HttpModules &amp; HttpHandlers"></a>HttpModules &amp; HttpHandlers</h3><p>** HttpModules**</p>
+<p>所有的HttpModules都实现了IHttpModule接口,可以实现 <code>IHttpModule</code> 接口自定义 <code>HttpModule</code>。</p>
+<p>** HttpHandlers**</p>
+<p>当某个请求与一个规则匹配后，ASP.NET会调用匹配的HttpHandlerFactory的GetHandler方法来获取一个HttpHandler实例， 最后由一个HttpHandler实例来处理当前请求，生成响应内容</p>
+<p>所有的 <code>HttpHandlers</code> 都实现了 <code>IHttpHandler</code> 接口,可以实现 <code>IHttpHandler</code> 接口自定义 <code>HttpHandler</code>。</p>
+<p>如图：</p>
+<p><img src="/img/190047183794497.png" alt="190047183794497.png"></p>
+<h2 id="Asp-Net请求处理事件"><a href="#Asp-Net请求处理事件" class="headerlink" title="Asp.Net请求处理事件"></a>Asp.Net请求处理事件</h2><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>、BeginRequest：HTTP管道开始处理请求时，会触发BeginRequest事件</span><br><span class="line"></span><br><span class="line"><span class="number">2</span>、AuthenticateRequest：安全模块对请求进行身份验证时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">3</span>、PostAuthenticateRequest：安全模块对请求进行身份验证后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">4</span>、AuthorizeRequest：安全模块对请求进程授权时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">5</span>、PostAuthorizeRequest：安全模块对请求进程授权后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">6</span>、ResolveRequestCache：缓存模块利用缓存直接对请求进程响应时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">7</span>、PostResolveRequestCache：缓存模块利用缓存直接对请求进程响应后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">8</span>、PostMapRequestHandler：对于访问不同的资源类型，ASP.NET具有不同的HttpHandler对其进程处理。</span><br><span class="line">对于每个请求，ASP.NET会根据扩展名选择匹配相应的HttpHandler类型，成功匹配后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">9</span>、AcquireRequestState：状态管理模块获取基于当前请求相应的状态(比如SessionState)时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">10</span>、PostAcquireRequestState：状态管理模块获取基于当前请求相应的状态(比如SessionState)后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">11</span>、PreRequestHandlerExecute：在实行HttpHandler前触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">12</span>、PostRequestHandlerExecute：在实行HttpHandler后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">13</span>、ReleaseRequestState：状态管理模块释放基于当前请求相应的状态时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">14</span>、PostReleaseRequestState：状态管理模块释放基于当前请求相应的状态后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">15</span>、UpdateRequestCache：缓存模块将HttpHandler处理请求得到的相应保存到输出缓存时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">16</span>、PostUpdateRequestCache：缓存模块将HttpHandler处理请求得到的相应保存到输出缓存后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">17</span>、LogRequest：为当前请求进程日志记录时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">18</span>、PostLogReques：为当前请求进程日志记录后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">19</span>、EndRequest：整个请求处理完成后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">20</span>、PreSendRequestHeaders：.Net4<span class="number">.0</span>新增，可以根据发送的Header设置一些参数，</span><br><span class="line">例如，设置一个特殊的Header通知浏览器启用压缩来提高网络传输速度</span><br><span class="line"></span><br><span class="line"><span class="number">21</span>、PreSendRequestContent：.Net4<span class="number">.0</span>新增，恰好在 ASP.NET 向客户端发送内容之前发生。</span><br><span class="line">例如，在此事件压缩输出到浏览器的流。</span><br></pre></td></tr></table></figure>
+<p><font color=##ff0000 size=4 face="黑体">webform 和 mvc 共用一套管道，在第7个事件 <code>PostResolveRequestCache</code> 会根据Url去路由表匹配所有的路由规则，<br>如果匹配到了路由，则证明请求是MVC程序,反之，则是WebForm。</font></p>
+<h2 id="WebForm-管道事件摘要"><a href="#WebForm-管道事件摘要" class="headerlink" title="WebForm 管道事件摘要"></a>WebForm 管道事件摘要</h2><p>1，第八个事件 <code>PostMapRequestHandler</code> 创建Page类对象并转换为IHttpHandler接口。</p>
+<p>在这个事件中，对于访问不同的资源类型，ASP.NET具有不同的HttpHandler对其进程处理。对于每个请求，ASP.NET会通过扩展名选择匹配相应的HttpHandler类型，成功匹配后，该实现被触发。因此，如果请求的扩展名是.aspx，便会生成Page类对象，而Page类对象是实现了IHttpHandler接口的。</p>
+<p>2，在第九个到第十事件之间根据SessionId获取Session</p>
+<p>第九到第十个事件是：<code>AcquireRequestState</code>，<code>PostAcquireRequestState</code>。</p>
+<p>这期间首先会接收到浏览器发过来的SessionId，然后先会将IHttpHandler接口尝试转换为IRequiresSessionState接口，如果转换成功，ASP.NET会根据这个SessionId到服务器的Session池中去查找所对应的Session对象，并将这个Session对象赋值到HttpContext对象的Session属性。如果尝试转换为IRequiresSessionState接口不成功，则不加载Session。</p>
+<p>3，在第十一个事件与第十二个事件之间执行页面生命周期</p>
+<p>第十一和第十二个事件是：<code>PreRequestHandlerExecute</code>，<code>PostRequestHandlerExecute</code>。在这两个事件之间，ASP.NET最终通过请求资源类型相对应的HttpHandler实现对请求的处理，其实现方式是调用在第八个事件创建的页面对象的ProcessRequest方法。</p>
+<p><img src="/img/051837105625665.jpg" alt="051837105625665.jpg"></p>
+<p>在 <code>FrameworkInitialize()</code> 这个方法内部就开始打造WebForm的页面控件树，在其中调用了ProcessRequestMain方法，在这个方法里面就执行了整个ASP.NET WebFom页面生命周期。</p>
+<h2 id="MVC-管道事件摘要"><a href="#MVC-管道事件摘要" class="headerlink" title="MVC 管道事件摘要"></a>MVC 管道事件摘要</h2><p>在ASP.NET MVC中，最核心的当属“路由系统”，而路由系统的核心则源于一个强大的 <code>System.Web.Routing.dll</code> 组件。</p>
+<p><font color=##ff0000 size=4 face="黑体">在这个System.Web.Routing.dll中，有一个最重要的类叫做UrlRoutingModule , ASP.NET MVC的入口在 <code>UrlRoutingModule</code>，它是一个实现了<code>IHttpModule</code> 接口的类,订阅了 <code>HttpApplication</code> 的第7个管道事件 <code>PostResolveRequestCahce</code> 对请求进行了拦截。</font></p>
+<p>1,IIS网站的配置可以分为两个块：全局 Web.config 和本站 Web.config。Asp.Net Routing属于全局性的，所以它配置在全局Web.Config 中，我们可以在如下路径中找到：“$\Windows\Microsoft.NET\Framework\版本号\Config\Web.config“</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> encoding=<span class="string">&quot;utf-8&quot;</span>?&gt;</span><br><span class="line"> &lt;!-- the root web configuration file --&gt;</span><br><span class="line"> &lt;configuration&gt;</span><br><span class="line">     &lt;system.web&gt;</span><br><span class="line">         &lt;httpModules&gt;</span><br><span class="line">             &lt;<span class="keyword">add</span> name=<span class="string">&quot;UrlRoutingModule-4.0&quot;</span> type=<span class="string">&quot;System.Web.Routing.UrlRoutingModule&quot;</span> /&gt;</span><br><span class="line">         &lt;/httpModules&gt;</span><br><span class="line">    &lt;/system.web&gt;</span><br><span class="line"> &lt;/configuration&gt;</span><br></pre></td></tr></table></figure>
+<p>2,通过在全局Web.Config中注册 <code>System.Web.Routing.UrlRoutingModule</code>，IIS请求处理管道接到请求后，就会加载 UrlRoutingModule类型的Init()方法，第7个管道事件 <code>PostResolveRequestCahce</code> 对请求进行了拦截。</p>
+<p>3,在第七个事件中创建实现了IHttpHandler接口的MvcHandler</p>
+<p>第七个事件：<code>PostResolveRequestCache</code></p>
+<p>当请求到达 <code>UrlRoutingModule</code> 的时候，<code>UrlRoutingModule</code> 取出请求中的 Controller、Action等RouteData信息，与路由表中的所有规则进行匹配，若匹配，把请求交给 <code>IRouteHandler</code>，即 <code>MVCRouteHandler</code>。我们可以看下<code>UrlRoutingModule</code> 的源码来看看，以下是几句核心的代码：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">PostResolveRequestCache</span>(<span class="params">HttpContextBase context</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">// 通过RouteCollection的静态方法GetRouteData获取到封装路由信息的RouteData实例</span></span><br><span class="line">    RouteData routeData = <span class="keyword">this</span>.RouteCollection.GetRouteData(context);</span><br><span class="line">    <span class="keyword">if</span> (routeData != <span class="literal">null</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// 再从RouteData中获取MVCRouteHandler</span></span><br><span class="line">        IRouteHandler routeHandler = routeData.RouteHandler;</span><br><span class="line">        ......</span><br><span class="line">        <span class="keyword">if</span> (!(routeHandler <span class="keyword">is</span> StopRoutingHandler))</span><br><span class="line">        &#123;</span><br><span class="line">            ......</span><br><span class="line">            <span class="comment">// 调用 IRouteHandler.GetHttpHandler()，获取的IHttpHandler 类型实例，它是由 IRouteHandler.GetHttpHandler获取的</span></span><br><span class="line">            IHttpHandler httpHandler = routeHandler.GetHttpHandler(requestContext);</span><br><span class="line">            ......</span><br><span class="line">            <span class="comment">// 合适条件下，把之前将获取的IHttpHandler 类型实例 映射到IIS HTTP处理管道中</span></span><br><span class="line">            context.RemapHandler(httpHandler);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>MVCRouteHandler</code> 的作用是用来生成实现 <code>IHttpHandler</code> 接口的 <code>MvcHandler</code>：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">namespace</span> <span class="title">System.Web.Routing</span></span><br><span class="line">&#123;  </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">interface</span> <span class="title">IRouteHandler</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function">IHttpHandler <span class="title">GetHttpHandler</span>(<span class="params">RequestContext requestContext</span>)</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>获取 <code>MvcRouteHadnler</code> :</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 继承HttpApplication</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">MvcApplication</span> : <span class="title">System.Web.HttpApplication</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 第一个管道事件</span></span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">Application_Start</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        ......</span><br><span class="line">        <span class="comment">//注册路由</span></span><br><span class="line">        RouteConfig.RegisterRoutes(RouteTable.Routes);</span><br><span class="line">        BundleConfig.RegisterBundles(BundleTable.Bundles);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">RouteConfig</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">RegisterRoutes</span>(<span class="params">RouteCollection routes</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        routes.IgnoreRoute(<span class="string">&quot;&#123;resource&#125;.axd/&#123;*pathInfo&#125;&quot;</span>);</span><br><span class="line">        <span class="comment">// MapRoute位于System.Web.Mvc.RouteCollectionExtensions</span></span><br><span class="line">        routes.MapRoute(</span><br><span class="line">            name: <span class="string">&quot;Default&quot;</span>,</span><br><span class="line">            url: <span class="string">&quot;&#123;controller&#125;/&#123;action&#125;/&#123;id&#125;&quot;</span>,</span><br><span class="line">            defaults: <span class="keyword">new</span> &#123; controller = <span class="string">&quot;Home&quot;</span>, action = <span class="string">&quot;Index&quot;</span>, id = UrlParameter.Optional &#125;</span><br><span class="line">        );</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// System.Web.Mvc.RouteCollectionExtensions 扩展方法</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Route <span class="title">MapRoute</span>(<span class="params"><span class="keyword">this</span> RouteCollection routes, <span class="built_in">string</span> name, <span class="built_in">string</span> url, <span class="built_in">object</span> defaults, <span class="built_in">object</span> constraints, <span class="built_in">string</span>[] namespaces</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    ......</span><br><span class="line">　　　<span class="comment">// 通过Route类的构造函数把 MvcRouteHandler 注入到路由中</span></span><br><span class="line">    Route route = <span class="keyword">new</span> Route(url, <span class="keyword">new</span> MvcRouteHandler())             &#123;</span><br><span class="line">        Defaults = <span class="keyword">new</span> RouteValueDictionary(defaults),</span><br><span class="line">        Constraints = <span class="keyword">new</span> RouteValueDictionary(constraints),</span><br><span class="line">        DataTokens = <span class="keyword">new</span> RouteValueDictionary()</span><br><span class="line">    &#125;;</span><br><span class="line">    ......</span><br><span class="line">    <span class="keyword">return</span> route;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在第11和第12个事件之间调用了 <code>MvcHandler</code> 的 <code>ProcessRequest</code> 方法处理ASP.NET MVC。</p>
+<p>第十一和第十二个事件是：<code>PreRequestHandlerExecute</code>，<code>PostRequestHandlerExecute</code>。</p>
+<p>获取 <code>MvcHandler</code>:</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">IHttpHandler httpHandler = routeHandler.GetHttpHandler(requestContext);</span><br><span class="line">context.RemapHandler(httpHandler);</span><br><span class="line"></span><br><span class="line"><span class="comment">// MvcHandlerd的实现</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">virtual</span> IHttpHandler <span class="title">GetHttpHandler</span>(<span class="params">RequestContext requestContext</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">　　requestContext.HttpContext.SetSessionStateBehavior(GetSessionStateBehavior(requestContext));</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> MvcHandler(requestContext);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如图：</p>
+<p><img src="/img/190104512548523.png" alt="190104512548523.png"></p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/artech/archive/2009/06/20/1507165.html">再谈IIS与ASP.NET管道</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/zhangyihui/p/5082394.html">【深入ASP.NET原理系列】–ASP.NET请求管道、应用程序生命周期、整体运行机制</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/darrenji/p/3795661.html">ASP.NET MVC请求处理管道生命周期的19个关键环节(1-6)</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/darrenji/p/3795676.html">ASP.NET MVC请求处理管道生命周期的19个关键环节(7-12)</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/edisonchou/p/4201855.html">ASP.Net请求处理机制初步探索之旅 - Part 3 管道</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/02/15/ASP-NET%E5%9C%A8IIS%E8%BF%90%E8%A1%8C%E6%A8%A1%E5%BC%8F/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -216,7 +339,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-09 06:23:12" itemprop="dateModified" datetime="2021-02-09T06:23:12+00:00">2021-02-09</time>
+                <time title="修改时间：2021-02-25 07:14:57" itemprop="dateModified" datetime="2021-02-25T07:14:57+00:00">2021-02-25</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -340,7 +463,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-09 06:23:12" itemprop="dateModified" datetime="2021-02-09T06:23:12+00:00">2021-02-09</time>
+                <time title="修改时间：2021-02-25 07:14:57" itemprop="dateModified" datetime="2021-02-25T07:14:57+00:00">2021-02-25</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -439,7 +562,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-09 06:23:12" itemprop="dateModified" datetime="2021-02-09T06:23:12+00:00">2021-02-09</time>
+                <time title="修改时间：2021-02-25 07:14:57" itemprop="dateModified" datetime="2021-02-25T07:14:57+00:00">2021-02-25</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -614,7 +737,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-09 06:23:12" itemprop="dateModified" datetime="2021-02-09T06:23:12+00:00">2021-02-09</time>
+                <time title="修改时间：2021-02-25 07:14:57" itemprop="dateModified" datetime="2021-02-25T07:14:57+00:00">2021-02-25</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -689,7 +812,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-09 06:23:12" itemprop="dateModified" datetime="2021-02-09T06:23:12+00:00">2021-02-09</time>
+                <time title="修改时间：2021-02-25 07:14:57" itemprop="dateModified" datetime="2021-02-25T07:14:57+00:00">2021-02-25</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -766,7 +889,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-09 06:23:12" itemprop="dateModified" datetime="2021-02-09T06:23:12+00:00">2021-02-09</time>
+                <time title="修改时间：2021-02-25 07:14:57" itemprop="dateModified" datetime="2021-02-25T07:14:57+00:00">2021-02-25</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -954,7 +1077,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-09 06:23:12" itemprop="dateModified" datetime="2021-02-09T06:23:12+00:00">2021-02-09</time>
+                <time title="修改时间：2021-02-25 07:14:57" itemprop="dateModified" datetime="2021-02-25T07:14:57+00:00">2021-02-25</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1031,7 +1154,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-09 06:23:12" itemprop="dateModified" datetime="2021-02-09T06:23:12+00:00">2021-02-09</time>
+                <time title="修改时间：2021-02-25 07:14:57" itemprop="dateModified" datetime="2021-02-25T07:14:57+00:00">2021-02-25</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1112,7 +1235,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-09 06:23:12" itemprop="dateModified" datetime="2021-02-09T06:23:12+00:00">2021-02-09</time>
+                <time title="修改时间：2021-02-25 07:14:57" itemprop="dateModified" datetime="2021-02-25T07:14:57+00:00">2021-02-25</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1193,7 +1316,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-09 06:23:12" itemprop="dateModified" datetime="2021-02-09T06:23:12+00:00">2021-02-09</time>
+                <time title="修改时间：2021-02-25 07:14:57" itemprop="dateModified" datetime="2021-02-25T07:14:57+00:00">2021-02-25</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1280,7 +1403,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-09 06:23:12" itemprop="dateModified" datetime="2021-02-09T06:23:12+00:00">2021-02-09</time>
+                <time title="修改时间：2021-02-25 07:14:57" itemprop="dateModified" datetime="2021-02-25T07:14:57+00:00">2021-02-25</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1361,7 +1484,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-09 06:23:12" itemprop="dateModified" datetime="2021-02-09T06:23:12+00:00">2021-02-09</time>
+                <time title="修改时间：2021-02-25 07:14:57" itemprop="dateModified" datetime="2021-02-25T07:14:57+00:00">2021-02-25</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1442,7 +1565,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-09 06:23:12" itemprop="dateModified" datetime="2021-02-09T06:23:12+00:00">2021-02-09</time>
+                <time title="修改时间：2021-02-25 07:14:57" itemprop="dateModified" datetime="2021-02-25T07:14:57+00:00">2021-02-25</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1526,7 +1649,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-09 06:23:12" itemprop="dateModified" datetime="2021-02-09T06:23:12+00:00">2021-02-09</time>
+                <time title="修改时间：2021-02-25 07:14:57" itemprop="dateModified" datetime="2021-02-25T07:14:57+00:00">2021-02-25</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1668,122 +1791,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/01/10/CSharp%E5%9F%BA%E7%A1%80-SOLID%E5%8E%9F%E5%88%99/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/01/10/CSharp%E5%9F%BA%E7%A1%80-SOLID%E5%8E%9F%E5%88%99/" class="post-title-link" itemprop="url">CSharp基础-SOLID原则</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-01-10 12:04:25" itemprop="dateCreated datePublished" datetime="2019-01-10T12:04:25+00:00">2019-01-10</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-09 06:23:12" itemprop="dateModified" datetime="2021-02-09T06:23:12+00:00">2021-02-09</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" itemprop="url" rel="index"><span itemprop="name">设计模式</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="SOLID原则"><a href="#SOLID原则" class="headerlink" title="SOLID原则"></a>SOLID原则</h1><p>设计类和模块时，遵守 SOLID 原则可以让软件更加健壮和稳定。</p>
-<table>
-<thead>
-<tr>
-<th>简写</th>
-<th>全称</th>
-<th>翻译</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>SRP</td>
-<td>The Single Responsibility Principle</td>
-<td>单一责任原则</td>
-</tr>
-<tr>
-<td>OCP</td>
-<td>The Open Closed Principle</td>
-<td>开放封闭原则</td>
-</tr>
-<tr>
-<td>LSP</td>
-<td>The Liskov Substitution Principle</td>
-<td>里氏替换原则</td>
-</tr>
-<tr>
-<td>ISP</td>
-<td>The Interface Segregation Principle</td>
-<td>接口分离原则</td>
-</tr>
-<tr>
-<td>DIP</td>
-<td>The Dependency Inversion Principle</td>
-<td>依赖倒置原则</td>
-</tr>
-</tbody></table>
-<h2 id="单一职责原则（SRP）"><a href="#单一职责原则（SRP）" class="headerlink" title="单一职责原则（SRP）"></a>单一职责原则（SRP）</h2><p>单一职责原则（SRP）表明一个类有且只有一个职责。</p>
-<h2 id="开放封闭原则（OCP）"><a href="#开放封闭原则（OCP）" class="headerlink" title="开放封闭原则（OCP）"></a>开放封闭原则（OCP）</h2><p>开放封闭原则（OCP）指出，一个类应该对扩展开放，对修改关闭。这意味一旦你创建了一个类并且应用程序的其他部分开始使用它，你不应该修改它。即，可扩展(extension)，不可修改(modification)。</p>
-<h2 id="里氏替换原则（LSP）"><a href="#里氏替换原则（LSP）" class="headerlink" title="里氏替换原则（LSP）"></a>里氏替换原则（LSP）</h2><p>里氏替换原则指出，派生的子类应该是可替换基类的，也就是说任何基类可以出现的地方，子类一定可以出现。一个对象在其出现的任何地方，都可以用子类实例做替换，并且不会导致程序的错误。换句话说，当子类可以在任意地方替换基类且软件功能不受影响时，这种继承关系的建模才是合理的。当一个子类的实例应该能够替换任何其超类的实例时，它们之间才具有is-A关系。</p>
-<h2 id="接口隔离原则（ISP）"><a href="#接口隔离原则（ISP）" class="headerlink" title="接口隔离原则（ISP）"></a>接口隔离原则（ISP）</h2><p>接口隔离原则（ISP）表明类不应该被迫依赖他们不使用的方法，也就是说一个接口应该拥有尽可能少的行为。将接口拆分成更小和更具体的接口，有助于解耦，从而更容易重构、更改。</p>
-<h2 id="依赖倒置原则（DIP）"><a href="#依赖倒置原则（DIP）" class="headerlink" title="依赖倒置原则（DIP）"></a>依赖倒置原则（DIP）</h2><p>依赖倒置原则（DIP）表明高层模块不应该依赖低层模块，相反，他们应该依赖抽象类或者接口。这个设计原则的亮点在于任何被DI框架注入的类很容易用mock对象进行测试和维护，因为对象创建代码集中在框架中，客户端代码也不混乱。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/OceanEyes/p/overview-of-solid-principles.html#_label4">浅谈 SOLID 原则的具体使用</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/lanxuezaipiao/archive/2013/06/09/3128665.html">SOLID原则</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1853,7 +1860,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">349</span>
+          <span class="site-state-item-count">350</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -1866,7 +1873,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">152</span>
+        <span class="site-state-item-count">154</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
