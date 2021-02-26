@@ -45,7 +45,7 @@ CISCO设备的Ethernet Interface默认封装格式是ARPA(Ethernet V2)
 | :-----| :---- | :---- |
 | Ethernet Version 2    |  Ethernet_II       |  arpa
 | 802.3 Raw             |  Ethernet_802.3    |  novell_ether
-| IEEE 802.3/802.2 LLC  |  Ethernet_802.2    |  sap
+| IEEE 802.3/802.2      |  Ethernet_802.2    |  sap
 | IEEE 802.3/802.2 SNAP |  ETHERNET_SNAP     |  snap
 
 ## 帧格式
@@ -74,9 +74,9 @@ Ethernet V2 类型以太网帧的最小长度为64字节（6＋6＋2＋46＋4）
 0x0600 　　XNS (Xerox)
 0x6003 　　DECNET
 
-如果协议类型字段取值为0000-05dc(十进制的0-1500)，则该帧就不是Ethernet V2(ARPA)类型了，而是下面的三种802.3帧类型之一；
+如果协议类型字段取值为0000-05dc(十进制的0-1500)，则该帧就不是 Ethernet V2(ARPA) 类型了，而是下面的三种 802.3帧 类型之一；
 
-Ethernet 可以支持 TCP/IP，Novell IPX/SPX，Apple Talk Phase I 等协议；RFC 894 定义了IP报文在Ethernet V2 上的封装格式；
+Ethernet V2 可以支持 TCP/IP，Novell IPX/SPX，Apple Talk Phase I 等协议；RFC 894 定义了IP报文在Ethernet V2 上的封装格式；
 
 ### Novell Ethernet （802.3 Raw） novell_ether
 
@@ -186,6 +186,8 @@ Ethernet V2 可以装载的最大数据长度是1500字节，而 IEEE 802.3 可�
 参考：
 
 [以太网帧与ieee 802.3帧](https://blog.csdn.net/guoshaobei/article/details/4768514)
+
+[以太网类型码(Ethernet type codes)](https://blog.csdn.net/yshe_xun/article/details/7636078)
 
 [Ethernet frame](https://www.cnblogs.com/xlmeng1988/articles/2445619.html)
 
