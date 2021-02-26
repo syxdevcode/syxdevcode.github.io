@@ -185,6 +185,239 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/12/20/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E6%95%B4%E7%90%86%E7%AC%94%E8%AE%B0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/12/20/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E6%95%B4%E7%90%86%E7%AC%94%E8%AE%B0/" class="post-title-link" itemprop="url">分布式事务整理笔记</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-12-20 13:41:22" itemprop="dateCreated datePublished" datetime="2019-12-20T13:41:22+00:00">2019-12-20</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-02-26 01:00:33" itemprop="dateModified" datetime="2021-02-26T01:00:33+00:00">2021-02-26</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">分布式事务</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="事务定义"><a href="#事务定义" class="headerlink" title="事务定义"></a>事务定义</h2><p>事务提供一种机制将一个活动涉及的所有操作纳入到一个不可分割的执行单元，组成事务的所有操作只有在所有操作均能正常执行的情况下方能提交，只要其中任一操作执行失败，都将导致整个事务的回滚。简单地说，事务提供一种“要么什么都不做，要么做全套（All or Nothing）”机制。</p>
+<h2 id="数据库事务"><a href="#数据库事务" class="headerlink" title="数据库事务"></a>数据库事务</h2><p>一个数据库事务通常包含了一个序列的对数据库的读/写操作。它的存在包含有以下两个目的：</p>
+<p>1，为数据库操作序列提供了一个从失败中恢复到正常状态的方法，同时提供了数据库即使在异常状态下仍能保持一致性的方法。<br>2，当多个应用程序在并发访问数据库时，可以在这些应用程序之间提供一个隔离方法，以防止彼此的操作互相干扰。</p>
+<p>数据库事务拥有以下四个特性，ACID 特性。</p>
+<ul>
+<li><p>A 原子性（Atomicity）：事务作为一个整体被执行，包含在其中的对数据库的操作要么全部被执行，要么都不执行。事务在执行过程中发生错误，会被回滚（Rollback）到事务开始前的状态，就像这个事务从来没有执行过一样。</p>
+</li>
+<li><p>C 一致性（Consistency）：事务应确保数据库的状态从一个一致状态转变为另一个一致状态。一致状态的含义是数据库中的数据应满足完整性约束。如果事务成功地完成，那么系统中所有变化将正确地应用，系统处于有效状态。如果在事务中出现错误，那么系统中的所有变化将自动地回滚，系统返回到原始状态。</p>
+</li>
+<li><p>I 隔离性（Isolation）或独立性：多个事务并发执行时，一个事务的执行不应影响其他事务的执行。</p>
+</li>
+<li><p>D 持久性（Durability）：已被提交的事务对数据库的修改应该永久保存在数据库中。即使发生系统崩溃，重新启动数据库系统后，数据库还能恢复到事务成功结束时的状态。</p>
+</li>
+</ul>
+<h2 id="分布式事务"><a href="#分布式事务" class="headerlink" title="分布式事务"></a>分布式事务</h2><p>分布式事务是指事务的参与者、支持事务的服务器、资源服务器以及事务管理器分别位于不同的 分布式系统 的不同节点之上。</p>
+<p>在应用程序只部署在一台计算机，数据库只部署在一台计算机的情况下，事务的ACID四个特性很容易全部满足。</p>
+<p>但是单机的处理能力很容易达到上限，此时必须使用分布式系统。在分布式环境下，应用程序可能部署在多台计算机，并且可能有多个不同的应用程序参与到同一个事务中；数据库也可能部署在多台计算机，并且多个不同的数据库可能会参与到同一个事务中。一次大的操作由不同的小操作组成，这些小的操作分布在不同的服务器上，且属于不同的应用，分布式事务需要保证这些小操作要么全部成功，要么全部失败。本质上来说，分布式事务就是为了保证不同数据库的数据一致性。</p>
+<h2 id="分布式事务的基础"><a href="#分布式事务的基础" class="headerlink" title="分布式事务的基础"></a>分布式事务的基础</h2><h3 id="CAP"><a href="#CAP" class="headerlink" title="CAP"></a>CAP</h3><p>CAP定理，又被叫作布鲁尔定理。</p>
+<ul>
+<li><p>C (一致性):对某个指定的客户端来说，读操作能返回最新的写操作。对于数据分布在不同节点上的数据上来说，如果在某个节点更新了数据，那么在其他节点如果都能读取到这个最新的数据，那么就称为强一致，如果有某个节点没有读取到，那就是分布式不一致。</p>
+</li>
+<li><p>A (可用性)：非故障的节点在合理的时间内返回合理的响应(不是错误和超时的响应)。可用性的两个关键一个是合理的时间，一个是合理的响应。合理的时间指的是请求不能无限被阻塞，应该在合理的时间给出返回。合理的响应指的是系统应该明确返回结果并且结果是正确的，这里的正确指的是比如应该返回50，而不是返回40。</p>
+</li>
+<li><p>P (分区容错性):当出现网络分区后，系统能够继续工作。打个比方，这里个集群有多台机器，有台机器网络出现了问题，但是这个集群仍然可以正常工作。</p>
+</li>
+</ul>
+<p>分布式系统中，网络无法100%可靠，分区其实是一个必然现象，如果我们选择了CA而放弃了P，那么当发生分区现象时，为了保证一致性，这个时候必须拒绝请求，但是A又不允许，所以分布式系统理论上不可能选择CA架构，只能选择CP或者AP架构。</p>
+<p>对于CP来说，放弃可用性，追求一致性和分区容错性，我们的zookeeper其实就是追求的强一致。</p>
+<p>对于AP来说，放弃一致性(这里说的一致性是强一致性)，追求分区容错性和可用性，这是很多分布式系统设计时的选择，后面的BASE也是根据AP来扩展。</p>
+<p>CAP理论中是忽略网络延迟，也就是当事务提交时，从节点A复制到节点B，但是在现实中这个是明显不可能的，所以总会有一定的时间是不一致。同时CAP中选择两个，比如你选择了CP，并不是叫你放弃A。因为P出现的概率实在是太小了，大部分的时间你仍然需要保证CA。就算分区出现了你也要为后来的A做准备，比如通过一些日志的手段，是其他机器回复至可用。</p>
+<h3 id="BASE"><a href="#BASE" class="headerlink" title="BASE"></a>BASE</h3><p>BASE 是 Basically Available(基本可用)、Soft state(软状态)和 Eventually consistent (最终一致性)三个短语的缩写，是对CAP中AP的一个扩展。</p>
+<ul>
+<li>基本可用:分布式系统在出现故障时，允许损失部分可用功能，保证核心功能可用。</li>
+<li>软状态:允许系统中存在中间状态，这个状态不影响系统可用性，这里指的是CAP中的不一致。</li>
+<li>最终一致:最终一致是指经过一段时间后，所有节点数据都将会达到一致。</li>
+</ul>
+<p>BASE解决了CAP中理论没有网络延迟，在BASE中用软状态和最终一致，保证了延迟后的一致性。BASE和 ACID 是相反的，它完全不同于ACID的强一致性模型，而是通过牺牲强一致性来获得可用性，并允许数据在一段时间内是不一致的，但最终达到一致状态。</p>
+<h2 id="分布式事务方案"><a href="#分布式事务方案" class="headerlink" title="分布式事务方案"></a>分布式事务方案</h2><h3 id="基于XA协议的2PC-2阶段提交"><a href="#基于XA协议的2PC-2阶段提交" class="headerlink" title="基于XA协议的2PC(2阶段提交)"></a>基于XA协议的2PC(2阶段提交)</h3><p>XA是一个分布式事务协议，由Tuxedo提出。XA中大致分为两部分：事务管理器和本地资源管理器。其中本地资源管理器往往由数据库实现，比如Oracle、DB2这些商业数据库都实现了XA接口，而事务管理器作为全局的调度者，负责各个本地资源的提交和回滚。XA实现分布式事务的原理如下：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20191221173353.png" alt="QQ截图20191221173353.png"></p>
+<p>两阶段提交，是实现分布式事务的成熟方案。</p>
+<ul>
+<li>第一阶段是表决阶段，事务管理器要求每个涉及到事务的数据库预提交(precommit)此操作，并反映是否可以提交.</li>
+<li>第二阶段是执行阶段，事务协调器要求每个数据库提交数据，或者回滚数据。</li>
+</ul>
+<p>优点： 尽量保证了数据的强一致，实现成本较低，XA目前在商业数据库支持的比较理想，在MySQL（MySQL5.5开始支持）数据库中支持的不太理想，mysql的XA实现，没有记录prepare阶段日志，主备切换回导致主库与备库数据不一致。许多nosql也没有支持XA，这让XA的应用场景变得非常狭隘。</p>
+<p>缺点:</p>
+<ul>
+<li>单点问题:事务管理器在整个流程中扮演的角色很关键，如果其宕机，比如在第一阶段已经完成，在第二阶段正准备提交的时候事务管理器宕机，资源管理器就会一直阻塞，导致数据库无法使用。</li>
+<li>同步阻塞:在准备就绪之后，资源管理器中的资源一直处于阻塞，直到提交完成，释放资源。</li>
+<li>数据不一致:两阶段提交协议虽然为分布式数据强一致性所设计，但仍然存在数据不一致性的可能，比如在第二阶段中，假设协调者发出了事务commit的通知，但是因为网络问题该通知仅被一部分参与者所收到并执行了commit操作，其余的参与者则因为没有收到通知一直处于阻塞状态，这时候就产生了数据的不一致性。</li>
+</ul>
+<p>总的来说，XA协议比较简单，但是其单点问题，以及不能支持高并发(由于同步阻塞)依然是其最大的弱点。XA协议已在业界成熟运行数十年，但目前它在互联网海量流量的应用场景中，吞吐量这个瓶颈变得十分致命，因此很少被用到。</p>
+<p>两阶段提交可以满足ACID，但代价是吞吐量。例如，数据库需要频繁地对资源上锁等等。而且更致命的是，资源被锁住的时间相对较长—-在第一阶段即需要上锁，第二阶段才能解锁，依赖于所有分支的最慢者—-这期间没有任何人可以对该资源进行修改。</p>
+<h3 id="TCC"><a href="#TCC" class="headerlink" title="TCC"></a>TCC</h3><p>TCC（Try、Confirm、Cancel）是两阶段提交的一个变种。TCC提供了一个框架，需要应用程序按照该框架编程，将业务逻辑的每个分支都分为Try、Confirm、Cancel三个操作集。TCC让应用程序自己定义数据库操作的粒度，使得降低锁冲突、提高吞吐量成为可能。</p>
+<p>TCC事务机制相比于上面介绍的XA，解决了其几个缺点:</p>
+<ul>
+<li>1.解决了协调者单点，由主业务方发起并完成这个业务活动。业务活动管理器也变成多点，引入集群。</li>
+<li>2.同步阻塞:引入超时，超时后进行补偿，并且不会锁定整个资源，将资源转换为业务逻辑形式，粒度变小。</li>
+<li>3.数据一致性，有了补偿机制之后，由业务活动管理器控制一致性</li>
+</ul>
+<p>流程图：</p>
+<p><img src="/img/1010726-20191031060901955-1099206419.png" alt="1010726-20191031060901955-1099206419.png"></p>
+<ul>
+<li><p>Try阶段：尝试执行,完成所有业务检查（一致性）,预留必须业务资源（准隔离性）</p>
+</li>
+<li><p>Confirm阶段：确认执行真正执行业务，不作任何业务检查，只使用Try阶段预留的业务资源，Confirm操作满足幂等性。要求具备幂等设计，Confirm失败后需要进行重试。</p>
+</li>
+<li><p>Cancel阶段：取消执行，释放Try阶段预留的业务资源</p>
+</li>
+</ul>
+<p>Cancel操作满足幂等性Cancel阶段的异常和Confirm阶段异常处理方案基本上一致。</p>
+<p>以一个典型的淘宝订单为例，按照TCC框架，应用需要在Try阶段将商品的库存减去，将买家支付宝账户中的相应金额扣掉，在临时表中记录下商品的数量，订单的金额等信息；另外再编写Confirm的逻辑，即在临时表中删除相关记录，生成订单，告知CRM、物流等系统，等等；以及Cancel逻辑，即恢复库存和买家账户金额，删除临时表相关记录。</p>
+<p>很明显，最终一致性部分牺牲了ACID中的C和I，但它带来了可观的收益：资源不再需要长时间上锁，极大地提高了吞吐量。</p>
+<p>最终一致性在互联网应用场景中被广泛用做吞吐量和ACID的妥协点。</p>
+<p>在前面TCC的例子。在这个流程中，商品库存和买家余额都没有被锁住，因此可以得到很高的吞吐量。但在交易进行中，商品库存和买家余额的变化就已经被外界感知到，而物流系统却可能还没有相应的记录，此时数据是不一致的，但最终（无论是Confirm阶段结束后，还是Cancel阶段结束后）它们会一致。</p>
+<h3 id="TXC"><a href="#TXC" class="headerlink" title="TXC"></a>TXC</h3><p>TXC(Taobao Transaction Constructor)是阿里巴巴的一个分布式事务中间件，它可以通过极少的代码侵入，实现分布式事务。</p>
+<p>在大部分情况下，应用只需要引入TXC Client的jar包，进行几项简单配置，以及以行计的代码改造，即可轻松保证分布式数据一致性。</p>
+<p>TXC同时提供了丰富的编程和配置策略，以适应各种长尾的应用需求。</p>
+<p>实现原理是在执行SQL之前，先查询SQL的影响数据，然后保存执行的SQL快走信息和创建锁。当需要回滚的时候就采用这些记录数据回滚数据库，目前锁实现依赖redis分布式锁控制。</p>
+<p>TXC的目标应用场景是：解决在分布式应用中，多条数据库记录被修改而可能带来的一致性问题；该分布式应用可以接受最终一致性；该应用的事务改造对工作量有较严格的限制。</p>
+<h3 id="LCN"><a href="#LCN" class="headerlink" title="LCN"></a>LCN</h3><p>原理：LCN模式是通过代理Connection的方式实现对本地事务的操作，然后在由TxManager统一协调控制事务。当本地事务提交回滚或者关闭连接时将会执行假操作，该代理的连接将由LCN连接池管理。</p>
+<p>参考：<a target="_blank" rel="noopener" href="https://www.txlcn.org/zh-cn/index.html">TX-LCN</a></p>
+<h3 id="本地消息表-异步确保"><a href="#本地消息表-异步确保" class="headerlink" title="本地消息表 (异步确保)"></a>本地消息表 (异步确保)</h3><p>本地消息表是国外的 ebay 搞出来的一套方案，如图所示：</p>
+<p><img src="/img/1010726-20191031061916148-594757786.png" alt="1010726-20191031061916148-594757786.png"></p>
+<p>此方案的核心是将需要分布式处理的任务通过消息日志的方式来异步执行。消息日志可以存储到本地文本、数据库或消息队列，再通过业务规则自动或人工发起重试。人工重试更多的是应用于支付场景，通过对账系统对事后问题的处理。</p>
+<p>我们首先需要在本地数据新建一张本地消息表，然后我们必须还要一个MQ（不一定是mq，但必须是类似的中间件）。</p>
+<p>这个表应该包括这些字段： id, biz_id, biz_type, msg, msg_result, msg_desc,atime,try_count。分别表示uuid，业务id，业务类型，消息内容，消息结果（成功或失败），消息描述，创建时间，重试次数， 其中biz_id，msg_desc字段是可选的。</p>
+<p>实现思路为：</p>
+<ul>
+<li>A 系统在自己本地一个事务里操作同时，插入一条数据到消息表；</li>
+<li>接着 A 系统将这个消息发送到 MQ 中去；</li>
+<li>B 系统接收到消息之后，在一个事务里，往自己本地消息表里插入一条数据，同时执行其他的业务操作，如果这个消息已经被处理过了，那么此时这个事务会回滚，这样保证不会重复处理消息；</li>
+<li>B 系统执行成功之后，就会更新自己本地消息表的状态以及 A 系统消息表的状态；</li>
+<li>如果 B 系统处理失败了，那么就不会更新消息表状态，那么此时 A 系统会定时扫描自己的消息表，如果有未处理的消息，会再次发送到 MQ 中去，让 B 再次处理；</li>
+<li>这个方案保证了最终一致性，哪怕 B 事务失败了，但是 A 会不断重发消息，直到 B 那边成功为止。<br>　　<br>这个方案严重依赖于数据库的消息表来管理事务，这样在高并发的情况下难以扩展，同时要在数据库中额外添加一个与实际业务无关的消息表来实现分布式事务，繁琐。</li>
+</ul>
+<p>本地消息表核心是把大事务转变为小事务。</p>
+<p>例如，用100元去买一瓶水的例子。</p>
+<ul>
+<li>1.当你扣钱的时候，你需要在你扣钱的服务器上新增加一个本地消息表，你需要把你扣钱和写入减去水的库存到本地消息表放入同一个事务(依靠数据库本地事务保证一致性。</li>
+<li>2.这个时候有个定时任务去轮询这个本地事务表，把没有发送的消息，扔给商品库存服务器，叫他减去水的库存，到达商品服务器之后这个时候得先写入这个服务器的事务表，然后进行扣减，扣减成功后，更新事务表中的状态。</li>
+<li>3.商品服务器通过定时任务扫描消息表或者直接通知扣钱服务器，扣钱服务器本地消息表进行状态更新。</li>
+<li>4.针对一些异常情况，定时扫描未成功处理的消息，进行重新发送，在商品服务器接到消息之后，首先判断是否是重复的，如果已经接收，在判断是否执行，如果执行在马上又进行通知事务，如果未执行，需要重新执行需要由业务保证幂等，也就是不会多扣一瓶水。</li>
+</ul>
+<p>本地消息队列是BASE理论，是最终一致模型，适用于对一致性要求不高的。实现这个模型时需要注意重试的幂等。</p>
+<h3 id="MQ事务"><a href="#MQ事务" class="headerlink" title="MQ事务"></a>MQ事务</h3><p>直接基于 MQ 来实现事务，不再用本地的消息表。所谓的消息事务就是基于消息中间件的两阶段提交，本质上是对消息中间件的一种特殊利用，它是将本地事务和发消息放在了一个分布式事务里，保证要么本地操作成功成功并且对外发消息成功，要么两者都失败，开源的RocketMQ就支持这一特性，但是市面上一些主流的MQ都是不支持事务消息的，比如 RabbitMQ 和 Kafka 都不支持。</p>
+<p>在RocketMQ中实现了分布式事务，实际上其实是对本地消息表的一个封装，将本地消息表移动到了MQ内部。</p>
+<p><img src="/img/20170320083222287.png" alt="20170320083222287.png"></p>
+<p>基本流程如下:</p>
+<ul>
+<li>1、A系统向消息中间件发送一条预备消息</li>
+<li>2、消息中间件保存预备消息并返回成功</li>
+<li>3、A执行本地事务</li>
+<li>4、A发送提交消息给消息中间件</li>
+</ul>
+<p>通过以上4步完成了一个消息事务。对于以上的4个步骤，每个步骤都可能产生错误，下面一一分析：</p>
+<ul>
+<li>步骤一出错，则整个事务失败，不会执行A的本地操作</li>
+<li>步骤二出错，则整个事务失败，不会执行A的本地操作</li>
+<li>步骤三出错，这时候需要回滚预备消息，怎么回滚？答案是A系统实现一个消息中间件的回调接口，消息中间件会去不断执行回调接口，检查A事务执行是否执行成功，如果失败则回滚预备消息</li>
+<li>步骤四出错，这时候A的本地事务是成功的，那么消息中间件要回滚A吗？答案是不需要，其实通过回调接口，消息中间件能够检查到A执行成功了，这时候其实不需要A发提交消息了，消息中间件可以自己对消息进行提交，从而完成整个消息事务</li>
+</ul>
+<p>基于消息中间件的两阶段提交往往用在高并发场景下，将一个分布式事务拆成一个消息事务（A系统的本地操作+发消息）+B系统的本地操作，其中B系统的操作由消息驱动，只要消息事务成功，那么A操作一定成功，消息也一定发出来了，这时候B会收到消息去执行本地操作，如果本地操作失败，消息会重投，直到B操作成功，这样就变相地实现了A与B的分布式事务。</p>
+<p><img src="/img/20170320083228100.png" alt="20170320083228100.png"></p>
+<p>上面的方案能够完成A和B的操作，但是A和B并不是严格一致的，而是最终一致的，我们在这里牺牲了一致性，换来了性能的大幅度提升。如果消费超时，则需要一直重试，消息接收端需要保证幂等。如果消息消费失败，这个就需要人工进行处理，因为这个概率较低，如果为了这种小概率时间而设计这个复杂的流程反而得不偿失。</p>
+<p><img src="/img/164d77389afdfd6b.png" alt="164d77389afdfd6b.png"></p>
+<h3 id="Saga事务"><a href="#Saga事务" class="headerlink" title="Saga事务"></a>Saga事务</h3><p>SAGA可以看做一个异步的、利用队列实现的补偿事务。</p>
+<p>其适用于无需马上返回业务发起方最终状态的场景，例如：你的请求已提交，请稍后查询或留意通知 之类。</p>
+<p>Saga是30年前一篇数据库伦理提到的一个概念。其核心思想是将长事务拆分为多个本地短事务，由Saga事务协调器协调，如果正常结束那就正常完成，如果某个步骤失败，则根据相反顺序一次调用补偿操作。</p>
+<p>saga的提出，最早是为了解决可能会长时间运行的分布式事务（long-running process）的问题。所谓long-running的分布式事务，是指那些企业业务流程，需要跨应用、跨企业来完成某个事务，甚至在事务流程中还需要有手工操作的参与，这类事务的完成时间可能以分计，以小时计，甚至可能以天计。这类事务如果按照事务的ACID的要求去设计，势必造成系统的可用性大大的降低。试想一个由两台服务器一起参与的事务，服务器A发起事务，服务器B参与事务，B的事务需要人工参与，所以处理时间可能很长。如果按照ACID的原则，要保持事务的隔离性、一致性，服务器A中发起的事务中使用到的事务资源将会被锁定，不允许其他应用访问到事务过程中的中间结果，直到整个事务被提交或者回滚。这就造成事务A中的资源被长时间锁定，系统的可用性将不可接受。</p>
+<p>而saga，则是一种基于补偿的消息驱动的用于解决long-running process的一种解决方案。目标是为了在确保系统高可用的前提下尽量确保数据的一致性。还是上面的例子，如果用saga来实现，那就是这样的流程：服务器A的事务先执行，如果执行顺利，那么事务A就先行提交；如果提交成功，那么就开始执行事务B，如果事务B也执行顺利，则事务B也提交，整个事务就算完成。但是如果事务B执行失败，那事务B本身需要回滚，这时因为事务A已经提交，所以需要执行一个补偿操作，将已经提交的事务A执行的操作作反操作，恢复到未执行前事务A的状态。这样的基于消息驱动的实现思路，就是saga。我们可以看出，saga是牺牲了数据的强一致性，仅仅实现了最终一致性，但是提高了系统整体的可用性。</p>
+<p>Saga的组成：</p>
+<p>每个Saga由一系列sub-transaction Ti 组成<br>每个Ti 都有对应的补偿动作Ci，补偿动作用于撤销Ti造成的结果,这里的每个T，都是一个本地事务。<br>可以看到，和TCC相比，Saga没有“预留 try”动作，它的Ti就是直接提交到库。</p>
+<p>Saga的执行顺序有两种：</p>
+<ul>
+<li>T1, T2, T3, …, Tn</li>
+<li>T1, T2, …, Tj, Cj,…, C2, C1，其中0 &lt; j &lt; n</li>
+</ul>
+<p>Saga定义了两种恢复策略：</p>
+<ul>
+<li>向后恢复，即上面提到的第二种执行顺序，其中j是发生错误的sub-transaction，这种做法的效果是撤销掉之前所有成功的sub-transation，使得整个Saga的执行结果撤销。</li>
+<li>向前恢复，适用于必须要成功的场景，执行顺序是类似于这样的：T1, T2, …, Tj(失败), Tj(重试),…, Tn，其中j是发生错误的sub-transaction。该情况下不需要Ci。</li>
+</ul>
+<p>这里要注意的是，在saga模式中不能保证隔离性，因为没有锁住资源，其他事务依然可以覆盖或者影响当前事务。</p>
+<p>拿100元买一瓶水的例子来说，这里定义:</p>
+<p>T1=扣100元 T2=给用户加一瓶水 T3=减库存一瓶水<br>C1=加100元 C2=给用户减一瓶水 C3=给库存加一瓶水</p>
+<p>我们一次进行T1,T2，T3如果发生问题，就执行发生问题的C操作的反向。</p>
+<p>上面说到的隔离性的问题会出现在，如果执行到T3这个时候需要执行回滚，但是这个用户已经把水喝了(另外一个事务)，回滚的时候就会发现，无法给用户减一瓶水了。这就是事务之间没有隔离性的问题</p>
+<p>可以看见saga模式没有隔离性的影响还是较大，可以参照华为的解决方案:从业务层面入手加入一 Session 以及锁的机制来保证能够串行化操作资源。也可以在业务层面通过预先冻结资金的方式隔离这部分资源， 最后在业务操作的过程中可以通过及时读取当前状态的方式获取到最新的更新。</p>
+<p>具体实例:可以参考华为的 servicecomb 。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/balavatasky/p/6101345.html">saga中的saga（A Saga on Sagas）</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/skyesx/p/9697817.html">如何选择分布式事务形态（TCC，SAGA，2PC，补偿，基于消息最终一致性等等）</a></p>
+<p><a target="_blank" rel="noopener" href="https://juejin.im/post/5b5a0bf9f265da0f6523913b">再有人问你分布式事务，把这篇扔给他</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/sky-chen/p/10342207.html">TX-LCN分布式事务Demo实战</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/m0_38110132/article/details/77043580">TXC分布式事务简介</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/m0_38110132/article/details/76994165">分布式事务的解决方案</a></p>
+<p><a target="_blank" rel="noopener" href="https://yq.aliyun.com/articles/72011">GTS让分布式事务简单高效</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/jiangyu666/p/8522547.html">微服务架构下分布式事务解决方案——阿里GTS</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/netfocus/p/3149156.html">ENode 1.0 - Saga的思想与实现</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/11/25/CSharp-ValueTask%E8%A7%A3%E6%9E%90/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -216,7 +449,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-25 09:07:29" itemprop="dateModified" datetime="2021-02-25T09:07:29+00:00">2021-02-25</time>
+                <time title="修改时间：2021-02-26 01:00:33" itemprop="dateModified" datetime="2021-02-26T01:00:33+00:00">2021-02-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -316,7 +549,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-25 09:07:29" itemprop="dateModified" datetime="2021-02-25T09:07:29+00:00">2021-02-25</time>
+                <time title="修改时间：2021-02-26 01:00:33" itemprop="dateModified" datetime="2021-02-26T01:00:33+00:00">2021-02-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -440,7 +673,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-25 09:07:29" itemprop="dateModified" datetime="2021-02-25T09:07:29+00:00">2021-02-25</time>
+                <time title="修改时间：2021-02-26 01:00:33" itemprop="dateModified" datetime="2021-02-26T01:00:33+00:00">2021-02-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -523,7 +756,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-25 09:07:29" itemprop="dateModified" datetime="2021-02-25T09:07:29+00:00">2021-02-25</time>
+                <time title="修改时间：2021-02-26 01:00:33" itemprop="dateModified" datetime="2021-02-26T01:00:33+00:00">2021-02-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -604,7 +837,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-25 09:07:29" itemprop="dateModified" datetime="2021-02-25T09:07:29+00:00">2021-02-25</time>
+                <time title="修改时间：2021-02-26 01:00:33" itemprop="dateModified" datetime="2021-02-26T01:00:33+00:00">2021-02-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -747,7 +980,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-25 09:07:29" itemprop="dateModified" datetime="2021-02-25T09:07:29+00:00">2021-02-25</time>
+                <time title="修改时间：2021-02-26 01:00:33" itemprop="dateModified" datetime="2021-02-26T01:00:33+00:00">2021-02-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -835,7 +1068,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-25 09:07:29" itemprop="dateModified" datetime="2021-02-25T09:07:29+00:00">2021-02-25</time>
+                <time title="修改时间：2021-02-26 01:00:33" itemprop="dateModified" datetime="2021-02-26T01:00:33+00:00">2021-02-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -920,7 +1153,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-25 09:07:29" itemprop="dateModified" datetime="2021-02-25T09:07:29+00:00">2021-02-25</time>
+                <time title="修改时间：2021-02-26 01:00:33" itemprop="dateModified" datetime="2021-02-26T01:00:33+00:00">2021-02-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1016,7 +1249,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-25 09:07:29" itemprop="dateModified" datetime="2021-02-25T09:07:29+00:00">2021-02-25</time>
+                <time title="修改时间：2021-02-26 01:00:33" itemprop="dateModified" datetime="2021-02-26T01:00:33+00:00">2021-02-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1160,7 +1393,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-25 09:07:29" itemprop="dateModified" datetime="2021-02-25T09:07:29+00:00">2021-02-25</time>
+                <time title="修改时间：2021-02-26 01:00:33" itemprop="dateModified" datetime="2021-02-26T01:00:33+00:00">2021-02-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1245,7 +1478,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-25 09:07:29" itemprop="dateModified" datetime="2021-02-25T09:07:29+00:00">2021-02-25</time>
+                <time title="修改时间：2021-02-26 01:00:33" itemprop="dateModified" datetime="2021-02-26T01:00:33+00:00">2021-02-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1336,7 +1569,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-25 09:07:29" itemprop="dateModified" datetime="2021-02-25T09:07:29+00:00">2021-02-25</time>
+                <time title="修改时间：2021-02-26 01:00:33" itemprop="dateModified" datetime="2021-02-26T01:00:33+00:00">2021-02-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1422,7 +1655,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-25 09:07:29" itemprop="dateModified" datetime="2021-02-25T09:07:29+00:00">2021-02-25</time>
+                <time title="修改时间：2021-02-26 01:00:33" itemprop="dateModified" datetime="2021-02-26T01:00:33+00:00">2021-02-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1530,7 +1763,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-25 09:07:29" itemprop="dateModified" datetime="2021-02-25T09:07:29+00:00">2021-02-25</time>
+                <time title="修改时间：2021-02-26 01:00:33" itemprop="dateModified" datetime="2021-02-26T01:00:33+00:00">2021-02-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1635,101 +1868,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/09/21/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%8823%EF%BC%89-%20SignalR%20%E8%A7%A3%E6%9E%90/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/09/21/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%8823%EF%BC%89-%20SignalR%20%E8%A7%A3%E6%9E%90/" class="post-title-link" itemprop="url">ABP框架学习记录（23）- SignalR 解析</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-09-21 09:47:55" itemprop="dateCreated datePublished" datetime="2019-09-21T09:47:55+00:00">2019-09-21</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-25 09:07:29" itemprop="dateModified" datetime="2021-02-25T09:07:29+00:00">2021-02-25</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/ABP/" itemprop="url" rel="index"><span itemprop="name">ABP</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="ABP框架学习记录（23）-SignalR解析"><a href="#ABP框架学习记录（23）-SignalR解析" class="headerlink" title="ABP框架学习记录（23）- SignalR解析"></a>ABP框架学习记录（23）- SignalR解析</h1><p>SignalR是一个.NET Core/.NET Framework的开源实时框架. SignalR的可使用Web Socket, Server Sent Events 和 Long Polling作为底层传输方式.</p>
-<p>SignalR基于这三种技术构建, 抽象于它们之上, 它让你更好的关注业务问题而不是底层传输技术问题.</p>
-<p>SignalR这个框架分服务器端和客户端, 服务器端支持ASP.NET Core 和 ASP.NET; 而客户端除了支持浏览器里的javascript以外, 也支持其它类型的客户端, 例如桌面应用.</p>
-<p>整体目录：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190921105001.png" alt="QQ截图20190921105001.png"></p>
-<p><code>AbpHubBase</code>： 继承 <code>Hub</code> 抽象类，定义成 Abp SignalR 的抽象类，类成员包括 <code>AbpSession</code>,<code>IocResolver</code>,<code>LocalizationManager</code> 等；</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190921110241.png" alt="QQ截图20190921110241.png"></p>
-<p><code>AbpHubBaseOfClientType</code>：定义泛型 <code>Hub</code>;</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190921110421.png" alt="QQ截图20190921110421.png"></p>
-<p><code>OnlineClientHubBase</code>：在线客户端 <code>Hub</code> 基类；</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190921110621.png" alt="QQ截图20190921110621.png"></p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190921110755.png" alt="QQ截图20190921110755.png"></p>
-<p><code>AbpCommonHub</code>：公用 <code>Hub</code>,提供注册方法；</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190921111019.png" alt="QQ截图20190921111019.png"></p>
-<p><code>SignalRRealTimeNotifier</code>： 实现 <code>IRealTimeNotifier</code> 接口；</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190921114233.png" alt="QQ截图20190921114233.png"></p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190921134226.png" alt="QQ截图20190921134226.png"></p>
-<p><code>AbpAspNetCoreSignalRModule</code>：定义 <code>SignalRModule</code>;</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190921134356.png" alt="QQ截图20190921134356.png"></p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/cgzl/p/9509207.html">ASP.NET Core的实时库: SignalR – 预备知识</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/cgzl/p/9515516.html">ASP.NET Core的实时库: SignalR简介及使用</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1799,7 +1937,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">350</span>
+          <span class="site-state-item-count">351</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -1812,7 +1950,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">154</span>
+        <span class="site-state-item-count">155</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
