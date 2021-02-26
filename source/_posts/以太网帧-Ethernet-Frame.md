@@ -45,7 +45,7 @@ CISCO设备的Ethernet Interface默认封装格式是ARPA(Ethernet V2)
 | :-----| :---- | :---- |
 | Ethernet Version 2    |  Ethernet_II       |  arpa
 | 802.3 Raw             |  Ethernet_802.3    |  novell_ether
-| IEEE 802.3/802.2      |  Ethernet_802.2    |  sap
+| IEEE 802.3/802.2 LLC  |  Ethernet_802.2    |  sap
 | IEEE 802.3/802.2 SNAP |  ETHERNET_SNAP     |  snap
 
 ## 帧格式
@@ -100,10 +100,9 @@ Ethernet 可以支持 TCP/IP，Novell IPX/SPX，Apple Talk Phase I 等协议；R
 
 IEEE 802.3 的 Frame Header 和 Ethernet II 的帧头有所不同,IEEE 802.3 将 Ethernet V2 帧头的协议类型字段替换为帧长度字段(取值为0000-05dc;十进制的1500)。
 
-其中又引入 802.2 协议(LLC,Logical Link Control) 在 802.3 帧头后面添加了一个 LLC 首部,
-LLC头包含目的 服务访问点(DSAP,Destination Service Access Point)、源服务访问点（SSAP,Source Service Access Point）和 控制（Control）字段。
+其中又引入 802.2 协议(LLC,Logical Link Control) 在 802.3 帧头后面添加了一个 LLC 首部,LLC头包含目的 服务访问点(DSAP,Destination Service Access Point)、源服务访问点（SSAP,Source Service Access Point）和 控制（Control）字段。
 
-IEEE 802.3 把 DLC (数据链路控制，Digital Loop Carrier) 层分隔成明显的两个子层：MAC层和LLC层，其中MAC层主要是指示硬件目的地址和源地址。LLC层用来提供一些服务：
+IEEE 802.3 把 DLC (数据链路控制，Digital Loop Carrier) 层分隔成明显的两个子层：MAC 层和 LLC 层，其中 MAC 层主要是指示硬件目的地址和源地址，LLC层用来提供一些服务：
 
 * 通过SAP地址来辨别接收和发送方法
 * 兼容无连接和面向连接服务
@@ -111,27 +110,34 @@ IEEE 802.3 把 DLC (数据链路控制，Digital Loop Carrier) 层分隔成明�
 
 MAC层要保证最小帧长度不小于64字节，如果数据不满足64字节长度就必须进行填充。
 
-利用 Sniffer 等协议分析工具去捕获的 IEEE 802.3 帧的解码，可以看到在 DLC 层源地址后紧跟着就是 802.3 的长度（Length）字段0026，它小于 05FF，可以肯定它不是 Ethernet V2 的帧，而接下来的 Offset 0E 处的值 4242 （代表DSAP和SSAP），既不是 Novell 802.3 Raw 的特征值 FFFF ，也不是 IEEE 802.3 SNAP 的特征值 AAAA ，因此它肯定是一个 IEEE 802.3 的帧。
+利用 Sniffer 等协议分析工具去捕获的 IEEE 802.3 帧的解码，可以看到在 DLC 层源地址后紧跟着就是 802.3 的长度（Length）字段 0026，它小于 05FF（二进制1535），可以肯定它不是 Ethernet V2 的帧，而接下来的 Offset 0E 处的值 4242 （代表DSAP和SSAP），既不是 Novell 802.3 Raw 的特征值 FFFF ，也不是 IEEE 802.3 SNAP 的特征值 AAAA ，因此它肯定是一个 IEEE 802.3 的帧。
 
-**802.2 SAP (Service Access Point)**
+以太网类型码：
 
-为了区别 802.3 数据帧中所封装的数据类型，IEEE引入了 802.2 SAP 和 SNAP 的标准。它们工作在数据链路层的LLC（逻辑链路控制）子层。
+![ETHERNET_type_code.png](/img/ETHERNET_type_code.png)
+
+decimal：十进制
+octal：八进制
+
+**802.2 SAP (Service Access Point) 介绍**
+
+为了区别 802.3 数据帧中所封装的数据类型，IEEE 引入了 802.2 SAP 和 SNAP 的标准。它们工作在数据链路层的 LLC（逻辑链路控制）子层。
 
 通过在802.3帧的数据字段中划分出被称为服务访问点（SAP）的新区域来解决识别上层协议的问题，这就是 802.2 SAP。
 
-**LLC标准**
+**LLC标准 介绍**
 
 LLC 标准包括两个服务访问点，源服务访问点（SSAP）和目标服务访问点（DSAP）。每个SAP只有1字节长，而其中仅保留了6比特用于标识上层协议，所能标识的协议数有限。
 
 因此，又开发出另外一种解决方案，在 802.2 SAP 的基础上又新添加了一个 2字节长的类型域（同时将SAP的值置为AA），使其可以标识更多的上层协议类型，这就是 802.2 SNAP。
 
 常见SAP值：
-0：Null LSAP[IEEE] 
-4：SNA Path Control[IEEE] 
-6：DOD IP[79,JBP] 
-AA：SNAP[IEEE] 
-FE：ISO DIS 8473[52,JXJ] 
-FF：Global DSAP[IEEE]
+* 0：Null LSAP[IEEE] 
+* 4：SNA Path Control[IEEE] 
+* 6：DOD IP[79,JBP] 
+* AA：SNAP[IEEE] 
+* FE：ISO DIS 8473[52,JXJ] 
+* FF：Global DSAP[IEEE]
 
 ![IEEE_802.3.png](/img/IEEE_802.3.png)
 
@@ -150,28 +156,30 @@ SNAP (Sub-Network Access Protocol)子网访问协议，是逻辑链路控制（L
 
 其 MAC 层保证数据帧长度不小于64字节，不足的话需要进行数据填充。
 
-Sniffer 捕获的 IEEE802.3 SNAP 帧的解码，可以看到在 DLC 层源地址后紧跟着就是 802.3 的长度（Length）字段 0175，它小于 05FF，可以肯定它不是 Ethernet V2 的帧，而接下来的 Offset 0E 处的值 AAAA （代表DSAP和SSAP），这是 IEEE 802.3 SNAP 的特征值 AAAA ，因此可以断定它是一个 IEEE 802.3 SNAP 的帧。
+Sniffer 捕获的 IEEE 802.3 SNAP 帧的解码，可以看到在 DLC 层源地址后紧跟着就是 802.3 的长度（Length）字段 0175，它小于 05FF，可以肯定它不是 Ethernet V2 的帧，而接下来的 Offset 0E 处的值 AAAA （代表DSAP和SSAP），这是 IEEE 802.3 SNAP 的特征值 AAAA ，因此可以断定它是一个 IEEE 802.3 SNAP 的帧。
 
-SNAP Frame 与 802.3/802.2 Frame 的最大区别是增加了一个 5 Bytes 的 SNAP ID
-其中前面3个byte通常与源mac地址的前三个bytes相同为厂商代码！
-有时也可设为0,后2 bytes 与 Ethernet II 的类型域相同。
+SNAP Frame 与 802.3/802.2 Frame 的最大区别是增加了一个 5 Bytes 的 SNAP ID，其中前面3个byte通常与源mac地址的前三个bytes相同为厂商代码，有时也可设为0,后2 bytes 与 Ethernet II 的类型域相同。
 
 ![ETHERNET_SNAP.png](/img/ETHERNET_SNAP.png)
 
 ## 小结
 
-* Ethernet II和 IEEE 802.3 是局域网里最常见的帧
+| Frame Type | Header & CRC | Data Min |Data Max|
+| :-----| :---- | :---- | :--- |
+| Ethernet II (DIX)	|  18 | 46 | 1500
+| 802.3 (IEEE)	    |  21 | 43 | 1497
+| SNAP	            |  26 | 38 | 1492
+
+* Ethernet II 和 IEEE 802.3 是局域网里最常见的帧
 * Ethernet II 可以装载的数据长度是46---1500;  
 * IEEE802.3 SAP 可以装装的数据长度是43---1497; 
 * IEEE 802.3 SNAP 可以装载的数据长度是38---1492；
-* Ethernet II 不提供MAC层的数据填充功能;
+* Ethernet II 不提供 MAC 层的数据填充功能;
 * IEEE802.3 SAP 和 SNAP 都提供数据填充功能.
 
-**Ethernet V2帧与IEEE 802.3帧的比较**
+**Ethernet V2 帧与IEEE 802.3 帧的比较**
 
-因为这两种帧是我们在现在的局域网里最常见的两种帧，因此，我们对它们进行一些比较。
-
-Ethernet V2 可以装载的最大数据长度是1500字节，而 IEEE 802.3 可以装载的最大数据是1492字节（SNAP）或是1497字节; Ethernet V2 不提供 MAC层 的数据填充功能，而 IEEE 802.3 不仅提供该功能，还具备服务访问点（SAP）和 SNAP 层，能够提供更有效的数据链路层控制和更好的传输保证。那么我们可以得出这样的结 论：Ethernet V2比IEEE802.3更适合于传输大量的数据，但 Ethernet V2 缺乏数据链路层的控制，不利于传输需要严格传输控制的数据，这也正是 IEEE 802.3 的优势所在，越需要严格传输控制的应用，越需要用 IEEE 802.3或 SNAP 来封装，但 IEEE 802.3 也不可避免的带来数据装载量的损失，因此该格式的封装往往用在较少数据量承载但又需要严格控制 传输的应用中。
+Ethernet V2 可以装载的最大数据长度是1500字节，而 IEEE 802.3 可以装载的最大数据是1492字节（SNAP）或是1497字节; Ethernet V2 不提供 MAC层 的数据填充功能，而 IEEE 802.3 不仅提供该功能，还具备服务访问点（SAP）和 SNAP 层，能够提供更有效的数据链路层控制和更好的传输保证。那么我们可以得出这样的结 论：Ethernet V2 比 IEEE 802.3 更适合于传输大量的数据，但 Ethernet V2 缺乏数据链路层的控制，不利于传输需要严格传输控制的数据，这也正是 IEEE 802.3 的优势所在，越需要严格传输控制的应用，越需要用 IEEE 802.3或 SNAP 来封装，但 IEEE 802.3 也不可避免的带来数据装载量的损失，因此该格式的封装往往用在较少数据量承载但又需要严格控制 传输的应用中。
 
 在实际应用中，我们会发现，大多数应用的以太网数据包是 Ethernet V2 的帧（如HTTP、FTP、SMTP、POP3等应用），而交换机之间的BPDU（桥协议数据单元）数据包则是IEEE 802.3的帧，VLAN Trunk 协议如 802.1Q 和Cisco的CDP（思科发现协议）等则是采用 IEEE 802.3 SNAP 的帧。可以利用Sniffer等协议分析工具去捕捉数据包。
 
