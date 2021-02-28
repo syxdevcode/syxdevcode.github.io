@@ -16,6 +16,8 @@ categories:
 octets：（Bytes）字节
 Frame：帧
 
+![d009b3de9c82d158ccbfd28051420ed8bc3eb135e4e3.png](/img/d009b3de9c82d158ccbfd28051420ed8bc3eb135e4e3.png)
+
 ## Ethernet帧格式历史
 
 1980 DEC,Intel,Xerox 制订了 Ethernet I 的标准

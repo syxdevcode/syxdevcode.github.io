@@ -5,6 +5,8 @@ tags:
 - TCP协议
 - 计算机基础
 - 网络基础
+- IP网络
+- Ethernet
 categories:
 - TCP协议
 ---
