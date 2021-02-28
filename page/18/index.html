@@ -185,6 +185,384 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/24/TaskCompletionSource%E4%BD%BF%E7%94%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/12/24/TaskCompletionSource%E4%BD%BF%E7%94%A8/" class="post-title-link" itemprop="url">TaskCompletionSource使用</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-12-24 15:35:43" itemprop="dateCreated datePublished" datetime="2018-12-24T15:35:43+00:00">2018-12-24</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-02-28 09:53:45" itemprop="dateModified" datetime="2021-02-28T09:53:45+00:00">2021-02-28</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/net%E5%BC%82%E6%AD%A5%E4%B8%8E%E5%B9%B6%E8%A1%8C/" itemprop="url" rel="index"><span itemprop="name">.net异步与并行</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>在目标方法要调用基于事件API，又要返回Task的时候使用。</p>
+<p>比如下面的ApiWrapper方法，该方法要返回Task<string>,又要调用EventClass对象的Do方法，并且等到Do方法触发Done事件后，Task才能得到结果并返回。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">test</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">var</span> task = ApiWrapper();</span><br><span class="line"></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Test CurrentThread：&quot;</span> + Thread.CurrentThread.ManagedThreadId);</span><br><span class="line"></span><br><span class="line">    Console.WriteLine(task.Result);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> Task&lt;<span class="built_in">string</span>&gt; <span class="title">ApiWrapper</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">var</span> tcs = <span class="keyword">new</span> TaskCompletionSource&lt;<span class="built_in">string</span>&gt;();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> api = <span class="keyword">new</span> EventClass();</span><br><span class="line">    api.Done += (args) =&gt; &#123; tcs.TrySetResult(args); &#125;;</span><br><span class="line">    api.Do();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> tcs.Task;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">EventClass</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> Action&lt;<span class="built_in">string</span>&gt; Done = (args) =&gt; &#123;; &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">Do</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;EventClass&quot;</span> + Thread.CurrentThread.ManagedThreadId);</span><br><span class="line">        Done(<span class="string">&quot;Done&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.taskcompletionsource-1?view=netframework-4.7.2">TaskCompletionSource<TResult> Class</a></p>
+<p><a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/ask/72340">什么时候应该使用TaskCompletionSource<T></a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/1zhk/p/5399538.html">TaskCompletionSource的使用场景</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/23/DotNet%E5%9F%BA%E7%A1%80-%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/12/23/DotNet%E5%9F%BA%E7%A1%80-%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B/" class="post-title-link" itemprop="url">DotNet基础-异步编程</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-12-23 11:00:37" itemprop="dateCreated datePublished" datetime="2018-12-23T11:00:37+00:00">2018-12-23</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-02-28 09:53:45" itemprop="dateModified" datetime="2021-02-28T09:53:45+00:00">2021-02-28</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/net%E5%BC%82%E6%AD%A5%E4%B8%8E%E5%B9%B6%E8%A1%8C/" itemprop="url" rel="index"><span itemprop="name">.net异步与并行</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>.NET Framework 1.0 引进了 IAsyncResult 模式，也称为 Asynchronous Programming Model (APM)或 Begin/End 模式。 .NET Framework 2.0 增加了 Event-based Asynchronous Pattern (EAP)。 从.NET Framework 4 开始， Task-based Asynchronous Pattern (TAP) 取代了 APM 和 EAP，但能够轻松构建从早期模式中迁移的例程。</p>
+<p><font color=#0099ff size=4 face="黑体">APM异步编程模式下，callback是执行在另一个线程中，不能随易的去更新UI。EAP这种异步编程模式下，事件绑定的方法也是在调用的那个线程中执行的。也就是说解决了异步编程的时候UI交互的问题，而且是在同一个线程中执行。</font></p>
+<p>APM,EAP模式请参考：<a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/standard/asynchronous-programming-patterns/asynchronous-programming-model-apm">https://docs.microsoft.com/zh-cn/dotnet/standard/asynchronous-programming-patterns/asynchronous-programming-model-apm</a></p>
+<h2 id="异步编程准则"><a href="#异步编程准则" class="headerlink" title="异步编程准则"></a>异步编程准则</h2><p>异步编程的准则是确定所需执行的操作是I/O-Bound还是 CPU-Bound。因为这会极大影响代码性能，并可能导致某些构造的误用。</p>
+<ul>
+<li>如果代码会“等待”某些内容，例如数据库中的数据或web资源等,则你的工作是 I/O-Bound。</li>
+<li>如果代码要执行开销巨大的计算，则你的工作是 CPU-Bound。</li>
+</ul>
+<p><font color=#0099ff size=4 face="黑体">如果你的工作为 I/O-Bound，请使用 async 和 await（而不使用 Task.Run）。 不应使用任务并行库。<br>如果你的工作为 CPU-Bound，并且你重视响应能力，请使用 async 和 await，并在另一个线程上使用 Task.Run 生成工作。 如果该工作同时适用于并发和并行，则应考虑使用任务并行库。</font></p>
+<h2 id="基于任务的异步模式-TAP"><a href="#基于任务的异步模式-TAP" class="headerlink" title="基于任务的异步模式 (TAP)"></a>基于任务的异步模式 (TAP)</h2><p>基于任务的异步模式 (TAP) 以 <code>System.Threading.Tasks.Task</code> 命名空间中的 <code>System.Threading.Tasks.Task&lt;TResult&gt;</code> 和 <code>System.Threading.Tasks</code> 类型为基础，这些类型用于表示任意异步操作。 对于新的开发项目，建议采用 TAP 作为异步设计模式。</p>
+<p>C# 5.0引入了2个新关键词：async和await。然而它大大简化了异步方法的编程。async和await关键字只是编译器功能。编译器会用Task类创建代码。</p>
+<h3 id="认识async和await"><a href="#认识async和await" class="headerlink" title="认识async和await"></a>认识async和await</h3><p>使用async和await关键词编写异步代码，具有与同步代码相当的结构和简单性，并且摒弃了异步编程的复杂结构。</p>
+<p>await 不会开启新的线程，当前线程会一直往下走直到遇到真正的Async方法（比如说HttpClient.GetStringAsync），这个方法的内部会用Task.Run或者Task.Factory.StartNew 去开启线程。如果方法不是.NET为我们提供的Async方法，我们需要自己创建Task，才会真正的去创建线程。</p>
+<p>如果另一个线程已经执行完毕（即name.IsCompleted=true），主线程仍然不用挂起，直接可以拿结果。<br>如果另一个线程还没有执行完毕（即name.IsCompleted=false），那么主线程会挂起等待，直到返回结果为止。</p>
+<h3 id="解析async和await"><a href="#解析async和await" class="headerlink" title="解析async和await"></a>解析async和await</h3><h4 id="异步（async）"><a href="#异步（async）" class="headerlink" title="异步（async）"></a>异步（async）</h4><p>使用async修饰符标记的方法称为异步方法，异步方法只可以具有以下返回类型：</p>
+<ul>
+<li>1.Task</li>
+<li>2.<code>Task&lt;TResult&gt;</code></li>
+<li>3.void</li>
+<li>4.从C# 7.0开始，任何具有可访问的GetAwaiter方法的类型。System.Threading.Tasks.ValueTask<TResult> 类型属于此类实现（需向项目添加System.Threading.Tasks.Extensions NuGet 包）。</li>
+</ul>
+<p>&emsp;&emsp;异步方法通常包含 await 运算符的一个或多个实例，但缺少 await 表达式也不会导致生成编译器错误。 如果异步方法未使用 await 运算符标记暂停点，那么异步方法会作为同步方法执行，即使有 async 修饰符也不例外，编译器将为此类方法发布一个警告。</p>
+<h4 id="等待（await）"><a href="#等待（await）" class="headerlink" title="等待（await）"></a>等待（await）</h4><p>await 表达式只能在由 async 修饰符标记的封闭方法体、lambda 表达式或异步方法中出现。在其他位置，它会解释为标识符。</p>
+<p>使用await运算符的任务只可用于返回 <code>Task</code>、<code>Task&lt;TResult&gt;</code> 和 <code>System.Threading.Tasks.ValueType&lt;TResult&gt;</code> 对象的方法。</p>
+<p><font color=#0099ff size=4 face="黑体">异步方法同步运行，直至到达其第一个 await 表达式，此时await在方法的执行中插入挂起点，会将方法挂起直到所等待的任务完成，然后继续执行await后面的代码区域。</font><br><font color=#ff0000 size=4 face="黑体">await 表达式并不阻止正在执行它的线程。 而是使编译器将剩下的异步方法注册为等待任务的延续任务。 控制权随后会返回给异步方法的调用方。 任务完成时，它会调用其延续任务，异步方法的执行会在暂停的位置处恢复。</font></p>
+<p>注意：</p>
+<ul>
+<li><p>1.无法等待具有 void 返回类型的异步方法，并且无效返回方法的调用方捕获不到异步方法抛出的任何异常。</p>
+</li>
+<li><p>2.异步方法无法声明 in、ref 或 out 参数，但可以调用包含此类参数的方法。 同样，异步方法无法通过引用返回值，但可以调用包含 ref 返回值的方法。</p>
+</li>
+</ul>
+<p><font color=#ff0000 size=4 face="黑体">await并不是针对于async的方法，而是针对async方法所返回给我们的Task。</font></p>
+<h5 id="不用await关键字，确认Task执行完毕"><a href="#不用await关键字，确认Task执行完毕" class="headerlink" title="不用await关键字，确认Task执行完毕"></a>不用await关键字，确认Task执行完毕</h5><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">    <span class="keyword">var</span> task = Task.Run(() =&gt;&#123;</span><br><span class="line">        <span class="keyword">return</span> GetName();</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    task.GetAwaiter().OnCompleted(() =&gt;&#123;</span><br><span class="line">        <span class="comment">// 2 秒之后才会执行这里</span></span><br><span class="line">        <span class="keyword">var</span> name = task.Result;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;My name is: &quot;</span> + name);</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;主线程执行完毕&quot;</span>);</span><br><span class="line">    Console.ReadLine();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="built_in">string</span> <span class="title">GetName</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;另外一个线程在获取名称&quot;</span>);</span><br><span class="line">    Thread.Sleep(<span class="number">2000</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;Hello World&quot;</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h5 id="Task-GetAwaiter-和await-Task-的区别"><a href="#Task-GetAwaiter-和await-Task-的区别" class="headerlink" title="Task.GetAwaiter()和await Task 的区别"></a>Task.GetAwaiter()和await Task 的区别</h5><ul>
+<li>加上await关键字之后，后面的代码会被挂起等待，直到task执行完毕有返回值的时候才会继续向下执行，这一段时间主线程会处于挂起状态。</li>
+<li>GetAwaiter方法会返回一个awaitable的对象（继承了<code>INotifyCompletion.OnCompleted</code>方法）我们只是传递了一个委托进去，等task完成了就会执行这个委托，但是并不会影响主线程，下面的代码会立即执行。这也是为什么我们结果里面第一句话会是 “主线程执行完毕”！</li>
+</ul>
+<h5 id="Task如何让主线程挂起等待"><a href="#Task如何让主线程挂起等待" class="headerlink" title="Task如何让主线程挂起等待"></a>Task如何让主线程挂起等待</h5><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">    <span class="keyword">var</span> task = Task.Run(() =&gt;&#123;</span><br><span class="line">        <span class="keyword">return</span> GetName();</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> name = task.GetAwaiter().GetResult();</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;My name is:&#123;0&#125;&quot;</span>,name);</span><br><span class="line"></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;主线程执行完毕&quot;</span>);</span><br><span class="line">    Console.ReadLine();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="built_in">string</span> <span class="title">GetName</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;另外一个线程在获取名称&quot;</span>);</span><br><span class="line">    Thread.Sleep(<span class="number">2000</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;Hello World&quot;</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>Task.GetAwait()</code>方法会给我们返回一个awaitable的对象，通过调用这个对象的<code>GetResult</code>方法就会挂起主线程，当然也不是所有的情况都会挂起。在一开始的时候就启动了另一个线程去执行这个Task，当我们调用它的结果的时候,如果这个Task已经执行完毕，主线程是不用等待可以直接拿其结果的，如果没有执行完毕那主线程就得挂起等待了。</p>
+<h5 id="await的实质"><a href="#await的实质" class="headerlink" title="await的实质"></a>await的实质</h5><p>await的实质是在调用<code>awaitable</code>对象的<code>GetResult</code>方法</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">async</span> Task <span class="title">Test</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">    Task&lt;<span class="built_in">string</span>&gt; task = Task.Run(() =&gt;&#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;另一个线程在运行！&quot;</span>);  <span class="comment">// 这句话只会被执行一次</span></span><br><span class="line">        Thread.Sleep(<span class="number">2000</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;Hello World&quot;</span>;</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 这里主线程会挂起等待，直到task执行完毕我们拿到返回结果</span></span><br><span class="line">    <span class="keyword">var</span> result = task.GetAwaiter().GetResult();</span><br><span class="line">    <span class="comment">// 这里不会挂起等待，因为task已经执行完了，我们可以直接拿到结果</span></span><br><span class="line">    <span class="keyword">var</span> result2 = <span class="keyword">await</span> task;</span><br><span class="line">    Console.WriteLine(str);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="async和await使用建议"><a href="#async和await使用建议" class="headerlink" title="async和await使用建议"></a>async和await使用建议</h4><ul>
+<li>async方法需在其主体中具有await 关键字，否则它们将永不暂停。同时C# 编译器将生成一个警告，此代码将会以类似普通方法的方式进行编译和运行。 请注意这会导致效率低下，因为由 C# 编译器为异步方法生成的状态机将不会完成任何任务。</li>
+<li>应将“Async”作为后缀添加到所编写的每个异步方法名称中。这是 .NET 中的惯例，以便更轻松区分同步和异步方法。</li>
+<li>async void 应仅用于事件处理程序。因为事件不具有返回类型（因此无法返回 Task 和 Task<T>）。 其他任何对 async void 的使用都不遵循 TAP 模型，且可能存在一定使用难度。</li>
+<li>避免上下文，调用ConfigureAwait并且传递false不要捕捉当前上下文。</li>
+</ul>
+<p>例如：async void 方法中引发的异常无法在该方法外部被捕获或十分难以测试 async void 方法。</p>
+<h4 id="async和await总结"><a href="#async和await总结" class="headerlink" title="async和await总结"></a>async和await总结</h4><p>async/await 本质上只是一个语法糖，它并不产生线程，只是在编译时把语句的执行逻辑改了，相当于过去我们用callback，这里编译器自动实现了。</p>
+<p>线程的转换是通过SynchronizationContext来实现，如果做了Task.ConfigureAwait(false)操作，运行MoveNext时就只是在线程池中拿个空闲线程出来执行；如果Task.ConfigureAwait(true)-(默认)，则会在异步操作前Capture当前线程的SynchronizationContext，异步操作之后运行MoveNext时通过SynchronizationContext转到目标之前的线程。</p>
+<p>一般是想更新UI则需要用到 SynchronizationContext，如果异步操作完成还需要做大量运算，则可以考虑Task.ConfigureAwait(false)把计算放到后台算，防止UI卡死。</p>
+<p>另外还有在异步操作前做的ExecutionContext.FastCapture，获取当前线程的执行上下文，注意，如果Task.ConfigureAwait(false)，会有个IgnoreSynctx的标记，表示在ExecutionContext.Capture里不做SynchronizationContext.Capture操作，Capture到的执行上下文用来在awaiter completed后给MoveNext用，使MoveNext可以有和前面线程同样的上下文。</p>
+<p>通过SynchronizationContext.Post操作，可以使异步异常在最开始的try..catch块中轻松捕获。</p>
+<h3 id="调用异步方法"><a href="#调用异步方法" class="headerlink" title="调用异步方法"></a>调用异步方法</h3><p>在一个异步方法里，可以调用一个或多个异步方法，如何编码取决于异步方法间结果是否相互依赖。</p>
+<h4 id="1-顺序调用异步方法"><a href="#1-顺序调用异步方法" class="headerlink" title="1.顺序调用异步方法"></a>1.顺序调用异步方法</h4><p>使用await关键词可以调用每个异步方法，如果一个异步方法需要使用另一个异步方法的结果，await关键词就非常必要。</p>
+<h4 id="2-使用组合器"><a href="#2-使用组合器" class="headerlink" title="2.使用组合器"></a>2.使用组合器</h4><p>如果异步方法间相互不依赖，则每个异步方法都不使用await，而是把每个异步方法的结果赋值给Task变量，就会运行得更快。</p>
+<ul>
+<li><p>WhenAll是在所有传入的任务都完成时才返回Task。</p>
+</li>
+<li><p>WhenAny是在传入的任务其中一个完成就会返回Task。</p>
+</li>
+</ul>
+<h3 id="异常处理"><a href="#异常处理" class="headerlink" title="异常处理"></a>异常处理</h3><h4 id="单个异步方法处理"><a href="#单个异步方法处理" class="headerlink" title="单个异步方法处理"></a>单个异步方法处理</h4><p>异步方法的一个较好异常处理方式，是使用await关键字，将其放在try/catch中。</p>
+<p>返回void的异步方法不会等待。这是因为从async void方法抛出的异常无法捕获。因此异步方法最好返回一个Task类型。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//异步方法错误处理</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">async</span> <span class="keyword">void</span> <span class="title">HandleError</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">try</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">await</span> ThrowAfter(<span class="number">2000</span>, <span class="string">&quot;HandleError Error&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    catch (Exception ex)</span><br><span class="line">    &#123;</span><br><span class="line"></span><br><span class="line">        Console.WriteLine(ex.Message);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//在延迟后抛出异常</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">async</span> Task <span class="title">ThrowAfter</span>(<span class="params"><span class="built_in">int</span> ms, <span class="built_in">string</span> message</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">await</span> Task.Delay(ms);</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> Exception(message);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="多个异步方法"><a href="#多个异步方法" class="headerlink" title="多个异步方法"></a>多个异步方法</h4><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Task.WhenAll，在catch块内可以访问，再使用IsFaulted属性检查任务的状态，</span></span><br><span class="line"><span class="comment">// 以确认它们是否出现错误，然后再进行处理。</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">async</span> <span class="keyword">void</span> <span class="title">HandleError</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    Task t1 = <span class="literal">null</span>;</span><br><span class="line">    Task t2 = <span class="literal">null</span>;</span><br><span class="line">    <span class="keyword">try</span></span><br><span class="line">    &#123;</span><br><span class="line">        t1 = ThrowAfter(<span class="number">1000</span>, <span class="string">&quot;HandleError-One-Error&quot;</span>);</span><br><span class="line">        t2 = ThrowAfter(<span class="number">2000</span>, <span class="string">&quot;HandleError-Two-Error&quot;</span>);</span><br><span class="line">        <span class="keyword">await</span> Task.WhenAll(t1, t2);</span><br><span class="line">    &#125;</span><br><span class="line">    catch (Exception)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (t1.IsFaulted)</span><br><span class="line">            Console.WriteLine(t1.Exception.InnerException.Message);</span><br><span class="line">        <span class="keyword">if</span> (t2.IsFaulted)</span><br><span class="line">            Console.WriteLine(t2.Exception.InnerException.Message);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 使用AggregateException处理方式</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">async</span> <span class="keyword">void</span> <span class="title">HandleError</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    Task taskResult = <span class="literal">null</span>;</span><br><span class="line">    <span class="keyword">try</span></span><br><span class="line">    &#123;</span><br><span class="line">        Task t1 = ThrowAfter(<span class="number">1000</span>, <span class="string">&quot;HandleError-One-Error&quot;</span>);</span><br><span class="line">        Task t2 = ThrowAfter(<span class="number">2000</span>, <span class="string">&quot;HandleError-Two-Error&quot;</span>);</span><br><span class="line">        <span class="keyword">await</span> (taskResult = Task.WhenAll(t1, t2));</span><br><span class="line">    &#125;</span><br><span class="line">    catch (Exception)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">foreach</span> (<span class="keyword">var</span> ex <span class="keyword">in</span> taskResult.Exception.InnerExceptions)</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(ex.Message);</span><br><span class="line">        &#125;</span><br><span class="line">  </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//在延迟后抛出异常</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">async</span> Task <span class="title">ThrowAfter</span>(<span class="params"><span class="built_in">int</span> ms, <span class="built_in">string</span> message</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">await</span> Task.Delay(ms);</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> Exception(message);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/jesse2013/p/Asynchronous-Programming-In-DotNet.html">异步编程 In .NET</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/CrabMan/p/5436083.html">async/await IL翻译</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/jesse2013/p/async-and-await.html">async &amp; await 的前世今生（Updated）</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/jonins/p/9558275.html">异步编程（async&amp;await）</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.xyting.org/2017/02/28/understand-async-await-in-depth.html">深入理解Async/Await</a></p>
+<p><a target="_blank" rel="noopener" href="http://blog.51cto.com/cnn237111/1103029">async 和 await 关键字</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/1zhk/p/5269279.html">使用Nito.AsyncEx实现异步锁</a></p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/csharp/programming-guide/concepts/async/">使用 Async 和 Await 的异步编程 (C#)</a></p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/csharp/async">https://docs.microsoft.com/zh-cn/dotnet/csharp/async</a></p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/standard/asynchronous-programming-patterns/asynchronous-programming-model-apm">https://docs.microsoft.com/zh-cn/dotnet/standard/asynchronous-programming-patterns/asynchronous-programming-model-apm</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/22/DotNet%E5%9F%BA%E7%A1%80-%E5%B9%B6%E8%A1%8C%E7%BC%96%E7%A8%8B%E4%B9%8BTask/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/12/22/DotNet%E5%9F%BA%E7%A1%80-%E5%B9%B6%E8%A1%8C%E7%BC%96%E7%A8%8B%E4%B9%8BTask/" class="post-title-link" itemprop="url">DotNet基础-并行编程之Task</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-12-22 13:52:20" itemprop="dateCreated datePublished" datetime="2018-12-22T13:52:20+00:00">2018-12-22</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-02-28 09:53:45" itemprop="dateModified" datetime="2021-02-28T09:53:45+00:00">2021-02-28</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/net%E5%BC%82%E6%AD%A5%E4%B8%8E%E5%B9%B6%E8%A1%8C/" itemprop="url" rel="index"><span itemprop="name">.net异步与并行</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>&emsp;&emsp;在.NET 4中的并行编程是依赖Task Parallel Library(后面简称为TPL) 实现的。在TPL中，最基本的执行单元是task(中文可以理解为”任务”),一个task就代表了你要执行的一个操作。你可以为你所要执行的每一个操作定义一个task,TPL就负责创建线程来执行你所定义的task，并且管理线程。TPL是面向task的，自动的；而传统的多线程是以人工为导向的。</p>
+<p>&emsp;&emsp;Task机制使得我们把注意力关注在我们要解决的问题上面。如果之前的多线程技术使得我们放弃了一些并行编程的使用，那么.NET 4中的新的并行编程技术可以让我们重新建立信心。虽然有了新的并行技术，但是传统的多线程的技术还是很有用的。任务并行（TPL）是一种范式，也是一组API，可以将大任务分割为多个小任务，并在多个线程中执行。当我们使用TPL中的并行技术的时候来执行多个task的时候，我们不用在关心底层创建线程，管理线程等。</p>
+<h2 id="线程基础"><a href="#线程基础" class="headerlink" title="线程基础"></a>线程基础</h2><p>多核处理器带有一个以上的物理内核，每个物理内核都可能会提供多个硬件线程，也称之为逻辑内核或者逻辑处理器。</p>
+<p>Windows将每一个硬件线程识别为一个可调度的逻辑处理器，每一个逻辑处理器可以运行软件线程代码，运行多个软件线程的进程可以充分发挥硬件线程和物理内核的优势，并行地运行指令。Windows会给每一个可用的硬件线程分配一块块的处理时间，并通过这种方式运行上百个千个软件线程。</p>
+<h3 id="硬件线程"><a href="#硬件线程" class="headerlink" title="硬件线程"></a>硬件线程</h3><p>物理内核：计算机实际内核数量；<br>硬件线程又叫做逻辑内核，可以在”任务管理器“中查看”性能“标签页</p>
+<p>一般情况下，一个物理内核对应一个逻辑内核。当然如果你的cpu采用的是超线程技术，那么可能就会有4个物理内核对应。</p>
+<h3 id="软件线程"><a href="#软件线程" class="headerlink" title="软件线程"></a>软件线程</h3><p>传统的代码都是串行的，就一个主线程，当我们为了实现加速而开了很多工作线程，这些工作线程也就是软件线程。</p>
+<h2 id="Task的基本使用"><a href="#Task的基本使用" class="headerlink" title="Task的基本使用"></a>Task的基本使用</h2><h3 id="创建任务Task"><a href="#创建任务Task" class="headerlink" title="创建任务Task"></a>创建任务Task</h3><p>开启task有两种方式:</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//第一种方式开启</span></span><br><span class="line">    <span class="keyword">var</span> task1 = <span class="keyword">new</span> Task(() =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        Run1();</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    <span class="comment">//第二种方式开启</span></span><br><span class="line">    <span class="keyword">var</span> task2 = Task.Factory.StartNew(() =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        Run2();</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;调用start之前****************************\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">//调用start之前的“任务状态”</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;task1的状态:&#123;0&#125;&quot;</span>, task1.Status);</span><br><span class="line"></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;task2的状态:&#123;0&#125;&quot;</span>, task2.Status);</span><br><span class="line"></span><br><span class="line">    task1.Start();</span><br><span class="line"></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;\n调用start之后****************************&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">//调用start之前的“任务状态”</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;\ntask1的状态:&#123;0&#125;&quot;</span>, task1.Status);</span><br><span class="line"></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;task2的状态:&#123;0&#125;&quot;</span>, task2.Status);</span><br><span class="line"></span><br><span class="line">    <span class="comment">//主线程等待任务执行完</span></span><br><span class="line">    Task.WaitAll(task1, task2);</span><br><span class="line"></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;\n任务执行完后的状态****************************&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">//调用start之前的“任务状态”</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;\ntask1的状态:&#123;0&#125;&quot;</span>, task1.Status);</span><br><span class="line"></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;task2的状态:&#123;0&#125;&quot;</span>, task2.Status);</span><br><span class="line"></span><br><span class="line">    Console.ReadKey();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Run1</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    Thread.Sleep(<span class="number">1000</span>);</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;\n我是任务1&quot;</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Run2</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    Thread.Sleep(<span class="number">2000</span>);</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;我是任务2&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>** Task.Run 和 Task.Factory.StartNew 区别**</p>
+<p>&emsp;&emsp;可以认为 <code>Task.Run</code> 是简化的 <code>Task.Factory.StartNew</code> 的使用，除了需要指定一个线程是长时间占用的，否则就使用 <code>Task.Run</code>； <code>Task.Factory.StartNew</code> 可以设置线程是长时间运行，这时线程池就不会等待这个线程回收。</p>
+<h3 id="为创建的Task传入参数"><a href="#为创建的Task传入参数" class="headerlink" title="为创建的Task传入参数"></a>为创建的Task传入参数</h3><p>想向 <code>Task</code> 传入参数，只能用<code>System.Action&lt;object&gt;</code>;</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">string</span>[] messages = &#123; <span class="string">&quot;First task&quot;</span>, <span class="string">&quot;Second task&quot;</span>, <span class="string">&quot;Third task&quot;</span>, <span class="string">&quot;Fourth task&quot;</span> &#125;;</span><br><span class="line">    <span class="keyword">foreach</span> (<span class="built_in">string</span> msg <span class="keyword">in</span> messages)</span><br><span class="line">    &#123;</span><br><span class="line">        Task myTask = <span class="keyword">new</span> Task(obj =&gt; printMessage((<span class="built_in">string</span>)obj), msg);</span><br><span class="line">        myTask.Start();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// wait for input before exiting</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Main method complete. Press enter to finish.&quot;</span>);</span><br><span class="line">    Console.ReadLine();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">printMessage</span>(<span class="params"><span class="built_in">string</span> message</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Message: &#123;0&#125;&quot;</span>, message);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在创建Task的时候，Task有很多的构造函数的重载，一个主要的重载就是传入TaskCreateOptions的枚举：</p>
+<ul>
+<li>TaskCreateOptions.None:用默认的方式创建一个Task</li>
+<li>TaskCreateOptions.PreferFairness:请求scheduler尽量公平的执行Task(Task和线程一样，有优先级的)</li>
+<li>TaskCreateOptions.LongRunning:声明Task将会长时间的运行。</li>
+<li>TaskCreateOptions.AttachToParent:因为Task是可以嵌套的，所以这个枚举就是把一个子task附加到一个父task中。</li>
+</ul>
+<p>&emsp;&emsp;最后要提到的一点就是，我们可以在Task的执行体中用Task.CurrentId来返回Task的唯一表示ID(int)。如果在Task执行体外使用这个属性就会得到null。</p>
+<h3 id="Task执行"><a href="#Task执行" class="headerlink" title="Task执行"></a>Task执行</h3><h4 id="等待Task执行完成"><a href="#等待Task执行完成" class="headerlink" title="等待Task执行完成"></a>等待Task执行完成</h4><p>用Wait()方法来一直等待一个Task执行完成。当task执行完成，或者被cancel，或者抛出异常，这个方法才会返回。可以使用Wait()方法的不同重载。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">Task task = createTask(token);</span><br><span class="line">task.Start();</span><br><span class="line"></span><br><span class="line">Console.WriteLine(<span class="string">&quot;Waiting for task to complete.&quot;</span>);</span><br><span class="line">task.Wait();</span><br><span class="line">Console.WriteLine(<span class="string">&quot;Task Completed.&quot;</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// create and start another task</span></span><br><span class="line">task = createTask(token);</span><br><span class="line">task.Start();</span><br><span class="line">Console.WriteLine(<span class="string">&quot;Waiting 2 secs for task to complete.&quot;</span>);</span><br><span class="line"><span class="built_in">bool</span> completed = task.Wait(<span class="number">6000</span>);</span><br><span class="line">Console.WriteLine(<span class="string">&quot;Wait ended - task completed: &#123;0&#125;&quot;</span>, completed);</span><br><span class="line"></span><br><span class="line"><span class="comment">// create and start another task</span></span><br><span class="line">task = createTask(token);</span><br><span class="line">task.Start();</span><br><span class="line">Console.WriteLine(<span class="string">&quot;Waiting 2 secs for task to complete.&quot;</span>);</span><br><span class="line">completed = task.Wait(<span class="number">2000</span>, token);</span><br><span class="line">Console.WriteLine(<span class="string">&quot;Wait ended - task completed: &#123;0&#125; task cancelled &#123;1&#125;&quot;</span>,</span><br><span class="line">completed, task.IsCanceled);</span><br></pre></td></tr></table></figure>
+<p><font color=#0099ff size=4 face="黑体">wait方法子task执行完成之后会返回true。</font></p>
+<h4 id="等待多个task"><a href="#等待多个task" class="headerlink" title="等待多个task"></a>等待多个task</h4><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Task.WaitAll(task1, task2);</span><br></pre></td></tr></table></figure>
+<h4 id="等待多个task中的一个task执行完成"><a href="#等待多个task中的一个task执行完成" class="headerlink" title="等待多个task中的一个task执行完成"></a>等待多个task中的一个task执行完成</h4><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">int</span> taskIndex = Task.WaitAny(task1, task2);</span><br></pre></td></tr></table></figure>
+<h3 id="懒加载的Task-Lazily-Task"><a href="#懒加载的Task-Lazily-Task" class="headerlink" title="懒加载的Task(Lazily Task)"></a>懒加载的Task(Lazily Task)</h3><p>延迟初始化，主要的好处就是避免不必要的系统开销。</p>
+<p>Lazy变量只有在用到的时候才会被初始化。所以我们可以把Lazy变量和task的创建结合：只有这个task要被执行的时候才去初始化。现在如果用了Lazy的task，那么现在我们初始化的就是那个Lazy变量了，而没有初始化task，(初始化Lazy变量的开销小于初始化task)，只有当调用了lazyData.Value时，Lazy变量中包含的那个task才会初始化。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">// define the function</span></span><br><span class="line">    Func&lt;<span class="built_in">string</span>&gt; taskBody = <span class="keyword">new</span> Func&lt;<span class="built_in">string</span>&gt;(() =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;Task body working...&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;Task Result&quot;</span>;</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// create the lazy variable</span></span><br><span class="line">    Lazy&lt;Task&lt;<span class="built_in">string</span>&gt;&gt; lazyData = <span class="keyword">new</span> Lazy&lt;Task&lt;<span class="built_in">string</span>&gt;&gt;(() =&gt;</span><br><span class="line">    Task&lt;<span class="built_in">string</span>&gt;.Factory.StartNew(taskBody));</span><br><span class="line"></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Calling lazy variable&quot;</span>);</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Result from task: &#123;0&#125;&quot;</span>, lazyData.Value.Result);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// do the same thing in a single statement</span></span><br><span class="line">    Lazy&lt;Task&lt;<span class="built_in">string</span>&gt;&gt; lazyData2 = <span class="keyword">new</span> Lazy&lt;Task&lt;<span class="built_in">string</span>&gt;&gt;(</span><br><span class="line">    () =&gt; Task&lt;<span class="built_in">string</span>&gt;.Factory.StartNew(() =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;Task body working...&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;Task Result&quot;</span>;</span><br><span class="line">    &#125;));</span><br><span class="line"></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Calling second lazy variable&quot;</span>);</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Result from task: &#123;0&#125;&quot;</span>, lazyData2.Value.Result);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// wait for input before exiting</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Main method complete. Press enter to finish.&quot;</span>);</span><br><span class="line">    Console.ReadLine();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="Task-死锁"><a href="#Task-死锁" class="headerlink" title="Task 死锁"></a>Task 死锁</h3><p>描述：如果有两个或者多个task(简称TaskA)等待其他的task（TaskB）执行完成才开始执行，但是TaskB也在等待TaskA执行完成才开始执行，这样死锁就产生了。</p>
+<p>解决方案：避免这个问题最好的方法就是：不要使的task来依赖其他的task。也就是说，最好不要在你定义的task的执行体内包含其他的task。</p>
+<h3 id="Task异常处理"><a href="#Task异常处理" class="headerlink" title="Task异常处理"></a>Task异常处理</h3><p>在执行 <code>Task.Wait()</code>,<code>Task.WaitAll()</code>,<code>Task.WaitAny()</code>,<code>Task.Result</code>.不管那里出现了异常，最后抛出的就是一个 <code>System.AggregateException</code>。</p>
+<h4 id="处理基本的异常"><a href="#处理基本的异常" class="headerlink" title="处理基本的异常"></a>处理基本的异常</h4><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// create the tasks</span></span><br><span class="line">Task task1 = <span class="keyword">new</span> Task(() =&gt;</span><br><span class="line">&#123;</span><br><span class="line">    ArgumentOutOfRangeException exception = <span class="keyword">new</span> ArgumentOutOfRangeException();</span><br><span class="line">    exception.Source = <span class="string">&quot;task1&quot;</span>;</span><br><span class="line">    <span class="keyword">throw</span> exception;</span><br><span class="line">&#125;);</span><br><span class="line">Task task2 = <span class="keyword">new</span> Task(() =&gt;</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> NullReferenceException();</span><br><span class="line">&#125;);</span><br><span class="line">Task task3 = <span class="keyword">new</span> Task(() =&gt;</span><br><span class="line">&#123;</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Hello from Task 3&quot;</span>);</span><br><span class="line">&#125;);</span><br><span class="line"><span class="comment">// start the tasks</span></span><br><span class="line">task1.Start(); task2.Start(); task3.Start();</span><br><span class="line"><span class="comment">// wait for all of the tasks to complete</span></span><br><span class="line"><span class="comment">// and wrap the method in a try...catch block</span></span><br><span class="line"><span class="keyword">try</span></span><br><span class="line">&#123;</span><br><span class="line">    Task.WaitAll(task1, task2, task3);</span><br><span class="line">&#125;</span><br><span class="line">catch (AggregateException ex)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// enumerate the exceptions that have been aggregated</span></span><br><span class="line">    <span class="keyword">foreach</span> (Exception inner <span class="keyword">in</span> ex.InnerExceptions)</span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;Exception type &#123;0&#125; from &#123;1&#125;&quot;</span>,</span><br><span class="line">        inner.GetType(), inner.Source);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// wait for input before exiting</span></span><br><span class="line">Console.WriteLine(<span class="string">&quot;Main method complete. Press enter to finish.&quot;</span>);</span><br><span class="line">Console.ReadLine();</span><br></pre></td></tr></table></figure>
+<h4 id="使用迭代的异常处理Handler"><a href="#使用迭代的异常处理Handler" class="headerlink" title="使用迭代的异常处理Handler"></a>使用迭代的异常处理Handler</h4><p>一般情况下，我们需要区分哪些异常需要处理，而哪些异常需要继续往上传递。<code>AggregateException</code>类提供了一个<code>Handle()</code>方法，我们可以用这个方法来处理</p>
+<p>AggregateException中的每一个异常。在这个 <code>Handle()</code> 方法中，返回true就表明，这个异常我们已经处理了，不用抛出，反之。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// create the cancellation token source and the token</span></span><br><span class="line">CancellationTokenSource tokenSource = <span class="keyword">new</span> CancellationTokenSource();</span><br><span class="line">CancellationToken token = tokenSource.Token;</span><br><span class="line"><span class="comment">// create a task that waits on the cancellation token</span></span><br><span class="line">Task task1 = <span class="keyword">new</span> Task(() =&gt;</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// wait forever or until the token is cancelled</span></span><br><span class="line">    token.WaitHandle.WaitOne(<span class="number">-1</span>);</span><br><span class="line">    <span class="comment">// throw an exception to acknowledge the cancellation</span></span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> OperationCanceledException(token);</span><br><span class="line">&#125;, token);</span><br><span class="line"><span class="comment">// create a task that throws an exception</span></span><br><span class="line">Task task2 = <span class="keyword">new</span> Task(() =&gt;</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> NullReferenceException();</span><br><span class="line">&#125;);</span><br><span class="line"><span class="comment">// start the tasks</span></span><br><span class="line">task1.Start(); task2.Start();</span><br><span class="line"><span class="comment">// cancel the token</span></span><br><span class="line">tokenSource.Cancel();</span><br><span class="line"><span class="comment">// wait on the tasks and catch any exceptions</span></span><br><span class="line"><span class="keyword">try</span></span><br><span class="line">&#123;</span><br><span class="line">    Task.WaitAll(task1, task2);</span><br><span class="line">&#125;</span><br><span class="line">catch (AggregateException ex)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// iterate through the inner exceptions using</span></span><br><span class="line">    <span class="comment">// the handle method</span></span><br><span class="line">    ex.Handle((inner) =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (inner <span class="keyword">is</span> OperationCanceledException)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="comment">// ...handle task cancellation...</span></span><br><span class="line">            <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="comment">// this is an exception we don&#x27;t know how</span></span><br><span class="line">            <span class="comment">// to handle, so return false</span></span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// wait for input before exiting</span></span><br><span class="line">Console.WriteLine(<span class="string">&quot;Main method complete. Press enter to finish.&quot;</span>);</span><br><span class="line">Console.ReadKey();</span><br></pre></td></tr></table></figure>
+<h3 id="获取Task的执行结果"><a href="#获取Task的执行结果" class="headerlink" title="获取Task的执行结果"></a>获取Task的执行结果</h3><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">// create the task</span></span><br><span class="line">    Task&lt;<span class="built_in">int</span>&gt; task1 = <span class="keyword">new</span> Task&lt;<span class="built_in">int</span>&gt;(() =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">int</span> sum = <span class="number">0</span>;</span><br><span class="line">        <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; <span class="number">100</span>; i++)</span><br><span class="line">        &#123;</span><br><span class="line">            sum += i;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> sum;</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    task1.Start();</span><br><span class="line">    <span class="comment">// write out the result</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Result 1: &#123;0&#125;&quot;</span>, task1.Result);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// create the task</span></span><br><span class="line">    Task&lt;<span class="built_in">int</span>&gt; task2 = Task.Factory.StartNew&lt;<span class="built_in">int</span>&gt;(() =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">int</span> sum = <span class="number">0</span>;</span><br><span class="line">        <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; <span class="number">100</span>; i++)</span><br><span class="line">        &#123;</span><br><span class="line">            sum += i;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> sum;</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// write out the result</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Result 1: &#123;0&#125;&quot;</span>, task2.Result);</span><br><span class="line"></span><br><span class="line">    Console.ReadLine();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="获取Task的状态"><a href="#获取Task的状态" class="headerlink" title="获取Task的状态"></a>获取Task的状态</h3><p>在.NET并行编程还有一个已经标准化的操作就是可以获取task的状态，通过 <code>Task.Status</code> 属性来得到的，这个属性返回一个 <code>System.Threading.Tasks.TaskStatus</code> 的枚举值。</p>
+<p>如下：</p>
+<ul>
+<li>Created:表明task已经被初始化了，但是还没有加入到Scheduler中。</li>
+<li>WatingForActivation：task正在等待被加入到Scheduler中。</li>
+<li>WaitingToRun:已经被加入到了Scheduler，等待执行。</li>
+<li>Running：task正在运行</li>
+<li>WaitingForChildrenToComplete:表明父task正在等待子task运行结束。</li>
+<li>RanToCompletion:表明task已经执行完了，但是还没有被cancel，而且也这个task也没有抛出异常。</li>
+<li>Canceled:表明task已经被cancel了。（大家可以参看之前讲述取消task的文章）</li>
+<li>Faulted:表明task在运行的时候已经抛出了异常。</li>
+</ul>
+<h3 id="取消任务（Task）"><a href="#取消任务（Task）" class="headerlink" title="取消任务（Task）"></a>取消任务（Task）</h3><h4 id="通过轮询的方式检测Task是否被取消"><a href="#通过轮询的方式检测Task是否被取消" class="headerlink" title="通过轮询的方式检测Task是否被取消"></a>通过轮询的方式检测Task是否被取消</h4><p>&emsp;&emsp;在很多Task内部都包含了循环，用来处理数据。我们可以在循环中通过 <code>CancellationToken</code> 的<code>IsCancellationRequest</code> 属性来检测task是否被取消了。如果这个属性为true，那么我们就得跳出循环，并且释放task所占用的资源(如数据库资源，文件资源等)。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">// create the cancellation token source</span></span><br><span class="line">    CancellationTokenSource tokenSource = <span class="keyword">new</span> CancellationTokenSource();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// create the cancellation token</span></span><br><span class="line">    CancellationToken token = tokenSource.Token;</span><br><span class="line">    <span class="comment">// create the task</span></span><br><span class="line"></span><br><span class="line">    Task task = <span class="keyword">new</span> Task(() =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; <span class="built_in">int</span>.MaxValue; i++)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (token.IsCancellationRequested)</span><br><span class="line">            &#123;</span><br><span class="line">                Console.WriteLine(<span class="string">&quot;Task cancel detected&quot;</span>);</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> OperationCanceledException(token);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">else</span></span><br><span class="line">            &#123;</span><br><span class="line">                Console.WriteLine(<span class="string">&quot;Int value &#123;0&#125;&quot;</span>, i);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;, token);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// wait for input before we start the task</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Press enter to start task&quot;</span>);</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Press enter again to cancel task&quot;</span>);</span><br><span class="line">    Console.ReadLine();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// start the task</span></span><br><span class="line">    task.Start();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// read a line from the console.</span></span><br><span class="line">    Console.ReadLine();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// cancel the task</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Cancelling task&quot;</span>);</span><br><span class="line">    tokenSource.Cancel();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// wait for input before exiting</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Main method complete. Press enter to finish.&quot;</span>);</span><br><span class="line">    Console.ReadLine();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="用委托delegate来检测Task是否被取消"><a href="#用委托delegate来检测Task是否被取消" class="headerlink" title="用委托delegate来检测Task是否被取消"></a>用委托delegate来检测Task是否被取消</h4><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">// create the cancellation token source</span></span><br><span class="line">    CancellationTokenSource tokenSource = <span class="keyword">new</span> CancellationTokenSource();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// create the cancellation token</span></span><br><span class="line">    CancellationToken token = tokenSource.Token;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// create the task</span></span><br><span class="line">    Task task = <span class="keyword">new</span> Task(() =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; <span class="built_in">int</span>.MaxValue; i++)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (token.IsCancellationRequested)</span><br><span class="line">            &#123;</span><br><span class="line">                Console.WriteLine(<span class="string">&quot;Task cancel detected&quot;</span>);</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> OperationCanceledException(token);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">else</span></span><br><span class="line">            &#123;</span><br><span class="line">                Console.WriteLine(<span class="string">&quot;Int value &#123;0&#125;&quot;</span>, i);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;, token);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// register a cancellation delegate</span></span><br><span class="line">    token.Register(() =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;&gt;&gt;&gt;&gt;&gt;&gt; Delegate Invoked\n&quot;</span>);</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// wait for input before we start the task</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Press enter to start task&quot;</span>);</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Press enter again to cancel task&quot;</span>);</span><br><span class="line">    Console.ReadLine();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// start the task</span></span><br><span class="line">    task.Start();</span><br><span class="line">    <span class="comment">// read a line from the console.</span></span><br><span class="line">    Console.ReadLine();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// cancel the task</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Cancelling task&quot;</span>);</span><br><span class="line">    tokenSource.Cancel();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// wait for input before exiting</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Main method complete. Press enter to finish.&quot;</span>);</span><br><span class="line">    Console.ReadLine();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="用Wait-Handle还检测Task是否被取消"><a href="#用Wait-Handle还检测Task是否被取消" class="headerlink" title="用Wait Handle还检测Task是否被取消"></a>用Wait Handle还检测Task是否被取消</h4><p>&emsp;&emsp;检测task是否被cancel就是调用CancellationToken.WaitHandle属性。对于这个属性的详细使用，在后续的文章中会深入的讲述，在这里主要知道一点就行了：CancellationToken的WaitOne()方法会阻止task的运行，只有CancellationToken的cancel()方法被调用后，这种阻止才会释放。</p>
+<p>&emsp;&emsp;在下面的例子中，创建了两个task，其中task2调用了WaitOne()方法，所以task2一直不会运行，除非调用了CancellationToken的Cancel()方法，所以WaitOne()方法也算是检测task是否被cancel的一种方法了。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// create the cancellation token source</span></span><br><span class="line">    CancellationTokenSource tokenSource = <span class="keyword">new</span> CancellationTokenSource();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// create the cancellation token</span></span><br><span class="line">    CancellationToken token = tokenSource.Token;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// create the task</span></span><br><span class="line">    Task task1 = <span class="keyword">new</span> Task(() =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; <span class="built_in">int</span>.MaxValue; i++)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (token.IsCancellationRequested)</span><br><span class="line">            &#123;</span><br><span class="line">                Console.WriteLine(<span class="string">&quot;Task cancel detected&quot;</span>);</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> OperationCanceledException(token);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">else</span></span><br><span class="line">            &#123;</span><br><span class="line">                Console.WriteLine(<span class="string">&quot;Int value &#123;0&#125;&quot;</span>, i);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;, token);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// create a second task that will use the wait handle</span></span><br><span class="line">    Task task2 = <span class="keyword">new</span> Task(() =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// wait on the handle</span></span><br><span class="line">        token.WaitHandle.WaitOne();</span><br><span class="line">        <span class="comment">// write out a message</span></span><br><span class="line">        Console.WriteLine(<span class="string">&quot;&gt;&gt;&gt;&gt;&gt; Wait handle released&quot;</span>);</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// wait for input before we start the task</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Press enter to start task&quot;</span>);</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Press enter again to cancel task&quot;</span>);</span><br><span class="line">    Console.ReadLine();</span><br><span class="line">    <span class="comment">// start the tasks</span></span><br><span class="line">    task1.Start();</span><br><span class="line">    task2.Start();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// read a line from the console.</span></span><br><span class="line">    Console.ReadLine();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// cancel the task</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Cancelling task&quot;</span>);</span><br><span class="line">    tokenSource.Cancel();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// wait for input before exiting</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Main method complete. Press enter to finish.&quot;</span>);</span><br><span class="line">    Console.ReadLine();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="取消多个Task"><a href="#取消多个Task" class="headerlink" title="取消多个Task"></a>取消多个Task</h4><p>&emsp;&emsp;我们可以使用一个CancellationToken来创建多个不同的Tasks，当这个CancellationToken的Cancel()方法调用的时候，使用了这个token的多个task都会被取消。</p>
+<h4 id="创建组合的取消Task的Token"><a href="#创建组合的取消Task的Token" class="headerlink" title="创建组合的取消Task的Token"></a>创建组合的取消Task的Token</h4><p>&emsp;&emsp;我们可以用CancellationTokenSource.CreateLinkedTokenSource()方法来创建一个组合的token，这个组合的token有很多的CancellationToken组成。主要组合token中的任意一个token调用了Cancel()方法，那么使用这个组合token的所有task就会被取消。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">// create the cancellation token sources</span></span><br><span class="line">    CancellationTokenSource tokenSource1 = <span class="keyword">new</span> CancellationTokenSource();</span><br><span class="line">    CancellationTokenSource tokenSource2 = <span class="keyword">new</span> CancellationTokenSource();</span><br><span class="line">    CancellationTokenSource tokenSource3 = <span class="keyword">new</span> CancellationTokenSource();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// create a composite token source using multiple tokens</span></span><br><span class="line">    CancellationTokenSource compositeSource =</span><br><span class="line">        CancellationTokenSource.CreateLinkedTokenSource(</span><br><span class="line">    tokenSource1.Token, tokenSource2.Token, tokenSource3.Token);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// create a cancellable task using the composite token</span></span><br><span class="line">    Task task = <span class="keyword">new</span> Task(() =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// wait until the token has been cancelled</span></span><br><span class="line">        compositeSource.Token.WaitHandle.WaitOne();</span><br><span class="line">        <span class="comment">// throw a cancellation exception</span></span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> OperationCanceledException(compositeSource.Token);</span><br><span class="line">    &#125;, compositeSource.Token);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// start the task</span></span><br><span class="line">    task.Start();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// cancel one of the original tokens</span></span><br><span class="line">    tokenSource2.Cancel();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// wait for input before exiting</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Main method complete. Press enter to finish.&quot;</span>);</span><br><span class="line">    Console.ReadLine();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h4 id="判断一个Task是否已经被取消了"><a href="#判断一个Task是否已经被取消了" class="headerlink" title="判断一个Task是否已经被取消了"></a>判断一个Task是否已经被取消了</h4><p>可以使用Task的IsCancelled属性来判断task是否被取消了。</p>
+<h3 id="Task的休眠"><a href="#Task的休眠" class="headerlink" title="Task的休眠"></a>Task的休眠</h3><h4 id="使用CancellationToken的Wait-Handle"><a href="#使用CancellationToken的Wait-Handle" class="headerlink" title="使用CancellationToken的Wait Handle"></a>使用CancellationToken的Wait Handle</h4><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">// create the cancellation token source</span></span><br><span class="line">    CancellationTokenSource tokenSource = <span class="keyword">new</span> CancellationTokenSource();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// create the cancellation token</span></span><br><span class="line">    CancellationToken token = tokenSource.Token;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// create the first task, which we will let run fully</span></span><br><span class="line">    Task task1 = <span class="keyword">new</span> Task(() =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; Int32.MaxValue; i++)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="comment">// put the task to sleep for 10 seconds</span></span><br><span class="line">            <span class="built_in">bool</span> cancelled = token.WaitHandle.WaitOne(<span class="number">10000</span>);</span><br><span class="line">            <span class="comment">// print out a message</span></span><br><span class="line">            Console.WriteLine(<span class="string">&quot;Task 1 - Int value &#123;0&#125;. Cancelled? &#123;1&#125;&quot;</span>,</span><br><span class="line">            i, cancelled);</span><br><span class="line">            <span class="comment">// check to see if we have been cancelled</span></span><br><span class="line">            <span class="keyword">if</span> (cancelled)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> OperationCanceledException(token);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;, token);</span><br><span class="line">    <span class="comment">// start task</span></span><br><span class="line">    task1.Start();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// wait for input before exiting</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Press enter to cancel token.&quot;</span>);</span><br><span class="line">    Console.ReadLine();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// cancel the token</span></span><br><span class="line">    tokenSource.Cancel();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// wait for input before exiting</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Main method complete. Press enter to finish.&quot;</span>);</span><br><span class="line">    Console.ReadLine();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;有一点要注意：WaitOne()方法只有在设定的时间间隔到了，或者Cancel方法被调用，此时task才会被唤醒。如果如果cancel()方法被调用而导致task被唤醒，那么CancellationToken.WaitHandle.WaitOne()方法就会返回true，如果是因为设定的时间到了而导致task唤醒，那么CancellationToken.WaitHandle.WaitOne()方法返回false。</p>
+<h4 id="Task-Delay"><a href="#Task-Delay" class="headerlink" title="Task.Delay"></a>Task.Delay</h4><p>Task.Delay在不阻塞当前线程的情况下使用逻辑延迟时使用。Task.Delay旨在异步运行。</p>
+<h4 id="使用传统的Sleep"><a href="#使用传统的Sleep" class="headerlink" title="使用传统的Sleep"></a>使用传统的Sleep</h4><p>Thread.Sleep时要阻止当前线程。</p>
+<p>注意：Thread.Sleep在同步代码中使用，不能在异步代码中使用；</p>
+<p><code>Thread.Sleep(10000);</code></p>
+<p>&emsp;&emsp;使用Thread.Sleep()之后，然后再调用token的cancel方法，task不会立即就被cancel，这主要是因为Thread.Sleep()将会一直阻塞线程，直到达到了设定的时间，这之后，再去check task时候被cancel了。举个例子，假设再task方法体内调用Thread.Sleep(100000)方法来休眠task，然后再后面的代码中调用token.Cancel()方法，此时处于并行编程内部机制不会去检测task是否已经发出了cancel请求，而是一直休眠，直到时间超过了100000微秒。如果采用的是之前的第一种休眠方法，那么不管WaitOne（）中设置了多长的时间，只要token.Cancel()被调用，那么task就像内部的Scheduler发出了cancel的请求，而且task会被cancel。</p>
+<h4 id="自旋等待"><a href="#自旋等待" class="headerlink" title="自旋等待"></a>自旋等待</h4><p>推荐的方法。</p>
+<p>之前的两种方法，当他们使得task休眠的时候，这些task已经从Scheduler的管理中退出来了，不被再内部的Scheduler管理(Scheduler是负责管理线程的)，因为休眠的task已经不被Scheduler管理了，所以Scheduler必须做一些工作去决定下一步是哪个线程要运行，并且启动它。为了避免Scheduler做那些工作，我们可以采用自旋等待：此时这个休眠的task所对应的线程不会从Scheduler中退出，这个task会把自己和CPU的轮转关联起来。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">// create the cancellation token source</span></span><br><span class="line">    CancellationTokenSource tokenSource = <span class="keyword">new</span> CancellationTokenSource();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// create the cancellation token</span></span><br><span class="line">    CancellationToken token = tokenSource.Token;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// create the first task, which we will let run fully</span></span><br><span class="line">    Task task1 = <span class="keyword">new</span> Task(() =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; Int32.MaxValue; i++)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="comment">// put the task to sleep for 10 seconds</span></span><br><span class="line">            Thread.SpinWait(<span class="number">10000</span>);</span><br><span class="line">            <span class="comment">// print out a message</span></span><br><span class="line">            Console.WriteLine(<span class="string">&quot;Task 1 - Int value &#123;0&#125;&quot;</span>, i);</span><br><span class="line">            <span class="comment">// check for task cancellation</span></span><br><span class="line">            token.ThrowIfCancellationRequested();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;, token);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// start task</span></span><br><span class="line">    task1.Start();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// wait for input before exiting</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Press enter to cancel token.&quot;</span>);</span><br><span class="line"></span><br><span class="line">    Console.ReadLine();</span><br><span class="line">    <span class="comment">// cancel the token</span></span><br><span class="line">    tokenSource.Cancel();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// wait for input before exiting</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Main method complete. Press enter to finish.&quot;</span>);</span><br><span class="line">    Console.ReadLine();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;代码中我们在Thread.SpinWait()方法中传入一个整数，这个整数就表示CPU时间片轮转的次数，至于要等待多长的时间，这个就和计算机有关了，不同的计算机，CPU的轮转时间不一样。自旋等待的方法常常于获得同步锁，后续会讲解。使用自旋等待会一直占用CPU，而且也会消耗CPU的资源，更大的问题就是这个方法会影响Scheduler的运作。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/yanyangtian/category/246954.html">.NET 4 并行(多核)编程系列</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/huangxincheng/archive/2012/04/03/2430638.html">8天玩转并行开发——第二天 Task的使用</a></p>
+<p><a target="_blank" rel="noopener" href="https://lindexi.github.io/lindexi/post/C-Task.Run-%E5%92%8C-Task.Factory.StartNew-%E5%8C%BA%E5%88%AB.html">C# Task.Run 和 Task.Factory.StartNew 区别</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/20/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9008-%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%8E%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -216,7 +594,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-28 04:30:54" itemprop="dateModified" datetime="2021-02-28T04:30:54+00:00">2021-02-28</time>
+                <time title="修改时间：2021-02-28 09:53:45" itemprop="dateModified" datetime="2021-02-28T09:53:45+00:00">2021-02-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -446,7 +824,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-28 04:30:54" itemprop="dateModified" datetime="2021-02-28T04:30:54+00:00">2021-02-28</time>
+                <time title="修改时间：2021-02-28 09:53:45" itemprop="dateModified" datetime="2021-02-28T09:53:45+00:00">2021-02-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -570,7 +948,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-28 04:30:54" itemprop="dateModified" datetime="2021-02-28T04:30:54+00:00">2021-02-28</time>
+                <time title="修改时间：2021-02-28 09:53:45" itemprop="dateModified" datetime="2021-02-28T09:53:45+00:00">2021-02-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -864,7 +1242,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-28 04:30:54" itemprop="dateModified" datetime="2021-02-28T04:30:54+00:00">2021-02-28</time>
+                <time title="修改时间：2021-02-28 09:53:45" itemprop="dateModified" datetime="2021-02-28T09:53:45+00:00">2021-02-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -957,7 +1335,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-28 04:30:54" itemprop="dateModified" datetime="2021-02-28T04:30:54+00:00">2021-02-28</time>
+                <time title="修改时间：2021-02-28 09:53:45" itemprop="dateModified" datetime="2021-02-28T09:53:45+00:00">2021-02-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1049,7 +1427,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-28 04:30:54" itemprop="dateModified" datetime="2021-02-28T04:30:54+00:00">2021-02-28</time>
+                <time title="修改时间：2021-02-28 09:53:45" itemprop="dateModified" datetime="2021-02-28T09:53:45+00:00">2021-02-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1149,7 +1527,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-28 04:30:54" itemprop="dateModified" datetime="2021-02-28T04:30:54+00:00">2021-02-28</time>
+                <time title="修改时间：2021-02-28 09:53:45" itemprop="dateModified" datetime="2021-02-28T09:53:45+00:00">2021-02-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1244,7 +1622,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-28 04:30:54" itemprop="dateModified" datetime="2021-02-28T04:30:54+00:00">2021-02-28</time>
+                <time title="修改时间：2021-02-28 09:53:45" itemprop="dateModified" datetime="2021-02-28T09:53:45+00:00">2021-02-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1417,7 +1795,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-28 04:30:54" itemprop="dateModified" datetime="2021-02-28T04:30:54+00:00">2021-02-28</time>
+                <time title="修改时间：2021-02-28 09:53:45" itemprop="dateModified" datetime="2021-02-28T09:53:45+00:00">2021-02-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1507,7 +1885,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-28 04:30:54" itemprop="dateModified" datetime="2021-02-28T04:30:54+00:00">2021-02-28</time>
+                <time title="修改时间：2021-02-28 09:53:45" itemprop="dateModified" datetime="2021-02-28T09:53:45+00:00">2021-02-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1612,7 +1990,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-28 04:30:54" itemprop="dateModified" datetime="2021-02-28T04:30:54+00:00">2021-02-28</time>
+                <time title="修改时间：2021-02-28 09:53:45" itemprop="dateModified" datetime="2021-02-28T09:53:45+00:00">2021-02-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2599,7 +2977,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-28 04:30:54" itemprop="dateModified" datetime="2021-02-28T04:30:54+00:00">2021-02-28</time>
+                <time title="修改时间：2021-02-28 09:53:45" itemprop="dateModified" datetime="2021-02-28T09:53:45+00:00">2021-02-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2663,541 +3041,6 @@
 <p><img src="/img/02.gif" alt="02.gif"></p>
 <p>参考：</p>
 <p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/jimmyzhang/archive/2007/09/23/903360.html">C#中的委托和事件</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/10/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9005-%E5%B8%B8%E9%87%8F%E3%80%81%E5%AD%97%E6%AE%B5%E3%80%81%E5%B1%9E%E6%80%A7%E3%80%81%E7%89%B9%E6%80%A7%E4%B8%8E%E5%A7%94%E6%89%98/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/12/10/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9005-%E5%B8%B8%E9%87%8F%E3%80%81%E5%AD%97%E6%AE%B5%E3%80%81%E5%B1%9E%E6%80%A7%E3%80%81%E7%89%B9%E6%80%A7%E4%B8%8E%E5%A7%94%E6%89%98/" class="post-title-link" itemprop="url">DotNet面试题解析05-常量、字段、属性、特性与委托</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-12-10 11:18:34" itemprop="dateCreated datePublished" datetime="2018-12-10T11:18:34+00:00">2018-12-10</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-28 04:30:54" itemprop="dateModified" datetime="2021-02-28T04:30:54+00:00">2021-02-28</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%90/" itemprop="url" rel="index"><span itemprop="name">DotNet面试题解析</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="字段与属性"><a href="#字段与属性" class="headerlink" title="字段与属性"></a>字段与属性</h2><h3 id="常量"><a href="#常量" class="headerlink" title="常量"></a>常量</h3><p>常量的几个特点：</p>
-<ul>
-<li>常量的值必须在编译时确定，简单说就是在定义是设置值，以后都不会被改变了，她是编译常量。</li>
-<li>常量只能用于简单的类型，因为常量值是要被编译然后保存到程序集的元数据中，只支持基元类型，如 int、char、string、bool、double 等。</li>
-<li>常量在使用时，是把常量的值内联到 IL 代码中的，常量类似一个占位符，在编译时被替换掉了。正是这个特点导致常量的一个风险，就是 <strong>不支持跨程序集版本更新</strong>；</li>
-</ul>
-<p>关于常量不支持跨程序集版本更新，举个简单的例子来说明：</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">A</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">const</span> <span class="built_in">int</span> PORT = <span class="number">10086</span>;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">Print</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        Console.WriteLine(A.PORT);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>上面一段非常简单代码，其生产的 IL 代码如下，在使用常量变量的地方，把她的值拷过来了（把常量的值内联到使用的地方），与常量变量 A.PORT 没有关系了。假如 A 引用了 B 程序集（ B.dll 文件）中的一个常量，如果后面单独修改B程序集中的常量值，只是重新编译了 B，而没有编译程序集 A，就会出问题了，就是上面所说的不支持跨程序集版本更新。常量值更新后，所有使用该常量的代码都必须重新编译，这是我们在使用常量时必须要注意的一个问题。</p>
-<ul>
-<li>不要随意使用常量，特别是有可能变化的数据；</li>
-<li>不要随便修改已定义好的常量值；</li>
-</ul>
-<p><img src="/img/151257-20160308203229116-399744142.png" alt="151257-20160308203229116-399744142.png"></p>
-<h3 id="枚举"><a href="#枚举" class="headerlink" title="枚举"></a>枚举</h3><p>枚举 enum 也有类似的问题，其根源和const一样.</p>
-<p>下面的是一个简单的枚举定义，她的 IL 代码定义和 const 定义是一样一样的！枚举的成员定义和常量定义一样，因此枚举其实本质上就相当是一个常量集合。</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="built_in">enum</span> EnumType : <span class="built_in">int</span></span><br><span class="line">&#123;</span><br><span class="line">    None=<span class="number">0</span>,</span><br><span class="line">    Int=<span class="number">1</span>,</span><br><span class="line">    String=<span class="number">2</span>,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p><img src="/img/151257-20160308203230647-581894993.png" alt="151257-20160308203230647-581894993.png"></p>
-<h3 id="字段"><a href="#字段" class="headerlink" title="字段"></a>字段</h3><p>字段的内联初始化问题</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">SomeType</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="built_in">int</span> Age = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">private</span> DateTime StartTime = DateTime.Now;</span><br><span class="line">    <span class="keyword">private</span> <span class="built_in">string</span> Name = <span class="string">&quot;三体&quot;</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>定义字段并初始化值，是一种很常见的代码编写习惯。但注意了，看看 IL 代码结构，一行代码（定义字段+赋值）被拆成了两块，最终的赋值都在构造函数里执行的。</p>
-<p><img src="/img/151257-20160308203231741-1268662687.png" alt="151257-20160308203231741-1268662687.png"></p>
-<p>如果有多个构造函数，就像下面这样，有多个构造函数，会造成在两个构造函数 .ctor 中重复产生对字段赋值的 IL 代码，这就造成了不必要的代码膨胀。这个其实也很好解决，在非默认构造函数后加一个 “:this()” 就OK了，或者显示的在构造函数里初始化字段。</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">SomeType</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">private</span> DateTime _startTime = DateTime.Now;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SomeType</span>(<span class="params"></span>)</span> &#123; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SomeType</span>(<span class="params"><span class="built_in">string</span> name</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>改进之后：</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">SomeType</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">//改进</span></span><br><span class="line">    <span class="keyword">private</span> DateTime _startTime;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SomeType</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        _startTime = DateTime.Now;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SomeType</span>(<span class="params"><span class="built_in">string</span> name</span>):<span class="title">base</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h3 id="属性"><a href="#属性" class="headerlink" title="属性"></a>属性</h3><p>属性是面向对象编程的基本概念，提供了对私有字段的访问封装，在 C# 中以 get 和 set 访问器方法实现对可读可写属性的操作，提供了安全和灵活的数据访问封装。我们看看属性的本质，主要手段还是 IL 代码：</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">SomeType</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">int</span> Index &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SomeType</span>(<span class="params"></span>)</span> &#123; &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p><img src="/img/151257-20160308203232913-500597794.png" alt="151257-20160308203232913-500597794.png"></p>
-<p>上面定义的属性Index被分成了三个部分：</p>
-<ul>
-<li>自动生成的私有字段 <code>“&lt;Index&gt;k__BackingField”</code></li>
-<li>方法：get_Index()，获取字段值；</li>
-<li>方法：set_Index(int32 ‘value’)，设置字段值；</li>
-</ul>
-<p><font color=#0099ff size=4 face="黑体">因此可以说属性的本质还是方法，使用面向对象的思想把字段封装了一下。在定义属性时，我们可以自定义一个私有字段，也可以使用 自动属性 “{ get; set; }”的简化语法形式。</font></p>
-<p>使用自动属性时需要注意一点的是，私有字段是由编译器自动命名的，是不受开发人员控制的。</p>
-<h2 id="委托与事件"><a href="#委托与事件" class="headerlink" title="委托与事件"></a>委托与事件</h2><h3 id="委托"><a href="#委托" class="headerlink" title="委托"></a>委托</h3><p>将方法作为参数进行传递。</p>
-<ul>
-<li>C# 中的委托都继承自 System.Delegate 类型；</li>
-<li>委托类型的声明与方法签名类似，有返回值和参数；</li>
-<li>委托是一种可以封装命名（或匿名）方法的引用类型，把方法当做指针传递，但委托是面向对象、类型安全的；</li>
-</ul>
-<p>委托的本质——是一个类。</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="built_in">delegate</span> <span class="keyword">void</span> <span class="title">ShowMessageHandler</span>(<span class="params"><span class="built_in">string</span> mes</span>)</span>;</span><br></pre></td></tr></table></figure>
-<p><img src="/img/151257-20160308203234335-1390533361.png" alt="151257-20160308203234335-1390533361.png"></p>
-<ul>
-<li>编译器自动帮我们创建了一个类 ShowMessageHandler，继承自 System.MulticastDelegate（她又继承自 System.Delegate ），这是一个多播委托；</li>
-<li>委托类 ShowMessageHandler 中包含几个方法，其中最重要的就是 Invoke 方法，签名和定义的方法签名一致；</li>
-<li>其他两个版本 BeginInvoke 和 EndInvoke 是异步执行版本；</li>
-</ul>
-<p>当我们调用委托的时候，其实就是调用委托对象的 Invoke 方法，可以验证一下，下面的调用代码会被编译为对委托对象的 Invoke 方法调用：</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> ShowMessageHandler ShowMessage;</span><br><span class="line"></span><br><span class="line"><span class="comment">//调用</span></span><br><span class="line"><span class="keyword">this</span>.ShowMessage(<span class="string">&quot;123&quot;</span>);</span><br></pre></td></tr></table></figure>
-<h3 id="事件"><a href="#事件" class="headerlink" title="事件"></a>事件</h3><p>Event 封装了委托类型的变量，使得：在类的内部，不管你声明它是 public 还是 protected ，它总是 private 的。在类的外部，注册 “+=” 和 注销“-=” 的访问限定符与你在声明事件时使用的访问符相同。</p>
-<p>声明一个事件不过类似于声明一个进行了封装的委托类型的变量而已。</p>
-<h2 id="NET的闭包"><a href="#NET的闭包" class="headerlink" title=".NET的闭包"></a>.NET的闭包</h2><p>闭包提供了一种类似脚本语言函数式编程的便捷、可以共享数据，但也存在一些隐患。</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">List&lt;Action&gt; acs = <span class="keyword">new</span> List&lt;Action&gt;(<span class="number">5</span>);</span><br><span class="line"><span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; <span class="number">5</span>; i++)</span><br><span class="line">&#123;</span><br><span class="line">    acs.Add(() =&gt; &#123; Console.WriteLine(i); &#125;);</span><br><span class="line">&#125;</span><br><span class="line">acs.ForEach(ac =&gt; ac()); <span class="comment">// 输出了 5 5 5 5 5，全是5</span></span><br></pre></td></tr></table></figure>
-<p>上面的代码中的 Action 就是 .NET 为我们定义好的一个无参数无返回值的委托，从上一节我们知道委托实质是一个类，理解这一点是解决本题的关键。在这个地方委托方法共享使用了一个局部变量i，那生成的类会是什么样的呢？看看IL代码：</p>
-<p><img src="/img/151257-20160308203236460-853216066.png" alt="151257-20160308203236460-853216066.png"></p>
-<p>共享的局部变量被提升为委托类的一个字段了：</p>
-<ul>
-<li>变量 i 的生命周期延长了；</li>
-<li>for 循环结束后字段 i 的值是 5 了；</li>
-<li>后面再次调用委托方法，肯定就是输出 5 了；</li>
-</ul>
-<p>修改以后：</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">List&lt;Action&gt; acss = <span class="keyword">new</span> List&lt;Action&gt;(<span class="number">5</span>);</span><br><span class="line"><span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; <span class="number">5</span>; i++)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">int</span> m = i;</span><br><span class="line">    acss.Add(() =&gt; &#123; Console.WriteLine(m); &#125;);</span><br><span class="line">&#125;</span><br><span class="line">acss.ForEach(ac =&gt; ac()); <span class="comment">// 输出了 0 1 2 3 4</span></span><br></pre></td></tr></table></figure>
-<h2 id="题目答案解析"><a href="#题目答案解析" class="headerlink" title="题目答案解析"></a>题目答案解析</h2><h3 id="1-const和readonly有什么区别？"><a href="#1-const和readonly有什么区别？" class="headerlink" title="1. const和readonly有什么区别？"></a>1. const和readonly有什么区别？</h3><p>const 关键字用来声明编译时常量，readonly 用来声明运行时常量。都可以标识一个常量，主要有以下区别：<br>1、初始化位置不同。const 必须在声明的同时赋值；readonly 即可以在声明处赋值，也可以在构造方法里赋值。<br>2、修饰对象不同。const 即可以修饰类的字段，也可以修饰局部变量；readonly 只能修饰类的字段 。<br>3、const是编译时常量，在编译时确定该值，且值在编译时被内联到代码中；readonly 是运行时常量，在运行时确定该值。<br>4、const 默认是静态的；而 readonly 如果设置成静态需要显示声明 。<br>5、支持的类型时不同，const 只能修饰基元类型或值为 null 的其他引用类型；readonly 可以是任何类型。</p>
-<h3 id="2-哪些类型可以定义为常量？常量const有什么风险？"><a href="#2-哪些类型可以定义为常量？常量const有什么风险？" class="headerlink" title="2. 哪些类型可以定义为常量？常量const有什么风险？"></a>2. 哪些类型可以定义为常量？常量const有什么风险？</h3><p>基元类型或值为 null 的其他引用类型，常量的风险就是不支持跨程序集版本更新，常量值更新后，所有使用该常量的代码都必须重新编译。</p>
-<h3 id="3-字段与属性有什么异同？"><a href="#3-字段与属性有什么异同？" class="headerlink" title="3. 字段与属性有什么异同？"></a>3. 字段与属性有什么异同？</h3><ul>
-<li>属性提供了更为强大的，灵活的功能来操作字段</li>
-<li>出于面向对象的封装性，字段一般不设计为 Public</li>
-<li>属性允许在 set 和 get 中编写代码</li>
-<li>属性允许控制 set 和 get 的可访问性，从而提供只读或者可读写的功能 （逻辑上只写是没有意义的）</li>
-<li>属性可以使用 override 和 new</li>
-</ul>
-<h3 id="4-静态成员和非静态成员的区别？"><a href="#4-静态成员和非静态成员的区别？" class="headerlink" title="4. 静态成员和非静态成员的区别？"></a>4. 静态成员和非静态成员的区别？</h3><ul>
-<li>静态变量使用 static 修饰符进行声明，静态成员在加类的时候就被加载（静态字段是随类型对象存放在 <code>Load Heap</code> 上），通过类进行访问。</li>
-<li>不带有 static 修饰符声明的变量称做非静态变量，在对象被实例化时创建，通过对象进行访问 。</li>
-<li>一个类的所有实例的同一静态变量都是同一个值，同一个类的不同实例的同一非静态变量可以是不同的值 。</li>
-<li>静态函数的实现里不能使用非静态成员，如非静态变量、非静态函数等。</li>
-</ul>
-<h3 id="5-自动属性有什么风险？"><a href="#5-自动属性有什么风险？" class="headerlink" title="5. 自动属性有什么风险？"></a>5. 自动属性有什么风险？</h3><p>因为自动属性的私有字段是由编译器命名的，后期不宜随意修改，比如在序列化中会导致字段值丢失。</p>
-<h3 id="6-特性是什么？如何使用？"><a href="#6-特性是什么？如何使用？" class="headerlink" title="6. 特性是什么？如何使用？"></a>6. 特性是什么？如何使用？</h3><p>特性与属性是完全不相同的两个概念，只是在名称上比较相近。Attribute 特性就是关联了一个目标对象的一段配置信息，本质上是一个类，其为目标元素提供关联附加信息，这段附加信息存储在 dll 内的元数据，它本身没什么意义。运行期以反射的方式来获取附加信息。</p>
-<h3 id="7-下面的代码输出什么结果？为什么？"><a href="#7-下面的代码输出什么结果？为什么？" class="headerlink" title="7. 下面的代码输出什么结果？为什么？"></a>7. 下面的代码输出什么结果？为什么？</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">List&lt;Action&gt; acs = <span class="keyword">new</span> List&lt;Action&gt;(<span class="number">5</span>);</span><br><span class="line"><span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; <span class="number">5</span>; i++)</span><br><span class="line">&#123;</span><br><span class="line">    acs.Add(() =&gt; &#123; Console.WriteLine(i); &#125;);</span><br><span class="line">&#125;</span><br><span class="line">acs.ForEach(ac =&gt; ac());</span><br></pre></td></tr></table></figure>
-<p>输出了 5 5 5 5 5，全是5！因为闭包中的共享变量i会被提升为委托对象的公共字段，生命周期延长了。</p>
-<h3 id="8-C-中的委托是什么？事件是不是一种委托？"><a href="#8-C-中的委托是什么？事件是不是一种委托？" class="headerlink" title="8. C#中的委托是什么？事件是不是一种委托？"></a>8. C#中的委托是什么？事件是不是一种委托？</h3><p>什么是委托？简单来说，委托类似于 C 或 C++ 中的函数指针，允许将方法作为参数进行传递。</p>
-<ul>
-<li>C# 中的委托都继承自 System.Delegate 类型；</li>
-<li>委托类型的声明与方法签名类似，有返回值和参数；</li>
-<li>委托是一种可以封装命名（或匿名）方法的引用类型，把方法当做指针传递，但委托是面向对象、类型安全的；</li>
-</ul>
-<p>事件可以理解为一种特殊的委托，事件内部是基于委托来实现的。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/anding/p/5255492.html">.NET面试题解析(05)-常量、字段、属性、特性与委托</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/jimmyzhang/archive/2007/09/23/903360.html">C# 中的委托和事件</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/06/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9004-%E7%B1%BB%E5%9E%8B%E3%80%81%E6%96%B9%E6%B3%95%E4%B8%8E%E7%BB%A7%E6%89%BF/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/12/06/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9004-%E7%B1%BB%E5%9E%8B%E3%80%81%E6%96%B9%E6%B3%95%E4%B8%8E%E7%BB%A7%E6%89%BF/" class="post-title-link" itemprop="url">DotNet面试题解析04-类型、方法与继承</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-12-06 16:00:53" itemprop="dateCreated datePublished" datetime="2018-12-06T16:00:53+00:00">2018-12-06</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-28 04:30:54" itemprop="dateModified" datetime="2021-02-28T04:30:54+00:00">2021-02-28</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%90/" itemprop="url" rel="index"><span itemprop="name">DotNet面试题解析</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="类型基础"><a href="#类型基础" class="headerlink" title="类型基础"></a>类型基础</h2><h3 id="类型Type简述"><a href="#类型Type简述" class="headerlink" title="类型Type简述"></a>类型Type简述</h3><p>.NET 中主要的类型就是值类型和引用类型，所有类型的基类就是 System.Object ，也就是说我们使用 FCL 提供的各种类型的、自定义的所有类型都最终派生自 System.Object ，因此他们也都继承了 System.Object 提供的基本方法。</p>
-<p><img src="/img/typesystem.gif" alt="typesystem.gif"></p>
-<p>在 .NET 代码中，我们可以很方便的创建各种类型，一个简单的数据模型、复杂的聚合对象类型、或是对客观世界实体的抽象。类 (class) 是最基础的 C# 类型，支持继承与多态。<br>一个 c# 类 Class 主要包含两种基本成员：</p>
-<ul>
-<li>状态（字段、常量、属性等）</li>
-<li>操作（方法、事件、索引器、构造函数等）</li>
-</ul>
-<p>利用创建的类型（或者系统提供的），可以很容易的创建对象的实例。使用 new 运算符创建，该运算符为新的实例分配内存，调用构造函数初始化该实例，并返回对该实例的引用，如下面的语法形式：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;类名&gt;  &lt;实例名&gt; &#x3D; new &lt;类名&gt;([构造函数的参数])</span><br></pre></td></tr></table></figure>
-<p>创建后的实例对象，是一个存储在内存上（在线程栈或托管堆上）的一个对象，那可以创造实例的类型在内存中又是一个什么样的存在呢？她就是 <strong>类型对象（Type Object）</strong>。</p>
-<h3 id="类型对象（Type-Object）"><a href="#类型对象（Type-Object）" class="headerlink" title="类型对象（Type Object）"></a>类型对象（Type Object）</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">int</span> a = <span class="number">123</span>;                                                           <span class="comment">// 创建int类型实例a</span></span><br><span class="line"><span class="built_in">int</span> b = <span class="number">20</span>;                                                            <span class="comment">// 创建int类型实例b</span></span><br><span class="line"><span class="keyword">var</span> atype = a.GetType();                                               <span class="comment">// 获取对象实例a的类型Type</span></span><br><span class="line"><span class="keyword">var</span> btype = b.GetType();                                               <span class="comment">// 获取对象实例b的类型Type</span></span><br><span class="line">Console.WriteLine(System.Object.Equals(atype,btype));                  <span class="comment">//输出：True</span></span><br><span class="line">Console.WriteLine(System.Object.ReferenceEquals(atype, btype));        <span class="comment">//输出：True</span></span><br></pre></td></tr></table></figure>
-<p>任何对象都有一个 GetType() 方法（基类 System.Object 提供的），该方法返回一个对象的类型，类型上面包含了对象内部的详细信息，如字段、属性、方法、基类、事件等等（通过反射可以获取）。在上面的代码中两个不同的 int 变量的类型（ int.GetType() ）是同一个 Type ，说明 int 在内存中有唯一一个（类似静态的） Systen.Int32 类型。</p>
-<p>上面获取到的 Type 对象（ Systen.Int32 ）就是一个类型对象，她同其他引用类型一样，也是一个引用对象，这个对象中存储了 int32 类型的所有信息（类型的所有元数据信息）。</p>
-<p><strong>关于类型对象（Object Type）：</strong></p>
-<ul>
-<li>每一个类型（如 System.Int32 ）在内存中都会有一个唯一的类型对象，通过（int）a.GetType() 可以获取该对象；</li>
-<li>类型对象（ Object Type ）存储在内存中一个独立的区域，叫 加载堆（Load Heap），加载堆是在进程创建的时候创建的，不受 GC 垃圾回收管制，因此类型对象一经创建就不会被释放的，他的生命周期从 AppDomain 创建到结束；</li>
-<li>每个引用对象都包含两个附加成员：TypeHandle 和 同步块索引，其中 TypeHandle 就指向该对象对应的类型对象；</li>
-<li>类型对象的加载由 class loader 负责，在第一次使用前加载；</li>
-<li>类型中的静态字段就是存储在这里的（加载堆上的类型对象），所以说静态字段是全局的，而且不会释放；</li>
-</ul>
-<p>可以参考下面的图，第一幅图描述了对象在内存中的一个关系， 第二幅图更复杂，更准确、全面的描述了内存的结构分布。</p>
-<p><img src="/img/Anytao_15_3.jpg" alt="Anytao_15_3.jpg"></p>
-<p><img src="/img/image_thumb_1.png" alt="image_thumb_1.png"></p>
-<h3 id="方法表"><a href="#方法表" class="headerlink" title="方法表"></a>方法表</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">DoTest</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    B1 b1 = <span class="keyword">new</span> B1(); B2 b2 = <span class="keyword">new</span> B2();</span><br><span class="line">    b1.Print(); b2.Print();      <span class="comment">//按预期应该输出 B1、B2</span></span><br><span class="line"></span><br><span class="line">    A ab1 = <span class="keyword">new</span> B1(); A ab2 = <span class="keyword">new</span> B2();</span><br><span class="line">    ab1.Print(); ab2.Print();   <span class="comment">//这里应该B1,A</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">A</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">Print</span>(<span class="params"></span>)</span> &#123; Console.WriteLine(<span class="string">&quot;A&quot;</span>); &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">B1</span> : <span class="title">A</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> <span class="keyword">void</span> <span class="title">Print</span>(<span class="params"></span>)</span> &#123; Console.WriteLine(<span class="string">&quot;B1&quot;</span>); &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">B2</span> : <span class="title">A</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">new</span> <span class="keyword">void</span> <span class="title">Print</span>(<span class="params"></span>)</span> &#123; Console.WriteLine(<span class="string">&quot;B2&quot;</span>); &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p><strong>方法表的加载：</strong></p>
-<ul>
-<li>方法表的加载时 父类在前，子类在后，首先加载的是固定的4个来自 System.Object 的虚方法：ToString, Equals, GetHashCode, Finalize；</li>
-<li>然后加载父类 A 的虚方法；</li>
-<li>加载自己的方法；</li>
-<li>最后是构造方法：静态构造函数 .cctor() ，对象构造函数 .ctor() ；</li>
-</ul>
-<p><strong>方法的调用：</strong><br>当执行代码 b1.Print() 时（此处只关注方法调用，忽略方法的继承等因素），通过 b1 的 TypeHandel 找到对应类型对象，然后找到 方法表槽，然后是对应的 IL 代码，第一次执行的时候，JIT 编译器需要把 IL 代码编译为本地机器码，第一次执行完成后机器码会保留，下一次执行就不需要 JIT 编译了。这也是为什么说 .NET 程序启动需要预热的原因。</p>
-<h3 id="NET中的继承本质"><a href="#NET中的继承本质" class="headerlink" title=".NET中的继承本质"></a>.NET中的继承本质</h3><p>方法表的创建过程是从父类到子类自上而下的，这是 .NET 中继承的很好体现，当发现有覆写父类虚方法会覆盖同名的父方法，所有类型的加载都会递归到 System.Object 类。</p>
-<ul>
-<li>继承是可传递的，子类是对父类的扩展，必须继承父类方法，同时可以添加新方法。</li>
-<li>子类可以调用父类方法和字段，而父类不能调用子类方法和字段。</li>
-<li>子类不光继承父类的公有成员，也继承了私有成员，只是不可直接访问。</li>
-<li>new 关键字在虚方法继承中的阻断作用，中断某一虚方法的继承传递。</li>
-</ul>
-<p><strong>用基类（A）和用本身B1声明到底有什么区别呢？</strong></p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">B1 b1 = <span class="keyword">new</span> B1();</span><br><span class="line">A ab1 = <span class="keyword">new</span> B1();</span><br></pre></td></tr></table></figure>
-<p>无论用什么做引用声明，哪怕是 object，等号右边的[ = new 类型()]都是没有区别的，也就说说对象的创建不受影响的，b1 和 ab1 对象在内存结构上是一致的；<br>他们的的差别就在引用指针的类型不同，这种不同在编码中智能提示就直观的反应出来了，在实际方法调用上也与引用指针类型有直接关系；<br>综合来说，不同引用指针类型对于对象的创建（new操作）不影响；但对于对象的使用（如方法调用）有影响，这一点在上面代码的执行结果中体现出来了！</p>
-<p>上面调用的IL代码：</p>
-<p><img src="/img/151257-20160306225941018-923782671.png" alt="151257-20160306225941018-923782671.png"></p>
-<p>对于虚方法的调用，在 IL 中都是使用指令 <code>callvirt</code>，该指令主要意思就是具体的方法在运行时动态确定的：</p>
-<blockquote>
-<p><code>callvirt</code> 使用虚拟调度，也就是根据引用类型的动态类型来调度方法，<br><code>callvirt</code> 指令根据引用变量指向的对象类型来调用方法，在运行时动态绑定，主要用于调用虚方法。</p>
-</blockquote>
-<p>不同的类型指针在虚拟方法表中有不同的附加信息作为标志，来区别其访问的地址区域，称为 <strong>offset</strong>。不同类型的指针只能在其特定地址区域内执行。</p>
-<p>编译器在方法调用时还有一个原则：</p>
-<blockquote>
-<p>执行就近原则：对于同名字段或者方法，编译器是按照其顺序查找来引用的，也就是首先访问离它创建最近的字段或者方法。</p>
-</blockquote>
-<p><img src="/img/151257-20160306225942315-1520940493.png" alt="151257-20160306225942315-1520940493.png"></p>
-<p>在 C# 中，new 关键字可用作运算符、修饰符或约束。</p>
-<ul>
-<li>1，new 运算符：用于创建对象和调用构造函数。</li>
-<li>2，new 修饰符：在用作修饰符时，new 关键字可以显式隐藏从基类继承的成员。</li>
-<li>3，new 约束：用于在泛型声明中约束可能用作类型参数的参数的类型。</li>
-</ul>
-<h2 id="NET中的继承"><a href="#NET中的继承" class="headerlink" title=".NET中的继承"></a>.NET中的继承</h2><h3 id="抽象类"><a href="#抽象类" class="headerlink" title="抽象类"></a>抽象类</h3><p>抽象类提供多个派生类共享基类的公共定义，它既可以提供抽象方法，也可以提供非抽象方法。抽象类不能实例化，必须通过继承由派生类实现其抽象方法，因此对抽象类不能使用 <code>new</code> 关键字，也不能被密封。</p>
-<p>基本特点：</p>
-<ul>
-<li>抽象类使用 Abstract 声明，抽象方法也是用 Abstract 标示；</li>
-<li>抽象类不能被实例化；</li>
-<li>抽象方法必须定义在抽象类中；</li>
-<li>抽象类可以继承一个抽象类；</li>
-<li>抽象类不能被密封（不能使用 sealed）；</li>
-<li>同类 Class 一样，只支持单继承；</li>
-</ul>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title">AbstractUser</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">int</span> Age &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">void</span> <span class="title">SetName</span>(<span class="params"><span class="built_in">string</span> name</span>)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p><img src="/img/151257-20160306225944377-748332278.png" alt="151257-20160306225944377-748332278.png"></p>
-<h3 id="接口"><a href="#接口" class="headerlink" title="接口"></a>接口</h3><p>接口简单理解就是一种规范、契约，使得实现接口的类或结构在形式上保持一致。实现接口的类或结构必须实现接口定义中所有接口成员，以及该接口从其他接口中继承的所有接口成员。</p>
-<p>基本特点：</p>
-<ul>
-<li>接口使用 interface 声明；</li>
-<li>接口类似于抽象基类，不能直接实例化接口；</li>
-<li>接口中的方法都是抽象方法，不能有实现代码，实现接口的任何非抽象类型都必须实现接口的所有成员：</li>
-<li>接口成员是自动公开的，且不能包含任何访问修饰符。</li>
-<li>接口自身可从多个接口继承，类和结构可继承多个接口，但接口不能继承类。</li>
-</ul>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title">IUser</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">int</span> Age &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">SetName</span>(<span class="params"><span class="built_in">string</span> name</span>)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>下面是 IUser 接口定义的 IL 代码，看上去是不是和上面的抽象类 AbstractUser 的 IL 代码差不多！接口也是使用.Class ~ abstract 标记，方法定义同抽象类中的方法一样使用 abstract virtual 标记。<font color=#0099ff size=4 face="黑体">因此可以把接口看做是一种特殊的抽象类，该类只提供定义，没有实现。</font></p>
-<p><img src="/img/151257-20160306225945627-434523504.png" alt="151257-20160306225945627-434523504.png"></p>
-<p>另外一个小细节，上面说到接口是一个特殊的类型，不继承 System.Object，通过 IL 代码其实可以证实这一点。无论是自定义的任何类型还是抽象类，都会隐式继承 System.Object，AbstractUser 的 IL 代码中就有 “extends [mscorlib]System.Object”，而接口的 IL 代码并没有这一段代码。</p>
-<h3 id="继承"><a href="#继承" class="headerlink" title="继承"></a>继承</h3><p>在.NET中继承的主要两种方式就是类继承和接口继承，两者的主要思想是不一样的：</p>
-<ul>
-<li>类继承强调父子关系，是一个“IS A”的关系，因此只能单继承（就像一个人只能有一个Father）；</li>
-<li>接口继承强调的是一种规范、约束，是一个“CAN DO”的关系，支持多继承，是实现多态一种重要方式。</li>
-</ul>
-<h2 id="题目答案解析"><a href="#题目答案解析" class="headerlink" title="题目答案解析"></a>题目答案解析</h2><h3 id="1-所有类型都继承System-Object吗？"><a href="#1-所有类型都继承System-Object吗？" class="headerlink" title="1. 所有类型都继承System.Object吗？"></a>1. 所有类型都继承System.Object吗？</h3><p>基本上是的，所有值类型和引用类型都继承自 System.Object，接口是一个特殊的类型，不继承自 System.Object。</p>
-<h3 id="2-解释virtual、sealed、override和abstract的区别"><a href="#2-解释virtual、sealed、override和abstract的区别" class="headerlink" title="2. 解释virtual、sealed、override和abstract的区别"></a>2. 解释virtual、sealed、override和abstract的区别</h3><ul>
-<li>virtual 申明虚方法的关键字，说明该方法可以被重写</li>
-<li>sealed 说明该类不可被继承</li>
-<li>override 重写基类的方法</li>
-<li>abstract 申明抽象类和抽象方法的关键字，抽象方法不提供实现，由子类实现，抽象类不可实例化。</li>
-</ul>
-<h3 id="3-接口和类有什么异同？"><a href="#3-接口和类有什么异同？" class="headerlink" title="3. 接口和类有什么异同？"></a>3. 接口和类有什么异同？</h3><p><strong>不同点：</strong></p>
-<p>1、接口不能直接实例化。</p>
-<p>2、接口只包含方法或属性的<strong>声明</strong>，不包含方法的实现。</p>
-<p>3、接口可以<strong>多继承</strong>，类只能单继承。</p>
-<p>4、表达的含义不同，接口主要定义一种<strong>规范</strong>，统一调用方法，也就是规范类，约束类，类是方法功能的实现和集合</p>
-<p><strong>相同点：</strong></p>
-<p>1、接口、类和结构都可以从多个接口继承。</p>
-<p>2、接口类似于抽象基类：继承接口的任何非抽象类型都必须实现接口的所有成员。</p>
-<p>3、接口和类都可以包含事件、索引器、方法和属性。</p>
-<h3 id="4-抽象类和接口有什么区别？"><a href="#4-抽象类和接口有什么区别？" class="headerlink" title="4. 抽象类和接口有什么区别？"></a>4. 抽象类和接口有什么区别？</h3><p>1、继承：接口支持多继承；抽象类不能实现多继承。</p>
-<p>2、表达的概念：接口用于规范，更强调契约，抽象类用于共性，强调父子。抽象类是一类事物的高度聚合，那么对于继承抽象类的子类来说，对于抽象类来说，属于”Is A”的关系；而接口是定义行为规范，强调“Can Do”的关系，因此对于实现接口的子类来说，相对于接口来说，是”行为需要按照接口来完成”。</p>
-<p>3、方法实现：对抽象类中的方法，即可以给出实现部分，也可以不给出；而接口的方法（抽象规则）都不能给出实现部分，接口中方法不能加修饰符。</p>
-<p>4、子类重写：继承类对于两者所涉及方法的实现是不同的。继承类对于抽象类所定义的抽象方法，可以不用重写，也就是说，可以延用抽象类的方法；而对于接口类所定义的方法或者属性来说，在继承类中必须重写，给出相应的方法和属性实现。</p>
-<p>5、新增方法的影响：在抽象类中，新增一个方法的话，继承类中可以不用作任何处理；而对于接口来说，则需要修改继承类，提供新定义的方法。</p>
-<p>6、接口可以作用于值类型（枚举可以实现接口）和引用类型；抽象类只能作用于引用类型。</p>
-<p>7、接口不能包含字段和已实现的方法，接口只包含方法、属性、索引器、事件的签名；抽象类可以定义字段、属性、包含有实现的方法。</p>
-<h3 id="5-重载与覆盖的区别？"><a href="#5-重载与覆盖的区别？" class="headerlink" title="5. 重载与覆盖的区别？"></a>5. 重载与覆盖的区别？</h3><p>重载：当类包含两个名称相同但签名不同(方法名相同,参数列表不相同)的方法时发生方法重载。用方法重载来提供在语义上完成相同而功能不同的方法。</p>
-<p>覆写：在类的继承中使用，通过覆写子类方法可以改变父类虚方法的实现。</p>
-<p><strong>主要区别</strong>：</p>
-<p>1、方法的覆盖是子类和父类之间的关系，是垂直关系；方法的重载是同一个类中方法之间的关系，是水平关系。<br>2、覆盖只能由一个方法，或只能由一对方法产生关系；方法的重载是多个方法之间的关系。<br>3、覆盖要求参数列表相同；重载要求参数列表不同。<br>4、覆盖关系中，调用那个方法体，是根据对象的类型来决定；重载关系，是根据调用时的实参表与形参表来选择方法体的。</p>
-<h3 id="6-在继承中new和override相同点和区别？看下面的代码，有一个基类A，B1和B2都继承自A，并且使用不同的方式改变了父类方法Print（）的行为。测试代码输出什么？为什么？"><a href="#6-在继承中new和override相同点和区别？看下面的代码，有一个基类A，B1和B2都继承自A，并且使用不同的方式改变了父类方法Print（）的行为。测试代码输出什么？为什么？" class="headerlink" title="6. 在继承中new和override相同点和区别？看下面的代码，有一个基类A，B1和B2都继承自A，并且使用不同的方式改变了父类方法Print（）的行为。测试代码输出什么？为什么？"></a>6. 在继承中new和override相同点和区别？看下面的代码，有一个基类A，B1和B2都继承自A，并且使用不同的方式改变了父类方法Print（）的行为。测试代码输出什么？为什么？</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">DoTest</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    B1 b1 = <span class="keyword">new</span> B1(); B2 b2 = <span class="keyword">new</span> B2();</span><br><span class="line">    b1.Print(); b2.Print();      <span class="comment">//按预期应该输出 B1、B2</span></span><br><span class="line"></span><br><span class="line">    A ab1 = <span class="keyword">new</span> B1(); A ab2 = <span class="keyword">new</span> B2();</span><br><span class="line">    ab1.Print(); ab2.Print();   <span class="comment">//这里应该输出什么呢？输出B1、A</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">A</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">Print</span>(<span class="params"></span>)</span> &#123; Console.WriteLine(<span class="string">&quot;A&quot;</span>); &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">B1</span> : <span class="title">A</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> <span class="keyword">void</span> <span class="title">Print</span>(<span class="params"></span>)</span> &#123; Console.WriteLine(<span class="string">&quot;B1&quot;</span>); &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">B2</span> : <span class="title">A</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 显式隐藏从基类继承的成员,也就是说此方法被隐藏，被调用ab2.Print()时，输出基类中的方法</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">new</span> <span class="keyword">void</span> <span class="title">Print</span>(<span class="params"></span>)</span> &#123; Console.WriteLine(<span class="string">&quot;B2&quot;</span>); &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h3 id="7-下面代码中，变量a、b都是int类型，代码输出结果是什么？"><a href="#7-下面代码中，变量a、b都是int类型，代码输出结果是什么？" class="headerlink" title="7. 下面代码中，变量a、b都是int类型，代码输出结果是什么？"></a>7. 下面代码中，变量a、b都是int类型，代码输出结果是什么？</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">int</span> a = <span class="number">123</span>;</span><br><span class="line"><span class="built_in">int</span> b = <span class="number">20</span>;</span><br><span class="line"><span class="keyword">var</span> atype = a.GetType();</span><br><span class="line"><span class="keyword">var</span> btype = b.GetType();</span><br><span class="line">Console.WriteLine(System.Object.Equals(atype,btype));          <span class="comment">//输出True</span></span><br><span class="line">Console.WriteLine(System.Object.ReferenceEquals(atype,btype)); <span class="comment">//输出True</span></span><br></pre></td></tr></table></figure>
-<h3 id="8-class中定义的静态字段是存储在内存中的哪个地方？为什么会说她不会被GC回收？"><a href="#8-class中定义的静态字段是存储在内存中的哪个地方？为什么会说她不会被GC回收？" class="headerlink" title="8.class中定义的静态字段是存储在内存中的哪个地方？为什么会说她不会被GC回收？"></a>8.class中定义的静态字段是存储在内存中的哪个地方？为什么会说她不会被GC回收？</h3><p>随类型对象存储在内存的加载堆上，因为加载堆不受GC管理，其生命周期随 AppDomain，不会被 GC 回收。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/anding/p/5248973.html">.NET面试题解析(04)-类型、方法与继承</a></p>
-<p><a target="_blank" rel="noopener" href="https://phodal.github.io/2md/">2md</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/06/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9003-string%E4%B8%8E%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%93%8D%E4%BD%9C/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/12/06/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9003-string%E4%B8%8E%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%93%8D%E4%BD%9C/" class="post-title-link" itemprop="url">DotNet面试题解析03-string与字符串操作</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-12-06 14:20:09" itemprop="dateCreated datePublished" datetime="2018-12-06T14:20:09+00:00">2018-12-06</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-02-28 04:30:54" itemprop="dateModified" datetime="2021-02-28T04:30:54+00:00">2021-02-28</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%90/" itemprop="url" rel="index"><span itemprop="name">DotNet面试题解析</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="字符串操作"><a href="#字符串操作" class="headerlink" title="字符串操作"></a>字符串操作</h2><h3 id="认识string"><a href="#认识string" class="headerlink" title="认识string"></a>认识string</h3><p>string 是一个特殊的引用类型,其对象值存储在托管堆中。string 的内部是一个 char 集合，他的长度 Length 就是字符char 数组的字符个数，一个字符两个字节。string 不允许使用 new string() 的方式创建实例，而是另一种更简单的语法，直接赋值（string aa= “000” 这一点也类似值类型）。</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">DoStringTest</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">var</span> aa = <span class="string">&quot;000&quot;</span>;</span><br><span class="line">    SetStringValue(aa);</span><br><span class="line">    Console.WriteLine(aa);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">SetStringValue</span>(<span class="params"><span class="built_in">string</span> aa</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    aa += <span class="string">&quot;111&quot;</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p><font color=#0099ff size=4 face="黑体">上面的输出结果为“000”。</font></p>
-<p>通过前面的值类型与引用类型的文章，我们知道 string 是一个引用类型，既然是一个引用类型，参数传递的是引用地址，那为什么不是输出“000111”呢？是不是很有值类型的特点呢！这一切的原因源于 string 类型的两个重要的特性：恒定性 与 驻留性。</p>
-<h3 id="String的恒定性（不变性）"><a href="#String的恒定性（不变性）" class="headerlink" title="String的恒定性（不变性）"></a>String的恒定性（不变性）</h3><p><font color=#0099ff size=4 face="黑体">字符串是不可变的，字符串一经创建，就不会改变，任何改变都会产生新的字符串。</font></p>
-<p><img src="/img/151257-20160303222417112-1147871973.png" alt="151257-20160303222417112-1147871973.png"></p>
-<p>上文中的 任何改变都会产生新的字符串 ，包括字符串的一些操作函数，如 str1.ToLower，Trim()，Remove(int startIndex, int count)，ToUpper() 等，都会产生新的字符串，因此在很多编程实践中，对于字符串忽略大小的比较：</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span>（str1.ToLower()==str2.ToLower()） <span class="comment">//这种方式会产生新的字符串，不推荐</span></span><br><span class="line"><span class="keyword">if</span>（<span class="built_in">string</span>. Compare(str1,str2,<span class="literal">true</span>)） <span class="comment">//这种方式性能更好</span></span><br></pre></td></tr></table></figure>
-<h3 id="String的驻留性"><a href="#String的驻留性" class="headerlink" title="String的驻留性"></a>String的驻留性</h3><p>由于字符串的不变性，在大量使用字符串操作时，会导致创建大量的字符串对象，带来极大的性能损失。因此 CLR 又给 string 提供另外一个法宝，就是字符串驻留，先看看下面的代码，字符串 s1、s2 竟然是同一个对象！</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> s1 = <span class="string">&quot;123&quot;</span>;</span><br><span class="line"><span class="keyword">var</span> s2 = <span class="string">&quot;123&quot;</span>;</span><br><span class="line">Console.WriteLine(System.Object.Equals(s1, s2));  <span class="comment">//输出 True</span></span><br><span class="line">Console.WriteLine(System.Object.ReferenceEquals(s1, s2));  <span class="comment">//输出 True</span></span><br></pre></td></tr></table></figure>
-<p><font color=#0099ff size=4 face="黑体">相同的字符串在内存（堆）中只分配一次，第二次申请字符串时，发现已经有该字符串是，直接返回已有字符串的地址，这就是驻留的基本过程。</font></p>
-<p>字符串驻留的基本原理：</p>
-<ul>
-<li>CLR 初始化时会在内存中创建一个驻留池，内部其实是一个哈希表，存储被驻留的字符串和其内存地址。</li>
-<li>驻留池是进程级别的，多个 AppDomain 共享。同时她不受 GC 控制，生命周期随进程，意思就是不会被 GC 回收</li>
-<li>当分配字符串时，首先会到驻留池中查找，如找到，则返回已有相同字符串的地址，不会创建新字符串对象。如果没有找到，则创建新的字符串，并把字符串添加到驻留池中。</li>
-</ul>
-<p>如果大量的字符串都驻留到内存里，而得不到释放，不是很容易造成内存爆炸吗，当然不会了? 因为不是任何字符串都会驻留，只有通过 IL 指令 ldstr 创建的字符串才会留用。</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> s1 = <span class="string">&quot;123&quot;</span>;</span><br><span class="line"><span class="keyword">var</span> s2 = s1 + <span class="string">&quot;abc&quot;</span>;</span><br><span class="line"><span class="keyword">var</span> s3 = <span class="built_in">string</span>.Concat(s1, s2);</span><br><span class="line"><span class="keyword">var</span> s4 = <span class="number">123.</span>ToString();</span><br><span class="line"><span class="keyword">var</span> s5 = s2.ToUpper();</span><br></pre></td></tr></table></figure>
-<p>IL代码如下：<br><img src="/img/151257-20160303221217190-205612505.png" alt="151257-20160303221217190-205612505.png"></p>
-<p>在上面的代码中，出现两个字符串常量，“123” 和 “abc”，这个两个常量字符串在 IL 代码中都是通过 IL 指令 ldstr 创建的，只有该指令创建的字符串才会被驻留，其他方式产生新的字符串都不会被驻留，也就不会共享字符串了，会被 GC 正常回收。</p>
-<p>那该如何来验证字符串是否驻留呢，string 类提供两个静态方法：</p>
-<ul>
-<li>string.Intern(string str)  可以主动驻留一个字符串；</li>
-<li>string.IsInterned(string str)  检测指定字符串是否驻留，如果驻留则返回字符串，否则返回NULL</li>
-</ul>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> s1 = <span class="string">&quot;123&quot;</span>;</span><br><span class="line"><span class="keyword">var</span> s2 = s1 + <span class="string">&quot;abc&quot;</span>;</span><br><span class="line">Console.WriteLine(s2);   <span class="comment">//输出：123abc</span></span><br><span class="line">Console.WriteLine(<span class="built_in">string</span>.IsInterned(s2) ?? <span class="string">&quot;NULL&quot;</span>);   <span class="comment">//输出：NULL。因为“123abc”没有驻留</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">string</span>.Intern(s2);   <span class="comment">//主动驻留字符串</span></span><br><span class="line">Console.WriteLine(<span class="built_in">string</span>.IsInterned(s2) ?? <span class="string">&quot;NULL&quot;</span>);   <span class="comment">//输出：123abc</span></span><br></pre></td></tr></table></figure>
-<h3 id="认识StringBuilder"><a href="#认识StringBuilder" class="headerlink" title="认识StringBuilder"></a>认识StringBuilder</h3><p>大量的编程实践和意见中，都说大量字符串连接操作，应该使用 StringBuilder。相对于 string 的不可变，StringBuilder 代表可变字符串，不会像字符串，在托管堆上频繁分配新对象。</p>
-<p>首先 StringBuilder 内部同 string 一样，有一个 char[] 字符数组，负责维护字符串内容。因此，与 char 数组相关，就有两个很重要的属性：</p>
-<ul>
-<li>public int Capacity：StringBuilder 的容量，其实就是字符数组的长度。</li>
-<li>public int Length：StringBuilder 中实际字符的长度，&gt;=0，&lt;= 容量 Capacity。</li>
-</ul>
-<p>StringBuilder 之所以比 string 效率高，主要原因就是不会创建大量的新对象，StringBuilder 在以下两种情况下会分配新对象：</p>
-<ul>
-<li>追加字符串时，当字符总长度超过了当前设置的容量 Capacity，这个时候，会重新创建一个更大的字符数组，此时会涉及到分配新对象。</li>
-<li>调用 StringBuilder.ToString()，创建新的字符串。</li>
-</ul>
-<p><strong>追加字符串的过程</strong>：</p>
-<ul>
-<li>StringBuilder 的默认初始容量为16；</li>
-<li>使用 stringBuilder.Append() 追加一个字符串时，当字符数大于16，StringBuilder 会自动申请一个更大的字符数组，一般是倍增；</li>
-<li>在新的字符数组分配完成后，将原字符数组中的字符复制到新字符数组中，原字符数组就被GC回收；</li>
-<li>最后把需要追加的字符串追加到新字符数组中；</li>
-</ul>
-<p>简单来说，当 StringBuilder 的容量 Capacity 发生变化时，就会引起托管对象申请、内存复制等操作，带来不好的性能影响，因此设置合适的初始容量是非常必要的，尽量减少内存申请和对象创建。</p>
-<p>验证代码：</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">StringBuilder sb1 = <span class="keyword">new</span> StringBuilder();</span><br><span class="line">Console.WriteLine(<span class="string">&quot;Capacity=&#123;0&#125;; Length=&#123;1&#125;;&quot;</span>, sb1.Capacity, sb1.Length); <span class="comment">//输出：Capacity=16; Length=0;   //初始容量为16 </span></span><br><span class="line">sb1.Append(<span class="string">&#x27;a&#x27;</span>, <span class="number">12</span>);    <span class="comment">//追加12个字符</span></span><br><span class="line">Console.WriteLine(<span class="string">&quot;Capacity=&#123;0&#125;; Length=&#123;1&#125;;&quot;</span>, sb1.Capacity, sb1.Length); <span class="comment">//输出：Capacity=16; Length=12;  </span></span><br><span class="line">sb1.Append(<span class="string">&#x27;a&#x27;</span>, <span class="number">20</span>);    <span class="comment">//继续追加20个字符，容量倍增了</span></span><br><span class="line">Console.WriteLine(<span class="string">&quot;Capacity=&#123;0&#125;; Length=&#123;1&#125;;&quot;</span>, sb1.Capacity, sb1.Length); <span class="comment">//输出：Capacity=32; Length=32;  </span></span><br><span class="line">sb1.Append(<span class="string">&#x27;a&#x27;</span>, <span class="number">41</span>);    <span class="comment">//追加41个字符，新容量=32+41=73</span></span><br><span class="line">Console.WriteLine(<span class="string">&quot;Capacity=&#123;0&#125;; Length=&#123;1&#125;;&quot;</span>, sb1.Capacity, sb1.Length); <span class="comment">//输出：Capacity=73; Length=73;  </span></span><br><span class="line"></span><br><span class="line">StringBuilder sb2 = <span class="keyword">new</span> StringBuilder(<span class="number">80</span>); <span class="comment">//设置一个合适的初始容量</span></span><br><span class="line">Console.WriteLine(<span class="string">&quot;Capacity=&#123;0&#125;; Length=&#123;1&#125;;&quot;</span>, sb2.Capacity, sb2.Length); <span class="comment">//输出：Capacity=80; Length=0;</span></span><br><span class="line">sb2.Append(<span class="string">&#x27;a&#x27;</span>, <span class="number">12</span>);</span><br><span class="line">Console.WriteLine(<span class="string">&quot;Capacity=&#123;0&#125;; Length=&#123;1&#125;;&quot;</span>, sb2.Capacity, sb2.Length); <span class="comment">//输出：Capacity=80; Length=12;</span></span><br><span class="line">sb2.Append(<span class="string">&#x27;a&#x27;</span>, <span class="number">20</span>);</span><br><span class="line">Console.WriteLine(<span class="string">&quot;Capacity=&#123;0&#125;; Length=&#123;1&#125;;&quot;</span>, sb2.Capacity, sb2.Length); <span class="comment">//输出：Capacity=80; Length=32;</span></span><br><span class="line">sb2.Append(<span class="string">&#x27;a&#x27;</span>, <span class="number">41</span>);</span><br><span class="line">Console.WriteLine(<span class="string">&quot;Capacity=&#123;0&#125;; Length=&#123;1&#125;;&quot;</span>, sb2.Capacity, sb2.Length); <span class="comment">//输出：Capacity=80; Length=73;</span></span><br></pre></td></tr></table></figure>
-<p>为什么少量字符串不推荐使用 StringBuilder 呢？因为 StringBuilder 本身是有一定的开销的，少量字符串就不推荐使用了，使用 String.Concat 和 String.Join 更合适。</p>
-<h3 id="高效的使用字符串"><a href="#高效的使用字符串" class="headerlink" title="高效的使用字符串"></a>高效的使用字符串</h3><ul>
-<li>在使用线程锁的时候，不要锁定一个字符串对象，因为字符串的驻留性，可能会引发不可以预料的问题；</li>
-<li>理解字符串的不变性，尽量避免产生额外字符串，如：</li>
-</ul>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span>（str1.ToLower()==str2.ToLower()） <span class="comment">//这种方式会产生新的字符串，不推荐</span></span><br><span class="line"><span class="keyword">if</span>（<span class="built_in">string</span>. Compare(str1,str2,<span class="literal">true</span>)） <span class="comment">//这种方式性能更好</span></span><br></pre></td></tr></table></figure>
-<ul>
-<li>在处理大量字符串连接的时候，尽量使用 StringBuilder，在使用 StringBuilder 时，尽量设置一个合适的长度初始值；</li>
-</ul>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">StringBuilder myStringBuilder = <span class="keyword">new</span> StringBuilder(<span class="string">&quot;Hello World!&quot;</span>, <span class="number">25</span>);</span><br><span class="line">或</span><br><span class="line">myStringBuilder.Capacity = <span class="number">25</span>;</span><br></pre></td></tr></table></figure>
-<ul>
-<li>少量字符串连接建议使用 String.Concat 和 String.Join 代替。</li>
-</ul>
-<h2 id="题目答案解析"><a href="#题目答案解析" class="headerlink" title="题目答案解析"></a>题目答案解析</h2><h3 id="1-字符串是引用类型类型还是值类型？"><a href="#1-字符串是引用类型类型还是值类型？" class="headerlink" title="1.字符串是引用类型类型还是值类型？"></a>1.字符串是引用类型类型还是值类型？</h3><p>引用类型。</p>
-<h3 id="2-在字符串连加处理中，最好采用什么方式，理由是什么？"><a href="#2-在字符串连加处理中，最好采用什么方式，理由是什么？" class="headerlink" title="2.在字符串连加处理中，最好采用什么方式，理由是什么？"></a>2.在字符串连加处理中，最好采用什么方式，理由是什么？</h3><p>少量字符串连接，使用 String.Concat，大量字符串使用 StringBuilder，因为 StringBuilder 的性能更好，如果 string 的话会创建大量字符串对象。</p>
-<h3 id="3-使用-StringBuilder时，需要注意些什么问题？"><a href="#3-使用-StringBuilder时，需要注意些什么问题？" class="headerlink" title="3.使用 StringBuilder时，需要注意些什么问题？"></a>3.使用 StringBuilder时，需要注意些什么问题？</h3><ul>
-<li>少量字符串时，尽量不要用，StringBuilder 本身是有一定性能开销的；</li>
-<li>大量字符串连接使用 StringBuilder 时，应该设置一个合适的容量。</li>
-</ul>
-<h3 id="4-以下代码执行后内存中会存在多少个字符串？分别是什么？输出结果是什么？为什么呢？"><a href="#4-以下代码执行后内存中会存在多少个字符串？分别是什么？输出结果是什么？为什么呢？" class="headerlink" title="4.以下代码执行后内存中会存在多少个字符串？分别是什么？输出结果是什么？为什么呢？"></a>4.以下代码执行后内存中会存在多少个字符串？分别是什么？输出结果是什么？为什么呢？</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">string</span> st1 = <span class="string">&quot;123&quot;</span> + <span class="string">&quot;abc&quot;</span>;</span><br><span class="line"><span class="built_in">string</span> st2 = <span class="string">&quot;123abc&quot;</span>;</span><br><span class="line">Console.WriteLine(st1 == st2);</span><br><span class="line">Console.WriteLine(System.Object.ReferenceEquals(st1, st2));</span><br></pre></td></tr></table></figure>
-<p>输出结果：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">True</span><br><span class="line">True</span><br></pre></td></tr></table></figure>
-<p>内存中的字符串只有一个“123abc”,第一行代码（string st1 = “123” + “abc”; ）常量字符串相加会被编译器优化。由于字符串驻留机制，两个变量st1、st2都指向同一个对象。IL代码如下：</p>
-<p><img src="/img/151257-20160303221219330-60155453.png" alt="151257-20160303221219330-60155453.png"></p>
-<h3 id="5-以下代码执行后内存中会存在多少个字符串？分别是什么？输出结果是什么？为什么呢？"><a href="#5-以下代码执行后内存中会存在多少个字符串？分别是什么？输出结果是什么？为什么呢？" class="headerlink" title="5.以下代码执行后内存中会存在多少个字符串？分别是什么？输出结果是什么？为什么呢？"></a>5.以下代码执行后内存中会存在多少个字符串？分别是什么？输出结果是什么？为什么呢？</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">string</span> s1 = <span class="string">&quot;123&quot;</span>;</span><br><span class="line"><span class="built_in">string</span> s2 = s1 + <span class="string">&quot;abc&quot;</span>;</span><br><span class="line"><span class="built_in">string</span> s3 = <span class="string">&quot;123abc&quot;</span>;</span><br><span class="line">Console.WriteLine(s2 == s3);</span><br><span class="line">Console.WriteLine(System.Object.ReferenceEquals(s2, s3));</span><br></pre></td></tr></table></figure>
-<p>结果：</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">True</span><br><span class="line">False</span><br></pre></td></tr></table></figure>
-<p>4个字符串。<br>分别是123，abc，123abc，123abc。</p>
-<p>理由：<br>s1+abc时产生的不是可驻留的的字符串，而下句则是个驻留字符串。<br>字符串是不可变的，字符串一经创建，就不会改变，任何改变都会产生新的字符串。</p>
-<h3 id="6-使用C-实现字符串反转算法，例如：输入”12345”-输出”54321”"><a href="#6-使用C-实现字符串反转算法，例如：输入”12345”-输出”54321”" class="headerlink" title="6.使用C#实现字符串反转算法，例如：输入”12345”, 输出”54321”"></a>6.使用C#实现字符串反转算法，例如：输入”12345”, 输出”54321”</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="built_in">string</span> <span class="title">Reverse</span>(<span class="params"><span class="built_in">string</span> str</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">string</span>.IsNullOrEmpty(str))</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentException(<span class="string">&quot;参数不合法&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    StringBuilder sb = <span class="keyword">new</span> StringBuilder(str.Length);  <span class="comment">//注意：设置合适的初始长度，可以显著提高效率（避免了多次内存申请）</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="built_in">int</span> index = str.Length - <span class="number">1</span>; index &gt;= <span class="number">0</span>; index--)</span><br><span class="line">    &#123;</span><br><span class="line">        sb.Append(str[index]);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> sb.ToString();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="built_in">string</span> <span class="title">Reverse</span>(<span class="params"><span class="built_in">string</span> str</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">string</span>.IsNullOrEmpty(str))</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentException(<span class="string">&quot;参数不合法&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">char</span>[] chars = str.ToCharArray();</span><br><span class="line">    <span class="built_in">int</span> begin = <span class="number">0</span>;</span><br><span class="line">    <span class="built_in">int</span> end = chars.Length - <span class="number">1</span>;</span><br><span class="line">    <span class="built_in">char</span> tempChar;</span><br><span class="line">    <span class="keyword">while</span> (begin &lt; end)</span><br><span class="line">    &#123;</span><br><span class="line">        tempChar = chars[begin];</span><br><span class="line">        chars[begin] = chars[end];</span><br><span class="line">        chars[end] = tempChar;</span><br><span class="line">        begin++;</span><br><span class="line">        end--;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">string</span> strResult = <span class="keyword">new</span> <span class="built_in">string</span>(chars);</span><br><span class="line">    <span class="keyword">return</span> strResult;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="built_in">string</span> <span class="title">Reverse</span>(<span class="params"><span class="built_in">string</span> str</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">char</span>[] arr = str.ToCharArray();</span><br><span class="line">    Array.Reverse(arr);</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> <span class="built_in">string</span>(arr);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<h3 id="7-下面的代码输出结果？为什么？"><a href="#7-下面的代码输出结果？为什么？" class="headerlink" title="7.下面的代码输出结果？为什么？"></a>7.下面的代码输出结果？为什么？</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">object</span> a = <span class="string">&quot;123&quot;</span>;</span><br><span class="line"><span class="built_in">object</span> b = <span class="string">&quot;123&quot;</span>;</span><br><span class="line">Console.WriteLine(System.Object.Equals(a,b));</span><br><span class="line">Console.WriteLine(System.Object.ReferenceEquals(a,b));</span><br><span class="line"><span class="built_in">string</span> sa = <span class="string">&quot;123&quot;</span>;</span><br><span class="line">Console.WriteLine(System.Object.Equals(a, sa));</span><br><span class="line">Console.WriteLine(System.Object.ReferenceEquals(a, sa));</span><br></pre></td></tr></table></figure>
-<p>输出结果全是 True，因为他们都指向同一个字符串实例，使用 object 声明和 string 声明在这里并没有区别（string是引用类型）。</p>
-<h3 id="8-C-中string-Empty、””和null-之间的区别"><a href="#8-C-中string-Empty、””和null-之间的区别" class="headerlink" title="8.C#中string.Empty、””和null 之间的区别"></a>8.C#中string.Empty、””和null 之间的区别</h3><p>实际上 Empty 是 string 类中的一个静态的只读字段，他的定义是这样的：</p>
-<p>public static readonly String Empty = “”;</p>
-<p>也就是说 string.Empty 的内部实现是等于””的。</p>
-<p>引用类型是将对象是实际数据保存在堆上, 将对象在堆上的地址保存在栈上。因此 string.Empty 与 “” 都会在栈上保存一个地址这个地址占4字节，指向内存堆中的某个长度为0的空间，这个空间保存的是 string.Empty 的实际值</p>
-<p>“” 是通过 CLR 进行优化的,CLR 会维护一个字符串池,以防在堆中创建重复的字符串。<br>而 string.Empty 是一种 c# 语法级别的优化，是在 C# 编译器将代码编译为 IL (即 MSIL )时进行了优化，即所有对 string 类的静态字段 Empty 的访问都会被指向同一引用，以节省内存空间。也就是说，”” 与 string.Empty 在用法与性能上基本没区别。string.Empty 是在语法级别对 “” 的优化。</p>
-<p>那就是 string.Empty 会在堆上占用一个长度为0的空间，而null不会。具体内容如下：</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">string</span> str1=<span class="string">&quot;&quot;</span>;</span><br><span class="line"><span class="built_in">string</span> str2=<span class="literal">null</span>;</span><br></pre></td></tr></table></figure>
-<p>如刚才所说 str1 会在栈上保存一个地址,这个地址占4字节，指向内存堆中的某个长度为0的空间，这个空间保存的是 str1 的实际值。</p>
-<p>str2 同样会在栈上保存一个地址,这个地址也占4字节，但是这个地址是没有明确指向的，它哪也不指，其内容为 0x00000000。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/anding/p/5240313.html">.NET面试题解析(03)-string与字符串操作</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/solan/archive/2012/08/06/CSharp09.html">C#基础知识梳理系列九：StringBuilder</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/artech/archive/2007/05/06/737130.html">深入理解string和如何高效地使用string</a></p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/henulwj/article/details/7830615">C#中string.Empty、””和null 之间的区别</a></p>
 
       
     </div>
@@ -3282,7 +3125,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">351</span>
+          <span class="site-state-item-count">354</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
