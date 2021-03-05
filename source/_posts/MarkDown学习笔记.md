@@ -11,6 +11,18 @@ categories: MarkDown
 
 ## 区块元素
 
+### 字体颜色
+
+```html
+<font color=#ff0000 size=4 face="黑体">最大消息长度</font>
+<font color=#0400ff size=4 face="黑体">最大消息长度</font>
+<table><tr><td bgcolor=yellow>最大消息长度正好是 IP 中不会被分片处理的最大数据长度</td></tr></table>
+```
+
+<font color=#ff0000 size=4 face="黑体">最大消息长度</font>
+<font color=#0400ff size=4 face="黑体">最大消息长度</font>
+<table><tr><td bgcolor=yellow>最大消息长度</td></tr></table>
+
 ### 标题
 
 * 使用#号表示标题，一级标题使用一个#，二级标题使用两个#，以此类推，共有六级标题；

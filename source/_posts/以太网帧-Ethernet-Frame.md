@@ -18,6 +18,8 @@ Frame：帧
 
 ![d009b3de9c82d158ccbfd28051420ed8bc3eb135e4e3.png](/img/d009b3de9c82d158ccbfd28051420ed8bc3eb135e4e3.png)
 
+![20210127194819642.png](/img/20210127194819642.png)
+
 ## Ethernet帧格式历史
 
 1980 DEC,Intel,Xerox 制订了 Ethernet I 的标准
