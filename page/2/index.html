@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
 <meta name="theme-color" content="#222">
-<meta name="generator" content="Hexo 5.3.0">
+<meta name="generator" content="Hexo 5.4.0">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
@@ -185,6 +185,152 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2021/01/08/Linux-TcpDump%E5%B7%A5%E5%85%B7/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2021/01/08/Linux-TcpDump%E5%B7%A5%E5%85%B7/" class="post-title-link" itemprop="url">Linux TcpDump工具</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2021-01-08 17:40:49" itemprop="dateCreated datePublished" datetime="2021-01-08T17:40:49+00:00">2021-01-08</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/TcpDump/" itemprop="url" rel="index"><span itemprop="name">TcpDump</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>TcpDump 使用了独立于系统的 libpcap 的接口。libpcap 是linux平台下的网络数据包捕获函数包，大多数网络监控软件都以它为基础。tcpdump 调用libpcap 的接口在 linux 系统链路层抓包。而linux本身指定的许多访问控制规则都是基于三层或三层以上的过滤规则，所以 tcpdump 可以抓取过滤规则之前的数据包。使用tcpdump 需要有root权限。</p>
+<h2 id="网卡基础知识"><a href="#网卡基础知识" class="headerlink" title="网卡基础知识"></a>网卡基础知识</h2><h3 id="网卡的不同接受模式"><a href="#网卡的不同接受模式" class="headerlink" title="网卡的不同接受模式"></a>网卡的不同接受模式</h3><ul>
+<li>广播模式：该模式下网卡能接收网络中的广播信息。</li>
+<li>组播模式：该模式下网卡能接收网络中的组播信息。</li>
+<li>直接模式：该模式下网卡能接收网络中目的地址为自己的数据包。</li>
+<li>混杂模式：该模式下网卡能接收网络中一切通过该网卡的数据包。</li>
+</ul>
+<p>注：网卡混杂模式：是网卡的一种工作模式，一般在抓取网卡数据包时使用。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">device eth0 entered promiscuous mode <span class="comment"># 是指网卡 eth0 进入了混杂模式。</span></span><br><span class="line">device eth0 left promiscuous mode <span class="comment"># 网卡 eth0 离开了混杂模式。</span></span><br><span class="line">ifconfig eth0 promisc <span class="comment"># 设置网卡eth0为混杂模式</span></span><br><span class="line">ifconfig eth0 -promisc <span class="comment"># 取消网卡eth0的混杂模式</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="网络中数据包的分类"><a href="#网络中数据包的分类" class="headerlink" title="网络中数据包的分类"></a>网络中数据包的分类</h3><ul>
+<li>广播包：指IP子网内广播的数据包。适用范围较小只在本地子网有效。通过路由器和网络设备控制传输。</li>
+<li>单播包：发送者和每一接受者中点对点的网络连接。</li>
+<li>组播包：借助组播路由协议建立树形路由，在尽可能远的分岔路口才开始复制和奋发。（224.0.0.0~224.0.0.255是预留的组播地址）</li>
+</ul>
+<h3 id="数据包接收流程"><a href="#数据包接收流程" class="headerlink" title="数据包接收流程"></a>数据包接收流程</h3><ul>
+<li>网卡收到数据包，获取数据包中的目的MAC地址。</li>
+<li>根据网卡驱动设置的网卡接受模式去判断是否接受该数据。</li>
+<li>若接受该数据：发出中断信号通知CPU；CPU收到中断信号后根据发出该中断信号的网卡驱动程序的网卡驱动程序地址调用网卡驱动程序；网卡驱动程序处理数据；驱动程序将数据放入信号堆栈；系统接触到数据。</li>
+<li>若不接受该数据：网卡直接丢弃该数据；系统不会接触到数据。</li>
+</ul>
+<h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 解锁</span></span><br><span class="line"><span class="comment"># 如果不解锁，可能造成错误：Couldn&#x27;t find user &#x27;tcpdump&#x27;</span></span><br><span class="line">chattr -i /etc/passwd /etc/shadow /etc/group /etc/gshadow</span><br><span class="line"></span><br><span class="line"><span class="comment"># 安装</span></span><br><span class="line">yum install tcpdump</span><br></pre></td></tr></table></figure>
+
+<h2 id="tcpdump命令格式"><a href="#tcpdump命令格式" class="headerlink" title="tcpdump命令格式"></a>tcpdump命令格式</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">tcpdump [ -DenNqvX ] [ -c count ] [ -F file ] [ -i interface ] [ -r file ]</span><br><span class="line">        [ -s snaplen ] [ -w file ] [ expression ]</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>-a 尝试将网络和广播地址转换成名称。</li>
+<li>-c&lt;数据包数目&gt; 收到指定的数据包数目后，就停止进行倾倒操作。</li>
+<li>-d 把编译过的数据包编码转换成可阅读的格式，并倾倒到标准输出。</li>
+<li>-dd 把编译过的数据包编码转换成C语言的格式，并倾倒到标准输出。</li>
+<li>-ddd 把编译过的数据包编码转换成十进制数字的格式，并倾倒到标准输出。</li>
+<li>-e 在每列倾倒资料上显示连接层级的文件头。</li>
+<li>-f 用数字显示网际网络地址。</li>
+<li>-F&lt;表达文件&gt; 指定内含表达方式的文件。</li>
+<li>-i&lt;网络界面&gt; 使用指定的网络截面送出数据包。</li>
+<li>-l 使用标准输出列的缓冲区。</li>
+<li>-n 不把主机的网络地址转换成名字。</li>
+<li>-N 不列出域名。</li>
+<li>-O 不将数据包编码最佳化。</li>
+<li>-p 不让网络界面进入混杂模式。</li>
+<li>-q 快速输出，仅列出少数的传输协议信息。</li>
+<li>-r&lt;数据包文件&gt; 从指定的文件读取数据包数据。</li>
+<li>-s&lt;数据包大小&gt; 设置每个数据包的大小。</li>
+<li>-S 用绝对而非相对数值列出TCP关联数。</li>
+<li>-t 在每列倾倒资料上不显示时间戳记。</li>
+<li>-tt 在每列倾倒资料上显示未经格式化的时间戳记。</li>
+<li>-T&lt;数据包类型&gt; 强制将表达方式所指定的数据包转译成设置的数据包类型。</li>
+<li>-v 详细显示指令执行过程。</li>
+<li>-vv 更详细显示指令执行过程。</li>
+<li>-vvv：产生比-vv更详细的输出。</li>
+<li>-x 用十六进制字码列出数据包资料。</li>
+<li>-w&lt;数据包文件&gt; 把数据包数据写入指定的文件。</li>
+</ul>
+<h2 id="常用实例"><a href="#常用实例" class="headerlink" title="常用实例"></a>常用实例</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 监听特定主机</span></span><br><span class="line">tcpdump host 182.254.38.55</span><br><span class="line"></span><br><span class="line"><span class="comment"># 特定来源</span></span><br><span class="line">tcpdump src host hostname</span><br><span class="line"></span><br><span class="line"><span class="comment"># 特定目标地址</span></span><br><span class="line">tcpdump dst host hostname</span><br><span class="line"></span><br><span class="line"><span class="comment"># 特定端口</span></span><br><span class="line">tcpdump port 3000</span><br><span class="line"></span><br><span class="line"><span class="comment"># 监听TCP/UDP</span></span><br><span class="line">tcpdump tcp</span><br><span class="line"></span><br><span class="line"><span class="comment"># 来源主机+端口+TCP</span></span><br><span class="line"><span class="comment"># 监听来自主机 10.207.22.254 在端口 8011 上的TCP数据包</span></span><br><span class="line">tcpdump tcp port 8011 and src host 10.207.22.254</span><br><span class="line"></span><br><span class="line"><span class="comment"># 监听特定主机之间的通信</span></span><br><span class="line">tcpdump ip host 210.27.48.1 and 210.27.48.2</span><br><span class="line"></span><br><span class="line"><span class="comment"># 保存到本地</span></span><br><span class="line"><span class="comment"># 备注：tcpdump 默认会将输出写到缓冲区，只有缓冲区内容达到一定的大小，或者tcpdump退出时，才会将输出写到本地磁盘</span></span><br><span class="line">tcpdump -n -vvv -c 1000 -w /ldjc/data.pcap</span><br></pre></td></tr></table></figure>
+
+<h2 id="输出"><a href="#输出" class="headerlink" title="输出"></a>输出</h2><p>TCP协议行的典型格式如下：</p>
+<p>[Timestamp] [Protocol] [Src IP].[Src Port] &gt; [Dst IP].[Dst Port]: [Flags], [Seq], [Ack], [Win Size], [Options], [Data Length]</p>
+<p>让我们逐个字段进行说明，并解释以下内容：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">21:53:20.460144 IP 192.168.182.166.57494 &gt; 35.222.85.5.80: Flags [P.], seq 1:88, ack 1, win 29200,  </span><br><span class="line">options [nop,nop,TS val 1067794587 ecr 2600218930], length 87</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">21:53:20.460144 - 捕获的数据包的时间戳为本地时间，并使用以下格式：hours：minutes：seconds.frac，</span><br><span class="line">        其中frac是自午夜以来的几分之一秒。</span><br><span class="line">IP - 分组协议。 在这种情况下，IP表示Internet协议版本4（IPv4）。</span><br><span class="line">192.168.182.166.57494 - 源IP地址和端口，以点（.）分隔。</span><br><span class="line">35.222.85.5.80 - 目的IP地址和端口，以点号（.）分隔。</span><br></pre></td></tr></table></figure>
+
+<p>TCP 标志字段。 在此示例中，[P.] 表示推送确认数据包，用于确认前一个数据包并发送数据。 其他典型标志字段值如下：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[.] - ACK (Acknowledgment)</span><br><span class="line">[S] - SYN (Start Connection)</span><br><span class="line">[P] - PSH (Push Data)</span><br><span class="line">[F] - FIN (Finish Connection)</span><br><span class="line">[R] - RST (Reset Connection)</span><br><span class="line">[S.] - SYN-ACK (SynAcK Packet)</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">seq 1:88 - 序列号在first：last表示法中。 它显示了数据包中包含的数据数量。 </span><br><span class="line">        除了数据流中的第一个数据包（其中这些数字是绝对的）以外，所有后续数据包均用作相对字节位置。 </span><br><span class="line">        在此示例中，数字为1:88，表示此数据包包含数据流的字节1至88。 使用-S选项可打印绝对序列号。</span><br><span class="line">ack 1 - 确认号（acknowledgment number）是此连接另一端所期望的下一个数据的序列号。</span><br><span class="line">win 29200 - 窗口号是接收缓冲区中可用字节的数目。</span><br><span class="line">options [nop,nop,TS val 1067794587 ecr 2600218930] - TCP选项。 </span><br><span class="line">        使用 nop 或 “ no operation” 填充使TCP报头为4字节的倍数。 </span><br><span class="line">        TS val 是TCP时间戳，而 ecr 表示回显应答。 请访问 IANA 文档以获取有关 TCP 选项的更多信息。</span><br><span class="line">length 87 - 有效载荷数据的长度</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/godop/article/details/80986966">tcpdump抓包wireshark分析</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/chinaltx/article/details/87469933">一文搞定tcpdump基本用法</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.linuxidc.com/Linux/2020-02/162226.htm">Linux下抓包命令tcpdump详解</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/chyingp/p/linux-command-tcpdump.html">Linux基础：用tcpdump抓包</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/8d9accf1d2f1">聊聊 tcpdump 与 Wireshark 抓包分析</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2021/01/07/Linux-%E6%9F%A5%E7%9C%8BCPU%E4%BF%A1%E6%81%AF/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -216,7 +362,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -240,15 +386,24 @@
 
       
           <h2 id="查看物理CPU的个数"><a href="#查看物理CPU的个数" class="headerlink" title="查看物理CPU的个数"></a>查看物理CPU的个数</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /proc/cpuinfo | grep <span class="string">&quot;physical id&quot;</span> | sort | uniq | wc -l</span><br></pre></td></tr></table></figure>
+
 <h2 id="查看物理CPU内核的个数"><a href="#查看物理CPU内核的个数" class="headerlink" title="查看物理CPU内核的个数"></a>查看物理CPU内核的个数</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /proc/cpuinfo | grep <span class="string">&quot;cpu cores&quot;</span> | uniq</span><br></pre></td></tr></table></figure>
+
 <h2 id="查看所有逻辑CPU的个数"><a href="#查看所有逻辑CPU的个数" class="headerlink" title="查看所有逻辑CPU的个数"></a>查看所有逻辑CPU的个数</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /proc/cpuinfo | grep <span class="string">&quot;processor&quot;</span> | wc -l</span><br></pre></td></tr></table></figure>
+
 <h2 id="查看每个物理CPU中逻辑CPU的个数"><a href="#查看每个物理CPU中逻辑CPU的个数" class="headerlink" title="查看每个物理CPU中逻辑CPU的个数"></a>查看每个物理CPU中逻辑CPU的个数</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /proc/cpuinfo | grep <span class="string">&#x27;siblings&#x27;</span> | uniq</span><br></pre></td></tr></table></figure>
+
 <h2 id="查询CPU是否启用超线程"><a href="#查询CPU是否启用超线程" class="headerlink" title="查询CPU是否启用超线程"></a>查询CPU是否启用超线程</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /proc/cpuinfo | grep -e <span class="string">&quot;cpu cores&quot;</span> -e <span class="string">&quot;siblings&quot;</span> | sort | uniq</span><br></pre></td></tr></table></figure>
+
 <p>如果cpu cores数量是siblings数量一半，说明启动了超线程。<br>如果cpu cores数量和siblings数量一致，则没有启用超线程。</p>
 <h2 id="查看CPU的主频"><a href="#查看CPU的主频" class="headerlink" title="查看CPU的主频"></a>查看CPU的主频</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /proc/cpuinfo |grep MHz|uniq </span><br></pre></td></tr></table></figure>
+
 <h2 id="查看CPU信息（型号）"><a href="#查看CPU信息（型号）" class="headerlink" title="查看CPU信息（型号）"></a>查看CPU信息（型号）</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /proc/cpuinfo | grep name | cut -f2 -d: | uniq -c</span><br></pre></td></tr></table></figure>
+
 <h2 id="查看内存信息"><a href="#查看内存信息" class="headerlink" title="查看内存信息"></a>查看内存信息</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /proc/meminfo</span><br></pre></td></tr></table></figure>
+
 <h2 id="查看机器型号"><a href="#查看机器型号" class="headerlink" title="查看机器型号"></a>查看机器型号</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dmidecode | grep <span class="string">&quot;Product Name&quot;</span>  </span><br></pre></td></tr></table></figure>
+
 <h2 id="CPU运行位数"><a href="#CPU运行位数" class="headerlink" title="CPU运行位数"></a>CPU运行位数</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">getconf LONG_BIT</span><br></pre></td></tr></table></figure>
       
     </div>
@@ -299,7 +454,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -395,7 +550,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -463,6 +618,7 @@
 </tr>
 </tbody></table>
 <h2 id="比较运算符"><a href="#比较运算符" class="headerlink" title="比较运算符"></a>比较运算符</h2><figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">== ：等于 </span><br><span class="line">!= ：不等于</span><br><span class="line">&gt; ：大于 </span><br><span class="line">&lt; ：小于</span><br><span class="line">&gt;= ：大于等于 </span><br><span class="line">&lt;= ：小于等于</span><br></pre></td></tr></table></figure>
+
 <h2 id="赋值运算符"><a href="#赋值运算符" class="headerlink" title="赋值运算符"></a>赋值运算符</h2><table>
 <thead>
 <tr>
@@ -513,9 +669,13 @@
 </tr>
 </tbody></table>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 海象运算符，可在表达式内部为变量赋值。Python3.8 新增。</span></span><br><span class="line">:= </span><br><span class="line"></span><br><span class="line"><span class="comment"># 示例中，赋值表达式可以避免调用 len() 两次: </span></span><br><span class="line"><span class="keyword">if</span> (n := <span class="built_in">len</span>(a)) &gt; <span class="number">10</span>:</span><br><span class="line">    print(<span class="string">f&quot;List is too long (<span class="subst">&#123;n&#125;</span> elements, expected &lt;= 10)&quot;</span>)</span><br></pre></td></tr></table></figure>
+
 <h2 id="逻辑运算符"><a href="#逻辑运算符" class="headerlink" title="逻辑运算符"></a>逻辑运算符</h2><figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">and</span></span><br><span class="line"><span class="keyword">or</span></span><br><span class="line"><span class="keyword">not</span></span><br></pre></td></tr></table></figure>
+
 <h2 id="成员运算符"><a href="#成员运算符" class="headerlink" title="成员运算符"></a>成员运算符</h2><figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">in</span>：如果在指定的序列中找到值返回 <span class="literal">True</span>，否则返回 <span class="literal">False</span>。</span><br><span class="line"><span class="keyword">not</span> <span class="keyword">in</span>：如果在指定的序列中没有找到值返回 <span class="literal">True</span>，否则返回 <span class="literal">False</span>。</span><br></pre></td></tr></table></figure>
+
 <h2 id="身份运算符"><a href="#身份运算符" class="headerlink" title="身份运算符"></a>身份运算符</h2><figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">is</span>：<span class="keyword">is</span> 是判断两个标识符是不是引用自一个对象</span><br><span class="line"><span class="keyword">is</span> <span class="keyword">not</span>：<span class="keyword">is</span> <span class="keyword">not</span> 是判断两个标识符是不是引用自不同对象</span><br></pre></td></tr></table></figure>
+
 <p>is 与 == 区别：<br>is 用于判断两个变量引用对象是否为同一个， == 用于判断引用变量的值是否相等。</p>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">a = <span class="number">20</span></span><br><span class="line">b = <span class="number">20</span></span><br><span class="line"> </span><br><span class="line"><span class="keyword">if</span> ( a <span class="keyword">is</span> b ):</span><br><span class="line">   <span class="built_in">print</span> (<span class="string">&quot;1 - a 和 b 有相同的标识&quot;</span>)</span><br><span class="line"><span class="keyword">else</span>:</span><br><span class="line">   <span class="built_in">print</span> (<span class="string">&quot;1 - a 和 b 没有相同的标识&quot;</span>)</span><br><span class="line"> </span><br><span class="line"><span class="keyword">if</span> ( <span class="built_in">id</span>(a) == <span class="built_in">id</span>(b) ):</span><br><span class="line">   <span class="built_in">print</span> (<span class="string">&quot;2 - a 和 b 有相同的标识&quot;</span>)</span><br><span class="line"><span class="keyword">else</span>:</span><br><span class="line">   <span class="built_in">print</span> (<span class="string">&quot;2 - a 和 b 没有相同的标识&quot;</span>)</span><br><span class="line"> </span><br><span class="line"><span class="comment"># 修改变量 b 的值</span></span><br><span class="line">b = <span class="number">30</span></span><br><span class="line"><span class="keyword">if</span> ( a <span class="keyword">is</span> b ):</span><br><span class="line">   <span class="built_in">print</span> (<span class="string">&quot;3 - a 和 b 有相同的标识&quot;</span>)</span><br><span class="line"><span class="keyword">else</span>:</span><br><span class="line">   <span class="built_in">print</span> (<span class="string">&quot;3 - a 和 b 没有相同的标识&quot;</span>)</span><br><span class="line"> </span><br><span class="line"><span class="keyword">if</span> ( a <span class="keyword">is</span> <span class="keyword">not</span> b ):</span><br><span class="line">   <span class="built_in">print</span> (<span class="string">&quot;4 - a 和 b 没有相同的标识&quot;</span>)</span><br><span class="line"><span class="keyword">else</span>:</span><br><span class="line">   <span class="built_in">print</span> (<span class="string">&quot;4 - a 和 b 有相同的标识&quot;</span>)</span><br></pre></td></tr></table></figure>
       
@@ -567,7 +727,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -592,21 +752,27 @@
       
           <p>Python 中的变量不需要声明。每个变量在使用前都必须赋值，变量赋值以后该变量才会被创建。</p>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">var1 = <span class="number">1</span></span><br><span class="line">var2 = <span class="string">&#x27;a&#x27;</span></span><br></pre></td></tr></table></figure>
+
 <p>在 Python 中，所说的”类型”是变量所指的内存中对象的类型。变量可以通过赋值指向不同类型的对象。</p>
 <p>可以使用 del 语句删除一些对象引用。</p>
 <p>del语句的语法是：</p>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">del</span> var1[,var2[,var3[....,varN]]]</span><br></pre></td></tr></table></figure>
+
 <p>可以通过使用del语句删除单个或多个对象：</p>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">del</span> var</span><br><span class="line"><span class="keyword">del</span> var_a, var_b</span><br></pre></td></tr></table></figure>
+
 <h2 id="变量赋值"><a href="#变量赋值" class="headerlink" title="变量赋值"></a>变量赋值</h2><p>等号（=）用来给变量赋值。</p>
 <p>等号（=）运算符左边是一个变量名，等号（=）运算符右边是存储在变量中的值。</p>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">counter = <span class="number">100</span>           <span class="comment"># 整型变量</span></span><br><span class="line">miles = <span class="number">1000.0</span>          <span class="comment"># 浮点型变量</span></span><br><span class="line">name= <span class="string">&quot;Hello, Python!&quot;</span>  <span class="comment"># 字符串</span></span><br></pre></td></tr></table></figure>
+
 <p>1，同时为多个变量赋值。例如：</p>
 <p>创建一个整型对象，值为 1，从后向前赋值，三个变量被赋予相同的数值。</p>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">a = b = c = <span class="number">1</span></span><br></pre></td></tr></table></figure>
+
 <p>2，为多个对象指定多个变量。例如：</p>
 <p>两个整型对象 1 和 2 的分配给变量 a 和 b，字符串对象 “Python” 分配给变量 c。</p>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">a, b, c = <span class="number">1</span>, <span class="number">2</span>, <span class="string">&quot;Python&quot;</span></span><br></pre></td></tr></table></figure>
+
 <h2 id="标准数据类型"><a href="#标准数据类型" class="headerlink" title="标准数据类型"></a>标准数据类型</h2><p>Python3 中有六个标准的数据类型：</p>
 <ul>
 <li>Number（数字）</li>
@@ -627,8 +793,10 @@
 </ul>
 <p>内置函数 type() 可以用来查询变量所指的对象类型。</p>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span>a,b,c,d=<span class="number">20</span>,<span class="number">5.5</span>,<span class="literal">True</span>,<span class="number">5</span>+<span class="number">4j</span></span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>print(<span class="built_in">type</span>(a), <span class="built_in">type</span>(b), <span class="built_in">type</span>(c), <span class="built_in">type</span>(d))</span><br><span class="line">&lt;<span class="class"><span class="keyword">class</span> &#x27;<span class="title">int</span>&#x27;&gt; &lt;<span class="title">class</span> &#x27;<span class="title">float</span>&#x27;&gt; &lt;<span class="title">class</span> &#x27;<span class="title">bool</span>&#x27;&gt; &lt;<span class="title">class</span> &#x27;<span class="title">complex</span>&#x27;&gt;</span></span><br></pre></td></tr></table></figure>
+
 <p>isinstance </p>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span>a=<span class="number">1234</span></span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="built_in">isinstance</span>(a,<span class="built_in">int</span>)</span><br><span class="line"><span class="literal">True</span></span><br></pre></td></tr></table></figure>
+
 <h2 id="数字-Number-类型"><a href="#数字-Number-类型" class="headerlink" title="数字(Number)类型"></a>数字(Number)类型</h2><p>Python3 中数字有四种类型：int(整数)、bool(布尔型)、float(浮点数)、complex（复数）。</p>
 <ul>
 <li><p>int (整数), 可以为任意大小、包含负数，如 1, 只有一种整数类型 int，表示为长整型，没有 python2 中的 Long。<br>整型有四种进制表示，分别为：二进制、八进制、十进制、十六进制，说明如下表所示：</p>
@@ -675,18 +843,23 @@
 <p>字符串的截取：<strong>索引值以 0 为开始值，-1 为从末尾的开始位置。</strong></p>
 <p><strong>遵循左闭右开原则，str[0:2] 是不包含第 3 个字符的，即不包括尾标。</strong></p>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">变量[头下标:尾下标]</span><br></pre></td></tr></table></figure>
+
 <p>实例：</p>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">str</span> = <span class="string">&#x27;Hello, Python!&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span> (<span class="built_in">str</span>)          <span class="comment"># 输出字符串</span></span><br><span class="line"><span class="built_in">print</span> (<span class="built_in">str</span>[<span class="number">0</span>:-<span class="number">1</span>])    <span class="comment"># 输出第一个到倒数第二个的所有字符</span></span><br><span class="line"><span class="built_in">print</span> (<span class="built_in">str</span>[<span class="number">0</span>])       <span class="comment"># 输出字符串第一个字符</span></span><br><span class="line"><span class="built_in">print</span> (<span class="built_in">str</span>[<span class="number">2</span>:<span class="number">5</span>])     <span class="comment"># 输出从第三个开始到第五个的字符</span></span><br><span class="line"><span class="built_in">print</span> (<span class="built_in">str</span>[<span class="number">2</span>:])      <span class="comment"># 输出从第三个开始的后的所有字符</span></span><br><span class="line"><span class="built_in">print</span> (<span class="built_in">str</span> * <span class="number">2</span>)      <span class="comment"># 输出字符串两次，也可以写成 print (2 * str)</span></span><br><span class="line"><span class="built_in">print</span> (<span class="built_in">str</span> + <span class="string">&quot;TEST&quot;</span>) <span class="comment"># 连接字符串</span></span><br></pre></td></tr></table></figure>
+
 <p>加号 + 是列表连接运算符，星号 * 是重复操作。</p>
 <p>反斜杠 \ 转义特殊字符，如果你不想让反斜杠发生转义，可以在字符串前面添加一个 r （raw），表示原始字符串</p>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">print(<span class="string">&#x27;RHello, \nPython!&#x27;</span>)</span><br><span class="line">RHello, </span><br><span class="line">Python!</span><br><span class="line"></span><br><span class="line">print(<span class="string">r&#x27;Hello, \nPython!&#x27;</span>)</span><br><span class="line">Hello, \nPython!</span><br></pre></td></tr></table></figure>
+
 <ul>
 <li>ord() 函数返回单个字符的编码;</li>
 <li>chr() 函数把编码转成相应字符;</li>
 </ul>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">s = <span class="string">&#x27;A&#x27;</span></span><br><span class="line">print(<span class="built_in">ord</span>(s))</span><br><span class="line">print(<span class="built_in">chr</span>(<span class="number">65</span>))</span><br><span class="line"></span><br><span class="line"><span class="number">65</span></span><br><span class="line">A</span><br></pre></td></tr></table></figure>
+
 <p>python三引号允许一个字符串跨多行，字符串中可以包含换行符、制表符以及其他特殊字符</p>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">para_str = <span class="string">&quot;&quot;&quot;这是一个多行字符串的实例</span></span><br><span class="line"><span class="string">多行字符串可以使用制表符</span></span><br><span class="line"><span class="string">TAB ( \t )。</span></span><br><span class="line"><span class="string">也可以使用换行符 [ \n ]。</span></span><br><span class="line"><span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="built_in">print</span> (para_str)</span><br></pre></td></tr></table></figure>
+
 <h3 id="格式化"><a href="#格式化" class="headerlink" title="格式化"></a>格式化</h3><p>Python 使用 <code>%</code> 格式化字符串，常用占位符如下表所示：</p>
 <table>
 <thead>
@@ -710,26 +883,33 @@
 </tbody></table>
 <p>实例：</p>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">print(<span class="string">&#x27;Hello %s&#x27;</span> % <span class="string">&#x27;Python&#x27;</span>)</span><br><span class="line">Hello Python</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span> (<span class="string">&quot;我叫 %s 今年 %d 岁!&quot;</span> % (<span class="string">&#x27;小明&#x27;</span>, <span class="number">20</span>))</span><br></pre></td></tr></table></figure>
+
 <p>format() 方法格式化：</p>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">print(<span class="string">&#x27;&#123;0&#125; &#123;1&#125;&#x27;</span>.<span class="built_in">format</span>(<span class="string">&#x27;Hello&#x27;</span>, <span class="string">&#x27;Python&#x27;</span>))</span><br></pre></td></tr></table></figure>
+
 <h3 id="f-string"><a href="#f-string" class="headerlink" title="f-string"></a>f-string</h3><p>f-string 是 python3.6 之后版本添加的，称之为字面量格式化字符串，是新的格式化字符串的语法。</p>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">name = <span class="string">&#x27;Python&#x27;</span></span><br><span class="line"><span class="string">f&#x27;Hello <span class="subst">&#123;name&#125;</span>&#x27;</span>  <span class="comment"># 替换变量</span></span><br></pre></td></tr></table></figure>
+
 <h2 id="List（列表）"><a href="#List（列表）" class="headerlink" title="List（列表）"></a>List（列表）</h2><p>列表是写在方括号 [] 之间、用逗号分隔开的元素列表。List中的元素是可以改变的。列表中元素的类型可以不相同，它支持数字，字符串甚至可以包含列表（所谓嵌套）。和字符串一样，列表同样可以被索引和截取，列表被截取后返回一个包含所需元素的新列表。</p>
 <p>列表截取的语法：<strong>索引值以 0 为开始值，-1 为从末尾的开始位置。</strong></p>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">变量[头下标:尾下标]</span><br></pre></td></tr></table></figure>
+
 <p>加号 + 是列表连接运算符，星号 * 是重复操作。</p>
 <ul>
 <li>更新</li>
 </ul>
 <p>append() 向列表中添加新元素</p>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">l = [<span class="string">&#x27;Hello&#x27;</span>, <span class="string">&#x27;Python&#x27;</span>,<span class="number">1</span>]</span><br><span class="line"></span><br><span class="line"><span class="comment"># 修改列表中第3个元素</span></span><br><span class="line">l[<span class="number">1</span>] = <span class="number">2</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 向列表中添加新元素</span></span><br><span class="line">l.append(<span class="string">&#x27;Hello&#x27;</span>)</span><br><span class="line"></span><br><span class="line">print(<span class="string">&#x27;l[2] --&gt;&#x27;</span>, l[<span class="number">1</span>])</span><br><span class="line">print(<span class="string">&#x27;l --&gt;&#x27;</span>, l)</span><br></pre></td></tr></table></figure>
+
 <p>输出：</p>
 <figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">l[2] --&gt; 2</span><br><span class="line">l --&gt; [&#x27;Hello&#x27;, &#x27;Python&#x27;, 2, &#x27;666&#x27;]</span><br></pre></td></tr></table></figure>
+
 <ul>
 <li>删除</li>
 </ul>
 <p>del 删除列表中元素</p>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">l = [<span class="string">&#x27;Hello&#x27;</span>, <span class="string">&#x27;Python&#x27;</span>,<span class="number">1</span>]</span><br><span class="line"><span class="comment"># 删除列表中第二个元素</span></span><br><span class="line"><span class="keyword">del</span> l[<span class="number">1</span>]</span><br></pre></td></tr></table></figure>
+
 <ul>
 <li>count()：统计列表中某个元素出现的次数</li>
 <li>index()：查找某个元素在列表中首次出现的位置（即索引）</li>
@@ -738,6 +918,7 @@
 <li>copy()：复制列表</li>
 </ul>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">l = [<span class="string">&#x27;d&#x27;</span>, <span class="string">&#x27;b&#x27;</span>, <span class="string">&#x27;a&#x27;</span>, <span class="string">&#x27;f&#x27;</span>, <span class="string">&#x27;d&#x27;</span>]</span><br><span class="line">print(<span class="string">&quot;l.count(&#x27;d&#x27;) --&gt;&quot;</span>, l.count(<span class="string">&#x27;d&#x27;</span>))</span><br><span class="line">print(<span class="string">&quot;l.index(&#x27;d&#x27;) --&gt;&quot;</span>, l.index(<span class="string">&#x27;d&#x27;</span>))</span><br><span class="line">l.remove(<span class="string">&#x27;d&#x27;</span>)</span><br><span class="line">l.sort()</span><br><span class="line">lc = l.copy()</span><br></pre></td></tr></table></figure>
+
 <h2 id="Tuple（元组）"><a href="#Tuple（元组）" class="headerlink" title="Tuple（元组）"></a>Tuple（元组）</h2><p>元组（tuple）与列表类似，不同之处在于元组的元素不能修改，常用于保存不可修改的内容。元组写在小括号 () 里，元素之间用逗号隔开，元组中的元素类型也可以不相同，元组也可以使用+操作符进行拼接。</p>
 <p>常用方法</p>
 <ul>
@@ -747,13 +928,16 @@
 <li>tuple()：将列表转换为元组</li>
 </ul>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">tup1 = ()    <span class="comment"># 空元组</span></span><br><span class="line">tup2 = (<span class="number">20</span>,) <span class="comment"># 一个元素，需要在元素后添加逗号</span></span><br><span class="line">tinytuple = (<span class="number">123</span>, <span class="string">&#x27;Python&#x27;</span>)</span><br><span class="line"><span class="built_in">print</span> (tinytuple * <span class="number">2</span>)     <span class="comment"># 输出两次元组</span></span><br><span class="line"><span class="built_in">print</span> (<span class="built_in">tuple</span> + tinytuple) <span class="comment"># 连接元组</span></span><br><span class="line"></span><br><span class="line">t = (<span class="string">&#x27;Hello&#x27;</span>,<span class="string">&#x27;Python&#x27;</span>,<span class="string">&#x27;666&#x27;</span>)</span><br><span class="line">t = (<span class="string">&#x27;Hello&#x27;</span>,<span class="string">&#x27;Python&#x27;</span>,<span class="string">&#x27;666&#x27;</span>,<span class="string">&#x27;777&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">del</span> t</span><br><span class="line">print(<span class="string">&#x27;len(t) --&gt;&#x27;</span>, <span class="built_in">len</span>(t))</span><br><span class="line">print(<span class="string">&#x27;max(t) --&gt;&#x27;</span>, <span class="built_in">max</span>(t))</span><br><span class="line">print(<span class="string">&#x27;min(t) --&gt;&#x27;</span>, <span class="built_in">min</span>(t))</span><br><span class="line"></span><br><span class="line">l = [<span class="string">&#x27;d&#x27;</span>, <span class="string">&#x27;b&#x27;</span>, <span class="string">&#x27;a&#x27;</span>, <span class="string">&#x27;f&#x27;</span>, <span class="string">&#x27;d&#x27;</span>]</span><br><span class="line">t = <span class="built_in">tuple</span>(l)</span><br></pre></td></tr></table></figure>
+
 <h2 id="Set（集合）"><a href="#Set（集合）" class="headerlink" title="Set（集合）"></a>Set（集合）</h2><p>集合（set）是由一个或数个形态各异的大小整体组成的，构成集合的事物或对象称作元素或是成员。</p>
 <p>基本功能是进行成员关系测试和删除重复元素。</p>
 <p>可以使用大括号 { } 或者 set() 函数创建集合，注意：创建一个空集合必须用 set() 而不是 { }，因为 { } 是用来创建一个空字典。</p>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">s = &#123;<span class="string">&#x27;a&#x27;</span>, <span class="string">&#x27;b&#x27;</span>, <span class="string">&#x27;c&#x27;</span>&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 或者</span></span><br><span class="line"><span class="built_in">set</span>([<span class="string">&#x27;a&#x27;</span>, <span class="string">&#x27;b&#x27;</span>, <span class="string">&#x27;c&#x27;</span>])</span><br><span class="line"></span><br><span class="line"><span class="comment"># 添加元素可以使用 add 或 update 方法，如果元素已经存在，则不进行操作</span></span><br><span class="line">s.update(<span class="string">&#x27;e&#x27;</span>)</span><br><span class="line">s.add(<span class="string">&#x27;a&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 删除元素</span></span><br><span class="line">s.remove(<span class="string">&#x27;c&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 获取集合的长度</span></span><br><span class="line"><span class="built_in">len</span>(s)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 清空集合</span></span><br><span class="line">s.clear()</span><br></pre></td></tr></table></figure>
+
 <h2 id="Dictionary（字典）"><a href="#Dictionary（字典）" class="headerlink" title="Dictionary（字典）"></a>Dictionary（字典）</h2><p>字典的内容在花括号 {} 内，键-值（key-value）之间用冒号 : 分隔，键值对之间用逗号 <code>,</code> 分隔。</p>
 <p>键必须是唯一的，但值则不必。<br>值可以取任何数据类型，但键必须是不可变的，如字符串，数字。</p>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建字典</span></span><br><span class="line">d = &#123;<span class="string">&#x27;name&#x27;</span>:<span class="string">&#x27;富贵&#x27;</span>, <span class="string">&#x27;age&#x27;</span>:<span class="string">&#x27;28&#x27;</span>,<span class="number">2</span>:<span class="string">&#x27;num&#x27;</span>&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 使用 dict 函数</span></span><br><span class="line"><span class="comment"># 方式一</span></span><br><span class="line">l = [(<span class="string">&#x27;name&#x27;</span>, <span class="string">&#x27;开花&#x27;</span>), (<span class="string">&#x27;age&#x27;</span>, <span class="number">29</span>)]</span><br><span class="line">d = <span class="built_in">dict</span>(l)</span><br><span class="line"><span class="comment"># 方式二</span></span><br><span class="line">d = <span class="built_in">dict</span>(name=<span class="string">&#x27;金尚&#x27;</span>, age=<span class="string">&#x27;18&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 方式三</span></span><br><span class="line"><span class="built_in">dict</span> = &#123;&#125;</span><br><span class="line"><span class="built_in">dict</span>[<span class="string">&#x27;one&#x27;</span>] = <span class="string">&quot;1 - 开花&quot;</span></span><br><span class="line"><span class="built_in">dict</span>[<span class="number">2</span>]     = <span class="string">&quot;2 - 开花&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 空字典</span></span><br><span class="line">d = <span class="built_in">dict</span>()</span><br><span class="line">d = &#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="built_in">print</span> (<span class="built_in">dict</span>[<span class="string">&#x27;name&#x27;</span>])      <span class="comment"># 输出键为 &#x27;name&#x27; 的值</span></span><br><span class="line"><span class="built_in">print</span> (<span class="built_in">dict</span>[<span class="number">2</span>])           <span class="comment"># 输出键为 2 的值</span></span><br><span class="line"><span class="built_in">print</span> (d)                 <span class="comment"># 输出完整的字典</span></span><br><span class="line"><span class="built_in">print</span> (d.keys())          <span class="comment"># 输出所有键</span></span><br><span class="line"><span class="built_in">print</span> (d.values())        <span class="comment"># 输出所有值</span></span><br></pre></td></tr></table></figure>
+
 <h2 id="集合与字典"><a href="#集合与字典" class="headerlink" title="集合与字典"></a>集合与字典</h2><ul>
 <li>无序：集合是无序的，所以不支持索引；字典同样也是无序的，但由于其元素是由键（key）和值（value）两个属性组成的键值对，可以通过键（key）来进行索引</li>
 <li>元素唯一性：集合是无重复元素的序列，会自动去除重复元素；字典因为其key唯一性，所以也不会出现相同元素</li>
@@ -808,7 +992,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -833,6 +1017,7 @@
       
           <h2 id="编码"><a href="#编码" class="headerlink" title="编码"></a>编码</h2><p>Python2 中默认编码为 ASCII，内容如果为汉字，不指定编码则会乱码，想要指定编码为 UTF-8，Python 中通过在开头加入:</p>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># -*- coding: UTF-8 -*-</span></span><br></pre></td></tr></table></figure>
+
 <p>Python3 中默认编码为 UTF-8，因此在使用 Python3 时，通常不需指定编码。</p>
 <h2 id="标识符"><a href="#标识符" class="headerlink" title="标识符"></a>标识符</h2><p>标识符是用于给变量、函数、语句块等命名，Python 中标识符由字母、数字、下划线组成，第一个字符必须是字母表中字母或下划线 _，不能以数字开头，区分大小写。</p>
 <p>在 Python 3 中，可以用中文作为变量名，非 ASCII 标识符也是允许的了。</p>
@@ -843,15 +1028,19 @@
 <li>双下划线开头和结尾的标识符，如：<strong>xx</strong>，表示 Python 中内置标识，如：<strong>init</strong>() 表示类的构造函数。</li>
 </ul>
 <h2 id="关键字"><a href="#关键字" class="headerlink" title="关键字"></a>关键字</h2><figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span><span class="keyword">import</span> keyword</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>keyword.kwlist</span><br><span class="line">[<span class="string">&#x27;False&#x27;</span>, <span class="string">&#x27;None&#x27;</span>, <span class="string">&#x27;True&#x27;</span>, <span class="string">&#x27;__peg_parser__&#x27;</span>, <span class="string">&#x27;and&#x27;</span>, <span class="string">&#x27;as&#x27;</span>, <span class="string">&#x27;assert&#x27;</span>, <span class="string">&#x27;async&#x27;</span>, <span class="string">&#x27;await&#x27;</span>, <span class="string">&#x27;break&#x27;</span>, <span class="string">&#x27;class&#x27;</span>, <span class="string">&#x27;continue&#x27;</span>, <span class="string">&#x27;def&#x27;</span>, <span class="string">&#x27;del&#x27;</span>, <span class="string">&#x27;elif&#x27;</span>, <span class="string">&#x27;else&#x27;</span>, <span class="string">&#x27;except&#x27;</span>, <span class="string">&#x27;finally&#x27;</span>, <span class="string">&#x27;for&#x27;</span>, <span class="string">&#x27;from&#x27;</span>, <span class="string">&#x27;global&#x27;</span>, <span class="string">&#x27;if&#x27;</span>, <span class="string">&#x27;import&#x27;</span>, <span class="string">&#x27;in&#x27;</span>, <span class="string">&#x27;is&#x27;</span>, <span class="string">&#x27;lambda&#x27;</span>, <span class="string">&#x27;nonlocal&#x27;</span>, <span class="string">&#x27;not&#x27;</span>, <span class="string">&#x27;or&#x27;</span>, <span class="string">&#x27;pass&#x27;</span>, <span class="string">&#x27;raise&#x27;</span>, <span class="string">&#x27;return&#x27;</span>, <span class="string">&#x27;try&#x27;</span>, <span class="string">&#x27;while&#x27;</span>, <span class="string">&#x27;with&#x27;</span>, <span class="string">&#x27;yield&#x27;</span>]</span><br></pre></td></tr></table></figure>
+
 <h2 id="注释"><a href="#注释" class="headerlink" title="注释"></a>注释</h2><ul>
 <li>单行注释以 # 开头。</li>
 <li>多行注释可以用多个 # 号，三个单引号（’’’）或三个双引号（”””）。</li>
 </ul>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 第一个注释</span></span><br><span class="line"><span class="comment"># 第二个注释</span></span><br><span class="line"> </span><br><span class="line"><span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"><span class="string">第三注释</span></span><br><span class="line"><span class="string">第四注释</span></span><br><span class="line"><span class="string">&#x27;&#x27;&#x27;</span></span><br><span class="line"> </span><br><span class="line"><span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">第五注释</span></span><br><span class="line"><span class="string">第六注释</span></span><br><span class="line"><span class="string">&quot;&quot;&quot;</span></span><br></pre></td></tr></table></figure>
+
 <h2 id="行与缩进"><a href="#行与缩进" class="headerlink" title="行与缩进"></a>行与缩进</h2><p>Python 使用缩进来表示代码块，控制类、函数、逻辑判断等，，不需要使用大括号 {} ，缩进的空格数是可变的，但是同一个代码块的语句必须包含相同的缩进空格数，如果语句缩进数的空格数不一致，会导致运行错误。</p>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> <span class="literal">True</span>:</span><br><span class="line">    <span class="built_in">print</span> (<span class="string">&quot;True&quot;</span>)</span><br><span class="line"><span class="keyword">else</span>:</span><br><span class="line">    <span class="built_in">print</span> (<span class="string">&quot;False&quot;</span>)</span><br></pre></td></tr></table></figure>
+
 <h2 id="多行语句"><a href="#多行语句" class="headerlink" title="多行语句"></a>多行语句</h2><p>如果Python 的语句很长，可以使用反斜杠 <code>(\)</code> 来实现多行语句，例如：</p>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">total = one + \</span><br><span class="line">        two + \</span><br><span class="line">        three</span><br></pre></td></tr></table></figure>
+
 <p>如果包含在 []、{}、() 括号中，则不需要使用反斜杠 <code>(\)</code>。如下所示：</p>
 <figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">total = [<span class="string">&#x27;item_one&#x27;</span>, <span class="string">&#x27;item_two&#x27;</span>, <span class="string">&#x27;item_three&#x27;</span>,</span><br><span class="line">        <span class="string">&#x27;item_four&#x27;</span>, <span class="string">&#x27;item_five&#x27;</span>]</span><br></pre></td></tr></table></figure>
       
@@ -903,7 +1092,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -984,7 +1173,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1009,6 +1198,7 @@
       
           <h2 id="密码更换周期设置"><a href="#密码更换周期设置" class="headerlink" title="密码更换周期设置"></a>密码更换周期设置</h2><p>密码定期更换配置在 <code>/etc/login.defs</code> 中:</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">PASS_MAX_DAYS	90   <span class="comment"># 密码到期时间</span></span><br><span class="line">PASS_MIN_DAYS	6    <span class="comment"># 初始密码更改时间</span></span><br><span class="line">PASS_MIN_LEN	8    <span class="comment"># 密码最小长度</span></span><br><span class="line">PASS_WARN_AGE	10   <span class="comment"># 密码过期提示时间</span></span><br></pre></td></tr></table></figure>
+
 <p><strong>注意：</strong></p>
 <p>在 <code>/etc/login.defs</code> 中设置仅影响创建用户，而不会影响现有用户。<br>如果设置为现有用户，使用命令 <code>chage -M（days）（user）</code>，例如：<code>chage -M 60 root</code>。</p>
 <p><strong>chage命令</strong></p>
@@ -1027,6 +1217,7 @@
 </ul>
 <p>示例</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看root配置</span></span><br><span class="line">chage -l root</span><br><span class="line"></span><br><span class="line"><span class="comment"># 设置root密码90天过期</span></span><br><span class="line">chage -M 90 root</span><br></pre></td></tr></table></figure>
+
 <h2 id="密码复杂度设置"><a href="#密码复杂度设置" class="headerlink" title="密码复杂度设置"></a>密码复杂度设置</h2><p>CentOS7/RHEL7 开始使用 pam_pwquality 模块进行密码复杂度策略的控制管理。pam_pwquality 替换了原来 Centos6/RHEL6 中的 pam_cracklib 模块，并向后兼容。</p>
 <h3 id="pam-pwquality模块设置"><a href="#pam-pwquality模块设置" class="headerlink" title="pam_pwquality模块设置"></a>pam_pwquality模块设置</h3><p>retry=N  允许重试N次<br>difok=N 新密码必需与旧密码不同的位数  difok=3 新密码必须与旧密码有3位不同<br>minlen=N  最小位数<br>ucredit=N  大写字母位数<br>lcredit=N  小写字母位数<br>dcredit=N  数字个数<br>ocredit=N  特殊字母的个数</p>
 <p>两种方式实现:</p>
@@ -1035,19 +1226,24 @@
 </ul>
 <p>N &gt;= 0:密码中最多有多少个;<br>N &lt; 0 :密码中最少有多少个;</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">password    requisite     pam_pwquality.so try_first_pass local_users_only retry=3 authtok_type= minlen=8 ucredit=-1 lcredit=-1 ocredit=-1 dcredit=-1</span><br></pre></td></tr></table></figure>
+
 <ul>
 <li>2，通过修改 <code>/etc/security/pwquality.conf</code> 参数文件，定义密码复杂度规则。</li>
 </ul>
 <p>修改 <code>pwquality.conf</code> 参数文件有2种方法。</p>
 <p>（1）直接修改 <code>/etc/security/pwquality.conf</code> 。<br>（2）使用 <code>authconfig</code> 命令修改，修改后最终会体现在 <code>/etc/security/pwquality.conf</code>。</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 最小长度</span></span><br><span class="line">authconfig --passminlen=8 --update</span><br><span class="line">grep <span class="string">&quot;^minlen&quot;</span> /etc/security/pwquality.conf</span><br><span class="line"></span><br><span class="line"><span class="comment"># 设置同一类的允许连续字符的最大数目</span></span><br><span class="line">authconfig --passmaxclassrepeat=6 --update</span><br><span class="line">grep <span class="string">&quot;^maxclassrepeat&quot;</span> /etc/security/pwquality.conf</span><br><span class="line"></span><br><span class="line"><span class="comment"># 至少需要一个小写字符</span></span><br><span class="line">authconfig --enablereqlower --update</span><br><span class="line">grep <span class="string">&quot;^lcredit&quot;</span> /etc/security/pwquality.conf</span><br><span class="line"></span><br><span class="line"><span class="comment"># 至少需要一个大写字符</span></span><br><span class="line">authconfig --enablerequpper --update</span><br><span class="line">grep <span class="string">&quot;^ucredit&quot;</span> /etc/security/pwquality.conf</span><br><span class="line"></span><br><span class="line"><span class="comment"># 至少需要一个数字</span></span><br><span class="line">authconfig --enablereqdigit --update</span><br><span class="line">grep <span class="string">&quot;^dcredit&quot;</span> /etc/security/pwquality.conf</span><br><span class="line"></span><br><span class="line"><span class="comment"># 至少一个特殊字符</span></span><br><span class="line">authconfig --enablereqother --update</span><br><span class="line">grep <span class="string">&quot;^ocredit&quot;</span> /etc/security/pwquality.conf</span><br><span class="line"></span><br><span class="line"><span class="comment"># 以下需要单独设置</span></span><br><span class="line">vim /etc/security/pwquality.conf</span><br><span class="line"></span><br><span class="line"><span class="comment"># 添加一下配置</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 设置单调字符序列的最大长度</span></span><br><span class="line">maxsequence = 5</span><br><span class="line"></span><br><span class="line"><span class="comment"># 新密码中不能出现在旧密码中的字符数</span></span><br><span class="line">difok = 5</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查来自用户 passwd 条目的 GECOS 字段的长度超过3个字符的字是否包含在新密码中。</span></span><br><span class="line">gecoscheck = 1</span><br><span class="line"></span><br><span class="line"><span class="comment"># 设置不能包含在密码中的Ssace分隔的单词列表</span></span><br><span class="line">badwords = <span class="built_in">test</span> test1 test2</span><br></pre></td></tr></table></figure>
+
 <p>示例：</p>
 <p>vim /etc/security/pwquality.conf<br>grep -vE “^#|^$” /etc/security/pwquality.conf</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">minlen = 8</span><br><span class="line"></span><br><span class="line"><span class="comment"># 新密码所需的字符类（数字、大写、小写、其他）的最小字符数。</span></span><br><span class="line">minclass = 1</span><br><span class="line"></span><br><span class="line"><span class="comment"># 新密码中允许的连续相同字符的最大数量。如果值为 0，则禁用检查。</span></span><br><span class="line">maxrepeat = 0</span><br><span class="line"></span><br><span class="line">maxclassrepeat = 6</span><br><span class="line">lcredit       = -1</span><br><span class="line">ucredit       = -1</span><br><span class="line">dcredit       = -1</span><br><span class="line">ocredit       = -1</span><br></pre></td></tr></table></figure>
+
 <h3 id="Centos7-继续使用-pam-cracklib-模块检验密码复杂度"><a href="#Centos7-继续使用-pam-cracklib-模块检验密码复杂度" class="headerlink" title="Centos7 继续使用 pam_cracklib 模块检验密码复杂度"></a>Centos7 继续使用 pam_cracklib 模块检验密码复杂度</h3><p>vim /etc/pam.d/system-auth</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 添加到 pam_pwquality.so 所在行的上行</span></span><br><span class="line">password    requisite     pam_cracklib.so try_first_pass retry=3 <span class="built_in">type</span>=  minlen=8 ucredit=-1 lcredit=-1 ocredit=-1 dcredit=-1</span><br></pre></td></tr></table></figure>
+
 <h3 id="Read-Hat配置密码复杂度"><a href="#Read-Hat配置密码复杂度" class="headerlink" title="Read Hat配置密码复杂度"></a>Read Hat配置密码复杂度</h3><p>vim /etc/pam.d/system-auth</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">password   requisite      pam_cracklib.so retry=3 difok=3 minlen=8 ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1</span><br></pre></td></tr></table></figure>
+
 <p>参考：</p>
 <p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/f7bd6dfffc34">CentOS7上密码复杂度设置</a></p>
 <p><a target="_blank" rel="noopener" href="https://blog.csdn.net/longfeizzu/article/details/101377584">CentOS7密码复杂度配置</a></p>
@@ -1103,7 +1299,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1135,18 +1331,25 @@
 <p>由于MySQL的社区版不支持审计系统，可通过第三方插件实现，此次采用MariaDB的server_audit插件来记录{时间，节点，用户，源IP，事件类型，库，语句，影响行数}，注：从mysql8开始已不支持该插件。</p>
 <h2 id="安装插件"><a href="#安装插件" class="headerlink" title="安装插件"></a>安装插件</h2><p>1,登陆 Mysql，查看插件安装目录：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; show global variables like <span class="string">&#x27;plugin_dir&#x27;</span>;</span><br><span class="line">+---------------+------------------------------+</span><br><span class="line">| Variable_name | Value                        |</span><br><span class="line">+---------------+------------------------------+</span><br><span class="line">| plugin_dir    | /usr/<span class="built_in">local</span>/mysql/lib/plugin/ |</span><br><span class="line">+---------------+------------------------------+</span><br><span class="line">1 row <span class="keyword">in</span> <span class="built_in">set</span> (0.01 sec)</span><br></pre></td></tr></table></figure>
+
 <p>2，提取 Mariadb 审计插件，并放置Mysql插件目录。</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 拷贝</span></span><br><span class="line">cp /ldjc/mariadb-10.5.8-linux-x86_64/lib/plugin/server_audit.so /usr/<span class="built_in">local</span>/mysql/lib/plugin/</span><br><span class="line"></span><br><span class="line"><span class="comment"># 授予执行权限</span></span><br><span class="line">chmod +x /usr/<span class="built_in">local</span>/mysql/lib/plugin/server_audit.so</span><br><span class="line"></span><br><span class="line"><span class="comment"># 安装</span></span><br><span class="line"><span class="comment"># 或者 在 my.cnf 中配置：plugin_load=server_audit=server_audit.so</span></span><br><span class="line">install plugin server_audit soname <span class="string">&#x27;server_audit.so&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 备注：</span></span><br><span class="line"><span class="comment"># UNINSTALL PLUGIN server_audit; # 卸载插件</span></span><br><span class="line"><span class="comment"># show variables like &#x27;%audit%&#x27;;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看插件</span></span><br><span class="line">show plugins;</span><br></pre></td></tr></table></figure>
+
 <p>3，新建 auditlogs 目录,并更改所属的组和用户</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mkdir /usr/<span class="built_in">local</span>/mysql/auditlogs</span><br><span class="line">chown -R mysql /usr/<span class="built_in">local</span>/mysql/auditlogs</span><br><span class="line">chgrp -R mysql /usr/<span class="built_in">local</span>/mysql/auditlogs</span><br></pre></td></tr></table></figure>
+
 <p>4，修改my.cnf配置文件</p>
 <p>vim /usr/local/mysql/my.cnf</p>
 <p>在 [mysqld] 标签下添加：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#防止server_audit 插件被卸载 进行配置文件配置</span></span><br><span class="line">server_audit=FORCE_PLUS_PERMANENT</span><br><span class="line"></span><br><span class="line"><span class="comment">#指定哪些操作被记录到日志文件中</span></span><br><span class="line">server_audit_events=<span class="string">&#x27;CONNECT,QUERY,TABLE,QUERY_DDL&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#开启审计功能</span></span><br><span class="line">server_audit_logging=on</span><br><span class="line"></span><br><span class="line"><span class="comment">#默认存放路径，可以不写，默认到data文件下</span></span><br><span class="line">server_audit_file_path=/usr/<span class="built_in">local</span>/mysql/auditlogs</span><br><span class="line"></span><br><span class="line"><span class="comment">#设置文件大小 默认1000000，1073741824=1GB</span></span><br><span class="line">server_audit_file_rotate_size=1073741824</span><br><span class="line"></span><br><span class="line"><span class="comment">#指定日志文件的数量，如果为0日志将从不轮转</span></span><br><span class="line">server_audit_file_rotations=200</span><br><span class="line"></span><br><span class="line"><span class="comment">#强制日志文件轮转</span></span><br><span class="line">server_audit_file_rotate_now=ON</span><br></pre></td></tr></table></figure>
+
 <p>4，重启mysql</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">/etc/init.d/mysqld restart</span><br><span class="line"></span><br><span class="line"><span class="comment"># 或</span></span><br><span class="line">service mysqld restart</span><br></pre></td></tr></table></figure>
+
 <h2 id="验证"><a href="#验证" class="headerlink" title="验证"></a>验证</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; show variables like <span class="string">&#x27;%audit%&#x27;</span>;</span><br><span class="line">+-------------------------------+-------------------------------+</span><br><span class="line">| Variable_name                 | Value                         |</span><br><span class="line">+-------------------------------+-------------------------------+</span><br><span class="line">| server_audit_events           | CONNECT,QUERY,TABLE,QUERY_DDL |</span><br><span class="line">| server_audit_excl_users       |                               |</span><br><span class="line">| server_audit_file_path        | /usr/<span class="built_in">local</span>/mysql/auditlogs    |</span><br><span class="line">| server_audit_file_rotate_now  | ON                            |</span><br><span class="line">| server_audit_file_rotate_size | 1073741824                    |</span><br><span class="line">| server_audit_file_rotations   | 200                           |</span><br><span class="line">| server_audit_incl_users       |                               |</span><br><span class="line">| server_audit_loc_info         |                               |</span><br><span class="line">| server_audit_logging          | ON                            |</span><br><span class="line">| server_audit_mode             | 1                             |</span><br><span class="line">| server_audit_output_type      | file                          |</span><br><span class="line">| server_audit_query_log_limit  | 1024                          |</span><br><span class="line">| server_audit_syslog_facility  | LOG_USER                      |</span><br><span class="line">| server_audit_syslog_ident     | mysql-server_auditing         |</span><br><span class="line">| server_audit_syslog_info      |                               |</span><br><span class="line">| server_audit_syslog_priority  | LOG_INFO                      |</span><br><span class="line">+-------------------------------+-------------------------------+</span><br><span class="line">16 rows <span class="keyword">in</span> <span class="built_in">set</span> (0.00 sec)</span><br></pre></td></tr></table></figure>
+
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /usr/<span class="built_in">local</span>/mysql/auditlogs/server_audit.log</span><br></pre></td></tr></table></figure>
+
 <h2 id="参数配置说明"><a href="#参数配置说明" class="headerlink" title="参数配置说明"></a>参数配置说明</h2><ul>
 <li>server_audit：启用安全审计插件；</li>
 <li>server_audit_output_type：指定日志输出类型，可为 SYSLOG或 FILE</li>
@@ -1219,7 +1422,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1243,7 +1446,9 @@
 
       
           <h2 id="查看gcc版本"><a href="#查看gcc版本" class="headerlink" title="查看gcc版本"></a>查看gcc版本</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc -v</span><br></pre></td></tr></table></figure>
+
 <h2 id="查看glibc版本"><a href="#查看glibc版本" class="headerlink" title="查看glibc版本"></a>查看glibc版本</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ldd --version</span><br></pre></td></tr></table></figure>
+
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc -v</span><br><span class="line">ldd --version</span><br></pre></td></tr></table></figure>
       
     </div>
@@ -1294,7 +1499,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1327,16 +1532,21 @@
 <p>配置：<code>vim /usr/local/mysql/my.cnf</code></p>
 <p>主1服务器配置：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">auto_increment_increment=2         <span class="comment">#步进值 auto_imcrement。一般有n台主MySQL就填n</span></span><br><span class="line">auto_increment_offset=1            <span class="comment">#起始值。一般填第n台主MySQL。此时为第一台主MySQL</span></span><br><span class="line">binlog-ignore-db=mysql                <span class="comment">#忽略mysql库【可忽略不写】</span></span><br><span class="line">binlog-ignore-db=information_schema   <span class="comment">#忽略information_schema库【可忽略不写】</span></span><br><span class="line">binlog-ignore-db=performance_schema   <span class="comment">#忽略performance_schema库【可忽略不写】</span></span><br><span class="line">log-slave-updates=on</span><br></pre></td></tr></table></figure>
+
 <p>主2服务器配置：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">auto_increment_increment=2         <span class="comment">#步进值auto_imcrement。一般有n台主MySQL就填n</span></span><br><span class="line">auto_increment_offset=2            <span class="comment">#起始值。一般填第n台主MySQL。此时为第二台主MySQL</span></span><br><span class="line">binlog-ignore-db=mysql                <span class="comment">#忽略mysql库【可忽略不写】</span></span><br><span class="line">binlog-ignore-db=information_schema   <span class="comment">#忽略information_schema库【可忽略不写】</span></span><br><span class="line">binlog-ignore-db=performance_schema   <span class="comment">#忽略performance_schema库【可忽略不写】</span></span><br><span class="line">log-slave-updates=on</span><br></pre></td></tr></table></figure>
+
 <p>主1完整配置：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line">[mysql]</span><br><span class="line">socket=/var/lib/mysql/mysql.sock</span><br><span class="line"><span class="comment"># set mysql client default chararter</span></span><br><span class="line">default-character-set=utf8</span><br><span class="line"><span class="comment">#</span></span><br><span class="line">[mysqld]</span><br><span class="line">socket=/var/lib/mysql/mysql.sock</span><br><span class="line">bind-address=0.0.0.0</span><br><span class="line"><span class="comment"># set mysql server port  </span></span><br><span class="line">port = 3306 <span class="comment">#默认是3306，防止这种情况发生，可以避免使用3306mysql默认端口</span></span><br><span class="line"><span class="comment"># set mysql install base dir</span></span><br><span class="line">basedir=/usr/<span class="built_in">local</span>/mysql</span><br><span class="line"><span class="comment"># set the data store dir</span></span><br><span class="line">datadir=/usr/<span class="built_in">local</span>/mysql/data</span><br><span class="line"><span class="comment"># set the number of allow max connnection</span></span><br><span class="line">max_connections=200000</span><br><span class="line"><span class="comment"># set server charactre default encoding</span></span><br><span class="line">character-set-server=utf8</span><br><span class="line"><span class="comment"># the storage engine</span></span><br><span class="line">default-storage-engine=INNODB</span><br><span class="line"><span class="comment"># lower_case_table_names=1</span></span><br><span class="line">max_allowed_packet=16M</span><br><span class="line">explicit_defaults_for_timestamp=<span class="literal">true</span></span><br><span class="line"></span><br><span class="line">sql_mode=STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION</span><br><span class="line"></span><br><span class="line"><span class="comment"># 服务器唯一ID</span></span><br><span class="line">server-id=1</span><br><span class="line"></span><br><span class="line"><span class="comment"># 要生成二进制日志文件 主服务器一定要开启</span></span><br><span class="line">log-bin=/usr/<span class="built_in">local</span>/mysql/binlogs/bin-log</span><br><span class="line"></span><br><span class="line">binlog_format=ROW</span><br><span class="line">expire_logs_days=7</span><br><span class="line">max_binlog_size=100M</span><br><span class="line">binlog_cache_size=4M</span><br><span class="line">max_binlog_cache_size=512M</span><br><span class="line"></span><br><span class="line">auto_increment_increment=2         </span><br><span class="line">auto_increment_offset=1            </span><br><span class="line">binlog-ignore-db=mysql             </span><br><span class="line">binlog-ignore-db=information_schema</span><br><span class="line">binlog-ignore-db=performance_schema</span><br><span class="line"></span><br><span class="line">log-slave-updates=on</span><br><span class="line"></span><br><span class="line"><span class="comment">#skip-grant-tables=1</span></span><br><span class="line"></span><br><span class="line">[mysql.server]</span><br><span class="line">user=mysql</span><br><span class="line">basedir=/usr/<span class="built_in">local</span>/mysql</span><br></pre></td></tr></table></figure>
+
 <h2 id="配置主从"><a href="#配置主从" class="headerlink" title="配置主从"></a>配置主从</h2><p>互相配置主从服务器。</p>
 <p>主1服务器：192.123.75.68；<br>主2服务器：192.123.3.87；</p>
 <p>登陆到主1服务器，执行一下命令：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看 主 复制状态</span></span><br><span class="line">show master status \G</span><br><span class="line"></span><br><span class="line">change master to master_host=<span class="string">&#x27;192.123.3.87&#x27;</span>,</span><br><span class="line">master_port=3306,</span><br><span class="line">master_user=<span class="string">&#x27;slave&#x27;</span>,</span><br><span class="line">master_password=<span class="string">&#x27;123456&#x27;</span>,</span><br><span class="line">master_log_file=<span class="string">&#x27;bin-log.000005&#x27;</span>,</span><br><span class="line">master_log_pos=74562307;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 开始复制</span></span><br><span class="line">start slave;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看 从 复制状态</span></span><br><span class="line"><span class="comment"># 输出结果中应该看到 I/O 线程和 SQL 线程都是 YES, 就表示成功。</span></span><br><span class="line">show slave status \G</span><br><span class="line"></span><br><span class="line"><span class="comment"># 主服务器复制状态</span></span><br><span class="line">show master status\G</span><br></pre></td></tr></table></figure>
+
 <p>登陆到主2服务器，执行一下命令：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看 主 复制状态</span></span><br><span class="line">show master status \G</span><br><span class="line"></span><br><span class="line">change master to master_host=<span class="string">&#x27;192.123.75.68&#x27;</span>,</span><br><span class="line">master_port=3306,</span><br><span class="line">master_user=<span class="string">&#x27;slave&#x27;</span>,</span><br><span class="line">master_password=<span class="string">&#x27;123456&#x27;</span>,</span><br><span class="line">master_log_file=<span class="string">&#x27;bin-log.000005&#x27;</span>,</span><br><span class="line">master_log_pos=74562307;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 开始复制</span></span><br><span class="line">start slave;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看 从 复制状态</span></span><br><span class="line"><span class="comment"># 输出结果中应该看到 I/O 线程和 SQL 线程都是 YES, 就表示成功。</span></span><br><span class="line">show slave status \G</span><br><span class="line"></span><br><span class="line"><span class="comment"># 主服务器复制状态</span></span><br><span class="line">show master status\G</span><br></pre></td></tr></table></figure>
+
       
     </div>
 
@@ -1386,7 +1596,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1481,7 +1691,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1580,7 +1790,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1609,6 +1819,7 @@
 <p>-f    递归跟随给出文件名的所有符号链接以标准化,除最后一个外所有组件必须存在<br>-e    递归跟随给出文件名的所有符号链接以标准化，所有组件都必须存在<br>-n    不输出尾随的新行<br>-s    缩减大多数的错误消息<br>-v    报告所有错误消息<br>参考实例</p>
 <p>查看软链文件真实文件：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@sj0002 <span class="built_in">local</span>]<span class="comment"># readlink mysql</span></span><br><span class="line">/usr/<span class="built_in">local</span>/mysql</span><br></pre></td></tr></table></figure>
+
 <p>参考：</p>
 <p><a target="_blank" rel="noopener" href="https://www.linuxcool.com/readlink">Readlink命令</a></p>
 
@@ -1661,7 +1872,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1685,87 +1896,11 @@
 
       
           <h2 id="安装dotnet-svcutil"><a href="#安装dotnet-svcutil" class="headerlink" title="安装dotnet-svcutil"></a>安装dotnet-svcutil</h2><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">dotnet tool install --<span class="keyword">global</span> dotnet-svcutil</span><br></pre></td></tr></table></figure>
+
 <h2 id="生成"><a href="#生成" class="headerlink" title="生成"></a>生成</h2><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">dotnet-svcutil --outputFile Test1Information.cs -n <span class="string">&quot;http://tempuri.org/,API.ServiceReference.Services1&quot;</span>  --outputDir Services1 http:<span class="comment">//172.2.22.12/FRXXServices/Services1.asmx</span></span><br><span class="line">dotnet-svcutil --outputFile Test2Services.cs -n <span class="string">&quot;http://server.test.com,API.ServiceReference.Services2&quot;</span> --outputDir Services2 http:<span class="comment">//172.2.22.12:8000/services/Services2?WSDL</span></span><br></pre></td></tr></table></figure>
+
 <p>参考：</p>
 <p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/en-us/dotnet/core/additional-tools/dotnet-svcutil-guide?tabs=dotnetsvcutil2x">https://docs.microsoft.com/en-us/dotnet/core/additional-tools/dotnet-svcutil-guide?tabs=dotnetsvcutil2x</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/11/27/CentOS7%E4%BF%AE%E6%94%B9%E7%94%A8%E6%88%B7%E5%AF%86%E7%A0%81/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/11/27/CentOS7%E4%BF%AE%E6%94%B9%E7%94%A8%E6%88%B7%E5%AF%86%E7%A0%81/" class="post-title-link" itemprop="url">CentOS7修改用户密码</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-11-27 14:31:37" itemprop="dateCreated datePublished" datetime="2020-11-27T14:31:37+00:00">2020-11-27</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/CentOS7/" itemprop="url" rel="index"><span itemprop="name">CentOS7</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="passwd命令"><a href="#passwd命令" class="headerlink" title="passwd命令"></a>passwd命令</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[root@host-192-1-1-82 ~]<span class="comment"># passwd</span></span><br><span class="line">更改用户 root 的密码 。</span><br><span class="line">新的 密码：</span><br><span class="line">无效的密码： 密码少于 8 个字符</span><br><span class="line">重新输入新的 密码：</span><br><span class="line">passwd: 鉴定令牌操作错误</span><br></pre></td></tr></table></figure>
-<h2 id="解决"><a href="#解决" class="headerlink" title="解决"></a>解决</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">lsattr /etc/passwd  <span class="comment"># 可选 /etc/shadow /etc/group</span></span><br><span class="line">----i----------- /etc/shadow</span><br></pre></td></tr></table></figure>
-<p>i：文件的隐藏属性，这里需要将i去掉；</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 去掉 i 属性</span></span><br><span class="line">chattr -i /etc/shadow</span><br></pre></td></tr></table></figure>
-<p>重新修改密码即可。</p>
 
       
     </div>
@@ -1850,20 +1985,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">354</span>
+          <span class="site-state-item-count">355</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">112</span>
+        <span class="site-state-item-count">113</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">155</span>
+        <span class="site-state-item-count">156</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>

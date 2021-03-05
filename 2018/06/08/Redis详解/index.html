@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
 <meta name="theme-color" content="#222">
-<meta name="generator" content="Hexo 5.3.0">
+<meta name="generator" content="Hexo 5.4.0">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
@@ -28,7 +28,7 @@
 <meta property="og:description" content="Redis详解本文参考【原创】分布式之redis复习精讲,做的进一步整理笔记。 1、为什么使用redisRedis 的优势： 性能极高 – Redis 能读的速度是 110000 次&#x2F;s，写的速度是 81000 次&#x2F;s。 丰富的数据类型 – Redis 支持二进制案例的 Strings, Lists, Hashes, Sets 及 Ordered Sets 数据类型操作。 原子 – Redis 的">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2018-06-08T16:01:34.000Z">
-<meta property="article:modified_time" content="2021-03-01T07:45:05.933Z">
+<meta property="article:modified_time" content="2021-03-05T03:18:38.817Z">
 <meta property="article:author" content="syxdevcode">
 <meta property="article:tag" content="Redis">
 <meta property="article:tag" content="分布式">
@@ -223,7 +223,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -277,6 +277,7 @@
 <h3 id="定期删除-惰性删除是如何工作的呢"><a href="#定期删除-惰性删除是如何工作的呢" class="headerlink" title="定期删除+惰性删除是如何工作的呢"></a>定期删除+惰性删除是如何工作的呢</h3><p>定期删除，redis默认每个100ms检查，是否有过期的key,有过期key则删除。需要说明的是，redis不是每个100ms将所有的key检查一次，而是随机抽取进行检查(如果每隔100ms,全部key进行检查，redis岂不是卡死)。因此，如果只采用定期删除策略，会导致很多key到时间没有删除。<br>于是，惰性删除派上用场。也就是说在你获取某个key的时候，redis会检查一下，这个key如果设置了过期时间那么是否过期了？如果过期了此时就会删除。</p>
 <h3 id="采用定期删除-惰性删除就没其他问题了么"><a href="#采用定期删除-惰性删除就没其他问题了么" class="headerlink" title="采用定期删除+惰性删除就没其他问题了么"></a>采用定期删除+惰性删除就没其他问题了么</h3><p>不是的，如果定期删除没删除key。然后你也没即时去请求key，也就是说惰性删除也没生效。这样，redis的内存会越来越高。那么就应该采用内存淘汰机制。<br>在redis.conf中有一行配置</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># maxmemory-policy volatile-lru</span><br></pre></td></tr></table></figure>
+
 <p>该配置就是配内存淘汰策略的</p>
 <p>1）noeviction：当内存不足以容纳新写入数据时，新写入操作会报错。** 不推荐**</p>
 <p>2）allkeys-lru：当内存不足以容纳新写入数据时，在键空间中，移除最近最少使用的key。** 推荐使用。**</p>
@@ -310,6 +311,7 @@
 <p>假设有一个key1,系统A需要将key1设置为valueA,系统B需要将key1设置为valueB,系统C需要将key1设置为valueC.</p>
 <p>期望按照key1的value值按照 valueA–&gt;valueB–&gt;valueC的顺序变化。这种时候我们在数据写入数据库的时候，需要保存一个时间戳。假设时间戳如下</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">系统A key 1 &#123;valueA  3:00&#125;</span><br><span class="line">系统B key 1 &#123;valueB  3:05&#125;</span><br><span class="line">系统C key 1 &#123;valueC  3:10&#125;</span><br></pre></td></tr></table></figure>
+
 <p>那么，假设这会系统B先抢到锁，将key1设置为{valueB 3:05}。接下来系统A抢到锁，发现自己的valueA的时间戳早于缓存中的时间戳，那就不做set操作了。以此类推。</p>
 <p>其他方法，比如利用队列，将set方法变成串行访问也可以。总之，灵活变通。</p>
 <p>参考：</p>
@@ -414,20 +416,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">354</span>
+          <span class="site-state-item-count">355</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">112</span>
+        <span class="site-state-item-count">113</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">155</span>
+        <span class="site-state-item-count">156</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>

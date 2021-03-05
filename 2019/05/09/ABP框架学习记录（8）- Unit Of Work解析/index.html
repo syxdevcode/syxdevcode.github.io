@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
 <meta name="theme-color" content="#222">
-<meta name="generator" content="Hexo 5.3.0">
+<meta name="generator" content="Hexo 5.4.0">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
@@ -52,7 +52,7 @@
 <meta property="og:image" content="https://syxdevcode.github.com/img/QQ%E6%88%AA%E5%9B%BE20190611163052.png">
 <meta property="og:image" content="https://syxdevcode.github.com/img/QQ%E6%88%AA%E5%9B%BE20190611165617.png">
 <meta property="article:published_time" content="2019-05-09T13:23:21.000Z">
-<meta property="article:modified_time" content="2021-03-01T07:45:05.921Z">
+<meta property="article:modified_time" content="2021-03-05T03:18:38.805Z">
 <meta property="article:author" content="syxdevcode">
 <meta property="article:tag" content="DotNet">
 <meta property="article:tag" content="CSharp">
@@ -248,7 +248,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -330,6 +330,7 @@
 <p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190611162244.png" alt="QQ截图20190611162244.png"></p>
 <p>启用工作单元：</p>
 <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> IUnitOfWorkCompleteHandle <span class="title">Begin</span>(<span class="params">UnitOfWorkOptions options</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    options.FillDefaultsForNonProvidedOptions(_defaultOptions);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> outerUow = _currentUnitOfWorkProvider.Current;</span><br><span class="line"></span><br><span class="line">    <span class="comment"><span class="doctag">///</span> 如果启用 工作单元事务，且外部 Uow 不为空，则使用 InnerUnitOfWorkCompleteHandle</span></span><br><span class="line">    <span class="comment"><span class="doctag">///</span> 对象。</span></span><br><span class="line">    <span class="keyword">if</span> (options.Scope == TransactionScopeOption.Required &amp;&amp; outerUow != <span class="literal">null</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> InnerUnitOfWorkCompleteHandle();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> uow = _iocResolver.Resolve&lt;IUnitOfWork&gt;();</span><br><span class="line"></span><br><span class="line">    uow.Completed += (sender, args) =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        _currentUnitOfWorkProvider.Current = <span class="literal">null</span>;</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    uow.Failed += (sender, args) =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        _currentUnitOfWorkProvider.Current = <span class="literal">null</span>;</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    uow.Disposed += (sender, args) =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        _iocResolver.Release(uow);</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//Inherit filters from outer UOW</span></span><br><span class="line">    <span class="keyword">if</span> (outerUow != <span class="literal">null</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        options.FillOuterUowFiltersForNonProvidedOptions(outerUow.Filters.ToList());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    uow.Begin(options);</span><br><span class="line"></span><br><span class="line">    <span class="comment">//Inherit tenant from outer UOW</span></span><br><span class="line">    <span class="keyword">if</span> (outerUow != <span class="literal">null</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        uow.SetTenantId(outerUow.GetTenantId(), <span class="literal">false</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    _currentUnitOfWorkProvider.Current = uow;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> uow;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
 <p>EF Core 启用事务：</p>
 <p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190611164826.png" alt="QQ截图20190611164826.png"></p>
 <p><code>UnitOfWork</code> 拦截器调用 <code>UnitOfWorkManager</code> 开启UOW流程的代码。</p>
@@ -341,6 +342,7 @@
 <h3 id="AsyncLocalCurrentUnitOfWorkProvider"><a href="#AsyncLocalCurrentUnitOfWorkProvider" class="headerlink" title="AsyncLocalCurrentUnitOfWorkProvider"></a>AsyncLocalCurrentUnitOfWorkProvider</h3><p><code>AsyncLocalCurrentUnitOfWorkProvider</code>：实现 <code>ICurrentUnitOfWorkProvider</code> 接口，获取或设置当前 <code>IUnitOfWork</code> 实例；</p>
 <h3 id="IActiveUnitOfWork"><a href="#IActiveUnitOfWork" class="headerlink" title="IActiveUnitOfWork"></a>IActiveUnitOfWork</h3><p><code>IActiveUnitOfWork</code>：用于处理活动的工作单元，此接口不能被注入，可以使用 IUnitOfWorkManager 替换。</p>
 <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;summary&gt;</span></span></span><br><span class="line"><span class="comment"><span class="doctag">///</span> Gets current unit of work.</span></span><br><span class="line"><span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;/summary&gt;</span></span></span><br><span class="line"><span class="keyword">protected</span> IActiveUnitOfWork CurrentUnitOfWork &#123; <span class="keyword">get</span> &#123; <span class="keyword">return</span> UnitOfWorkManager.Current; &#125; &#125;</span><br></pre></td></tr></table></figure>
+
 <p>参考：</p>
 <p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/1zhk/p/5309043.html">ABP源码分析十：Unit Of Work</a></p>
 
@@ -443,20 +445,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">354</span>
+          <span class="site-state-item-count">355</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">112</span>
+        <span class="site-state-item-count">113</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">155</span>
+        <span class="site-state-item-count">156</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>

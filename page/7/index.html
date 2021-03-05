@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
 <meta name="theme-color" content="#222">
-<meta name="generator" content="Hexo 5.3.0">
+<meta name="generator" content="Hexo 5.4.0">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
@@ -185,6 +185,100 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/11/Mysql5.7.X%E4%BF%AE%E6%94%B9sql_mode/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/11/Mysql5.7.X%E4%BF%AE%E6%94%B9sql_mode/" class="post-title-link" itemprop="url">Mysql5.7.X修改sql_mode</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-08-11 14:40:26" itemprop="dateCreated datePublished" datetime="2020-08-11T14:40:26+00:00">2020-08-11</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/MySql/" itemprop="url" rel="index"><span itemprop="name">MySql</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>5.7 以及之后的版本中会遇到这样的错误:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Expression #2 of SELECT list is not in GROUP BY clause and contains nonaggregated column &#39;name&#39; which is not functionally dependent on columns in GROUP BY clause;</span><br><span class="line">this is incompatible with sql_mode&#x3D;only_full_group_by</span><br><span class="line"></span><br><span class="line">Expression #1 of ORDER BY clause is not in SELECT list, references column &#39;sort&#39; which is not in SELECT list; this is incompatible with DISTINCT</span><br></pre></td></tr></table></figure>
+
+<h2 id="说明"><a href="#说明" class="headerlink" title="说明"></a>说明</h2><p>mysql 5.7版本默认的sql配置是:sql_mode=”ONLY_FULL_GROUP_BY”，这个配置严格执行了”SQL92标准”。</p>
+<p>查看sql_mode的语句:</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> @<span class="variable">@GLOBAL</span>.sql_mode;</span><br><span class="line"></span><br><span class="line">##输出：</span><br><span class="line">ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION</span><br></pre></td></tr></table></figure>
+
+<p>很多从5.6升级到5.7时，为了语法兼容，大部分都会选择调整sql_mode，使其保持跟5.6一致，为了尽量兼容程序。</p>
+<p>原因分析：<br>再输出的结果 <code>target list</code> 中，即select后面跟着的字段，还有一个地方 <code>group by column</code>，就是 group by后面跟着的字段。由于开启了 <code>ONLY_FULL_GROUP_BY</code> 的设置，所以如果一个字段没有在 <code>target list</code><br>和 <code>group by</code> 字段中同时出现，或者是聚合函数的值的话，那么这条sql查询是被mysql认为非法的，会报错误。</p>
+<h2 id="解决方法"><a href="#解决方法" class="headerlink" title="解决方法"></a>解决方法</h2><h3 id="暂时修改sql-mode"><a href="#暂时修改sql-mode" class="headerlink" title="暂时修改sql_mode"></a>暂时修改sql_mode</h3><p>重启mysql数据库服务之后，ONLY_FULL_GROUP_BY还会出现。</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> @<span class="variable">@GLOBAL</span>.sql_mode<span class="operator">=</span>STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION</span><br></pre></td></tr></table></figure>
+
+<h3 id="修改mysql配置文件"><a href="#修改mysql配置文件" class="headerlink" title="修改mysql配置文件"></a>修改mysql配置文件</h3><p>修改 mysql 配置文件，<code>/usr/local/mysql/my.cnf</code>,添加如下代码，之后重启mysql服务。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#主要需要添加到 [mysql] [mysqld] 标签下，加入到其他地方，即使重启后也不生效。</span></span><br><span class="line">sql_mode=STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION</span><br></pre></td></tr></table></figure>
+
+<p>重启：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/etc/init.d/mysqld restart</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_42175986/article/details/82384160">5分钟学会MySQL-this is incompatible with sql_mode=only_full_group_by错误解决方案</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/feinifi/article/details/54135310">mysql5.7.x:this is incompatible with DISTINCT</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/11/%E8%B7%A8%E5%9F%9F%E8%B5%84%E6%BA%90%E5%85%B1%E4%BA%ABCORS%E7%AC%94%E8%AE%B0/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -216,7 +310,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
 
           
@@ -243,16 +337,19 @@
 <p>简单请求（simple request）和 非简单请求（not-so-simple request）。</p>
 <p>只要同时满足以下两大条件，就属于简单请求。</p>
 <figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">2.请求方法是以下三种方法之一：</span><br><span class="line">HEAD</span><br><span class="line">GET</span><br><span class="line">POST</span><br><span class="line"></span><br><span class="line">2.HTTP的头信息不超出以下几种字段：</span><br><span class="line">Accept</span><br><span class="line">Accept-Language</span><br><span class="line">Content-Language</span><br><span class="line">Last-Event-ID</span><br><span class="line">Content-Type：只限于三个值application/x-www-form-urlencoded、multipart/form-data、text/plain</span><br></pre></td></tr></table></figure>
+
 <p>这是为了兼容表单（form），因为历史上表单一直可以发出跨域请求。<code>AJAX</code> 的跨域设计就是，只要表单可以发，<code>AJAX</code> 就可以直接发。</p>
 <p>凡是不同时满足上面两个条件，就属于非简单请求。</p>
 <p>浏览器对这两种请求的处理，是不一样的。</p>
 <h3 id="简单请求"><a href="#简单请求" class="headerlink" title="简单请求"></a>简单请求</h3><p>浏览器直接发出 <code>CORS</code> 请求。具体来说，就是在头信息之中，增加一个 <code>Origin</code> 字段。</p>
 <p>下面是一个例子，浏览器发现这次跨源 <code>AJAX</code> 请求是简单请求，就自动在头信息之中，添加一个Origin字段。</p>
 <figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">GET /cors HTTP/<span class="number">1.1</span></span><br><span class="line">Origin: http:<span class="comment">//api.bob.com</span></span><br><span class="line">Host: api.alice.com</span><br><span class="line">Accept-Language: en-US</span><br><span class="line">Connection: keep-alive</span><br><span class="line">User-Agent: Mozilla/<span class="number">5.0</span>...</span><br></pre></td></tr></table></figure>
+
 <p><code>Origin</code> 字段用来说明，本次请求来自哪个源（协议 + 域名 + 端口）。服务器根据这个值，决定是否同意这次请求。</p>
 <p>如果Origin指定的源，不在许可范围内，服务器会返回一个正常的HTTP回应。浏览器发现，这个回应的头信息没有包含 <code>Access-Control-Allow-Origin</code> 字段，就知道出错了，从而抛出一个错误，被 <code>XMLHttpRequest</code> 的onerror回调函数捕获。注意，这种错误无法通过状态码识别，因为HTTP回应的状态码有可能是200。</p>
 <p>如果Origin指定的域名在许可范围内，服务器返回的响应，会多出几个头信息字段，都以 <code>Access-Control-</code> 开头。</p>
 <figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Access-Control-Allow-Origin: http:<span class="comment">//api.bob.com</span></span><br><span class="line">Access-Control-Allow-Credentials: <span class="literal">true</span></span><br><span class="line">Access-Control-Expose-Headers: FooBar</span><br><span class="line">Content-Type: text/html; charset=utf-<span class="number">8</span></span><br></pre></td></tr></table></figure>
+
 <p><strong>Access-Control-Allow-Origin</strong></p>
 <p>该字段是必须的。它的值要么是请求时 <code>Origin</code> 字段的值，要么是一个*，表示接受任意域名的请求。</p>
 <p><strong>Access-Control-Allow-Credentials</strong></p>
@@ -263,20 +360,25 @@
 <p>CORS请求默认不发送Cookie和HTTP认证信息。如果要把Cookie发到服务器，一方面要服务器同意，指定</p>
 <p><code>Access-Control-Allow-Credentials</code> 字段。</p>
 <figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Access-Control-Allow-Credentials: <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+
 <p>另一方面，开发者必须在AJAX请求中打开 <code>withCredentials</code> 属性。</p>
 <figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> xhr = <span class="keyword">new</span> XMLHttpRequest();</span><br><span class="line">xhr.withCredentials = <span class="literal">true</span>;</span><br></pre></td></tr></table></figure>
+
 <p>否则，即使服务器同意发送Cookie，浏览器也不会发送。或者，服务器要求设置Cookie，浏览器也不会处理。</p>
 <p>但是，如果省略 <code>withCredentials</code> 设置，有的浏览器还是会一起发送Cookie。这时，可以显式关闭 <code>withCredentials</code>。</p>
 <figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">xhr.withCredentials = <span class="literal">false</span>;</span><br></pre></td></tr></table></figure>
+
 <p>需要注意的是，如果要发送Cookie，<code>Access-Control-Allow-Origin</code> 就不能设为星号，必须指定明确的、与请求网页一致的域名。同时，Cookie依然遵循同源政策，只有用服务器域名设置的Cookie才会上传，其他域名的Cookie并不会上传，且（跨源）原网页代码中的document.cookie也无法读取服务器域名下的Cookie。</p>
 <h3 id="非简单请求"><a href="#非简单请求" class="headerlink" title="非简单请求"></a>非简单请求</h3><h4 id="预检请求"><a href="#预检请求" class="headerlink" title="预检请求"></a>预检请求</h4><p>非简单请求是那种对服务器有特殊要求的请求，比如请求方法是 <code>PUT</code> 或 <code>DELETE</code> ，或者 <code>Content-Type</code> 字段的类型是 <code>application/json</code>。</p>
 <p>非简单请求的CORS请求，会在正式通信之前，增加一次HTTP查询请求，称为”预检”请求（preflight）。</p>
 <p>浏览器先询问服务器，当前网页所在的域名是否在服务器的许可名单之中，以及可以使用哪些HTTP动词和头信息字段。只有得到肯定答复，浏览器才会发出正式的 <code>XMLHttpRequest</code> 请求，否则就报错。</p>
 <p>下面是一段浏览器的JavaScript脚本。</p>
 <figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> url = <span class="string">&#x27;http://api.alice.com/cors&#x27;</span>;</span><br><span class="line"><span class="keyword">var</span> xhr = <span class="keyword">new</span> XMLHttpRequest();</span><br><span class="line">xhr.open(<span class="string">&#x27;PUT&#x27;</span>, url, <span class="literal">true</span>);</span><br><span class="line">xhr.setRequestHeader(<span class="string">&#x27;X-Custom-Header&#x27;</span>, <span class="string">&#x27;value&#x27;</span>);</span><br><span class="line">xhr.send();</span><br></pre></td></tr></table></figure>
+
 <p>上面代码中，HTTP请求的方法是PUT，并且发送一个自定义头信息 <code>X-Custom-Header</code>。</p>
 <p>浏览器发现，这是一个非简单请求，就自动发出一个”预检”请求，要求服务器确认可以这样请求。下面是这个”预检”请求的HTTP头信息。</p>
 <figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">OPTIONS /cors HTTP/<span class="number">1.1</span></span><br><span class="line">Origin: http:<span class="comment">//api.bob.com</span></span><br><span class="line">Access-Control-Request-Method: PUT</span><br><span class="line">Access-Control-Request-Headers: X-Custom-Header</span><br><span class="line">Host: api.alice.com</span><br><span class="line">Accept-Language: en-US</span><br><span class="line">Connection: keep-alive</span><br><span class="line">User-Agent: Mozilla/<span class="number">5.0</span>...</span><br></pre></td></tr></table></figure>
+
 <p>“预检”请求用的请求方法是 <code>OPTIONS</code>，表示这个请求是用来询问的。头信息里面，关键字段是Origin，表示请求来自哪个源。</p>
 <p>除了 <code>Origin</code> 字段，”预检”请求的头信息包括两个特殊字段。</p>
 <p><strong>Access-Control-Request-Method</strong></p>
@@ -285,12 +387,16 @@
 <p>该字段是一个逗号分隔的字符串，指定浏览器CORS请求会额外发送的头信息字段，上例是 <code>X-Custom-Header</code> 。</p>
 <h4 id="预检请求的回应"><a href="#预检请求的回应" class="headerlink" title="预检请求的回应"></a>预检请求的回应</h4><p>服务器收到”预检”请求以后，检查了 <code>Origin</code>、<code>Access-Control-Request-Method</code> 和 <code>Access-Control-Request-Headers</code> 字段以后，确认允许跨源请求，就可以做出回应。</p>
 <figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">HTTP/<span class="number">1.1</span> <span class="number">200</span> OK</span><br><span class="line"><span class="built_in">Date</span>: Mon, <span class="number">01</span> Dec <span class="number">2008</span> <span class="number">01</span>:<span class="number">15</span>:<span class="number">39</span> GMT</span><br><span class="line">Server: Apache/<span class="number">2.0</span><span class="number">.61</span> (Unix)</span><br><span class="line">Access-Control-Allow-Origin: http:<span class="comment">//api.bob.com</span></span><br><span class="line">Access-Control-Allow-Methods: GET, POST, PUT</span><br><span class="line">Access-Control-Allow-Headers: X-Custom-Header</span><br><span class="line">Content-Type: text/html; charset=utf-<span class="number">8</span></span><br><span class="line">Content-Encoding: gzip</span><br><span class="line">Content-Length: <span class="number">0</span></span><br><span class="line">Keep-Alive: timeout=<span class="number">2</span>, max=<span class="number">100</span></span><br><span class="line">Connection: Keep-Alive</span><br><span class="line">Content-Type: text/plain</span><br></pre></td></tr></table></figure>
+
 <p>上面的HTTP回应中，关键的是 <code>Access-Control-Allow-Origin</code> 字段，表示 <code>http://api.bob.com</code> 可以请求数据。该字段也可以设为星号，表示同意任意跨源请求。</p>
 <figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Access-Control-Allow-Origin: *</span><br></pre></td></tr></table></figure>
+
 <p>如果服务器否定了”预检”请求，会返回一个正常的HTTP回应，但是没有任何 <code>CORS</code> 相关的头信息字段。这时，浏览器就会认定，服务器不同意预检请求，因此触发一个错误，被 <code>XMLHttpRequest</code> 对象的 <code>onerror</code> 回调函数捕获。控制台会打印出如下的报错信息。</p>
 <figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">XMLHttpRequest cannot load http:<span class="comment">//api.alice.com.</span></span><br><span class="line">Origin http:<span class="comment">//api.bob.com is not allowed by Access-Control-Allow-Origin.</span></span><br></pre></td></tr></table></figure>
+
 <p>服务器回应的其他 <code>CORS</code> 相关字段如下。</p>
 <figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Access-Control-Allow-Methods: GET, POST, PUT</span><br><span class="line">Access-Control-Allow-Headers: X-Custom-Header</span><br><span class="line">Access-Control-Allow-Credentials: <span class="literal">true</span></span><br><span class="line">Access-Control-Max-Age: <span class="number">1728000</span></span><br></pre></td></tr></table></figure>
+
 <p><strong>Access-Control-Allow-Methods</strong></p>
 <p>该字段必需，它的值是逗号分隔的一个字符串，表明服务器支持的所有跨域请求的方法。注意，返回的是所有支持的方法，而不单是浏览器请求的那个方法。这是为了避免多次”预检”请求。</p>
 <p><strong>Access-Control-Allow-Headers</strong></p>
@@ -302,9 +408,11 @@
 <h4 id="浏览器的正常请求和回应"><a href="#浏览器的正常请求和回应" class="headerlink" title="浏览器的正常请求和回应"></a>浏览器的正常请求和回应</h4><p>一旦服务器通过了”预检”请求，以后每次浏览器正常的CORS请求，就都跟简单请求一样，会有一个 <code>Origin</code> 头信息字段。服务器的回应，也都会有一个 <code>Access-Control-Allow-Origin</code> 头信息字段。</p>
 <p>下面是”预检”请求之后，浏览器的正常CORS请求。</p>
 <figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">PUT /cors HTTP/<span class="number">1.1</span></span><br><span class="line">Origin: http:<span class="comment">//api.bob.com</span></span><br><span class="line">Host: api.alice.com</span><br><span class="line">X-Custom-Header: value</span><br><span class="line">Accept-Language: en-US</span><br><span class="line">Connection: keep-alive</span><br><span class="line">User-Agent: Mozilla/<span class="number">5.0</span>...</span><br></pre></td></tr></table></figure>
+
 <p>上面头信息的Origin字段是浏览器自动添加的。</p>
 <p>下面是服务器正常的回应。</p>
 <figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Access-Control-Allow-Origin: http:<span class="comment">//api.bob.com</span></span><br><span class="line">Content-Type: text/html; charset=utf-<span class="number">8</span></span><br></pre></td></tr></table></figure>
+
 <p>上面头信息中，<code>Access-Control-Allow-Origin</code> 字段是每次回应都必定包含的。</p>
 
       
@@ -356,7 +464,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -389,9 +497,11 @@
 <p><code>/var/spool/cron/</code> 目录下存放的是每个用户包括root的crontab任务，每个任务以创建者的名字命名<br><code>/etc/crontab</code> 这个文件负责调度各种管理和维护任务。<br><code>/etc/cron.d/</code> 这个目录用来存放任何要执行的crontab文件或脚本。</p>
 <p><strong><code>/etc/crontab</code></strong></p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">more /etc/crontab</span><br><span class="line">SHELL=/bin/bash</span><br><span class="line">PATH=/sbin:/bin:/usr/sbin:/usr/bin</span><br><span class="line">MAILTO=root</span><br><span class="line"></span><br><span class="line"><span class="comment"># For details see man 4 crontabs</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Example of job definition:</span></span><br><span class="line"><span class="comment"># .---------------- minute (0 - 59)</span></span><br><span class="line"><span class="comment"># |  .------------- hour (0 - 23)</span></span><br><span class="line"><span class="comment"># |  |  .---------- day of month (1 - 31)</span></span><br><span class="line"><span class="comment"># |  |  |  .------- month (1 - 12) OR jan,feb,mar,apr ...</span></span><br><span class="line"><span class="comment"># |  |  |  |  .---- day of week (0 - 6) (Sunday=0 or 7) OR sun,mon,tue,wed,thu,fri,sat</span></span><br><span class="line"><span class="comment"># |  |  |  |  |</span></span><br><span class="line"><span class="comment"># *  *  *  *  * user-name  command to be executed</span></span><br></pre></td></tr></table></figure>
+
 <p><strong><code>/var/spool/cron</code></strong></p>
 <p>每个用户都会生成一个自动生成一个自己的 <code>crontab</code> 文件，一般位于 <code>/var/spool/cron</code> 目录下</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /var/spool/cron</span><br></pre></td></tr></table></figure>
+
 <p>如果你用命令 <code>crontab -r</code> 就会删除当前用户的crontab文件，例如你切换到oracle账号下，执行了该命令，那么 <code>/var/spool/cron/oracle</code> 文件就会删除，如果要创建该文件只需要用 <code>crontab -e</code> 命令即可。注意，普通用户一般没有权限访问 <code>/var/spool/cron</code></p>
 <p>我们还可以把脚本放在 <code>/etc/cron.hourly</code>、<code>/etc/cron.daily</code>、<code>/etc/cron.weekly</code>、<code>/etc/cron.monthly</code> 目录中，让它每小时/天/星期、月执行一次。</p>
 <p>系统管理员可以通过 cron.deny 和 cron.allow 这两个文件来禁止或允许用户拥有自己的crontab文件。</p>
@@ -400,8 +510,10 @@
 <p>默认情况下，<code>cron.allow</code> 文件不存在。如果两个文件同时存在，那么 <code>/etc/cron.allow</code> 优先。如果两个文件都不存在，那么只有超级用户可以安排作业。</p>
 <p><strong><code>ls -lrt cron*</code></strong></p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">ls -lrt cron*</span><br><span class="line">-rw-r--r--. 1 root root 451 6月  10 2014 crontab</span><br><span class="line">-rw-------. 1 root root   0 11月 20 2018 cron.deny</span><br><span class="line"></span><br><span class="line">cron.weekly:</span><br><span class="line">总用量 0</span><br><span class="line"></span><br><span class="line">cron.monthly:</span><br><span class="line">总用量 0</span><br><span class="line"></span><br><span class="line">cron.hourly:</span><br><span class="line">总用量 4</span><br><span class="line">-rwxr-xr-x. 1 root root 392 11月 20 2018 0anacron</span><br><span class="line"></span><br><span class="line">cron.daily:</span><br><span class="line">总用量 8</span><br><span class="line">-rwxr-xr-x. 1 root root 618 10月 30 2018 man-db.cron</span><br><span class="line">-rwx------. 1 root root 219 10月 31 2018 logrotate</span><br><span class="line"></span><br><span class="line">cron.d:</span><br><span class="line">总用量 4</span><br><span class="line">-rw-r--r--. 1 root root 128 11月 20 2018 0hourl</span><br></pre></td></tr></table></figure>
+
 <h2 id="CRONTAB在线手册"><a href="#CRONTAB在线手册" class="headerlink" title="CRONTAB在线手册"></a>CRONTAB在线手册</h2><p>注意：不同版本的Linux系统，可能crontab手册内容有所出入，请以实际版本为准。</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">man crontab | more</span><br></pre></td></tr></table></figure>
+
 <h2 id="注意事项"><a href="#注意事项" class="headerlink" title="注意事项"></a>注意事项</h2><p>配置定时任务时，需要注意两个问题：</p>
 <p>1: 在SHELL中设置了必要的环境变量；例如一个shell脚本手工执行OK，但是配置成后台作业执行时，获取不到ORACLE的环境变量，这是因为crontab环境变量问题，Crontab的环境默认情况下并不包含系统中当前用户的环境。所以，你需要在shell脚本中添加必要的环境变量的设置</p>
 <p>2: 尽量所有的文件都采用完全路径方式，避免使用相对路径。</p>
@@ -460,7 +572,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -487,16 +599,20 @@
 <p>使用 <code>logrotate</code> 指令，可让你轻松管理系统所产生的记录文件。它提供自动替换，压缩，删除和邮寄记录文件，每个记录文件都可被设置成每日，每周或每月处理，也能在文件太大时立即处理。例如，你可以设置 <code>logrotate</code>，让 <code>/var/log/foo</code> 日志文件每30天轮循，并删除超过6个月的日志。配置完后，<code>logrotate</code> 的运作完全自动化，不必进行任何进一步的人为干预。</p>
 <p><code>logrotate</code> 需要的 <code>cron</code> 任务应该在安装时就自动创建好了，下面代码以centos7.4为例：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">cat /etc/cron.daily/logrotate</span><br><span class="line"><span class="meta">#!/bin/sh</span></span><br><span class="line"></span><br><span class="line">/usr/sbin/logrotate -s /var/lib/logrotate/logrotate.status /etc/logrotate.conf</span><br><span class="line">EXITVALUE=$?</span><br><span class="line"><span class="keyword">if</span> [ <span class="variable">$EXITVALUE</span> != 0 ]; <span class="keyword">then</span></span><br><span class="line">    /usr/bin/logger -t logrotate <span class="string">&quot;ALERT exited abnormally with [<span class="variable">$EXITVALUE</span>]&quot;</span></span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"><span class="built_in">exit</span> 0</span><br></pre></td></tr></table></figure>
+
 <p>Linux系统自带的日志滚动工具 <code>logrotate</code> 由两部分组成：</p>
 <p>一是命令行工具 <code>logrotate</code>;<br>二是后台服务 <code>rsyslogd</code>。</p>
 <p>使用 <code>rsyslogd</code> ，只需简单的配置即可实现日志滚动。<br><code>rsyslogd</code> 的配置文件为 <code>/etc/logrotate.conf</code>，但一般不建议直接修改 <code>logrotate.conf</code> ，而是在目录 <code>/etc/logrotate.d</code> 下新增文件的方式。<br><code>logrotate.conf</code> 会 <code>include</code> 所有 <code>logrotate.d</code> 目录下的文件，<br>语法是一致的，区别是 <code>logrotate.conf</code> 定义了默认的配置，而 <code>logrotate.d</code> 目录下为专有配置。</p>
 <h2 id="Redis日志设置"><a href="#Redis日志设置" class="headerlink" title="Redis日志设置"></a>Redis日志设置</h2><p>截至到 <code>redis-5.0</code> 版本，redis 仍然不会自动滚动日志文件，如果不处理则日志文件日积月累越来越大，最终将导致磁盘满告警，</p>
 <p>使用命令查看磁盘使用情况：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ls -lh</span><br></pre></td></tr></table></figure>
+
 <p>下列为redis的配置示例：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># cat /etc/logrotate.d/redis</span></span><br><span class="line"><span class="comment"># 以下为 redis 文件的内容：</span></span><br><span class="line">/usr/<span class="built_in">local</span>/redis-cluster/<span class="built_in">log</span>/redis-6379.log</span><br><span class="line">/usr/<span class="built_in">local</span>/redis-cluster/<span class="built_in">log</span>/redis-6380.log</span><br><span class="line">/usr/<span class="built_in">local</span>/redis-cluster/<span class="built_in">log</span>/redis-6381.log</span><br><span class="line">&#123;</span><br><span class="line">    monthly</span><br><span class="line">    rotate 5</span><br><span class="line">    minsize 100M</span><br><span class="line">    nocompress</span><br><span class="line">    dateext</span><br><span class="line">    missingok</span><br><span class="line">    notifempty</span><br><span class="line">    create 0664 root root</span><br><span class="line">    postrotate</span><br><span class="line">        /usr/bin/killall -HUP rsyslogd</span><br><span class="line">    endscript</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
 <p>注：<code>postrotate/endscript</code> 可以去掉，即：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># cat /etc/logrotate.d/redis</span></span><br><span class="line"><span class="comment"># 以下为 redis 文件的内容：</span></span><br><span class="line">/usr/<span class="built_in">local</span>/redis-cluster/<span class="built_in">log</span>/redis-6379.log</span><br><span class="line">/usr/<span class="built_in">local</span>/redis-cluster/<span class="built_in">log</span>/redis-6380.log</span><br><span class="line">/usr/<span class="built_in">local</span>/redis-cluster/<span class="built_in">log</span>/redis-6381.log</span><br><span class="line">&#123;</span><br><span class="line">    monthly</span><br><span class="line">    rotate 5</span><br><span class="line">    minsize 100M</span><br><span class="line">    nocompress</span><br><span class="line">    dateext</span><br><span class="line">    missingok</span><br><span class="line">    notifempty</span><br><span class="line">    create 0664 root root</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
 <p>配置项说明：</p>
 <p>可以使用 <code>man logrotate</code> 命令查看详情。</p>
 <ul>
@@ -513,8 +629,10 @@
 </ul>
 <p>注意，修改后需要重启下 <code>rsyslogd</code>。如果是 <code>CentOS</code> 可使用下列任意一种方式重启<br>（实际上 <code>systemctl</code> 新方式，而 <code>service</code> 实际也是使用 <code>systemctl</code> ）：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">service rsyslog restart </span><br><span class="line">systemctl restart rsyslog.service</span><br></pre></td></tr></table></figure>
+
 <h2 id="实例"><a href="#实例" class="headerlink" title="实例"></a>实例</h2><p><strong>创建测试日志文件</strong></p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建文件</span></span><br><span class="line">touch /var/<span class="built_in">log</span>/log-file</span><br><span class="line">head -c 50M &lt; /dev/urandom &gt; /var/<span class="built_in">log</span>/log-file</span><br><span class="line"></span><br><span class="line"><span class="comment"># 编辑配置</span></span><br><span class="line">vim /etc/logrotate.d/log-file</span><br><span class="line"></span><br><span class="line"><span class="comment"># 以下为内容</span></span><br><span class="line">/var/<span class="built_in">log</span>/log-file &#123;</span><br><span class="line">    minsize 50M</span><br><span class="line">    rotate 5</span><br><span class="line">    create 644 root root</span><br><span class="line">    postrotate</span><br><span class="line">        /usr/bin/killall -HUP rsyslogd</span><br><span class="line">    endscript</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
 <h2 id="手动运行"><a href="#手动运行" class="headerlink" title="手动运行"></a>手动运行</h2><p>logrotate 可以在任何时候从命令行手动调用。</p>
 <p>要调用为 <code>/etc/lograte.d/</code> 下配置的所有日志调用 <code>logrotate</code> ：</p>
 <p><code>logrotate /etc/logrotate.conf</code> </p>
@@ -522,6 +640,7 @@
 <p><code>logrotate /etc/logrotate.d/log-file</code> </p>
 <p><strong>logrotate参数说明</strong></p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># -d 选项以预演方式运行logrotate</span></span><br><span class="line">logrotate -d /etc/logrotate.d/log-file </span><br><span class="line"></span><br><span class="line"><span class="comment"># -f 强制logrotate轮循日志文件</span></span><br><span class="line"><span class="comment"># -v 参数提供了详细的输出。</span></span><br><span class="line">logrotate -vf /etc/logrotate.d/log-file</span><br><span class="line"></span><br><span class="line"><span class="comment"># 输出到指定的文件</span></span><br><span class="line"><span class="comment"># 注：logrotate自身的日志通常存放于/var/lib/logrotate/status目录。</span></span><br><span class="line">logrotate -vf –s /var/<span class="built_in">log</span>/logrotate-status /etc/logrotate.d/log-file</span><br></pre></td></tr></table></figure>
+
 <p>参考：</p>
 <p><a target="_blank" rel="noopener" href="http://blog.chinaunix.net/uid-20682147-id-5818053.html">使用Linux自带日志滚动工具logrotate滚动redis日志示例</a></p>
 <p><a target="_blank" rel="noopener" href="https://linux.cn/article-4126-1.html">Linux日志文件总管——logrotate</a></p>
@@ -576,7 +695,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -601,8 +720,10 @@
       
           <p>先用 <code>chmod</code> 让Shell脚本有可执行权限，Linux下面用命令如何运行Shell脚本的方法，有两种方法：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1， ./ 加上文件名 .sh</span></span><br><span class="line">./test.sh</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2，sh 加上 文件名.sh</span></span><br><span class="line">sh test.sh</span><br></pre></td></tr></table></figure>
+
 <p>如果没有权限，需要先设置权限，命令如下：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 添加执行权限</span></span><br><span class="line">chmod + x testsh</span><br><span class="line"></span><br><span class="line"><span class="comment"># 转到指定文件的目录下</span></span><br><span class="line"><span class="built_in">cd</span> <span class="built_in">test</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#执行文件</span></span><br><span class="line">./test.sh  </span><br></pre></td></tr></table></figure>
+
 <p>参考：</p>
 <p><a target="_blank" rel="noopener" href="https://blog.csdn.net/xiaopu99/article/details/82978743">centos执行.sh文件</a></p>
 <p><a target="_blank" rel="noopener" href="https://www.runoob.com/linux/linux-shell.html">Shell 教程</a></p>
@@ -656,7 +777,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -690,12 +811,16 @@
 <p>我们这个时候当然可以逐个修改上述两文件，来禁用THP，但要想一劳永逸的令其永久生效，还是参考下列的步骤。</p>
 <p>编辑 rc.local 文件：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# vim &#x2F;etc&#x2F;rc.local</span><br></pre></td></tr></table></figure>
+
 <p>增加下列内容：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> <span class="built_in">test</span> -f /sys/kernel/mm/transparent_hugepage/enabled; <span class="keyword">then</span></span><br><span class="line"><span class="built_in">echo</span> never &gt; /sys/kernel/mm/transparent_hugepage/enabled</span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"><span class="keyword">if</span> <span class="built_in">test</span> -f /sys/kernel/mm/transparent_hugepage/defrag; <span class="keyword">then</span></span><br><span class="line"><span class="built_in">echo</span> never &gt; /sys/kernel/mm/transparent_hugepage/defrag</span><br><span class="line"><span class="keyword">fi</span></span><br></pre></td></tr></table></figure>
+
 <p>保存退出，然后赋予 rc.local 文件执行权限：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]<span class="comment"># chmod +x /etc/rc.local</span></span><br></pre></td></tr></table></figure>
+
 <p>最后重启系统，以后再检查THP应该就是被禁用了</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]<span class="comment"># cat /sys/kernel/mm/transparent_hugepage/enabled</span></span><br><span class="line">always madvise [never]</span><br><span class="line">[root@localhost ~]<span class="comment"># cat /sys/kernel/mm/transparent_hugepage/defrag </span></span><br><span class="line">always madvise [never]</span><br></pre></td></tr></table></figure>
+
 <p>参考：</p>
 <p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/kerrycode/p/7760026.html">Linux传统Huge Pages与Transparent Huge Pages再次学习总结</a></p>
 <p><a target="_blank" rel="noopener" href="http://blog.itpub.net/26736162/viewspace-2214374/">Huge pages (标准大页)和 Transparent Huge pages(透明大页)</a></p>
@@ -750,7 +875,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -848,7 +973,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -898,12 +1023,14 @@
 <p>注：Redis配置项 <code>tcp-backlog</code> 的值不能超过somaxconn的大小。</p>
 <p>ss命令来显示:</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]<span class="comment"># ss -l</span></span><br><span class="line">State       Recv-Q Send-Q                                     Local Address:Port                                         Peer Address:Port     </span><br><span class="line">LISTEN      0      128                                                    *:http                                                    *:*       </span><br><span class="line">LISTEN      0      128                                                   :::ssh                                                    :::*       </span><br><span class="line">LISTEN      0      128                                                    *:ssh                                                     *:*       </span><br><span class="line">LISTEN      0      100                                                  ::1:smtp                                                   :::*       </span><br><span class="line">LISTEN      0      100                                            127.0.0.1:smtp                                                    *:*  </span><br></pre></td></tr></table></figure>
+
 <p>在LISTEN状态，其中 Send-Q 即为Accept queue的最大值，Recv-Q 则表示Accept queue中等待被服务器accept()。</p>
 <p>客户端connect()返回不代表TCP连接建立成功，有可能此时 <code>accept queue</code> 已满，系统会直接丢弃后续ACK请求；客户端误以为连接已建立，开始调用等待至超时；服务器则等待ACK超时，会重传 <code>SYN+ACK</code> 给客户端，重传次数受限 <code>net.ipv4.tcp_synack_retries</code> ，默认为5，表示重发5次，每次等待30~40秒，即半连接默认时间大约为180秒，该参数可以在tcp被洪水攻击是临时启用这个参数。</p>
 <p><strong>查看SYN queue 溢出</strong></p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]<span class="comment"># netstat -s | grep LISTEN</span></span><br><span class="line">102324 SYNs to LISTEN sockets dropped</span><br></pre></td></tr></table></figure>
 <p>　　<br><strong>查看Accept queue 溢出</strong></p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]<span class="comment"># netstat -s | grep TCPBacklogDrop</span></span><br><span class="line">TCPBacklogDrop: 2334</span><br></pre></td></tr></table></figure>
+
 <p>参考：</p>
 <p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/Orgliny/p/5780796.html">TCP/IP协议中backlog参数</a></p>
 <p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/e6f2036621f4">浅谈tcp socket的backlog参数</a></p>
@@ -958,7 +1085,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -984,9 +1111,11 @@
           <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>sysctl命令被用于在内核运行时动态地修改内核的运行参数，可用的内核参数在目录/proc/sys中。它包含一些TCP/ip堆栈和虚拟内存系统的高级选项， 这可以让有经验的管理员提高引人注目的系统性能。用sysctl可以读取设置超过五百个系统变量。</p>
 <p>参数：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">-n：打印值时不打印关键字；</span><br><span class="line">-e：忽略未知关键字错误；</span><br><span class="line">-N：仅打印名称；</span><br><span class="line">-w：当改变sysctl设置时使用此项；</span><br><span class="line">-p：从配置文件“/etc/sysctl.conf”加载内核参数设置；</span><br><span class="line">-a：打印当前所有可用的内核参数变量和值；</span><br><span class="line">-A：以表格方式打印当前所有可用的内核参数变量和值。</span><br></pre></td></tr></table></figure>
+
 <h2 id="实例"><a href="#实例" class="headerlink" title="实例"></a>实例</h2><p>查看所有可读变量：</p>
 <p><code>sysctl -a</code></p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[root@host-192-125-30-59 ~]<span class="comment"># sysctl -a | grep file-max</span></span><br><span class="line">fs.file-max = 6523120</span><br><span class="line">sysctl: reading key <span class="string">&quot;net.ipv6.conf.all.stable_secret&quot;</span></span><br><span class="line">sysctl: reading key <span class="string">&quot;net.ipv6.conf.default.stable_secret&quot;</span></span><br><span class="line">sysctl: reading key <span class="string">&quot;net.ipv6.conf.eth0.stable_secret&quot;</span></span><br><span class="line">sysctl: reading key <span class="string">&quot;net.ipv6.conf.lo.stable_secret&quot;</span></span><br></pre></td></tr></table></figure>
+
 <p>参考：</p>
 <p><a target="_blank" rel="noopener" href="https://man.linuxde.net/sysctl">sysctl命令</a></p>
 
@@ -1039,7 +1168,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1067,18 +1196,23 @@
 <p>PAM的主要特征是认证的性质是可动态配置的。PAM的核心部分是库（libpam）和PAM模块的集合，它们是位于文件夹 <code>/lib/security/</code> 中的动态链接库(.so)文件，以及位于 <code>/etc/pam.d/</code> 目录中（或者是 <code>/etc/pam.conf</code> 配置文件，centos6之后，没有这个文件了）的各个PAM模块配置文件。</p>
 <p>使用如下命令判断程序是否使用了PAM：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@host-192-125-30-59 ~]<span class="comment"># ldd /usr/bin/passwd | grep libpam</span></span><br><span class="line">	libpam.so.0 =&gt; /lib64/libpam.so.0 (0x00007fb53bd17000)</span><br><span class="line">	libpam_misc.so.0 =&gt; /lib64/libpam_misc.so.0 (0x00007fb53bb13000)</span><br></pre></td></tr></table></figure>
+
 <p>如看到有类似的输出，说明该程序使用了PAM，没有输出，则没有使用。</p>
 <h2 id="PAM的配置文件介绍"><a href="#PAM的配置文件介绍" class="headerlink" title="PAM的配置文件介绍"></a>PAM的配置文件介绍</h2><p><code>/etc/pam.d/</code> 目录包含应用程序的PAM配置文件。例如，login程序将其程序/服务名称定义为login，与之对应的PAM配置文件为 <code>/etc/pam.d/login</code> 。</p>
 <h3 id="PAM配置文件语法格式"><a href="#PAM配置文件语法格式" class="headerlink" title="PAM配置文件语法格式"></a>PAM配置文件语法格式</h3><p>每个PAM配置文件都包含一组指令，用于定义模块以及控制标志和参数。每条指令都有一个简单的语法，用于标识模块的目的（接口）和模块的配置设置，语法格式如下：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">module_interface      control_flag      module_name  module_arguments</span><br></pre></td></tr></table></figure>
+
 <p>例如：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">[root@host-192-125-30-59 ~]<span class="comment"># vim /etc/pam.d/system-auth-ac</span></span><br><span class="line"><span class="comment">#%PAM-1.0</span></span><br><span class="line"><span class="comment"># This file is auto-generated.</span></span><br><span class="line"><span class="comment"># User changes will be destroyed the next time authconfig is run.</span></span><br><span class="line">auth        required      pam_env.so</span><br><span class="line">auth        required      pam_faildelay.so delay=2000000</span><br><span class="line">auth        sufficient    pam_unix.so nullok try_first_pass</span><br><span class="line">auth        requisite     pam_succeed_if.so uid &gt;= 1000 quiet_success</span><br><span class="line">auth        required      pam_deny.so</span><br><span class="line"></span><br><span class="line">account     required      pam_unix.so</span><br><span class="line">account     sufficient    pam_localuser.so</span><br><span class="line">account     sufficient    pam_succeed_if.so uid &lt; 1000 quiet</span><br><span class="line">account     required      pam_permit.so</span><br><span class="line"></span><br><span class="line">password    requisite     pam_pwquality.so try_first_pass local_users_only retry=3 authtok_type=</span><br><span class="line">password    sufficient    pam_unix.so sha512 shadow nullok try_first_pass use_authtok</span><br><span class="line">password    required      pam_deny.so</span><br><span class="line"></span><br><span class="line">session     optional      pam_keyinit.so revoke</span><br><span class="line">session     required      pam_limits.so</span><br><span class="line">-session     optional      pam_systemd.so</span><br><span class="line">session     [success=1 default=ignore] pam_succeed_if.so service <span class="keyword">in</span> crond quiet use_uid</span><br></pre></td></tr></table></figure>
+
 <p>如在/etc/pam.d/password-auth-ac配置文件中(CentOS)，其中一行PAM模块接口定义如下<br><img src="/img/password-auth-ac.png" alt="password-auth-ac.png"></p>
 <h3 id="PAM的模块类型"><a href="#PAM的模块类型" class="headerlink" title="PAM的模块类型"></a>PAM的模块类型</h3><p>PAM为认证任务提供四种类型可用的模块接口，它们分别提供不同的认证服务：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">auth	- 认证模块接口，如验证用户身份、检查密码是否可以通过，并设置用户凭据</span><br><span class="line">account	- 账户模块接口，检查指定账户是否满足当前验证条件，如用户是否有权访问所请求的服务，检查账户是否到期</span><br><span class="line">password  - 密码模块接口，用于更改用户密码，以及强制使用强密码配置</span><br><span class="line">session	- 会话模块接口，用于管理和配置用户会话。会话在用户成功认证之后启动生效</span><br></pre></td></tr></table></figure>
+
 <p>单个PAM库模块可以提供给任何或所有模块接口使用。例如，pam_unix.so提供给四个模块接口使用。</p>
 <h3 id="PAM控制标志"><a href="#PAM控制标志" class="headerlink" title="PAM控制标志"></a>PAM控制标志</h3><p>所有的PAM模块被调用时都会返回成功或者失败的结果，每个PAM模块中由多个对应的控制标志决定结果是否通过或失败。每一个控制标志对应一个处理结果，PAM库将这些通过/失败的结果整合为一个整体的通过/失败结果，然后将结果返回给应用程序。模块可以按特定的顺序堆叠。控制标志是实现用户在对某一个特定的应用程序或服务身份验证的具体实现细节。该控制标志是PAM配置文件中的第二个字段，PAM控制标志如下：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">required  - 模块结果必须成功才能继续认证，如果在此处测试失败，则继续测试引用在该模块接口的下一个模块，直到所有的模块测试完成，才将结果通知给用户。</span><br><span class="line">requisite  - 模块结果必须成功才能继续认证，如果在此处测试失败，则会立即将失败结果通知给用户。</span><br><span class="line">sufficient  - 模块结果如果测试失败，将被忽略。如果sufficient模块测试成功，并且之前的required模块没有发生故障，PAM会向应用程序返回通过的结果，不会再调用堆栈中其他模块。</span><br><span class="line">optional  - 该模块返回的通过/失败结果被忽略。当没有其他模块被引用时，标记为optional模块并且成功验证时该模块才是必须的。该模块被调用来执行一些操作，并不影响模块堆栈的结果。</span><br><span class="line">include	 - 与其他控制标志不同，include与模块结果的处理方式无关。该标志用于直接引用其他PAM模块的配置参数</span><br></pre></td></tr></table></figure>
+
 <h3 id="PAM配置方法"><a href="#PAM配置方法" class="headerlink" title="PAM配置方法"></a>PAM配置方法</h3><p>可以使用 <code>man</code> 命令查看配置，比如要查找某个程序支持PAM模块的配置，可以使用 <code>man</code> 加模块名(去掉.so)查找说明。</p>
 <p>如 <code>man pam_unix</code>。(模块名可以在目录/lib/security/或/lib64/security/中找到。)</p>
 <p>参考：</p>
@@ -1135,7 +1269,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1166,6 +1300,7 @@
 </ul>
 <p>(noproc)最大线程数和(nofile)文件数。</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># nr_open是单个进程可分配的最大文件数</span></span><br><span class="line"><span class="comment"># 一般默认为：1024*1024=1048576</span></span><br><span class="line">cat /proc/sys/fs/nr_open</span><br><span class="line"></span><br><span class="line"><span class="comment"># file-max是内核可分配的最大文件数</span></span><br><span class="line">cat /proc/sys/fs/file-max</span><br></pre></td></tr></table></figure>
+
 <p>在Linux下有时会遇到 <code>Socket/File : Can&#39;t open so many files</code> 的问题。其实Linux是有文件句柄限制的，而且Linux默认一般都是1024（阿里云主机默认是65535）。在生产环境中很容易到达这个值，因此这里就会成为系统的瓶颈。</p>
 <h2 id="Linux资源的限制"><a href="#Linux资源的限制" class="headerlink" title="Linux资源的限制"></a>Linux资源的限制</h2><h3 id="登陆时限制"><a href="#登陆时限制" class="headerlink" title="登陆时限制"></a>登陆时限制</h3><p>Linux对用户使用资源的限制通过 PAM 对登陆用户进行身份验证并设置相应的限制。</p>
 <p>具体顺序如下。从用户登陆开始，操作系统会依次执行如下三部</p>
@@ -1185,27 +1320,35 @@
 </ul>
 <p><strong>1，/etc/pam.d/login 中调用system-auth</strong></p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /etc/pam.d/login</span><br></pre></td></tr></table></figure>
+
 <p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20201224172412.png" alt="微信截图_20201224172412.png"></p>
 <p><strong>2，在/etc/pam.d/system-auth 调用 pam_limits.so</strong></p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/etc/pam.d/system-auth</span><br></pre></td></tr></table></figure>
+
 <p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20201224172513.png" alt="微信截图_20201224172513.png"></p>
 <p><strong>3，通过grep查看 /lib64/security/pam_limits.so 可以看到 limits.conf和limits.d/*.conf</strong></p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep -a <span class="string">&quot;/etc/security/limits.&quot;</span> /lib64/security/pam_limits.so</span><br></pre></td></tr></table></figure>
+
 <p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20201224172633.png" alt="微信截图_20201224172633.png"></p>
 <h2 id="Centos7系统修改"><a href="#Centos7系统修改" class="headerlink" title="Centos7系统修改"></a>Centos7系统修改</h2><p>在Centos7系统中，使用 <code>Systemd</code> 替代了之前的 SysV。<code>/etc/security/limits.conf</code> 文件的配置作用域缩小了。<code>/etc/security/limits.conf</code> 的配置，只适用于通过PAM认证登录用户的资源限制，它对 <code>systemd</code> 的 <code>service</code> 的资源限制不生效。因此登录用户的限制，通过 <code>/etc/security/limits.conf</code> 与 <code>/etc/security/limits.d</code> 下的文件设置即可。</p>
 <p>对于 <code>systemd service</code> 的资源设置，则需修改全局配置，全局配置文件放在 <code>/etc/systemd/system.conf</code> 和 <code>/etc/systemd/user.conf</code>。<code>system.conf</code> 是系统实例使用的，<code>user.conf</code> 是用户实例使用的。</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># vim /etc/systemd/system.conf</span></span><br><span class="line">[Manager]</span><br><span class="line">DefaultLimitNOFILE=1048576</span><br><span class="line">DefaultLimitNPROC=1048576</span><br></pre></td></tr></table></figure>
+
 <p><code>reboot</code> 重启后生效。</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">[root@host-192-175-32-22 bin]<span class="comment"># cat /proc/2789/limits</span></span><br><span class="line">Limit                     Soft Limit           Hard Limit           Units     </span><br><span class="line">Max cpu time              unlimited            unlimited            seconds   </span><br><span class="line">Max file size             unlimited            unlimited            bytes     </span><br><span class="line">Max data size             unlimited            unlimited            bytes     </span><br><span class="line">Max stack size            8388608              unlimited            bytes     </span><br><span class="line">Max core file size        0                    unlimited            bytes     </span><br><span class="line">Max resident <span class="built_in">set</span>          unlimited            unlimited            bytes     </span><br><span class="line">Max processes             1048576              1048576              processes </span><br><span class="line">Max open files            1048576              1048576              files     </span><br><span class="line">Max locked memory         65536                65536                bytes     </span><br><span class="line">Max address space         unlimited            unlimited            bytes     </span><br><span class="line">Max file locks            unlimited            unlimited            locks     </span><br><span class="line">Max pending signals       127951               127951               signals   </span><br><span class="line">Max msgqueue size         819200               819200               bytes     </span><br><span class="line">Max nice priority         0                    0                    </span><br><span class="line">Max realtime priority     0                    0                    </span><br><span class="line">Max realtime timeout      unlimited            unlimited            us        </span><br><span class="line">[root@host-192-175-32-22 bin]<span class="comment"># ulimit -n</span></span><br><span class="line">1048576</span><br></pre></td></tr></table></figure>
+
 <h2 id="Red-Hat系统修改"><a href="#Red-Hat系统修改" class="headerlink" title="Red Hat系统修改"></a>Red Hat系统修改</h2><p>查看 <code>/etc/sysctl.conf</code> 和 <code>/etc/sysctl.d/*.conf</code> 的设置，修改 <code>sysctl.conf</code>，修改后须执行 <code>sysctl -p</code> 使修改生效。</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fs.file-max=6523120</span><br></pre></td></tr></table></figure>
+
 <p>查看 <code>/etc/security/limits.conf</code> 以及 <code>/etc/security/limits.d/*.conf</code> 。操作系统默认先加载 limits.conf 后加载 limits.d/*.conf，所以相同配置后面会覆盖前面，如：<code>/etc/security/limits.d/90-nproc.conf</code></p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">*          -       nofile    1048576</span><br><span class="line">*          -       nproc     1048576</span><br></pre></td></tr></table></figure>
+
 <p><strong>免密登陆</strong></p>
 <p>用户不会进行登陆验证过程，所以不会加载 limits.conf 文件，建议通过 <code>/etc/profile</code> 添加 <code>ulimit -n 1048576</code> 命令设置，重新登陆或者执行 <code>source /etc/profile</code> 命令，然后启动服务程序；</p>
 <h2 id="查看用户级的最大限制"><a href="#查看用户级的最大限制" class="headerlink" title="查看用户级的最大限制"></a>查看用户级的最大限制</h2><p><code>ulimit -a</code> 或者 <code>ulimit -n</code></p>
 <p><code>ulimit -n</code>，默认是1024，向阿里云华为云这种云主机一般是 65535。</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">[root@host-192-125-30-59 ~]<span class="comment"># ulimit -a</span></span><br><span class="line">core file size          (blocks, -c) 0</span><br><span class="line">data seg size           (kbytes, -d) unlimited</span><br><span class="line">scheduling priority             (-e) 0</span><br><span class="line">file size               (blocks, -f) unlimited</span><br><span class="line">pending signals                 (-i) 256967</span><br><span class="line">max locked memory       (kbytes, -l) 64</span><br><span class="line">max memory size         (kbytes, -m) unlimited</span><br><span class="line">open files                      (-n) 1024</span><br><span class="line">pipe size            (512 bytes, -p) 8</span><br><span class="line">POSIX message queues     (bytes, -q) 819200</span><br><span class="line">real-time priority              (-r) 0</span><br><span class="line">stack size              (kbytes, -s) 8192</span><br><span class="line">cpu time               (seconds, -t) unlimited</span><br><span class="line">max user processes              (-u) 256967</span><br><span class="line">virtual memory          (kbytes, -v) unlimited</span><br><span class="line">file locks                      (-x) unlimited</span><br><span class="line">[root@host-192-125-30-59 ~]<span class="comment"># ulimit -n</span></span><br><span class="line">1024</span><br></pre></td></tr></table></figure>
+
 <p>open files （-n）1024 是linux操作系统对一个进程打开的文件句柄数量的限制（也包含打开的套接字数量）</p>
 <table>
 <thead>
@@ -1288,26 +1431,34 @@
 </tbody></table>
 <h2 id="查看某个进程的最大打开文件数和当前打开文件数"><a href="#查看某个进程的最大打开文件数和当前打开文件数" class="headerlink" title="查看某个进程的最大打开文件数和当前打开文件数"></a>查看某个进程的最大打开文件数和当前打开文件数</h2><p>先找到该进程的进程号，然后查看</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 找到pid</span></span><br><span class="line">ps -aux</span><br><span class="line"></span><br><span class="line"><span class="comment"># /proc/[pid]/limits和fd</span></span><br><span class="line"></span><br><span class="line">cat /proc/[pid]/limits 显示当前进程的资源限制</span><br><span class="line"></span><br><span class="line">ls /proc/[pid]/fd 是一个目录，包含进程打开文件的情况</span><br></pre></td></tr></table></figure>
+
 <p>实例：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@host-192-125-30-59 ~]<span class="comment"># cat /proc/3289/limits| grep files</span></span><br><span class="line">Max open files            1024                 4096                 files</span><br><span class="line">[root@host-192-125-30-59 ~]<span class="comment"># ll /proc/3289/fd | wc -l</span></span><br><span class="line">7</span><br></pre></td></tr></table></figure>
+
 <p>ps：如果要查看某个进程的线程的详细信息，<code>/proc/[pid]/task</code></p>
 <h2 id="修改用户级最大限制"><a href="#修改用户级最大限制" class="headerlink" title="修改用户级最大限制"></a>修改用户级最大限制</h2><h3 id="临时生效方法：（重启后失效）"><a href="#临时生效方法：（重启后失效）" class="headerlink" title="临时生效方法：（重启后失效）"></a>临时生效方法：（重启后失效）</h3><p>这个设置是暂时的保留。当退出Shell会话后，该值恢复原值。</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ulimit</span> -SHn 1048576</span><br></pre></td></tr></table></figure>
+
 <p><code>ulimit</code> 命令分软限制和硬限制，加 <code>-H</code> 就是硬限制，加 <code>-S</code> 就是软限制。默认显示的是软限制，如果运行 <code>ulimit</code> 命令修改时没有加上 <code>-H</code> 或 <code>-S</code> ，就是两个参数一起改变。</p>
 <p>硬限制就是实际的限制，而软限制是警告限制，它只会给出警告。</p>
 <h3 id="用户级修改永久有效方式"><a href="#用户级修改永久有效方式" class="headerlink" title="用户级修改永久有效方式"></a>用户级修改永久有效方式</h3><p>修改配置文件 <code>vim /etc/security/limits.conf</code>，加入：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">* soft nofile 65535</span><br><span class="line">* hard nofile 65535</span><br><span class="line">* soft nproc 65535</span><br><span class="line">* hard nproc 65535</span><br><span class="line"></span><br><span class="line"><span class="comment"># 可以使用下面一行来替代上面</span></span><br><span class="line">* - nofile 65535</span><br><span class="line">* - nproc 65535</span><br></pre></td></tr></table></figure>
+
 <p>或者使用命令：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&quot;* soft nofile 65535&quot;</span> &gt;&gt; /etc/security/limits.conf</span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;* hard nofile 65535&quot;</span> &gt;&gt; /etc/security/limits.conf</span><br></pre></td></tr></table></figure>
+
 <p><code>*</code> 表示所用的用户，但有的系统不认, 需要具体的用户名, 比如:</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">root soft nofile 65535</span><br><span class="line">root hard nofile 65535</span><br></pre></td></tr></table></figure>
+
 <p>有些环境修改后，root用户需要重启机器才生效，而普通用户重新登录后即生效。</p>
 <p>需要小心注意的是，有些环境上面这样做，可能导致无法ssh登录，所以在修改时最好打开两个窗口，万一登录不了还可自救。</p>
 <h2 id="修改系统级最大限制"><a href="#修改系统级最大限制" class="headerlink" title="修改系统级最大限制"></a>修改系统级最大限制</h2><p>其实上面的修改都是对一个进程打开的文件句柄数量的限制，我们还需要设置系统的总限制才可以。</p>
 <p>假如，我们设置进程打开的文件句柄数是 1024 ，但是系统总限制才500，所以所有进程最多能打开文件句柄数量500。从这里我们可以看出只设置进程的打开文件句柄的数量是不行的。所以需要修改系统的总限制才可以。</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 系统级修改临时生效方式：</span></span><br><span class="line"><span class="built_in">echo</span> 6523120 &gt; /proc/sys/fs/file-max</span><br><span class="line"></span><br><span class="line"><span class="comment"># 系统级修改永久生效方式：</span></span><br><span class="line">vim /etc/sysctl.conf</span><br><span class="line"><span class="comment"># 加入</span></span><br><span class="line">fs.file-max=6523120</span><br></pre></td></tr></table></figure>
+
 <p>查看系统级文件句柄修改，是否生效</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sysctl -p</span><br></pre></td></tr></table></figure>
+
 <p>参考：</p>
 <p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/pangguoping/p/5791432.html">Linux最大文件打开数</a></p>
 <p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/xulan0922/p/11937472.html">linux最大打开文件句柄数</a></p>
@@ -1362,7 +1513,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1387,8 +1538,10 @@
       
           <p>Shell 的 echo 指令与 PHP 的 echo 指令类似，都是用于字符串的输出。命令格式：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> string</span><br></pre></td></tr></table></figure>
+
 <p><strong>Shell符号注解</strong></p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&gt; 重定向输出到某个位置，替换原有文件的所有内容。</span><br><span class="line">&gt;&gt; 重定向追加到某个位置，在原有文件的末尾添加内容。</span><br><span class="line">&lt; 重定向输入某个位置文件。</span><br><span class="line">2&gt; 重定向错误输出。</span><br><span class="line">2&gt;&gt; 重定向错误追加输出到文件末尾。</span><br><span class="line">&amp;&gt; 混合输出错误的和正确的都输出。</span><br></pre></td></tr></table></figure>
+
 <p><strong>echo输出的字符串总结：</strong></p>
 <p>===================================================================</p>
 <table>
@@ -1422,41 +1575,57 @@
 <p>===================================================================</p>
 <p><strong>1.显示普通字符串</strong></p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&quot;It is a test&quot;</span></span><br></pre></td></tr></table></figure>
+
 <p>这里的双引号完全可以省略，以下命令与上面实例效果一致：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> It is a <span class="built_in">test</span></span><br></pre></td></tr></table></figure>
+
 <p><strong>2.显示转义字符</strong></p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&quot;\&quot;It is a test\&quot;&quot;</span></span><br></pre></td></tr></table></figure>
+
 <p>结果将是:</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">&quot;It is a test&quot;</span></span><br></pre></td></tr></table></figure>
+
 <p>同样，双引号也可以省略</p>
 <p><strong>3.显示变量</strong></p>
 <p>read 命令从标准输入中读取一行,并把输入行的每个字段的值指定给 shell 变量</p>
 <p>read 命令一个一个词组地接收输入的参数，每个词组需要使用空格进行分隔；如果输入的词组个数大于需要的参数个数，则多出的词组将被作为整体为最后一个参数接收。</p>
 <p>read 参数说明：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">-p 输入提示文字</span><br><span class="line">-n 输入字符长度限制(达到6位，自动结束)</span><br><span class="line">-t 输入限时</span><br><span class="line">-s 隐藏输入内容</span><br></pre></td></tr></table></figure>
+
 <p>示例：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/sh</span></span><br><span class="line"><span class="built_in">read</span> name </span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;<span class="variable">$name</span> It is a test&quot;</span></span><br></pre></td></tr></table></figure>
+
 <p>以上代码保存为 test.sh，name 接收标准输入的变量，结果将是:</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@www ~]<span class="comment"># sh test.sh</span></span><br><span class="line">OK                     <span class="comment">#标准输入</span></span><br><span class="line">OK It is a <span class="built_in">test</span>        <span class="comment">#输出</span></span><br></pre></td></tr></table></figure>
+
 <p><strong>4.显示换行</strong></p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;OK! \n&quot;</span> <span class="comment"># -e 开启转义</span></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;It is a test&quot;</span></span><br></pre></td></tr></table></figure>
+
 <p>输出结果：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">OK!</span><br><span class="line"></span><br><span class="line">It is a <span class="built_in">test</span></span><br></pre></td></tr></table></figure>
+
 <p><strong>5.显示不换行</strong></p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/sh</span></span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;OK! \c&quot;</span> <span class="comment"># -e 开启转义 \c 不换行</span></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;It is a test&quot;</span></span><br></pre></td></tr></table></figure>
+
 <p>输出结果：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">OK! It is a <span class="built_in">test</span></span><br></pre></td></tr></table></figure>
+
 <p><strong>6.显示结果定向至文件</strong></p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&quot;It is a test&quot;</span> &gt; myfile</span><br></pre></td></tr></table></figure>
+
 <p><strong>7.原样输出字符串，不进行转义或取变量(用单引号)</strong></p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&#x27;$name\&quot;&#x27;</span></span><br></pre></td></tr></table></figure>
+
 <p>输出结果：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$name</span>\&quot;</span><br></pre></td></tr></table></figure>
+
 <p><strong>8.显示命令执行结果</strong></p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> `date`</span><br></pre></td></tr></table></figure>
+
 <p>注意： 这里使用的是反引号 `, 而不是单引号 ‘。</p>
 <p>结果将显示当前日期</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Thu Jul 24 10:08:46 CST 2014</span><br></pre></td></tr></table></figure>
+
 <p>参考：</p>
 <p><a target="_blank" rel="noopener" href="https://www.runoob.com/linux/linux-shell-echo.html">Shell echo命令</a></p>
 
@@ -1509,7 +1678,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1545,21 +1714,29 @@
 <p>将 echo never &gt; /sys/kernel/mm/transparent_hugepage/enabled 加入到文件 /etc/rc.local 中</p>
 <h2 id="目录结构"><a href="#目录结构" class="headerlink" title="目录结构"></a>目录结构</h2><p>完成公共的 redis.conf 和一个端口号的，如 <code>redis-6379.conf</code>，其它端口号的配置文件基于一个修改后的端口号配置文件即可。</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@host-192-125-30-59 redis-cluster]<span class="comment"># ls</span></span><br><span class="line">data  <span class="built_in">log</span>  redis-6379.conf  redis-6380.conf  redis-6381.conf  redis.conf</span><br></pre></td></tr></table></figure>
+
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建目录</span></span><br><span class="line">mkdir /usr/<span class="built_in">local</span>/redis-cluster</span><br><span class="line"><span class="built_in">cd</span> /usr/<span class="built_in">local</span>/redis-cluster</span><br><span class="line">mkdir -p data <span class="built_in">log</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">cd</span> /usr/<span class="built_in">local</span>/redis-cluster/data</span><br><span class="line">mkdir -p 6379 6380 6381</span><br><span class="line"></span><br><span class="line"><span class="built_in">cd</span> /usr/<span class="built_in">local</span>/redis-cluster</span><br><span class="line"></span><br><span class="line"><span class="comment"># 生成共有配置文件</span></span><br><span class="line">touch redis.conf</span><br><span class="line"></span><br><span class="line"><span class="comment"># 生成端口文件</span></span><br><span class="line">touch redis-6379.conf</span><br><span class="line"></span><br><span class="line"><span class="comment"># 生成不同端口的配置文件</span></span><br><span class="line">sed <span class="string">&#x27;s/6379/6380/g&#x27;</span> redis-6379.conf &gt; /usr/<span class="built_in">local</span>/redis-cluster/redis-6380.conf</span><br><span class="line">sed <span class="string">&#x27;s/6379/6381/g&#x27;</span> redis-6379.conf &gt; /usr/<span class="built_in">local</span>/redis-cluster/redis-6381.conf</span><br><span class="line"></span><br><span class="line"><span class="comment"># 启动</span></span><br><span class="line">/usr/<span class="built_in">local</span>/bin/redis-server /usr/<span class="built_in">local</span>/redis-cluster/redis-6379.conf</span><br><span class="line">/usr/<span class="built_in">local</span>/bin/redis-server /usr/<span class="built_in">local</span>/redis-cluster/redis-6380.conf</span><br><span class="line">/usr/<span class="built_in">local</span>/bin/redis-server /usr/<span class="built_in">local</span>/redis-cluster/redis-6381.conf</span><br></pre></td></tr></table></figure>
+
 <p>查看redis运行情况：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">netstat -tunpl | grep 6379</span><br><span class="line">netstat -tunpl | grep 6380</span><br><span class="line">netstat -tunpl | grep 6381</span><br><span class="line">ps aux | grep redis</span><br><span class="line"></span><br><span class="line">[root@host-192-125-30-111 redis-cluster]<span class="comment"># netstat -tunpl | grep 6379</span></span><br><span class="line">tcp        0      0 0.0.0.0:16379           0.0.0.0:*               LISTEN      6184/redis-server * </span><br><span class="line">tcp        0      0 0.0.0.0:6379            0.0.0.0:*               LISTEN      6184/redis-server * </span><br><span class="line">tcp6       0      0 :::16379                :::*                    LISTEN      6184/redis-server * </span><br><span class="line">tcp6       0      0 :::6379                 :::*                    LISTEN      6184/redis-server * </span><br><span class="line">[root@host-192-125-30-111 redis-cluster]<span class="comment"># netstat -tunpl | grep 6380</span></span><br><span class="line">tcp        0      0 0.0.0.0:16380           0.0.0.0:*               LISTEN      6189/redis-server * </span><br><span class="line">tcp        0      0 0.0.0.0:6380            0.0.0.0:*               LISTEN      6189/redis-server * </span><br><span class="line">tcp6       0      0 :::16380                :::*                    LISTEN      6189/redis-server * </span><br><span class="line">tcp6       0      0 :::6380                 :::*                    LISTEN      6189/redis-server * </span><br><span class="line">[root@host-192-125-30-111 redis-cluster]<span class="comment"># netstat -tunpl | grep 6381</span></span><br><span class="line">tcp        0      0 0.0.0.0:16381           0.0.0.0:*               LISTEN      6194/redis-server * </span><br><span class="line">tcp        0      0 0.0.0.0:6381            0.0.0.0:*               LISTEN      6194/redis-server * </span><br><span class="line">tcp6       0      0 :::16381                :::*                    LISTEN      6194/redis-server * </span><br><span class="line">tcp6       0      0 :::6381                 :::*                    LISTEN      6194/redis-server * </span><br><span class="line">[root@host-192-125-30-111 redis-cluster]<span class="comment"># ps aux|grep redis</span></span><br><span class="line">root      6184  0.0  0.0 156964  7724 ?        Ssl  10:38   0:00 /usr/<span class="built_in">local</span>/bin/redis-server *:6379 [cluster]</span><br><span class="line">root      6189  0.0  0.0 153892  7692 ?        Ssl  10:39   0:00 /usr/<span class="built_in">local</span>/bin/redis-server *:6380 [cluster]</span><br><span class="line">root      6194  0.0  0.0 153892  7692 ?        Ssl  10:39   0:00 /usr/<span class="built_in">local</span>/bin/redis-server *:6381 [cluster]</span><br><span class="line">root      6339  0.0  0.0 112724   992 pts/1    S+   10:42   0:00 grep --color=auto redis</span><br></pre></td></tr></table></figure>
+
 <h2 id="配置redis"><a href="#配置redis" class="headerlink" title="配置redis"></a>配置redis</h2><p>指定端口的配置文件 <code>redis-PORT.conf</code>；<br>该文件定义所有与端口相关的配置项，PORT需要替换为具体的端口，如6379</p>
 <h3 id="公共配置-：redis-conf"><a href="#公共配置-：redis-conf" class="headerlink" title="公共配置 ：redis.conf"></a>公共配置 ：redis.conf</h3><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Redis configuration file example.</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># Note that in order to read the configuration file, Redis must be</span></span><br><span class="line"><span class="comment"># started with the file path as first argument:</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># ./redis-server /path/to/redis.conf</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Note on units: when memory size is needed, it is possible to specify</span></span><br><span class="line"><span class="comment"># it in the usual form of 1k 5GB 4M and so forth:</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># 1k =&gt; 1000 bytes</span></span><br><span class="line"><span class="comment"># 1kb =&gt; 1024 bytes</span></span><br><span class="line"><span class="comment"># 1m =&gt; 1000000 bytes</span></span><br><span class="line"><span class="comment"># 1mb =&gt; 1024*1024 bytes</span></span><br><span class="line"><span class="comment"># 1g =&gt; 1000000000 bytes</span></span><br><span class="line"><span class="comment"># 1gb =&gt; 1024*1024*1024 bytes</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># units are case insensitive so 1GB 1Gb 1gB are all the same.</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 建议</span></span><br><span class="line"><span class="comment"># 1,引用公共的配置文件，建议为全路径值</span></span><br><span class="line"><span class="comment"># include redis.conf</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># yes表示以集群方式运行，为no表示以非集群方式运行</span></span><br><span class="line"><span class="string">cluster-enabled</span> <span class="literal">yes</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 日志级别，建议为notice，</span></span><br><span class="line"><span class="comment"># 另外注意redis是不会滚动日志文件的，每次写日志都是先打开日志文件再写日志再关闭方式</span></span><br><span class="line"><span class="comment"># debug</span></span><br><span class="line"><span class="comment"># verbose</span></span><br><span class="line"><span class="comment"># notice</span></span><br><span class="line"><span class="comment"># warning</span></span><br><span class="line"><span class="string">loglevel</span> <span class="string">notice</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 密码</span></span><br><span class="line"><span class="string">requirepass</span> <span class="string">password</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 主库master要求密码验证，从库配置文件中 master 密码配置</span></span><br><span class="line"><span class="string">masterauth</span> <span class="string">password</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 可选</span></span><br><span class="line"><span class="comment"># 最大连接数</span></span><br><span class="line"><span class="string">maxclients</span> <span class="number">1000000</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 可选</span></span><br><span class="line"><span class="comment"># 客户端多长（秒）时间没发包过来关闭它，0表示永不关闭</span></span><br><span class="line"><span class="string">timeout</span> <span class="number">0</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 集群中的节点最大不可用时长，在这个时长内，不会被判定为fail。</span></span><br><span class="line"><span class="comment"># 对于master节点，当不可用时长超过此值时，slave在延迟至少0.5秒后会发起选举</span></span><br><span class="line"><span class="comment"># 进行failover成为master。Redis集群的很多其它值与cluster-node-timeout有关。</span></span><br><span class="line"><span class="string">cluster-node-timeout</span> <span class="number">15000</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 5.0 以下使用cluster-slave-validity-factor</span></span><br><span class="line"><span class="comment"># 如果设置为0，则slave总是尝试成为master，无论slave和master间的链接断开时间的长短。</span></span><br><span class="line"><span class="comment"># 如果是一个大于0的值，则最大可断开时长为：(cluster-slave-validity-factor * cluster-node-timeout)。</span></span><br><span class="line"><span class="comment"># 例如：当cluster-node-timeout值为5，cluster-slave-validity-factor值为10时，</span></span><br><span class="line"><span class="comment"># slave和master间的连接断开50秒内，slave不会尝试成为master。</span></span><br><span class="line"><span class="string">cluster-replica-validity-factor</span> <span class="number">0</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 这个参数一定不能小于repl-ping-replica-period，</span></span><br><span class="line"><span class="comment"># 可以考虑为repl-ping-replica-period的3倍或更大。定义多长时间内均PING不通时，</span></span><br><span class="line"><span class="comment"># 判定心跳超时。对于redis集群，达到这个值并不会发生主从切换,主从何时切换由</span></span><br><span class="line"><span class="comment"># 参数cluster-node-timeout控制，只有master状态为fail后，它的slaves才能发起选举。</span></span><br><span class="line"><span class="string">repl-timeout</span> <span class="number">10</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 5.0 以下使用 repl-ping-slave-period</span></span><br><span class="line"><span class="comment"># 定义slave多久（秒）ping一次master，如果超过repl-timeout指定的时长都没有收到响应，</span></span><br><span class="line"><span class="comment"># 则认为master挂了</span></span><br><span class="line"><span class="string">repl-ping-replica-period</span> <span class="number">10</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 5.0 以下使用 slave-read-only</span></span><br><span class="line"><span class="comment"># slave是否只读</span></span><br><span class="line"><span class="string">replica-read-only</span> <span class="literal">yes</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 5.0 以下使用 slave-serve-stale-data</span></span><br><span class="line"><span class="comment"># 当slave与master断开连接，slave是否继续提供服务</span></span><br><span class="line"><span class="string">replica-serve-stale-data</span> <span class="literal">yes</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 5.0 以下使用 slave-priority</span></span><br><span class="line"><span class="comment"># slave权重值，当master挂掉，只有权重最大的slave接替master</span></span><br><span class="line"><span class="string">replica-priority</span> <span class="number">100</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 4.0新增配置项，用于控制是否启用RDB-AOF混用，值为no表示关闭</span></span><br><span class="line"><span class="string">aof-use-rdb-preamble</span> <span class="literal">yes</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 当同时写AOF或RDB，则redis启动时只会加载AOF，AOF包含了全量数据。</span></span><br><span class="line"><span class="comment"># 如果当队列使用，入队压力又很大，建议设置为no</span></span><br><span class="line"><span class="string">appendonly</span> <span class="literal">yes</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 可取值everysec，其中no表示由系统自动，</span></span><br><span class="line"><span class="comment"># 当写压力很大时，建议设置为no，否则容易造成整个集群不可用</span></span><br><span class="line"><span class="comment"># appendfsync always</span></span><br><span class="line"><span class="comment"># appendfsync everysec</span></span><br><span class="line"><span class="comment"># appendfsync no</span></span><br><span class="line"><span class="string">appendfsync</span> <span class="string">everysec</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 以守护进程运行 Redis 实例</span></span><br><span class="line"><span class="comment"># 相关配置项pidfile</span></span><br><span class="line"><span class="string">daemonize</span> <span class="literal">yes</span>                          </span><br><span class="line"></span><br><span class="line"><span class="comment"># 3.2.0新增的配置项，默认值为yes，限制从其它机器登录Redis server，而只能从127.0.0.1登录。</span></span><br><span class="line"><span class="string">protected-mode</span> <span class="literal">no</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 取值不能超过系统的/proc/sys/net/core/somaxconn</span></span><br><span class="line"><span class="comment"># 此参数是指：已完成三次握手的TCP连接队列，默认值511，</span></span><br><span class="line"><span class="comment"># 但是Linux系统内核参数socket最大连接的值默认是128，对应文件/proc/sys/net/core/somaxconn，</span></span><br><span class="line"><span class="comment"># 当系统并发量大且客户端连接缓慢时，应该将两个值进行参考设置。</span></span><br><span class="line"><span class="string">tcp-backlog</span> <span class="number">511</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 设置自动rewite AOF文件（手工rewrite只需要调用命令BGREWRITEAOF）</span></span><br><span class="line"><span class="string">auto-aof-rewrite-percentage</span> <span class="number">100</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 触发rewrite的AOF文件大小，只有大于此大小时才会触发rewrite</span></span><br><span class="line"><span class="string">auto-aof-rewrite-min-size</span> <span class="string">64mb</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 子进程在做rewrite时，主进程不调用fsync（由内核默认调度）</span></span><br><span class="line"><span class="literal">no</span><span class="string">-appendfsync-on-rewrite</span> <span class="literal">no</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 如果因为磁盘故障等导致保存rdb失败，停止写操作，可设置为NO。</span></span><br><span class="line"><span class="string">stop-writes-on-bgsave-error</span> <span class="literal">yes</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 为no表示有slots不可服务时其它slots仍然继续服务，建议值为no，以提供最高的可用性</span></span><br><span class="line"><span class="string">cluster-require-full-coverage</span> <span class="literal">no</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 设置最大的内存，单位为字节 </span></span><br><span class="line"><span class="comment"># 26843545600(25GB)</span></span><br><span class="line"><span class="comment"># 19327352832(18GB)</span></span><br><span class="line"><span class="comment"># 注意，在 64bit 系统下，maxmemory 设置为 0 表示不限制 Redis 内存使用，</span></span><br><span class="line"><span class="comment"># 在 32bit 系统下，maxmemory 隐式不能超过 3GB。 </span></span><br><span class="line"><span class="string">maxmemory</span> <span class="number">19327352832</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 设置达到最大内存时的淘汰策略</span></span><br><span class="line"><span class="string">maxmemory-policy</span> <span class="string">volatile-lru</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 设置master端的客户端缓存，三种：normal、replica和pubsub</span></span><br><span class="line"><span class="string">client-output-buffer-limit</span> <span class="string">normal</span> <span class="number">0</span> <span class="number">0</span> <span class="number">0</span></span><br><span class="line"><span class="string">client-output-buffer-limit</span> <span class="string">replica</span> <span class="string">256mb</span> <span class="string">64mb</span> <span class="number">60</span></span><br><span class="line"><span class="string">client-output-buffer-limit</span> <span class="string">pubsub</span> <span class="string">32mb</span> <span class="string">8mb</span> <span class="number">60</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 最少slave(replica)数，用来保证集群中不会有裸奔的master。当某个master节点的slave(replica)节点挂掉裸奔后，</span></span><br><span class="line"><span class="comment"># 会从其他富余的master节点分配一个slave(replica)节点过来，确保每个master节点都有至少一个slave(replica)节点，</span></span><br><span class="line"><span class="comment"># 不至于因为master节点挂掉而没有相应slave(replica)节点替换为master节点导致集群崩溃不可用。</span></span><br><span class="line"><span class="string">cluster-migration-barrier</span> <span class="number">1</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 当slave(replica)失联时的，环形复制缓区大小，值越大可容忍更长的slave(replica)失联时长</span></span><br><span class="line"><span class="string">repl-backlog-size</span> <span class="string">1mb</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># slave失联的时长达到该值时，释放backlog缓冲区</span></span><br><span class="line"><span class="comment"># repl-backlog-ttl 3600</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 刷新快照（RDB）到磁盘的策略，根据实际调整值，</span></span><br><span class="line"><span class="comment"># “save 900 1”表示900秒后至少有1个key被修改才触发save操作，其它类推。</span></span><br><span class="line"><span class="comment"># 注意执行flushall命令也会产生RDB文件，不过是空文件。</span></span><br><span class="line"><span class="comment"># 如果不想生成RDB文件，可以将save全注释掉。</span></span><br><span class="line"><span class="string">save</span> <span class="number">900</span> <span class="number">1</span></span><br><span class="line"><span class="string">save</span> <span class="number">300</span> <span class="number">10</span></span><br><span class="line"><span class="string">save</span> <span class="number">60</span> <span class="number">10000</span></span><br></pre></td></tr></table></figure>
+
 <h3 id="禁止指定命令"><a href="#禁止指定命令" class="headerlink" title="禁止指定命令"></a>禁止指定命令</h3><p>KEYS命令很耗时，FLUSHDB和FLUSHALL命令可能导致误删除数据，所以线上环境最好禁止使用，可以在Redis配置文件增加如下配置：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">rename-command KEYS <span class="string">&quot;&quot;</span></span><br><span class="line">rename-command FLUSHDB <span class="string">&quot;&quot;</span></span><br><span class="line">rename-command FLUSHALL <span class="string">&quot;&quot;</span></span><br></pre></td></tr></table></figure>
+
 <h3 id="端口配置：redis-PORT-conf"><a href="#端口配置：redis-PORT-conf" class="headerlink" title="端口配置：redis-PORT.conf"></a>端口配置：redis-PORT.conf</h3><p>注：PORT 需要改成具体端口；</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1,引用公共的配置文件，建议为全路径值</span></span><br><span class="line">include /usr/<span class="built_in">local</span>/redis-cluster/redis.conf</span><br><span class="line"></span><br><span class="line"><span class="comment"># 必须</span></span><br><span class="line"><span class="comment"># 端口号</span></span><br><span class="line">port PORT</span><br><span class="line"></span><br><span class="line"><span class="comment"># 必须</span></span><br><span class="line"><span class="comment"># 默认放在dir指定的目录，注意不能包含目录，纯文件名，为redis-server进程自动维护，不能手工修改</span></span><br><span class="line">cluster-config-file nodes-PORT.conf</span><br><span class="line"></span><br><span class="line"><span class="comment">#  可选</span></span><br><span class="line"><span class="comment">#  只有当daemonize值为yes时，才有意义；并且这个要求对目录/var/run有写权限，否则可以考虑设置为/#  tmp/redis-PORT.pid，或者放在bin或log目录下，如：/data/redis/log/redis-PORT.pid。只有当配#  置项daemonize的值为yes时，才会产生这个文件。</span></span><br><span class="line">pidfile /var/run/redis-PORT.pid</span><br><span class="line"></span><br><span class="line"><span class="comment"># 工作目录。</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># DB 将写入此目录，并指定文件名</span></span><br><span class="line"><span class="comment"># 以上使用&quot;dbfilename&quot;配置指令。</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># 仅追加文件也将在此目录中创建。</span></span><br><span class="line"><span class="comment">#</span></span><br><span class="line"><span class="comment"># 请注意，您必须在此处指定目录，而不是文件名。</span></span><br><span class="line">dir /usr/<span class="built_in">local</span>/redis-cluster/data/PORT</span><br><span class="line"></span><br><span class="line"><span class="comment"># 纯文件名，位于dir指定的目录下，不能包含目录，</span></span><br><span class="line"><span class="comment"># 否则报错“appendfilename can&#x27;t be a path, just # a filename”。</span></span><br><span class="line"><span class="comment"># 如果开启了AOF，REdis进程启动时并不会读取RDB文件，</span></span><br><span class="line"><span class="comment"># 所以配置上可以考虑关闭RDB，这样可以提升REdis稳定性。</span></span><br><span class="line">dbfilename dump-PORT.rdb</span><br><span class="line"></span><br><span class="line"><span class="comment"># 纯文件名，位于dir指定的目录下，不能包含目录，</span></span><br><span class="line"><span class="comment"># 否则报错“appendfilename can&#x27;t be a path, just a filename”</span></span><br><span class="line">appendfilename <span class="string">&quot;appendonly-PORT.aof&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 日志文件，包含目录和文件名，注意redis不会自动滚动日志文件</span></span><br><span class="line">logfile /usr/<span class="built_in">local</span>/redis-cluster/<span class="built_in">log</span>/redis-PORT.log</span><br></pre></td></tr></table></figure>
+
 <h2 id="创建和启动redis集群"><a href="#创建和启动redis集群" class="headerlink" title="创建和启动redis集群"></a>创建和启动redis集群</h2><h3 id="加上进程监控"><a href="#加上进程监控" class="headerlink" title="加上进程监控"></a>加上进程监控</h3><p>使用 <a target="_blank" rel="noopener" href="https://github.com/eyjian/libmooon/blob/master/shell/process_monitor.sh">https://github.com/eyjian/libmooon/blob/master/shell/process_monitor.sh</a></p>
 <p>监控示例：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">REDIS_HOME=/usr/<span class="built_in">local</span></span><br><span class="line">* * * * * /usr/<span class="built_in">local</span>/bin/process_monitor.sh <span class="string">&quot;<span class="variable">$REDIS_HOME</span>/bin/redis-server 6379&quot;</span> <span class="string">&quot;<span class="variable">$REDIS_HOME</span>/bin/redis-server <span class="variable">$REDIS_HOME</span>/redis-cluster/redis-6379.conf&quot;</span></span><br><span class="line">* * * * * /usr/<span class="built_in">local</span>/bin/process_monitor.sh <span class="string">&quot;<span class="variable">$REDIS_HOME</span>/bin/redis-server 6380&quot;</span> <span class="string">&quot;<span class="variable">$REDIS_HOME</span>/bin/redis-server <span class="variable">$REDIS_HOME</span>/redis-cluster/redis-6380.conf&quot;</span></span><br><span class="line">* * * * * /usr/<span class="built_in">local</span>/bin/process_monitor.sh <span class="string">&quot;<span class="variable">$REDIS_HOME</span>/bin/redis-server 6381&quot;</span> <span class="string">&quot;<span class="variable">$REDIS_HOME</span>/bin/redis-server <span class="variable">$REDIS_HOME</span>/redis-cluster/redis-6381.conf&quot;</span></span><br></pre></td></tr></table></figure>
+
 <p>注意：redis的日志文件不会自动滚动，<code>redis-server</code> 每次在写日志时，均会以追加方式调用fopen写日志，而不处理滚动。<br>也可借助linux自带的 <code>logrotate</code> 来滚动redis日志，命令 <code>logrotate</code> 一般位于目录 <code>/usr/sbin</code> 下。</p>
 <p>滚动日志（可选）:</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">* * * * * <span class="built_in">log</span>=<span class="variable">$REDIS_HOME</span>/redis-cluster/<span class="built_in">log</span>/redis-6379.log;<span class="keyword">if</span> <span class="built_in">test</span> `ls -l <span class="variable">$log</span>|cut -d<span class="string">&#x27; &#x27;</span> -f5` -gt 104857600; <span class="keyword">then</span> mv <span class="variable">$log</span> <span class="variable">$log</span>.old; <span class="keyword">fi</span></span><br><span class="line">* * * * * <span class="built_in">log</span>=<span class="variable">$REDIS_HOME</span>/redis-cluster/<span class="built_in">log</span>/redis-6380.log;<span class="keyword">if</span> <span class="built_in">test</span> `ls -l <span class="variable">$log</span>|cut -d<span class="string">&#x27; &#x27;</span> -f5` -gt 104857600; <span class="keyword">then</span> mv <span class="variable">$log</span> <span class="variable">$log</span>.old; <span class="keyword">fi</span></span><br><span class="line">* * * * * <span class="built_in">log</span>=<span class="variable">$REDIS_HOME</span>/redis-cluster/<span class="built_in">log</span>/redis-6381.log;<span class="keyword">if</span> <span class="built_in">test</span> `ls -l <span class="variable">$log</span>|cut -d<span class="string">&#x27; &#x27;</span> -f5` -gt 104857600; <span class="keyword">then</span> mv <span class="variable">$log</span> <span class="variable">$log</span>.old; <span class="keyword">fi</span></span><br></pre></td></tr></table></figure>
+
 <h3 id="Redis集群TCP端口（Redis-Cluster-TCP-ports）"><a href="#Redis集群TCP端口（Redis-Cluster-TCP-ports）" class="headerlink" title="Redis集群TCP端口（Redis Cluster TCP ports）"></a>Redis集群TCP端口（Redis Cluster TCP ports）</h3><p>每个Redis集群中的节点都需要打开两个TCP连接。一个连接用于正常的给Client提供服务，比如6379，还有一个额外的端口（通过在这个端口号上加10000）作为数据端口，比如16379。第二个端口（本例中就是16379）用于集群总线，这是一个用二进制协议的点对点通信信道。这个集群总线（Cluster bus）用于节点的失败侦测、配置更新、故障转移授权，等等。客户端从来都不应该尝试和这些集群总线端口通信，它们只应该和正常的Redis命令端口进行通信。注意，确保在你的防火墙中开放着两个端口，否则，Redis集群节点之间将无法通信。</p>
 <p>命令端口和集群总线端口的偏移量总是10000。</p>
 <p>注意，如果想要集群按照你想的那样工作，那么集群中的每个节点应该：</p>
@@ -1567,22 +1744,30 @@
 <p>正常的客户端通信端口（通常是6379）必须对所有的客户端都开放，换言之，所有的客户端都可以访问<br>集群总线端口（客户端通信端口 + 10000）必须对集群中的其它节点开放，换言之，其它任意节点都可以访问<br>如果你没有开放TCP端口，你的集群可能不会像你期望的那样工作。集群总线用一个不同的二进制协议通信，用于节点之间的数据交换。</p>
 <h3 id="快速创建-启动redis集群"><a href="#快速创建-启动redis集群" class="headerlink" title="快速创建,启动redis集群"></a>快速创建,启动redis集群</h3><p>如果只是想快速创建和启动redis集群，而不关心过程，可使用redis官方提供的脚本 <code>create-cluster</code>，两步完成：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">create-cluster start</span><br><span class="line">create-cluster create</span><br></pre></td></tr></table></figure>
+
 <p>第二步 <code>create-cluster create</code> 是一个交互式过程，当提示时，请输入 <code>yes</code> 再回车继续，第一个节点的端口号为 30001，一共会启动六个redis节点。</p>
 <p>create-cluster位于redis源代码的 <code>utils/create-cluster</code> 目录下，是一个bash脚本文件。</p>
 <p>停止集群：<code>create-cluster stop</code>。</p>
 <h3 id="创建redis-cluster"><a href="#创建redis-cluster" class="headerlink" title="创建redis cluster"></a>创建redis cluster</h3><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 注：由于只有两台服务器，故在服务器1上部署两个主节点，一个从节点，服务器2上部署两个从节点，一个主节点。</span></span><br><span class="line">/usr/<span class="built_in">local</span>/bin/redis-cli --cluster create 192.125.30.111:6379 192.125.30.111:6380 192.125.30.59:6381 192.125.30.59:6379 192.125.30.59:6380 192.125.30.111:6381 --cluster-replicas 1</span><br></pre></td></tr></table></figure>
+
 <p>如果群集设置着密码，需要使用 <code>-a 密码</code>，否则会报错：<code>(error)NOAUTH Authentication required</code>:</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/usr/<span class="built_in">local</span>/bin/redis-cli -a <span class="built_in">test</span> --cluster create 192.125.30.111:6379 192.125.30.111:6380 192.125.30.59:6381 192.125.30.59:6379 192.125.30.59:6380 192.125.30.111:6381 --cluster-replicas 1</span><br></pre></td></tr></table></figure>
+
 <p>注意：如果报以下错误，需要停止单个redis节点，并把对应的数据目录删除重建。</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Warning: Using a password with <span class="string">&#x27;-a&#x27;</span> or <span class="string">&#x27;-u&#x27;</span> option on the <span class="built_in">command</span> line interface may not be safe.</span><br><span class="line">[ERR] Node 192.125.30.59:6381 is not empty. Either the node already knows other nodes (check with CLUSTER NODES) or contains some key <span class="keyword">in</span> database 0.</span><br></pre></td></tr></table></figure>
+
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#停止节点，</span></span><br><span class="line">[root@host-192-125-30-111 ~]<span class="comment"># ps aux | grep redis</span></span><br><span class="line">root     10547  0.0  0.0 112724   988 pts/0    R+   11:03   0:00 grep --color=auto redis</span><br><span class="line">root     17367  0.1  0.0 156452  7920 ?        Ssl  8月15   3:56 /usr/<span class="built_in">local</span>/bin/redis-server *:6379 [cluster]</span><br><span class="line">root     17372  0.1  0.0 153892  7844 ?        Ssl  8月15   3:21 /usr/<span class="built_in">local</span>/bin/redis-server *:6380 [cluster]</span><br><span class="line">root     17377  0.1  0.0 153892  7848 ?        Ssl  8月15   3:20 /usr/<span class="built_in">local</span>/bin/redis-server *:6381 [cluster]</span><br><span class="line">[root@host-192-125-30-111 ~]<span class="comment"># kill -9 17367</span></span><br><span class="line">[root@host-192-125-30-111 ~]<span class="comment"># kill -9 17372</span></span><br><span class="line">[root@host-192-125-30-111 ~]<span class="comment"># kill -9 17377</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 删除数据目录</span></span><br><span class="line">[root@host-192-125-30-111 ~]<span class="comment"># cd /usr/local/</span></span><br><span class="line">[root@host-192-125-30-111 <span class="built_in">local</span>]<span class="comment"># ls</span></span><br><span class="line">bin  etc  games  include  lib  lib64  libexec  redis-cluster  sbin  share  src</span><br><span class="line">[root@host-192-125-30-111 <span class="built_in">local</span>]<span class="comment"># cd redis-cluster</span></span><br><span class="line">[root@host-192-125-30-111 redis-cluster]<span class="comment"># ls</span></span><br><span class="line">data  <span class="built_in">log</span>  redis-6379.conf  redis-6380.conf  redis-6381.conf  redis.conf</span><br><span class="line">[root@host-192-125-30-111 redis-cluster]<span class="comment"># cd data</span></span><br><span class="line">[root@host-192-125-30-111 data]<span class="comment"># ls</span></span><br><span class="line">6379  6380  6381</span><br><span class="line">[root@host-192-125-30-111 data]<span class="comment"># rm -rf 63*</span></span><br><span class="line">[root@host-192-125-30-111 data]<span class="comment"># ls</span></span><br><span class="line">[root@host-192-125-30-111 data]<span class="comment"># mkdir -p 6379 6380 6381</span></span><br><span class="line">[root@host-192-125-30-111 data]<span class="comment"># cd ..</span></span><br><span class="line">[root@host-192-125-30-111 redis-cluster]<span class="comment"># ls</span></span><br><span class="line">data  <span class="built_in">log</span>  redis-6379.conf  redis-6380.conf  redis-6381.conf  redis.conf</span><br><span class="line">[root@host-192-125-30-111 redis-cluster]<span class="comment"># cd log</span></span><br><span class="line">[root@host-192-125-30-111 <span class="built_in">log</span>]<span class="comment"># ls</span></span><br><span class="line">redis-6379.log  redis-6380.log  redis-6381.log</span><br><span class="line">[root@host-192-125-30-111 <span class="built_in">log</span>]<span class="comment"># rm -rf redis-*.log</span></span><br><span class="line">[root@host-192-125-30-111 <span class="built_in">log</span>]<span class="comment"># ls</span></span><br><span class="line">[root@host-192-125-30-111 <span class="built_in">log</span>]<span class="comment"># </span></span><br></pre></td></tr></table></figure>
+
 <p><code>redis-cli</code> 的参数说明：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 表示创建一个redis集群。</span></span><br><span class="line">create</span><br><span class="line"></span><br><span class="line"><span class="comment"># 表示为集群中的每一个主节点指定一个从节点，即一比一的复制。</span></span><br><span class="line">--cluster-replicas 1</span><br></pre></td></tr></table></figure>
+
 <p>注意：如果配置项 <code>cluster-enabled</code> 的值不为yes，则执行时会报错 <code>[ERR] Node 192.168.0.251:6381 is not configured as a cluster node.</code></p>
 <p>输出：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line">[root@host-192-125-30-111 redis-cluster]<span class="comment"># /usr/local/bin/redis-cli -a Perfect1 --cluster create 192.125.30.111:6379 192.125.30.111:6380 192.125.30.59:6381 192.125.30.59:6379 192.125.30.59:6380 192.125.30.111:6381 --cluster-replicas 1</span></span><br><span class="line">Warning: Using a password with <span class="string">&#x27;-a&#x27;</span> or <span class="string">&#x27;-u&#x27;</span> option on the <span class="built_in">command</span> line interface may not be safe.</span><br><span class="line">&gt;&gt;&gt; Performing <span class="built_in">hash</span> slots allocation on 6 nodes...</span><br><span class="line">Master[0] -&gt; Slots 0 - 5460</span><br><span class="line">Master[1] -&gt; Slots 5461 - 10922</span><br><span class="line">Master[2] -&gt; Slots 10923 - 16383</span><br><span class="line">Adding replica 192.125.30.59:6380 to 192.125.30.111:6379</span><br><span class="line">Adding replica 192.125.30.111:6381 to 192.125.30.59:6381</span><br><span class="line">Adding replica 192.125.30.59:6379 to 192.125.30.111:6380</span><br><span class="line">M: 9df266851fa7d8d9363d584a5bc644f36ea1d052 192.125.30.111:6379</span><br><span class="line">   slots:[0-5460] (5461 slots) master</span><br><span class="line">M: 932a6ab157056e2d36e3915780b5d77138bbabdb 192.125.30.111:6380</span><br><span class="line">   slots:[10923-16383] (5461 slots) master</span><br><span class="line">M: fb9923083a70ca2131b3fb6c7633bc7275dfe33c 192.125.30.59:6381</span><br><span class="line">   slots:[5461-10922] (5462 slots) master</span><br><span class="line">S: 53ab782834f304013ac055a35e5275e5004b30c7 192.125.30.59:6379</span><br><span class="line">   replicates 932a6ab157056e2d36e3915780b5d77138bbabdb</span><br><span class="line">S: 7854f8ed0234945e89af5079331ce7779449d632 192.125.30.59:6380</span><br><span class="line">   replicates 9df266851fa7d8d9363d584a5bc644f36ea1d052</span><br><span class="line">S: 1141e28e7b135db55cdb1c87c143ee0c0502d26d 192.125.30.111:6381</span><br><span class="line">   replicates fb9923083a70ca2131b3fb6c7633bc7275dfe33c</span><br><span class="line">Can I <span class="built_in">set</span> the above configuration? (<span class="built_in">type</span> <span class="string">&#x27;yes&#x27;</span> to accept): yes</span><br><span class="line">&gt;&gt;&gt; Nodes configuration updated</span><br><span class="line">&gt;&gt;&gt; Assign a different config epoch to each node</span><br><span class="line">&gt;&gt;&gt; Sending CLUSTER MEET messages to join the cluster</span><br><span class="line">Waiting <span class="keyword">for</span> the cluster to join</span><br><span class="line">..</span><br><span class="line">&gt;&gt;&gt; Performing Cluster Check (using node 192.125.30.111:6379)</span><br><span class="line">M: 9df266851fa7d8d9363d584a5bc644f36ea1d052 192.125.30.111:6379</span><br><span class="line">   slots:[0-5460] (5461 slots) master</span><br><span class="line">   1 additional replica(s)</span><br><span class="line">S: 1141e28e7b135db55cdb1c87c143ee0c0502d26d 192.125.30.111:6381</span><br><span class="line">   slots: (0 slots) slave</span><br><span class="line">   replicates fb9923083a70ca2131b3fb6c7633bc7275dfe33c</span><br><span class="line">M: 932a6ab157056e2d36e3915780b5d77138bbabdb 192.125.30.111:6380</span><br><span class="line">   slots:[10923-16383] (5461 slots) master</span><br><span class="line">   1 additional replica(s)</span><br><span class="line">S: 7854f8ed0234945e89af5079331ce7779449d632 192.125.30.59:6380</span><br><span class="line">   slots: (0 slots) slave</span><br><span class="line">   replicates 9df266851fa7d8d9363d584a5bc644f36ea1d052</span><br><span class="line">S: 53ab782834f304013ac055a35e5275e5004b30c7 192.125.30.59:6379</span><br><span class="line">   slots: (0 slots) slave</span><br><span class="line">   replicates 932a6ab157056e2d36e3915780b5d77138bbabdb</span><br><span class="line">M: fb9923083a70ca2131b3fb6c7633bc7275dfe33c 192.125.30.59:6381</span><br><span class="line">   slots:[5461-10922] (5462 slots) master</span><br><span class="line">   1 additional replica(s)</span><br><span class="line">[OK] All nodes agree about slots configuration.</span><br><span class="line">&gt;&gt;&gt; Check <span class="keyword">for</span> open slots...</span><br><span class="line">&gt;&gt;&gt; Check slots coverage...</span><br><span class="line">[OK] All 16384 slots covered.</span><br></pre></td></tr></table></figure>
+
 <p><strong>集群相关信息查看</strong></p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 集群状态</span></span><br><span class="line">/usr/<span class="built_in">local</span>/bin/redis-cli -h 127.0.0.1 -p 6379 -a password cluster info</span><br><span class="line"></span><br><span class="line"><span class="comment"># 集群节点信息</span></span><br><span class="line">/usr/<span class="built_in">local</span>/bin/redis-cli -h 127.0.0.1 -p 6379 -a password cluster nodes</span><br><span class="line"></span><br><span class="line"><span class="comment"># 节点内存、cpu、key数量等信息（每个节点都需查看）</span></span><br><span class="line">/usr/<span class="built_in">local</span>/bin/redis-cli -h 127.0.0.1 -p 6379 -a password info</span><br></pre></td></tr></table></figure>
+
 <p><strong>ps aux|grep redis-server</strong></p>
 <p>查看redis进程是否已切换为集群状态（cluster）</p>
 <p>停止redis实例，直接使用kill命令即可，如：kill 3825，重启和单机版相同。</p>
@@ -1591,22 +1776,29 @@
 <h2 id="群集操作"><a href="#群集操作" class="headerlink" title="群集操作"></a>群集操作</h2><h3 id="新增主（master）节点"><a href="#新增主（master）节点" class="headerlink" title="新增主（master）节点"></a>新增主（master）节点</h3><p>注意一定要保证新节点里面没有添加过任何数据</p>
 <p>以添加 <code>192.168.0.251:6390</code> 为例：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 192.168.0.251:6381 为集群中任一可用的节点</span></span><br><span class="line">redis-cli --cluster add-node 192.168.0.251:6390 192.168.0.251:6381</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看</span></span><br><span class="line">redis-cli -c -p 6381 cluster nodes|grep master</span><br></pre></td></tr></table></figure>
+
 <p>新加入的master节点上没有任何数据（slots，运行redis命令cluster nodes可以看到这个情况）。当一个slave想成为master时，由于这个新的master节点不管理任何slots，它不参与选举。可以使用redis-cli的reshard为这个新master节点分配slots，如：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">redis-cli --cluster reshard 192.168.0.251:6390</span><br></pre></td></tr></table></figure>
+
 <h3 id="新增从（slave）节点"><a href="#新增从（slave）节点" class="headerlink" title="新增从（slave）节点"></a>新增从（slave）节点</h3><p>以添加 <code>192.168.0.251:6390</code> 为例：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">redis-cli --cluster add-node 192.168.0.251:6390 192.168.0.251:6381 --cluster-slave</span><br></pre></td></tr></table></figure>
+
 <p><code>192.168.0.251:6390</code> 为新添加的从节点，<code>192.168.0.251:6381</code> 可为集群中已有的任意节点，这种方法随机为6390指定一个master，如果想明确指定master，假设目标master的ID为<code>3c3a0c74aae0b56170ccb03a76b60cfe7dc1912e</code>，则：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">redis-cli --cluster add-node 192.168.0.251:6390 192.168.0.251:6381 --cluster-slave --cluster-master-id 3c3a0c74aae0b56170ccb03a76b60cfe7dc1912e</span><br></pre></td></tr></table></figure>
+
 <h3 id="删除节点"><a href="#删除节点" class="headerlink" title="删除节点"></a>删除节点</h3><p>从集群中删除一个节点命令格式：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 127.0.0.1:7000 为集群中任意一个非待删除节点，node-id 为待删除节点的ID。</span></span><br><span class="line">redis-cli --cluster del-node 127.0.0.1:7000 `&lt;node-id&gt;`</span><br></pre></td></tr></table></figure>
+
 <p>如果待删除的是master节点，则在删除之前需要将该master负责的slots先全部迁到其它master。</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ ./redis-cli --cluster del-node 192.168.0.251:6381 082c079149a9915612d21cca8e08c831a4edeade</span><br><span class="line"></span><br><span class="line">&gt;&gt;&gt; Removing node 082c079149a9915612d21cca8e08c831a4edeade from cluster 192.168.0.251:6381</span><br><span class="line"></span><br><span class="line">&gt;&gt;&gt; Sending CLUSTER FORGET messages to the cluster...</span><br><span class="line"></span><br><span class="line">&gt;&gt;&gt; SHUTDOWN the node.</span><br></pre></td></tr></table></figure>
+
 <p>如果删除后，其它节点还看得到这个被删除的节点，则可通过FORGET命令解决，需要在所有还看得到的其它节点上执行：</p>
 <p>CLUSTER FORGET <code>&lt;node-id&gt;</code></p>
 <p>FORGET做两件事：</p>
 <p>1) 从节点表剔除节点；</p>
 <p>2) 在60秒的时间内，阻止相同ID的节点加进来。</p>
 <h3 id="slots相关命令"><a href="#slots相关命令" class="headerlink" title="slots相关命令"></a>slots相关命令</h3><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">CLUSTER ADDSLOTS slot1 [slot2] ... [slotN]</span><br><span class="line">CLUSTER DELSLOTS slot1 [slot2] ... [slotN]</span><br><span class="line">CLUSTER SETSLOT slot NODE node</span><br><span class="line">CLUSTER SETSLOT slot MIGRATING node</span><br><span class="line">CLUSTER SETSLOT slot IMPORTING node</span><br></pre></td></tr></table></figure>
+
 <p>参考：</p>
 <p><a target="_blank" rel="noopener" href="https://blog.csdn.net/Aquester/article/details/90511200">Redis-5.0.0集群配置</a></p>
 <p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/cjsblog/p/9048545.html">Redis集群</a></p>
@@ -1666,7 +1858,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1751,7 +1943,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1775,6 +1967,7 @@
 
       
           <h2 id="ERROR-InnoDB-redo-log-file-‘-ib-logfile0’-exists"><a href="#ERROR-InnoDB-redo-log-file-‘-ib-logfile0’-exists" class="headerlink" title="[ERROR] InnoDB: redo log file ‘./ib_logfile0’ exists"></a>[ERROR] InnoDB: redo log file ‘./ib_logfile0’ exists</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">2020-07-31T01:24:43.755177Z 0 [ERROR] InnoDB: redo log file &#39;.&#x2F;ib_logfile0&#39; exists. Creating system tablespace with existing redo log files is not recommended. Please delete all redo log files before creating new system tablespace.</span><br><span class="line">2020-07-31T01:24:43.755184Z 0 [ERROR] InnoDB: InnoDB Database creation was aborted with error Generic error. You may need to delete the ibdata1 file before trying to start up again.</span><br><span class="line">2020-07-31T01:24:44.355412Z 0 [ERROR] Plugin &#39;InnoDB&#39; init function returned error.</span><br><span class="line">2020-07-31T01:24:44.355420Z 0 [ERROR] Plugin &#39;InnoDB&#39; registration as a STORAGE ENGINE failed.</span><br><span class="line">2020-07-31T01:24:44.355425Z 0 [ERROR] Failed to initialize builtin plugins.</span><br><span class="line">2020-07-31T01:24:44.355429Z 0 [ERROR] Aborting</span><br></pre></td></tr></table></figure>
+
 <p>问题解决如下</p>
 <p><strong>1.如果数据不重要或已经有备份，只需要恢复mysql启动 (已验证可用)</strong></p>
 <p>进入mysql目录，一般是：/usr/local/mysql/data<br>删除ib_logfile*<br>删除ibdata*<br>删除所有数据库物理目录（例如数据库为test_db,则执行rm -rf test_db）<br>重启动mysql<br>重新建立数据库或使用备份覆盖</p>
@@ -1796,81 +1989,6 @@
 <p><a target="_blank" rel="noopener" href="https://blog.csdn.net/yunhua12/article/details/81393572">[ERROR] InnoDB: Plugin initialization aborted with error Generic error几种报错</a></p>
 <p><a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/1409737">启动mysql报错The server quit without updating PID file！</a></p>
 
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/07/30/CentOS7%E5%8D%B8%E8%BD%BD%EF%BC%8C%E5%AE%89%E8%A3%85rpm%E5%8C%85/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/07/30/CentOS7%E5%8D%B8%E8%BD%BD%EF%BC%8C%E5%AE%89%E8%A3%85rpm%E5%8C%85/" class="post-title-link" itemprop="url">CentOS7卸载，安装rpm包</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-07-30 13:29:41" itemprop="dateCreated datePublished" datetime="2020-07-30T13:29:41+00:00">2020-07-30</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/CentOS7/" itemprop="url" rel="index"><span itemprop="name">CentOS7</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 强制卸载：</span></span><br><span class="line">rpm -e --nodeps xxxxxx.rpm</span><br><span class="line"></span><br><span class="line"><span class="comment"># 强制安装：</span></span><br><span class="line">rpm -ivh --nodeps xxxxxx.rpm</span><br></pre></td></tr></table></figure>
-<p>示例：</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">rpm -e --nodeps glib2</span><br><span class="line"></span><br><span class="line"><span class="comment"># 进入挂载的镜像内</span></span><br><span class="line"><span class="built_in">cd</span> /media/cdrom/</span><br><span class="line"><span class="built_in">cd</span> Packages/</span><br><span class="line">ls | grep glib2</span><br><span class="line"></span><br><span class="line">[root@host Packages]<span class="comment"># ls | grep glib2</span></span><br><span class="line">compat-libpackagekit-glib2-16-0.8.9-1.el7.x86_64.rpm</span><br><span class="line">glib2-2.54.2-2.el7.x86_64.rpm</span><br><span class="line">glib2-devel-2.54.2-2.el7.x86_64.rpm</span><br><span class="line">pulseaudio-libs-glib2-10.0-5.el7.x86_64.rpm</span><br><span class="line"></span><br><span class="line">[root@host Packages]<span class="comment"># rpm -ivh glib2-2.54.2-2.el7.x86_64.rpm </span></span><br></pre></td></tr></table></figure>
       
     </div>
 
@@ -1954,20 +2072,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">354</span>
+          <span class="site-state-item-count">355</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">112</span>
+        <span class="site-state-item-count">113</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">155</span>
+        <span class="site-state-item-count">156</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>

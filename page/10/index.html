@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
 <meta name="theme-color" content="#222">
-<meta name="generator" content="Hexo 5.3.0">
+<meta name="generator" content="Hexo 5.4.0">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
@@ -185,6 +185,140 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/01/08/%E4%B8%80%E8%87%B4%E6%80%A7hash%E7%AE%97%E6%B3%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/01/08/%E4%B8%80%E8%87%B4%E6%80%A7hash%E7%AE%97%E6%B3%95/" class="post-title-link" itemprop="url">一致性hash算法</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-01-08 15:15:26" itemprop="dateCreated datePublished" datetime="2020-01-08T15:15:26+00:00">2020-01-08</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%AE%97%E6%B3%95/" itemprop="url" rel="index"><span itemprop="name">算法</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>一致性 hash 算法 (consistent hashing)</p>
+<p>转载自：</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/sparkliang/article/details/5279393">一致性hash算法 - consistent hashing</a></p>
+<p>consistent hashing 算法早在 1997 年就在论文 <a target="_blank" rel="noopener" href="https://dl.acm.org/doi/10.1145/258533.258660">Consistent hashing and random trees</a> 中被提出，目前在 cache 系统中应用越来越广泛；</p>
+<h2 id="基本场景"><a href="#基本场景" class="headerlink" title="基本场景"></a>基本场景</h2><p>比如你有 N 个 cache 服务器（后面简称 cache ），那么如何将一个对象 object 映射到 N 个 cache 上呢，你很可能会采用类似下面的通用方法计算 object 的 hash 值，然后均匀的映射到到 N 个 cache ；</p>
+<p>hash(object)%N</p>
+<p>一切都运行正常，再考虑如下的两种情况；</p>
+<p>1 一个 cache 服务器 m down 掉了（在实际应用中必须要考虑这种情况），这样所有映射到 cache m 的对象都会失效，怎么办，需要把 cache m 从 cache 中移除，这时候 cache 是 N-1 台，映射公式变成了 hash(object)%(N-1) ；</p>
+<p>2 由于访问加重，需要添加 cache ，这时候 cache 是 N+1 台，映射公式变成了 hash(object)%(N+1) ；</p>
+<p>1 和 2 意味着什么？这意味着突然之间几乎所有的 cache 都失效了。对于服务器而言，这是一场灾难，洪水般的访问都会直接冲向后台服务器；</p>
+<p>再来考虑第三个问题，由于硬件能力越来越强，你可能想让后面添加的节点多做点活，显然上面的 hash 算法也做不到。</p>
+<p>  有什么方法可以改变这个状况呢，这就是 consistent hashing…</p>
+<h2 id="hash-算法和单调性"><a href="#hash-算法和单调性" class="headerlink" title="hash 算法和单调性"></a>hash 算法和单调性</h2><p>　　 Hash 算法的一个衡量指标是单调性（ Monotonicity ），定义如下：</p>
+<p>　　单调性是指如果已经有一些内容通过哈希分派到了相应的缓冲中，又有新的缓冲加入到系统中。哈希的结果应能够保证原有已分配的内容可以被映射到新的缓冲中去，而不会被映射到旧的缓冲集合中的其他缓冲区。</p>
+<p>容易看到，上面的简单 hash 算法 hash(object)%N 难以满足单调性要求。</p>
+<h2 id="consistent-hashing-算法的原理"><a href="#consistent-hashing-算法的原理" class="headerlink" title="consistent hashing 算法的原理"></a>consistent hashing 算法的原理</h2><p>consistent hashing 是一种 hash 算法，简单的说，在移除 / 添加一个 cache 时，它能够尽可能小的改变已存在 key 映射关系，尽可能的满足单调性的要求。</p>
+<p>下面就来按照 5 个步骤简单讲讲 consistent hashing 算法的基本原理。</p>
+<h3 id="环形hash-空间"><a href="#环形hash-空间" class="headerlink" title="环形hash 空间"></a>环形hash 空间</h3><p>考虑通常的 hash 算法都是将 value 映射到一个 32 为的 key 值，也即是 0~2^32-1 次方的数值空间；我们可以将这个空间想象成一个首（ 0 ）尾（ 2^32-1 ）相接的圆环，如下面图 1 所示的那样。</p>
+<p><img src="/img/circle.jfif" alt="circle.jfif"><br>图1 环形 hash 空间</p>
+<h3 id="把对象映射到hash-空间"><a href="#把对象映射到hash-空间" class="headerlink" title="把对象映射到hash 空间"></a>把对象映射到hash 空间</h3><p>接下来考虑 4 个对象 object1~object4 ，通过 hash 函数计算出的 hash 值 key 在环上的分布如图 2 所示。</p>
+<p>hash(object1) = key1;</p>
+<p>… …</p>
+<p>hash(object4) = key4;</p>
+<p><img src="/img/object.jfif" alt="object.jfif"><br>图2  4个对象的 key 值分布</p>
+<h3 id="把cache-映射到hash-空间"><a href="#把cache-映射到hash-空间" class="headerlink" title="把cache 映射到hash 空间"></a>把cache 映射到hash 空间</h3><p>Consistent hashing 的基本思想就是将对象和 cache 都映射到同一个 hash 数值空间中，并且使用相同的 hash 算法。</p>
+<p>假设当前有 A,B 和 C 共 3 台 cache ，那么其映射结果将如图 3 所示，他们在 hash 空间中，以对应的 hash 值排列。</p>
+<p>hash(cache A) = key A;</p>
+<p>… …</p>
+<p>hash(cache C) = key C; </p>
+<p><img src="/img/cache.jfif" alt="cache.jfif"><br>图3 cache 和对象的 key 值分布</p>
+<p>说到这里，顺便提一下 cache 的 hash 计算，一般的方法可以使用 cache 机器的 IP 地址或者机器名作为 hash 输入。</p>
+<h3 id="把对象映射到cache"><a href="#把对象映射到cache" class="headerlink" title="把对象映射到cache"></a>把对象映射到cache</h3><p>现在 cache 和对象都已经通过同一个 hash 算法映射到 hash 数值空间中了，接下来要考虑的就是如何将对象映射到 cache 上面了。</p>
+<p><font color=#0099ff size=4 face="黑体">在这个环形空间中，如果沿着顺时针方向从对象的 key 值出发，直到遇见一个 cache ，那么就将该对象存储在这个 cache 上，因为对象和 cache 的 hash 值是固定的，因此这个 cache 必然是唯一和确定的。这样不就找到了对象和 cache 的映射方法了吗？！</font></p>
+<p>依然继续上面的例子（参见图 3 ），那么根据上面的方法，对象 object1 将被存储到 cache A 上； object2 和 object3 对应到 cache C ； object4 对应到 cache B ；</p>
+<h2 id="考察cache-的变动"><a href="#考察cache-的变动" class="headerlink" title="考察cache 的变动"></a>考察cache 的变动</h2><p>前面讲过，通过 hash 然后求余的方法带来的最大问题就在于不能满足单调性，当 cache 有所变动时， cache 会失效，进而对后台服务器造成巨大的冲击，现在就来分析分析 consistent hashing 算法。</p>
+<h3 id="移除-cache"><a href="#移除-cache" class="headerlink" title="移除 cache"></a>移除 cache</h3><p>考虑假设 cache B 挂掉了，根据上面讲到的映射方法，这时受影响的将仅是那些沿 cache B 逆时针遍历直到下一个 cache （ cache C ）之间的对象，也即是本来映射到 cache B 上的那些对象。</p>
+<p>因此这里仅需要变动对象 object4 ，将其重新映射到 cache C 上即可；参见图 4 。</p>
+<p><img src="/img/remove.jfif" alt="remove.jfif"><br>图4 Cache B 被移除后的 cache 映射</p>
+<h3 id="添加-cache"><a href="#添加-cache" class="headerlink" title="添加 cache"></a>添加 cache</h3><p>再考虑添加一台新的 cache D 的情况，假设在这个环形 hash 空间中， cache D 被映射在对象 object2 和 object3 之间。这时受影响的将仅是那些沿 cache D 逆时针遍历直到下一个 cache （ cache B ）之间的对象（它们是也本来映射到 cache C 上对象的一部分），将这些对象重新映射到 cache D 上即可。</p>
+<p>因此这里仅需要变动对象 object2 ，将其重新映射到 cache D 上；参见图 5 。</p>
+<p><img src="/img/add.jfif" alt="add.jfif"><br>图5 添加 cache D 后的映射关系</p>
+<h2 id="虚拟节点"><a href="#虚拟节点" class="headerlink" title="虚拟节点"></a>虚拟节点</h2><p>考量 Hash 算法的另一个指标是平衡性 (Balance) ，定义如下：</p>
+<p>平衡性</p>
+<p>平衡性是指哈希的结果能够尽可能分布到所有的缓冲中去，这样可以使得所有的缓冲空间都得到利用。</p>
+<p>hash 算法并不是保证绝对的平衡，如果 cache 较少的话，对象并不能被均匀的映射到 cache 上，比如在上面的例子中，仅部署 cache A 和 cache C 的情况下，在 4 个对象中， cache A 仅存储了 object1 ，而 cache C 则存储了 object2 、 object3 和 object4 ；分布是很不均衡的。</p>
+<p>为了解决这种情况， consistent hashing 引入了“虚拟节点”的概念，它可以如下定义：</p>
+<p>“虚拟节点”（ virtual node ）是实际节点在 hash 空间的复制品（ replica ），一实际个节点对应了若干个“虚拟节点”，这个对应个数也成为“复制个数”，“虚拟节点”在 hash 空间中以 hash 值排列。</p>
+<p>仍以仅部署 cache A 和 cache C 的情况为例，在图 4 中我们已经看到， cache 分布并不均匀。现在我们引入虚拟节点，并设置“复制个数”为 2 ，这就意味着一共会存在 4 个“虚拟节点”， cache A1, cache A2 代表了 cache A ； cache C1, cache C2 代表了 cache C ；假设一种比较理想的情况，参见图 6 。</p>
+<p><img src="/img/virtual.jfif" alt="virtual.jfif"><br>图 6 引入“虚拟节点”后的映射关系</p>
+<p>此时，对象到“虚拟节点”的映射关系为：</p>
+<p>objec1-&gt;cache A2 ； objec2-&gt;cache A1 ； objec3-&gt;cache C1 ； objec4-&gt;cache C2 ；</p>
+<p>因此对象 object1 和 object2 都被映射到了 cache A 上，而 object3 和 object4 映射到了 cache C 上；平衡性有了很大提高。</p>
+<p>引入“虚拟节点”后，映射关系就从 { 对象 -&gt; 节点 } 转换到了 { 对象 -&gt; 虚拟节点 } 。查询物体所在 cache 时的映射关系如图 7 所示。</p>
+<p><img src="/img/map.jfif" alt="map.jfif"><br>图7 查询对象所在 cache</p>
+<p>“虚拟节点”的 hash 计算可以采用对应节点的 IP 地址加数字后缀的方式。例如假设 cache A 的 IP 地址为 202.168.14.241 。</p>
+<p>引入“虚拟节点”前，计算 cache A 的 hash 值：</p>
+<p>Hash(“202.168.14.241”);</p>
+<p>引入“虚拟节点”后，计算“虚拟节”点 cache A1 和 cache A2 的 hash 值：</p>
+<p>Hash(“202.168.14.241#1”);  // cache A1</p>
+<p>Hash(“202.168.14.241#2”);  // cache A2</p>
+<h2 id="C-代码实现"><a href="#C-代码实现" class="headerlink" title="C#代码实现"></a>C#代码实现</h2><p><a target="_blank" rel="noopener" href="https://github.com/wsq003/consistent-hash">https://github.com/wsq003/consistent-hash</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/01/08/NET%E4%B8%AD%E9%97%B4%E8%AF%AD%E8%A8%80%EF%BC%88IL%EF%BC%89/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -216,7 +350,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -246,8 +380,10 @@
 <p>本文章以一个实际的例子，让你了解堆栈式 VM 的运作原理，并对 .NET IL（Intermediate Language）有最基本的领略。</p>
 <p>下面是一个简单的 C# 原始码：</p>
 <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Test</span> &#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params">String[] args</span>)</span> &#123;</span><br><span class="line">        <span class="built_in">int</span> i=<span class="number">1</span>;</span><br><span class="line">        <span class="built_in">int</span> j=<span class="number">2</span>;</span><br><span class="line">        <span class="built_in">int</span> k=<span class="number">3</span>;</span><br><span class="line">        <span class="built_in">int</span> answer = i+j+k;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;i+j+k=&quot;</span>+answer);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
 <p>将此原始码编译之后，可以得到一个 EXE 档案。 我们可以透过 ILDASM. EXE 来反组译 EXE 以观察 IL。 我将 Main() 的 IL 反组译条列如下，这里共有十八道 IL 指令，有的指令（例如 ldstr 与 box）后面需要接参数，有的指令（例如 ldc.i4.1 与 add）后面不需要接参数。</p>
 <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">ldc.i4<span class="number">.1</span></span><br><span class="line">stloc<span class="number">.0</span></span><br><span class="line">ldc.i4<span class="number">.2</span></span><br><span class="line">stloc<span class="number">.1</span></span><br><span class="line">ldc.i4<span class="number">.3</span></span><br><span class="line">stloc<span class="number">.2</span></span><br><span class="line">ldloc<span class="number">.0</span></span><br><span class="line">ldloc<span class="number">.1</span></span><br><span class="line"><span class="keyword">add</span></span><br><span class="line">ldloc<span class="number">.2</span></span><br><span class="line"><span class="keyword">add</span></span><br><span class="line">stloc<span class="number">.3</span></span><br><span class="line">ldstr      <span class="string">&quot;i+j+k=&quot;</span></span><br><span class="line">ldloc<span class="number">.3</span></span><br><span class="line">box        [mscorlib]System.Int32</span><br><span class="line">call       string [mscorlib]System.String::Concat(object, object)</span><br><span class="line">call       void [mscorlib]System.Console::WriteLine(string)</span><br><span class="line">ret</span><br></pre></td></tr></table></figure>
+
 <p>此程序执行时，关键的内存有三种，分别是：</p>
 <ul>
 <li><p><strong>Managed Heap：</strong>这是动态配置（Dynamic Allocation）的内存，由 Garbage Collector（GC）在执行时自动管理，整个 Process 共享一个 Managed Heap。</p>
@@ -343,7 +479,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -422,7 +558,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -449,6 +585,7 @@
 <p>Windows系统的主要系统文件都是放在一个叫做System32的文件夹中的。为了能同时放下两套系统文件，Windows会在64位的系统上，增加了一个文件夹，叫SysWow64。</p>
 <p>总结：</p>
 <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">SysWow64文件夹，是<span class="number">64</span>位Windows，用来存放<span class="number">32</span>位Windows系统文件的地方，而System32文件夹，是用来存放<span class="number">64</span>位程序文件的地方。</span><br><span class="line">当<span class="number">32</span>位程序加载System32文件夹中的dll时，操作系统会自动映射到SysWow64文件夹中的对应的文件。</span><br><span class="line">只要<span class="number">32</span>位程序访问System32文件夹，无论是加载dll，还是读取文本信息，都会被映射到SysWow64文件夹</span><br></pre></td></tr></table></figure>
+
 <p>参考：</p>
 <p><a target="_blank" rel="noopener" href="https://blogs.msdn.microsoft.com/tianlin/2011/10/26/syswow64/">什么是SysWow64</a></p>
 <p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/hbccdf/p/dllchecktoolandsyswow64.html">dll文件32位64位检测工具以及Windows文件夹SysWow64的坑</a></p>
@@ -506,7 +643,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -739,7 +876,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -771,20 +908,24 @@
 <p><code>Task</code> 很灵活，并且有很多好处。例如你可以通过多个消费者并行等待多次。你可以存储一个到字典中，以便后面的任意数量的消费者等待，它允许为异步结果像缓存一样使用。如果场景需要，你可以阻塞一个等待完成。并且你可以在这些任务上编写和使用各种操作（就像组合器），例如 WhenAny 操作，它可以异步等待第一个操作完成。</p>
 <p>然而，这种灵活性对于大多数情况下是不需要的：仅仅只是调用异步操作并且等待结果：</p>
 <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">TResult result = <span class="keyword">await</span> SomeOperationAsync();</span><br><span class="line">UseResult(result);</span><br></pre></td></tr></table></figure>
+
 <p>副作用:</p>
 <p>Task 是一个类。作为一个类，就是说任意操作创建一个 Task 都会分配一个对象，越来越多的对象都会被分配，所以 GC 操作也会越来越频繁，也就会消耗越来越多的资源，本来它应该是去做其他事的。</p>
 <h2 id="ValueTask"><a href="#ValueTask" class="headerlink" title="ValueTask"></a>ValueTask</h2><p>.NET CORE 2.0 引入了一个新类型 <code>ValueTask&lt;TResult&gt;</code>，在 <code>System.Threading.Tasks.Extensions</code> 命名空间中。<code>ValueTask&lt;TResult&gt;</code> 作为结构体引入的，它是 <code>TResult</code> 或 <code>Task&lt;TResult&gt;</code> 包装器。</p>
 <p>实例可以等待或 <code>Task&lt;TResult&gt;</code> 使用 <code>AsTask</code> 转换为。 <code>ValueTask&lt;TResult&gt;</code> 实例仅可等待一次, 并且在实例完成之前, 使用者可能不会调用 <code>GetAwaiter()</code>。</p>
 <p>永远不应对 <code>ValueTask&lt;TResult&gt;</code>实例执行以下操作:</p>
 <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">等待实例多次。</span><br><span class="line">多次AsTask调用。</span><br><span class="line">使用/操作未完成/使用多次 .Result.GetAwaiter().GetResult()</span><br><span class="line">使用多种方法来使用此实例。</span><br></pre></td></tr></table></figure>
+
 <p>如果执行上述任一操作, 则结果是不确定的。</p>
 <h3 id="同步完成-synchronous-completion"><a href="#同步完成-synchronous-completion" class="headerlink" title="同步完成 (synchronous completion)"></a>同步完成 (synchronous completion)</h3><p>它能从异步方法返回并且如果这个方法同步成功完成，不需要分配任何内存：只简单的初始化这个 <code>ValueTask&lt;TResult&gt;</code> 结构体，它返回 <code>TResult</code>。</p>
 <p>只有当该方法异步完成时，<code>Task&lt;TResult&gt;</code> 才需要进行分配， 创建包装该 <code>ValueTask &lt;TResult&gt;</code> 的实例（以最小化 <code>ValueTask &lt;TResult&gt;</code>的大小，并用于优化成功路径，异步方法未处理的异常故障也将分配一个 <code>Task&lt;TResult&gt;</code>，所以 <code>ValueTask&lt;TResult&gt;</code> 可以简单地包裹该 <code>Task&lt;TResult&gt;</code>, 而并不是 随身携带附加字段以存储异常）。</p>
 <h3 id="异步完成-asynchronous-completion"><a href="#异步完成-asynchronous-completion" class="headerlink" title="异步完成 (asynchronous completion)"></a>异步完成 (asynchronous completion)</h3><p>在.NET Core 2.1，引入 <code>IValueTaskSource&lt;TResult&gt;</code> 支持池化和重用。</p>
 <p>.NET Core 2.1为 <code>ValueTask</code> 添加了另一个构造函数：</p>
 <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">readonly</span> <span class="keyword">struct</span> ValueTask&lt;TResult&gt;</span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">ValueTask</span>(<span class="params">IValueTaskSource&lt;TResult&gt; source, <span class="built_in">short</span> token</span>)</span></span><br><span class="line"><span class="function">&#125;</span></span><br></pre></td></tr></table></figure>
+
 <p>token：令牌参数，该值确保将 <code>IValueTaskSource</code> 返回到池后不会使用 <code>ValueTask</code>。有效地，此令牌值将传递到 <code>IValueTaskSource</code> 实现的每个方法，该方法能够检查调用者是否滥用 <code>ValueTask</code>。</p>
 <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title">IValueTaskSource</span>&lt;<span class="keyword">out</span> <span class="title">TResult</span>&gt;</span><br><span class="line">&#123;</span><br><span class="line">    <span class="function">ValueTaskSourceStatus <span class="title">GetStatus</span>(<span class="params"><span class="built_in">short</span> token</span>)</span>;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">OnCompleted</span>(<span class="params">Action&lt;<span class="built_in">object</span>&gt; continuation, <span class="built_in">object</span> state, <span class="built_in">short</span> token, ValueTaskSourceOnCompletedFlags flags</span>)</span>;</span><br><span class="line">    <span class="function">TResult <span class="title">GetResult</span>(<span class="params"><span class="built_in">short</span> token</span>)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
 <p>参与：</p>
 <p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.valuetask-1?view=netcore-3.0">ValueTask<TResult> 结构</a></p>
 <p><a target="_blank" rel="noopener" href="https://devblogs.microsoft.com/dotnet/understanding-the-whys-whats-and-whens-of-valuetask/">Understanding the Whys, Whats, and Whens of ValueTask</a></p>
@@ -839,7 +980,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -873,8 +1014,10 @@
 <p><img src="/img/260879-325a351b6a349d3c.png" alt="260879-325a351b6a349d3c.png"></p>
 <h3 id="经典actor模型"><a href="#经典actor模型" class="headerlink" title="经典actor模型"></a>经典actor模型</h3><p>经典actor模型，保持了在隔离的计算单元和状态单元之间通过消息来做异步通信的思想，主要特点如下：</p>
 <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">异步通信：使消息就像从一个Actor对象传输到了另一个Actor对象</span><br><span class="line">状态机：Actor模型支持有限状态机</span><br><span class="line">独立性：多个Actor对象之间不会共享状态</span><br><span class="line">无锁的并发处理：由于Actor不会共享状态，且在同一时刻只处理一条消息，因而无需使用锁策略，这极大的提高了Actor系统的性能</span><br><span class="line">并行性：当顶级Actor将任务分拆后发送给多个下级Actor后，可以使用Actor模型的并行处理方式</span><br><span class="line">位置透明：可以使用抽象引用表示Actor对象的地址</span><br><span class="line">Future/Promise对象：这是对异步操作的发送与接收方式，以表示异步操作的完成结果</span><br></pre></td></tr></table></figure>
+
 <p>当一个actor接收消息时，通常做以下三件事情：</p>
 <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">create：用一种行为的描述和一组参数（包括其它actor）来创建一个actor。</span><br><span class="line">send：向其它actor发送消息。</span><br><span class="line">become：将一个actor的当前行为替换为另一种行为。（设置对下一条消息做出的回应方式）</span><br></pre></td></tr></table></figure>
+
 <p>　　在经典actor模型中，状态变化均由become操作来聚合完成。每当actor处理一条消息时，它会计算出一个行为，来响应它期望处理的下一种消息类型。become操作的参数是一个有名字的continuation b，表示actor应该被更新为的行为，以及它应该传递给 b 的状态。(continuation：延续)</p>
 <p>可以简单理解成，在一个actor维持私有状态之前，第三条基本上意味着定义了接收下条信息之前actor的状态。或者说，actor是如何改变自身状态的。</p>
 <p>假设一个actor是一个计算器，初始状态为0。当这个actor接收到“+1”的消息后，它将指定接收下一个消息时，actor的状态为1，而不是改变原始的状态。</p>
@@ -892,6 +1035,7 @@
 <p><img src="/img/533598-20190922155518083-577463983.jpg" alt="533598-20190922155518083-577463983.jpg"></p>
 <h2 id="CSP模型"><a href="#CSP模型" class="headerlink" title="CSP模型"></a>CSP模型</h2><p>　　CSP是 Communicating Sequential Processes(通信顺序进程) 的简称。在CSP中，多了一个角色Channel，过程（比如goroutine，Worker1）与过程（Worker2）之间不直接通信，而是通过Channle进行通信。</p>
 <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Worker1 --&gt; Channel --&gt; Worker2</span><br></pre></td></tr></table></figure>
+
 <p>CSP模型特点：</p>
 <ul>
 <li>Channel是过程的中间媒介，Worker1想要跟Worker2发信息时，直接把信息放到Channel里（在程序中其实就是一块内存），然后Worker2在方便的时候到Channel里获取。</li>
@@ -963,7 +1107,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -990,10 +1134,14 @@
 <p>16进制就有16个数，0<del>15，用二进制表示15的方法就是1111，从而可以推断出，16进制用2进制可以表现成0000</del>1111，顾名思义，也就是每四个为一位。最高位不够可用零代替。</p>
 <p>一个字节包含8个二进制位，一个十六进制可表示4个二进制位，所以，一个字节可以由2个十六进制表示。即，一个byte 对应两位十六进制位。</p>
 <h2 id="十六进制转换"><a href="#十六进制转换" class="headerlink" title="十六进制转换"></a>十六进制转换</h2><h3 id="字符串转为16进制字符"><a href="#字符串转为16进制字符" class="headerlink" title="字符串转为16进制字符"></a>字符串转为16进制字符</h3><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="built_in">string</span> <span class="title">StringToHexString</span>(<span class="params"><span class="built_in">string</span> s, Encoding encode</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">byte</span>[] b = encode.GetBytes(s);<span class="comment">//按照指定编码将string编程字节数组</span></span><br><span class="line">    <span class="built_in">string</span> result = <span class="built_in">string</span>.Empty;</span><br><span class="line">    <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; b.Length; i++)<span class="comment">//逐字节变为16进制字符</span></span><br><span class="line">    &#123;</span><br><span class="line">        result += Convert.ToString(b[i], <span class="number">16</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 使用</span></span><br><span class="line">System.Console.WriteLine(StringToHexString(<span class="string">&quot;严&quot;</span>, System.Text.Encoding.UTF8));</span><br><span class="line">System.Console.WriteLine(BitConverter.ToString(Encoding.UTF8.GetBytes(<span class="string">&quot;严&quot;</span>)));</span><br></pre></td></tr></table></figure>
+
 <p><img src="/img/QQ%E6%88%AA%E5%9B%BE20191116174552.png" alt="QQ截图20191116174552.png"></p>
 <h3 id="16进制字符串转为字符串"><a href="#16进制字符串转为字符串" class="headerlink" title="16进制字符串转为字符串"></a>16进制字符串转为字符串</h3><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="built_in">string</span> <span class="title">HexStringToString</span>(<span class="params"><span class="built_in">string</span> hs, Encoding encode</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">string</span> strTemp = <span class="string">&quot;&quot;</span>;</span><br><span class="line">    <span class="built_in">byte</span>[] b = <span class="keyword">new</span> <span class="built_in">byte</span>[hs.Length / <span class="number">2</span>];</span><br><span class="line">    <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; hs.Length / <span class="number">2</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        strTemp = hs.Substring(i * <span class="number">2</span>, <span class="number">2</span>);</span><br><span class="line">        b[i] = Convert.ToByte(strTemp, <span class="number">16</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//按照指定编码将字节数组变为字符串</span></span><br><span class="line">    <span class="keyword">return</span> encode.GetString(b);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 使用</span></span><br><span class="line"><span class="built_in">string</span> hexstring = StringToHexString(<span class="string">&quot;严&quot;</span>, System.Text.Encoding.UTF8);</span><br><span class="line"><span class="built_in">string</span> content = HexStringToString(hexstring, System.Text.Encoding.UTF8);</span><br></pre></td></tr></table></figure>
+
 <h3 id="byte-转为16进制字符串"><a href="#byte-转为16进制字符串" class="headerlink" title="byte[]转为16进制字符串"></a>byte[]转为16进制字符串</h3><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="built_in">string</span> <span class="title">ByteToHexStr</span>(<span class="params"><span class="built_in">byte</span>[] bytes</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">string</span> returnStr = <span class="string">&quot;&quot;</span>;</span><br><span class="line">    <span class="keyword">if</span> (bytes != <span class="literal">null</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; bytes.Length; i++)</span><br><span class="line">        &#123;</span><br><span class="line">            returnStr += bytes[i].ToString(<span class="string">&quot;X2&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> returnStr;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 使用</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> byteStr = StringToHexString(<span class="string">&quot;严&quot;</span>, Encoding.UTF8);</span><br><span class="line">Console.WriteLine(byteStr);<span class="comment">// 输出 e4b8a5</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> bytes = Encoding.UTF8.GetBytes(<span class="string">&quot;严&quot;</span>);</span><br><span class="line"><span class="keyword">var</span> str = Encoding.UTF8.GetString(bytes);<span class="comment">// 输出 严</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> str1 = ByteToHexStr(bytes); <span class="comment">//  输出 E4B8A5</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> bytes1 = StrToToHexByte(str1);</span><br><span class="line"><span class="keyword">var</span> bytes2 = StrToToHexByte(byteStr);</span><br></pre></td></tr></table></figure>
+
 <h3 id="16进制的字符串转为byte"><a href="#16进制的字符串转为byte" class="headerlink" title="16进制的字符串转为byte[]"></a>16进制的字符串转为byte[]</h3><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="built_in">byte</span>[] <span class="title">StrToToHexByte</span>(<span class="params"><span class="built_in">string</span> hexString</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    hexString = hexString.Replace(<span class="string">&quot; &quot;</span>, <span class="string">&quot;&quot;</span>);</span><br><span class="line">    <span class="keyword">if</span> ((hexString.Length % <span class="number">2</span>) != <span class="number">0</span>)</span><br><span class="line">        hexString += <span class="string">&quot; &quot;</span>;</span><br><span class="line">    <span class="built_in">byte</span>[] returnBytes = <span class="keyword">new</span> <span class="built_in">byte</span>[hexString.Length / <span class="number">2</span>];</span><br><span class="line">    <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; returnBytes.Length; i++)</span><br><span class="line">        returnBytes[i] = Convert.ToByte(hexString.Substring(i * <span class="number">2</span>, <span class="number">2</span>), <span class="number">16</span>);</span><br><span class="line">    <span class="keyword">return</span> returnBytes;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
 <p>参考：</p>
 <p><a target="_blank" rel="noopener" href="https://blog.csdn.net/WuLex/article/details/75452472">C#数字、16进制字符串和字节之间互转</a></p>
 
@@ -1046,7 +1194,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1127,7 +1275,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1270,7 +1418,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1297,6 +1445,7 @@
 <h2 id="Byte-字节"><a href="#Byte-字节" class="headerlink" title="Byte (字节)"></a>Byte (字节)</h2><p>表示一个 8 位无符号整数。</p>
 <p>即，8 bit（比特位）= 1 Byte（字节）；</p>
 <h2 id="bit（比特）与-Byte-字节-的关系"><a href="#bit（比特）与-Byte-字节-的关系" class="headerlink" title="bit（比特）与 Byte (字节) 的关系"></a>bit（比特）与 Byte (字节) 的关系</h2><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>MB = <span class="number">1024</span>KB = <span class="number">1024</span> * <span class="number">1024B</span> = <span class="number">1048576B</span>；</span><br><span class="line"><span class="number">1024B</span>yte = <span class="number">1</span>KB；</span><br><span class="line"><span class="number">1024</span>KB = <span class="number">1</span>MB;</span><br><span class="line"><span class="number">1024</span>MB = <span class="number">1</span>GB;</span><br><span class="line"><span class="number">1024</span>GB = <span class="number">1</span>TB;</span><br></pre></td></tr></table></figure>
+
 <p><img src="/img/QQ%E6%88%AA%E5%9B%BE20191116112021.png" alt="QQ截图20191116112021.png"></p>
 <p>例如：</p>
 <p>根据 一字节 等于 8 比特的 换算方法，就可以得出以下结论。</p>
@@ -1358,7 +1507,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1384,12 +1533,16 @@
           <p>移位运算符仅针对 int、uint、long 和 ulong 类型定义，因此运算的结果始终包含至少 32 位。 如果左侧操作数是其他整数类型（sbyte、byte、short、ushort 或 char），则其值将转换为 int 类型。</p>
 <h2 id="左移位运算符-lt-lt"><a href="#左移位运算符-lt-lt" class="headerlink" title="左移位运算符 &lt;&lt;"></a>左移位运算符 &lt;&lt;</h2><p><code>&lt;&lt;</code> 运算符将其左侧操作数向左移动右侧操作数定义的位数。<br>左移运算会放弃超出结果类型范围的高阶位，并将低阶空位位置设置为零</p>
 <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">uint x = <span class="number">0b</span>_1100_1001_0000_0000_0000_0000_0001_0001;</span><br><span class="line">Console.WriteLine(<span class="string">$&quot;Before: <span class="subst">&#123;Convert.ToString(x, toBase: <span class="number">2</span>)&#125;</span>&quot;</span>);</span><br><span class="line"></span><br><span class="line">uint y = x &lt;&lt; <span class="number">4</span>;</span><br><span class="line">Console.WriteLine(<span class="string">$&quot;After:  <span class="subst">&#123;Convert.ToString(y, toBase: <span class="number">2</span>)&#125;</span>&quot;</span>);</span><br><span class="line"><span class="comment">// Output:</span></span><br><span class="line"><span class="comment">// Before: 11001001000000000000000000010001</span></span><br><span class="line"><span class="comment">// After:  10010000000000000000000100010000</span></span><br></pre></td></tr></table></figure>
+
 <p>总结：左移相当于 X * 2的N次方 (乘以 2 的N次方)</p>
 <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">x&lt;&lt;<span class="number">1</span>= x*<span class="number">2</span></span><br><span class="line">x&lt;&lt;<span class="number">2</span>= x*<span class="number">4</span></span><br><span class="line">x&lt;&lt;<span class="number">3</span>= x*<span class="number">8</span></span><br><span class="line">x&lt;&lt;<span class="number">4</span>= x*<span class="number">16</span></span><br></pre></td></tr></table></figure>
+
 <h2 id="右移位运算符-gt-gt"><a href="#右移位运算符-gt-gt" class="headerlink" title="右移位运算符 &gt;&gt;"></a>右移位运算符 &gt;&gt;</h2><p><code>&gt;&gt;</code> 运算符将其左侧操作数向右移动右侧操作数定义的位数。<br>右移位运算会放弃低阶位。</p>
 <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">uint x = <span class="number">0b</span>_1001;</span><br><span class="line">Console.WriteLine(<span class="string">$&quot;Before: <span class="subst">&#123;Convert.ToString(x, toBase: <span class="number">2</span>), <span class="number">4</span>&#125;</span>&quot;</span>);</span><br><span class="line"></span><br><span class="line">uint y = x &gt;&gt; <span class="number">2</span>;</span><br><span class="line">Console.WriteLine(<span class="string">$&quot;After:  <span class="subst">&#123;Convert.ToString(y, toBase: <span class="number">2</span>), <span class="number">4</span>&#125;</span>&quot;</span>);</span><br><span class="line"><span class="comment">// Output:</span></span><br><span class="line"><span class="comment">// Before: 1001</span></span><br><span class="line"><span class="comment">// After:    10</span></span><br></pre></td></tr></table></figure>
+
 <p>总结：左移相当于 X / 2的N次方 (除以 2 的N次方)</p>
 <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">x&gt;&gt;<span class="number">1</span>= x/<span class="number">2</span></span><br><span class="line">x&gt;&gt;<span class="number">2</span>= x/<span class="number">4</span></span><br><span class="line">x&gt;&gt;<span class="number">3</span>= x/<span class="number">8</span></span><br><span class="line">x&gt;&gt;<span class="number">4</span>=x/<span class="number">16</span></span><br></pre></td></tr></table></figure>
+
 <p>参考：</p>
 <p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/csharp/language-reference/operators/bitwise-and-shift-operators#left-shift-operator-">位运算符和移位运算符（C# 参考）</a></p>
 <p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/kakimsun/archive/2010/04/27/1722403.html">C#移位运算(左移和右移)</a></p>
@@ -1443,7 +1596,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1472,17 +1625,22 @@
 <h2 id="常用格式"><a href="#常用格式" class="headerlink" title="常用格式"></a>常用格式</h2><h3 id="十进制（“D”）格式说明符"><a href="#十进制（“D”）格式说明符" class="headerlink" title="十进制（“D”）格式说明符"></a>十进制（“D”）格式说明符</h3><p>“D”或“d” ：表示10进制；</p>
 <p>示例：</p>
 <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">int</span> <span class="keyword">value</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">value</span> = <span class="number">12345</span>;</span><br><span class="line">Console.WriteLine(<span class="keyword">value</span>.ToString(<span class="string">&quot;D&quot;</span>));</span><br><span class="line"><span class="comment">// Displays 12345</span></span><br><span class="line">Console.WriteLine(<span class="keyword">value</span>.ToString(<span class="string">&quot;D8&quot;</span>));</span><br><span class="line"><span class="comment">// Displays 00012345</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">value</span> = <span class="number">-12345</span>;</span><br><span class="line">Console.WriteLine(<span class="keyword">value</span>.ToString(<span class="string">&quot;D&quot;</span>));</span><br><span class="line"><span class="comment">// Displays -12345</span></span><br><span class="line">Console.WriteLine(<span class="keyword">value</span>.ToString(<span class="string">&quot;D8&quot;</span>));</span><br><span class="line"><span class="comment">// Displays -00012345</span></span><br></pre></td></tr></table></figure>
+
 <h3 id="定点（“F”）格式说明符"><a href="#定点（“F”）格式说明符" class="headerlink" title="定点（“F”）格式说明符"></a>定点（“F”）格式说明符</h3><p>定点（“F”）格式说明符将数字转换为“-ddd.ddd…”形式的字符串，其中每个“d”表示一个数字 (0-9)。 如果该数字为负，则该字符串以减号开头。</p>
 <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">int</span> integerNumber;</span><br><span class="line">integerNumber = <span class="number">17843</span>;</span><br><span class="line">Console.WriteLine(integerNumber.ToString(<span class="string">&quot;F&quot;</span>, </span><br><span class="line">                  CultureInfo.InvariantCulture));</span><br><span class="line"><span class="comment">// Displays 17843.00</span></span><br><span class="line"></span><br><span class="line">integerNumber = <span class="number">-29541</span>;</span><br><span class="line">Console.WriteLine(integerNumber.ToString(<span class="string">&quot;F3&quot;</span>, </span><br><span class="line">                  CultureInfo.InvariantCulture));</span><br><span class="line"><span class="comment">// Displays -29541.000</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">double</span> doubleNumber;</span><br><span class="line">doubleNumber = <span class="number">18934.1879</span>;</span><br><span class="line">Console.WriteLine(doubleNumber.ToString(<span class="string">&quot;F&quot;</span>, CultureInfo.InvariantCulture));</span><br><span class="line"><span class="comment">// Displays 18934.19</span></span><br><span class="line"></span><br><span class="line">Console.WriteLine(doubleNumber.ToString(<span class="string">&quot;F0&quot;</span>, CultureInfo.InvariantCulture));</span><br><span class="line"><span class="comment">// Displays 18934</span></span><br><span class="line"></span><br><span class="line">doubleNumber = <span class="number">-1898300.1987</span>;</span><br><span class="line">Console.WriteLine(doubleNumber.ToString(<span class="string">&quot;F1&quot;</span>, CultureInfo.InvariantCulture));  </span><br><span class="line"><span class="comment">// Displays -1898300.2</span></span><br><span class="line"></span><br><span class="line">Console.WriteLine(doubleNumber.ToString(<span class="string">&quot;F3&quot;</span>, </span><br><span class="line">                  CultureInfo.CreateSpecificCulture(<span class="string">&quot;es-ES&quot;</span>)));</span><br><span class="line"><span class="comment">// Displays -1898300,199</span></span><br></pre></td></tr></table></figure>
+
 <h3 id="百分比（“P”）格式说明符"><a href="#百分比（“P”）格式说明符" class="headerlink" title="百分比（“P”）格式说明符"></a>百分比（“P”）格式说明符</h3><p>百分比（“P”）格式说明符将数字乘以 100 并将其转换为表示百分比的字符串。</p>
 <p>“P”或“p”</p>
 <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">double</span> number = <span class="number">.2468013</span>;</span><br><span class="line">Console.WriteLine(number.ToString(<span class="string">&quot;P&quot;</span>, CultureInfo.InvariantCulture));</span><br><span class="line"><span class="comment">// Displays 24.68 %</span></span><br><span class="line">Console.WriteLine(number.ToString(<span class="string">&quot;P&quot;</span>, </span><br><span class="line">                  CultureInfo.CreateSpecificCulture(<span class="string">&quot;hr-HR&quot;</span>)));</span><br><span class="line"><span class="comment">// Displays 24,68%</span></span><br><span class="line">Console.WriteLine(number.ToString(<span class="string">&quot;P1&quot;</span>, CultureInfo.InvariantCulture));</span><br><span class="line"><span class="comment">// Displays 24.7 %</span></span><br></pre></td></tr></table></figure>
+
 <h3 id="数字（“N”）格式说明符"><a href="#数字（“N”）格式说明符" class="headerlink" title="数字（“N”）格式说明符"></a>数字（“N”）格式说明符</h3><p>数字（”N”）格式说明符将数字转换为”-d,ddd,ddd.ddd…”形式的字符串</p>
 <p>“N”或“n”</p>
 <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">double</span> dblValue = <span class="number">-12445.6789</span>;</span><br><span class="line">Console.WriteLine(dblValue.ToString(<span class="string">&quot;N&quot;</span>, CultureInfo.InvariantCulture));</span><br><span class="line"><span class="comment">// Displays -12,445.68</span></span><br><span class="line">Console.WriteLine(dblValue.ToString(<span class="string">&quot;N1&quot;</span>, </span><br><span class="line">                  CultureInfo.CreateSpecificCulture(<span class="string">&quot;sv-SE&quot;</span>)));</span><br><span class="line"><span class="comment">// Displays -12 445,7</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">int</span> intValue = <span class="number">123456789</span>;</span><br><span class="line">Console.WriteLine(intValue.ToString(<span class="string">&quot;N1&quot;</span>, CultureInfo.InvariantCulture));</span><br><span class="line"><span class="comment">// Displays 123,456,789.0 </span></span><br></pre></td></tr></table></figure>
+
 <h3 id="十六进制（“X”）格式说明符"><a href="#十六进制（“X”）格式说明符" class="headerlink" title="十六进制（“X”）格式说明符"></a>十六进制（“X”）格式说明符</h3><p>十六进制（“X”）格式说明符将数字转换为十六进制数的字符串。</p>
 <p>“X”或“x”</p>
 <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">int</span> <span class="keyword">value</span>; </span><br><span class="line"></span><br><span class="line"><span class="keyword">value</span> = <span class="number">0x2045e</span>;</span><br><span class="line">Console.WriteLine(<span class="keyword">value</span>.ToString(<span class="string">&quot;x&quot;</span>));</span><br><span class="line"><span class="comment">// Displays 2045e</span></span><br><span class="line">Console.WriteLine(<span class="keyword">value</span>.ToString(<span class="string">&quot;X&quot;</span>));</span><br><span class="line"><span class="comment">// Displays 2045E</span></span><br><span class="line">Console.WriteLine(<span class="keyword">value</span>.ToString(<span class="string">&quot;X8&quot;</span>));</span><br><span class="line"><span class="comment">// Displays 0002045E</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">value</span> = <span class="number">123456789</span>;</span><br><span class="line">Console.WriteLine(<span class="keyword">value</span>.ToString(<span class="string">&quot;X&quot;</span>));</span><br><span class="line"><span class="comment">// Displays 75BCD15</span></span><br><span class="line">Console.WriteLine(<span class="keyword">value</span>.ToString(<span class="string">&quot;X2&quot;</span>));</span><br><span class="line"><span class="comment">// Displays 75BCD15</span></span><br></pre></td></tr></table></figure>
+
 <p>十六进制的表示:<br>C语言、Shell、Python语言及其他相近的语言使用字首“0x”，例如“0x5A3”。开头的“0”令解析器更易辨认数，而“x”则代表十六进制。在“0x”中的“x”可以大写或小写。</p>
 <p>参考：</p>
 <p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/standard/base-types/formatting-types?view=netframework-4.8">.NET 中的格式类型</a></p>
@@ -1539,7 +1697,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1683,7 +1841,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
+                <time title="修改时间：2021-03-05 03:18:38" itemprop="dateModified" datetime="2021-03-05T03:18:38+00:00">2021-03-05</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1718,97 +1876,6 @@
 <p><img src="/img/QQ%E6%88%AA%E5%9B%BE20191017151234.png" alt="QQ截图20191017151234.png"></p>
 <p>参考：</p>
 <p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/savorboard/p/aspnetcore-identity.html">ASP.NET Core 之 Identity 入门（一）</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/10/14/CSharp-%E9%A2%84%E5%A4%84%E7%90%86%E5%99%A8%E6%8C%87%E4%BB%A4/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/10/14/CSharp-%E9%A2%84%E5%A4%84%E7%90%86%E5%99%A8%E6%8C%87%E4%BB%A4/" class="post-title-link" itemprop="url">CSharp-预处理器指令</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-10-14 13:06:11" itemprop="dateCreated datePublished" datetime="2019-10-14T13:06:11+00:00">2019-10-14</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-01 07:45:05" itemprop="dateModified" datetime="2021-03-01T07:45:05+00:00">2021-03-01</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/CSharp%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index"><span itemprop="name">CSharp基础</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="CSharp-预处理器指令"><a href="#CSharp-预处理器指令" class="headerlink" title="CSharp-预处理器指令"></a>CSharp-预处理器指令</h1><h2 id="预处理器指令"><a href="#预处理器指令" class="headerlink" title="预处理器指令"></a>预处理器指令</h2><p>预处理器指令（preprocessor directive）：用于在 C# 源代码中嵌入的编译器命令，告诉C#编译器要编译哪些代码，并指出如何处理特定的错误和警告。C#预处理器指令还可以告诉C#编辑器有关代码组织的信息。</p>
-<p>选中 项目 ，右键 属性，在 <code>生成</code> 标签：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20191014141323.png" alt="QQ截图20191014141323.png"></p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">if</span> DEBUG</span></span><br><span class="line">        Console.WriteLine(<span class="string">&quot;DEBUG&quot;</span>);</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> TRACE</span></span><br><span class="line">        Console.WriteLine(<span class="string">&quot;TRACE&quot;</span>);</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br></pre></td></tr></table></figure>
-<p>具体预处理器指令参考：</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">if</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">else</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">elif</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">undef</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">warning</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">error</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">line</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">region</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endregion</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">pragma</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">pragma</span> <span class="meta-keyword">warning</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">pragma</span> <span class="meta-keyword">checksum</span></span></span><br></pre></td></tr></table></figure>
-<h2 id="ConditionalAttribute"><a href="#ConditionalAttribute" class="headerlink" title="ConditionalAttribute"></a>ConditionalAttribute</h2><p>指示编译器，除非定义了指定的有条件编译符号，否则，应忽略方法调用或属性。</p>
-<p>注意：</p>
-<p>#if DEBUG：此处的代码在发布时甚至不会到达IL。</p>
-<p>[Conditional(“DEBUG”)]：这个代码将到达IL，但是当设置为DEBUG时，才会被调用。</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">[<span class="meta">Conditional(<span class="meta-string">&quot;DEBUG&quot;</span>)</span>]</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">DoSomething</span>(<span class="params"></span>)</span> &#123; &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">Foo</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    DoSomething(); <span class="comment">//Code compiles and is cleaner, DoSomething always</span></span><br><span class="line">                   <span class="comment">//exists, however this is only called during DEBUG.</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/csharp/language-reference/preprocessor-directives/">C# 预处理器指令</a></p>
-<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/framework/debug-trace-profile/how-to-compile-conditionally-with-trace-and-debug">如何：使用跟踪和调试执行有条件编译</a></p>
-<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/framework/debug-trace-profile/how-to-create-initialize-and-configure-trace-switches">如何：创建、初始化和配置跟踪开关</a></p>
-<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/csharp/language-reference/compiler-options/define-compiler-option">-define（C# 编译器选项）</a></p>
-<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/visualstudio/ide/managing-project-and-solution-properties?view=vs-2019">管理项目和解决方案属性</a></p>
-<p><a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/3788605/if-debug-vs-conditionaldebug">#if DEBUG vs. Conditional(“DEBUG”)</a></p>
 
       
     </div>
@@ -1893,20 +1960,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">354</span>
+          <span class="site-state-item-count">355</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">112</span>
+        <span class="site-state-item-count">113</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">155</span>
+        <span class="site-state-item-count">156</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
