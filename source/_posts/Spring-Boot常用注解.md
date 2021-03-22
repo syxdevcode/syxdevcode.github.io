@@ -191,18 +191,32 @@ public  Scope {
 
 ### @Entity
 
-`@Table(name="")`：表明这是一个实体类。一般用于jpa这两个注解一般一块使用，但是如果表名和实体类名相同的话，`@Table`可以省略。
+`@Table(name="")`：表明这是一个实体类，必须与 `@Id` 注解 结合使用,否则  `No identifier specified for entity:`。一般用于jpa这两个注解一般一块使用，但是如果表名和实体类名相同的话，`@Table`可以省略。
 `@Table(name ="数据库表名")`，这个注解也注释在实体类上，对应数据库中相应的表。
 `@Id`、`@Column` 注解用于标注实体类中的字段，pk字段标注为 `@Id`，其余 `@Column`。
 
+### @Data
+
+导入依赖：`lombok.Data` ,
+
+```java
+<dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.16.10</version>
+ </dependency>
+```
+
+`@Data`: 注解在类上, 为类提供读写属性, 此外还提供了 `equals()`、`hashCode()`、`toString()` 方法。
+
 ### @Bean产生一个bean的方法
 
-`@Bean` 明确地指示了一种方法，产生一个 `bean` 的方法，并且交给 `Spring` 容器管理。支持别名 `@Bean("xx-name")`
+`@Bean` 明确告诉方法，产生一个 `Bean` 对象，并且交给 `Spring` 容器管理。支持别名 `@Bean("xx-name")`，产生这个 `Bean` 对象的方法 `Spring` 只会调用一次，随后这个 `Spring` 将会将这个 `Bean` 对象放在自己的IOC容器中。
 
 ### @Autowired 自动导入
 
-* @Autowired注解作用在构造函数、方法、方法参数、类字段以及注解上
-* @Autowired注解可以实现Bean的自动注入
+* `@Autowired` 注解作用在构造函数、方法、方法参数、类字段以及注解上
+* `@Autowired` 注解可以实现Bean的自动注入
 
 ### @Component
 
