@@ -185,6 +185,603 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/14/DotNet%E5%9F%BA%E7%A1%80-GC%E4%B8%8E%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/12/14/DotNet%E5%9F%BA%E7%A1%80-GC%E4%B8%8E%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/" class="post-title-link" itemprop="url">DotNet基础-GC与内存管理</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-12-14 14:33:47" itemprop="dateCreated datePublished" datetime="2018-12-14T14:33:47+00:00">2018-12-14</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/CSharp%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index"><span itemprop="name">CSharp基础</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="内存管理"><a href="#内存管理" class="headerlink" title="内存管理"></a>内存管理</h2><p>GC的内存管理的目标主要都是引用类型对象。</p>
+<h3 id="对象创建及生命周期"><a href="#对象创建及生命周期" class="headerlink" title="对象创建及生命周期"></a>对象创建及生命周期</h3><p>一个对象的生命周期简单概括就是：创建 &gt; 使用 &gt; 释放，在.NET中一个对象的生命周期：</p>
+<ul>
+<li>new创建对象并分配内存</li>
+<li>对象初始化</li>
+<li>对象操作、使用</li>
+<li>资源清理（非托管资源）</li>
+<li>GC垃圾回收</li>
+</ul>
+<p>大部分的对象创建都是开始于关键字 new,有个别引用类型是由专门 IL 指令的，比如 string 有 ldstr 指令。</p>
+<p>引用对象都是分配在托管堆上的， 先来看看托管堆的基本结构，如下图，托管堆中的对象是顺序存放的，托管堆维护着一个指针 NextObjPtr，它指向下一个对象在堆中的分配位置。</p>
+<p><img src="/img/82a2b4be6318aebc0dc9b7b29c2a7599.png" alt="82a2b4be6318aebc0dc9b7b29c2a7599.png"></p>
+<p>创建一个新对象的主要流程:</p>
+<p><img src="/img/151257-20160309235623241-1001221060.png" alt="151257-20160309235623241-1001221060.png"></p>
+<p>模拟一个对象的创建过程：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">User</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">int</span> Age &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">string</span> Name &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">string</span> _Name = <span class="string">&quot;123&quot;</span> + <span class="string">&quot;abc&quot;</span>;</span><br><span class="line">    <span class="keyword">public</span> List&lt;<span class="built_in">string</span>&gt; _Names;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>1，对象大小估算，共计40个字节：<br>  (1) 属性 Age 值类型 Int，4字节；<br>  (2) 属性 Name，引用类型，初始为 NULL，4个字节，指向空地址；<br>  (3) 字段 _Name 初始赋值了，代码会被编译器优化为 _Name=”123abc” 。一个字符两个字节，字符串占用 2×6+8（附加成员：4字节 TypeHandle 地址，4字节 同步索引块 ）= 20 字节，总共 内存大小 = 字符串对象20字节 + _Name 指向字符串的内存地址4字节=24字节；<br>  (4) 引用类型字段 List<string> _Names 初始默认为 NULL，4个字节；<br>  (5) User对象的初始附加成员（4字节 TypeHandle 地址，4字节同步索引块）8个字节；</li>
+<li>2，内存申请： 申请 44 个字节的内存块，从指针 NextObjPtr 开始验证，空间是否足够，若不够则触发垃圾回收。</li>
+<li>3，内存分配： 从指针 NextObjPtr 处开始划分 44 个字节内存块。</li>
+<li>4，对象初始化： 首先初始化对象附加成员，再调用User对象的构造函数，对成员初始化，值类型默认初始为0，引用类型默认初始化为 NULL；</li>
+<li>5，托管堆指针后移： 指针 NextObjPtr 后移44个字节。</li>
+<li>6，返回内存地址： 返回对象的内存地址给引用变量。</li>
+</ul>
+<h2 id="GC垃圾回收"><a href="#GC垃圾回收" class="headerlink" title="GC垃圾回收"></a>GC垃圾回收</h2><p>GC是垃圾回收（ Garbage Collect）的缩写，是 .NET 核心机制的重要部分。她的基本工作原理就是遍历托管堆中的对象，标记哪些被使用对象（那些没人使用的就是所谓的垃圾），然后把可达对象转移到一个连续的地址空间（也叫压缩），其余的所有没用的对象内存被回收掉。</p>
+<p><img src="/img/151257-20160309235624382-1396676769.png" alt="151257-20160309235624382-1396676769.png"></p>
+<h3 id="垃圾回收基本流程"><a href="#垃圾回收基本流程" class="headerlink" title="垃圾回收基本流程"></a>垃圾回收基本流程</h3><h4 id="标记阶段"><a href="#标记阶段" class="headerlink" title="标记阶段"></a>标记阶段</h4><p>先假设所有对象都是垃圾，根据应用程序根指针 Root 遍历堆上的每一个引用对象，生成可达对象图，对于还在使用的对象（可达对象）进行标记（其实就是在对象同步索引块中开启一个标示位）。</p>
+<p>其中 Root 根指针保存了当前所有需要使用的对象引用，他其实只是一个统称，意思就是这些对象当前还在使用，主要包含：静态对象/静态字段的引用；线程栈引用（局部变量、方法参数、栈帧）；任何引用对象的 CPU 寄存器；根引用对象中引用的对象；GC Handle table；Freachable 队列等。</p>
+<p><strong>对性能的影响</strong></p>
+<p>标记阶段是一个 “几乎仅有只读操作” 的阶段。这个阶段中没有任何对象被移动，也没有任何内存被回收。</p>
+<ul>
+<li>1，当进行一次完整的标记时，垃圾回收器几乎遍历了每一个被引用的对象。若这部分数据并不存在于程序工作区（working set）中就会造成页面错误，从而导致重新加载对象时缓存丢失（cache miss）与缓存抖动(cache thrashing)。</li>
+<li>2，在一个多处理器系统中，当垃圾回收器在对象的头部进行位标记操作时，若相应的对象已被加载至其他处理器的缓存中，则会造成缓存失效。</li>
+<li>3，标记阶段的性能取决于引用图中对象的数目，但是和对象占用的内存大小并无关系。</li>
+</ul>
+<h5 id="根"><a href="#根" class="headerlink" title="根"></a>根</h5><p>垃圾回收器遍历对象图中所有被应用程序引用的对象。为了正确的遍历图中的对象，需要选定一系列起点保证引用对象的遍历，这些起点称为 <strong>根</strong>。</p>
+<p><strong>1.局部根</strong></p>
+<p>局部变量是一种最显而易见的根。</p>
+<p><strong>2.静态根</strong></p>
+<p>另一种类型的根是 <strong>静态变量</strong>。静态成员类型在类型加载时被创建，并且可以在整个应用程序域（ application domain ）的生命周期内作为潜藏根。</p>
+<p>例如：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">event</span> EventHandler ButtonClick;</span><br><span class="line">    <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">while</span> (<span class="literal">true</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            Button button = <span class="keyword">new</span> Button();</span><br><span class="line">            ButtonClick += button.OnClick;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title">Button</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">OnClick</span>(<span class="params"><span class="built_in">object</span> sender, EventArgs e</span>)</span> &#123; &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上面代码会造成内存泄漏。因为静态事件包含一个委托列表，而这个委托列表引用了我们创建的对象。<br><font color=#0099ff size=4 face="黑体">事实上，.NET 内存泄漏的最普遍原因是静态变量引用了对象。</font></p>
+<p>可以使用 SOS.DLL 查看根，!gcroot 命令提供跟得类型和引用链的简明信息。</p>
+<h4 id="清理阶段与压缩阶段"><a href="#清理阶段与压缩阶段" class="headerlink" title="清理阶段与压缩阶段"></a>清理阶段与压缩阶段</h4><p><strong>清理</strong></p>
+<p>针对所有不可达对象进行清除操作，针对普通对象直接回收内存，而对于实现了终结器的对象（实现了析构函数的对象）需要单独回收处理。清除之后，内存就会变得不连续了，这时就需要压缩阶段了。</p>
+<p>建议不要随意手动调用垃圾回收 GC.Collect()，GC 会选择合适的时机、合适的方式进行内存回收的。</p>
+<p><strong>压缩</strong></p>
+<p>把剩下的对象转移到一个连续的内存，因为这些对象地址变了，还需要把那些 Root 根指针的地址修改为移动后的新地址。</p>
+<p><img src="/img/net-mem-02-mark-compact.png" alt="net-mem-02-mark-compact.png"></p>
+<p><strong>性能影响</strong></p>
+<ul>
+<li>1，移动对象意味着内存复制，这对于内存占用多的对象来说是昂贵的开销。</li>
+<li>2，对象被移动之后，所有的引用的值必须更新其地址。对于频繁引用的对象来说，这种分散的内存操作势必造成性能影响。</li>
+</ul>
+<p><strong>固定</strong></p>
+<p>该场景涉及到托管对象传递给非托管代码。</p>
+<h3 id="垃圾回收器的特性"><a href="#垃圾回收器的特性" class="headerlink" title="垃圾回收器的特性"></a>垃圾回收器的特性</h3><p>垃圾回收器是如何和其他应用程序线程（通常称为赋值线程，mutator thread）进行交互的。</p>
+<h4 id="垃圾回收时暂停线程"><a href="#垃圾回收时暂停线程" class="headerlink" title="垃圾回收时暂停线程"></a>垃圾回收时暂停线程</h4><p>垃圾回收器和其他应用程序线程并发执行可以产生的问题：</p>
+<ul>
+<li>假阴性（false negative）:一个对象满足垃圾回收的条件，但被标记为活动的。</li>
+<li>假阳性（false positive）:一个对象被认为是可回收对象，但它依然被应用程序所引用。尽量避免该情况发生。</li>
+</ul>
+<h4 id="在垃圾回收时挂起线程"><a href="#在垃圾回收时挂起线程" class="headerlink" title="在垃圾回收时挂起线程"></a>在垃圾回收时挂起线程</h4><p>垃圾回收时会在安全点（safe point）出挂起线程，JIT 编译器通过生成额外的信息确保只有安全的时候才挂起线程进行垃圾回收。而 CLR 也会尝试安全的挂起线程。</p>
+<p>非托管线程并不会由于托管线程的挂起而受到影响，除非它已经切换回了托管线程，这一过程有平台调用转换器负责的。</p>
+<h5 id="在标记阶段挂起线程"><a href="#在标记阶段挂起线程" class="headerlink" title="在标记阶段挂起线程"></a>在标记阶段挂起线程</h5><p><strong>出现假阳性</strong><br>如果垃圾回收器在对象创建之前，已经完成了相关部分引用图更新，那么一个刚刚被创建的对象，即使已经被应用程序引用，也可能判断为未引用。</p>
+<p><strong>出现假阴性</strong><br>对于一个已经被标记的对象，如果它的最后一个引用在标记阶段被移除，那么这个本该被回收的对象就会继续存活。<br>如果对象真的不可达，那就不可能重新变成可达状态，它将在下一轮垃圾回收周期中被回收。</p>
+<h5 id="在清理阶段挂起线程"><a href="#在清理阶段挂起线程" class="headerlink" title="在清理阶段挂起线程"></a>在清理阶段挂起线程</h5><p>CLR 禁止应用程序和垃圾回收过程并发执行。</p>
+<h4 id="工作站垃圾回收"><a href="#工作站垃圾回收" class="headerlink" title="工作站垃圾回收"></a>工作站垃圾回收</h4><p>工作站垃圾回收（workstation GC）,分为<strong>并发工作站垃圾回收</strong> 与 <strong>非并发工作站垃圾回收</strong></p>
+<p><strong>并发工作站垃圾回收</strong></p>
+<p>并发工作站垃圾回收 是默认的特征。在并发工作站垃圾回收下，有一个独立的专门的垃圾回收线程。该线程在执行垃圾回收的过程时，始终具有 THRAD_PRIORITY_HIGHEST 优先级。CRL 可以决定是否允许某些垃圾回收阶段与应用程序线程并发执行。<br>图形界面应用程序应该尽量避免从 UI 线程触发垃圾回收，即在后台线程进行资源分配，且不要显示的从 UI 线程调用 GC.Collect 方法。因为UI线程被垃圾回收阻塞的同时，其它应用程序线程却在和垃圾回收过程争抢资源。</p>
+<p><strong>非并发工作站垃圾回收</strong></p>
+<p>非并发工作站垃圾回收特征在标记和清理阶段均会挂起应用程序线程。适用于从 UI 线程触发垃圾回收的情形。<br>由于在 UI 线程等待垃圾回收时，其它的后台线程不会和垃圾回收器争夺资源，一次 UI 线程可以即可恢复响应。</p>
+<h4 id="服务器垃圾回收"><a href="#服务器垃圾回收" class="headerlink" title="服务器垃圾回收"></a>服务器垃圾回收</h4><p>服务器垃圾回收专门针对服务器应用程序进行了优化。</p>
+<p>使用服务器垃圾回收特征的唯一限制是物理处理器的数目。如果仅有一个处理器，则只能够选择工作站垃圾回收特征。</p>
+<p>由于并发工作站垃圾回收是默认的垃圾回收特征，一般运行于默认的 CLR 宿主下的命令行，windonws 应用程序，windows 服务都使用默认的垃圾回收特征；不在默认的 CLR 宿主运行的应用程序则可以选择其他的垃圾回收特征。由于 IIS 大多安装在服务器上，在 IIS ASP.NET 宿主下运行的应用程序使用的就是服务器垃圾回收特征（可以通过 web.config 修改这个定义）</p>
+<h4 id="切换垃圾回收特征"><a href="#切换垃圾回收特征" class="headerlink" title="切换垃圾回收特征"></a>切换垃圾回收特征</h4><p>在默认的宿主下，可以通过应用程序配置文件( app.config )修改垃圾回收特征及其子特征。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version&#x3D;&quot;1.0&quot; encoding&#x3D;&quot;utf-8&quot;?&gt;</span><br><span class="line"></span><br><span class="line">&lt;configuration&gt;</span><br><span class="line">  &lt;runtime&gt;</span><br><span class="line">    &lt;gcServer enabled&#x3D;&quot;true&quot;&#x2F;&gt;</span><br><span class="line">    &lt;gcConcurrent enabled&#x3D;&quot;false&quot;&#x2F;&gt;</span><br><span class="line">  &lt;&#x2F;runtime&gt;</span><br><span class="line">&lt;&#x2F;configuration&gt;</span><br></pre></td></tr></table></figure>
+
+<p><strong>安全的使用低延迟垃圾回收</strong></p>
+<p>安全的使用低延迟垃圾回收的唯一途径是将其放在受限执行区域（constrained execution region,CER）内。</p>
+<p>需要引用：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System.Runtime;</span><br><span class="line"><span class="keyword">using</span> System.Runtime.CompilerServices;</span><br><span class="line"></span><br><span class="line">GCLatencyMode oldModel = GCSettings.LatencyMode;</span><br><span class="line">RuntimeHelpers.PrepareConstrainedRegions();</span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span></span><br><span class="line">&#123;</span><br><span class="line">    GCSettings.LatencyMode = GCLatencyMode.LowLatency;</span><br><span class="line">    <span class="comment">// Perform time-sensitive work here (执行时间敏感操作)</span></span><br><span class="line">&#125;<span class="keyword">finally</span></span><br><span class="line">&#123;</span><br><span class="line">    GCSettings.LatencyMode = oldModel;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="代龄（Generation）"><a href="#代龄（Generation）" class="headerlink" title="代龄（Generation）"></a>代龄（Generation）</h3><p>.NET 垃圾回收器的“代”模型（generational model）使用局部垃圾回收进行性能优化。</p>
+<p>和真实世界的人和动物不同，.NET 认为年轻的对象更容易死亡，而年老的对象更倾向于存货。<br>年轻和年老的定义取决于应用程序垃圾回收的频率。在大多数应用程序中，临时对象（在一个方法张中分配的对象）大多是年轻的，而随着应用程序初始化的对象大多是年老的。</p>
+<p>分代(Generation)算法 是 CLR 垃圾回收器采用的一种机制，它唯一的目的就是提升应用程序的性能。分代回收，速度显然快于回收整个堆。分代( Generation )算法的假设前提条件：</p>
+<ul>
+<li>1、大量新创建的对象生命周期都比较短，而较老的对象生命周期会更长</li>
+<li>2、对部分内存进行回收比基于全部内存的回收操作要快</li>
+<li>3、新创建的对象之间关联程度通常较强。heap 分配的对象是连续的，关联度较强有利于提高 CPU cache 的命中率</li>
+</ul>
+<p>在 “代”模型 中，托管堆被划分为三个区域：第0代，第1代和第2代。</p>
+<ul>
+<li>第0代，最新分配在堆上的对象，从来没有被垃圾收集过。任何一个新对象，当它第一次被分配在托管堆上时，就是第0代（大于85000的大对象除外）。 </li>
+<li>第1代，0代满了会触发0代的垃圾回收，0代垃圾回收后，剩下的对象会搬到1代。 </li>
+<li>第2代，当0代、1代满了，会触发0代、1代的垃圾回收，第0代升为第1代，第1代升为第2代。</li>
+</ul>
+<p><img src="/img/net-mem-06-generation.png" alt="net-mem-06-generation.png"></p>
+<p>大部分情况，GC 只需要回收0代即可，这样可以显著提高 GC 的效率，而且 GC 使用启发式内存优化算法，自动优化内存负载，自动调整各代的内存大小。</p>
+<p>如果 Gen 0 heap 内存达到阀值，则触发0代GC，0代GC后Gen 0中幸存的对象进入Gen1。如果Gen 1的内存达到阀值，则进行1代GC，1代GC将Gen 0 heap和Gen 1 heap一起进行回收，幸存的对象进入Gen2。</p>
+<p>　　2代 GC 将Gen 0 heap、Gen 1 heap和Gen 2 heap一起回收，Gen 0和Gen 1比较小，这两个代龄加起来总是保持在16M左右；Gen2的大小由应用程序确定，可能达到几G，因此0代和1代GC的成本非常低，2代GC称为full GC，通常成本很高。粗略的计算0代和1代GC应当能在几毫秒到几十毫秒之间完成，Gen 2 heap比较大时，full GC可能需要花费几秒时间。大致上来讲 .NET 应用运行期间，2代、1代和0代GC的频率应当大致为1:10:100。</p>
+<h4 id="第0代"><a href="#第0代" class="headerlink" title="第0代"></a>第0代</h4><p>第0代通常以 256KB-4MB 起步，根据使用情况缓慢增长。当第0代已满而不能完成一个新的内存分配请求时，第0代就会发起一次垃圾回收。<br>由于第0代的大小受高速缓存大小的影响，因此很可能在高速缓存中就可以找到第0代的所有对象。<font color=#0099ff size=4 face="黑体">第0代的所有对象几乎都在一次垃圾回收结束之后清理殆尽。</font><br>但是，仍然有一些对象会出于各种原因得以存活。</p>
+<ul>
+<li>应用程序具有糟糕的行为，分配的临时对象在一次垃圾回收之后仍然存活。</li>
+<li>应用程序处于初始化阶段，这个阶段分配的对象多是长生命周期对象。</li>
+<li>应用程序创建的是短期临时对象，但是在垃圾回收触发时这些对象恰巧正在被使用。</li>
+</ul>
+<p>这些撑过一次垃圾回收的对象不会被排列在第0代的起始位置。它们会被提升到第1代。</p>
+<p><strong>跨代移动固定对象</strong></p>
+<p>垃圾回收器无法移动固定的对象。但是 CLR 用一种非常巧妙的方法完成了固定对象的代升级：如果第0代由于固定对象的原因严重碎片化了，则 CLR 可以将整个第0代声明为更高代，并将一块新的内存声明为第0代，在这块内存中处理新的分配请求。</p>
+<h4 id="第1代"><a href="#第1代" class="headerlink" title="第1代"></a>第1代</h4><p>第1代是第0代和第2代之间的缓冲区域。第1代典型的初始长度为 512KB-4MB。当第1代被填满时，会在第1代触发垃圾回收。只有第1代中的对象会被垃圾回收器标记和清除。自然触发第1代垃圾回收的唯一时机是在第0代垃圾回收后，存活的对象被提升至第1级时（另一种是手动触发垃圾回收）。</p>
+<h4 id="第2代"><a href="#第2代" class="headerlink" title="第2代"></a>第2代</h4><p>第2代是在至少两次垃圾回收过程后存活对象的终极区域（还有大对象），在“代”模型中，这些对象属于老年对象，这些对象不太可能在短期内回收。<font color=#0099ff size=4 face="黑体">第2代区域不会人为的进行大小限制，它可以扩展到整个系统进程的专用内存空间，在32位系统中为2GB，在64位系统中最多为8TB。第2代中设定了动态阈值（水印）以触发垃圾回收操作。</font></p>
+<p>若垃圾回收发生在第二代，则这是一个完全的垃圾回收。这是昂贵的，需要消耗最多的时间。</p>
+<h4 id="大对象堆"><a href="#大对象堆" class="headerlink" title="大对象堆"></a>大对象堆</h4><p>大对象堆（large object heap,LOH）是一个专门容纳大对象的特殊区域。指内存占用大于85KB（85000字节）的对象。这个区域的主要特点就是：不会轻易被回收；就是回收了也不会被压缩（因为对象太大，移动复制的成本太高了）。</p>
+<p><font color=#0099ff size=4 face="黑体">这个大小指对象本身的大小而非以该对象为根的整个对象树的大小。</font>因此，包含1000个字符串（每个字符串含有100个字符）的数组不是一个大对象，但是一个长度为50000的整数数组是一个大对象。</p>
+<p>大对象从 LOH 中直接分配而不会放在第0代，第1代或者第2代中。</p>
+<p>垃圾回收在 LOH 上进行回收时，并不会清理大对象并进行数据复制。LOH 维护了一个未使用内存的链表，新的内存分配请求可以从链表中进行。</p>
+<p><font color=#0099ff size=4 face="黑体">当第2代对象占用的内存达到阈值时，则 LOH 就会进行垃圾回收。类似的，若 LOH 占用的内存达到阈值，也会触发第2代垃圾回收。因此，创建太多大型的临时对象也会造成类似 “中年危机” –必须进行完全回收以释放这些对象。LOH 中的碎片是另一个潜在问题，因为 LOH 中对象之间的空洞无法在清理阶段被移除并达到对堆进行碎片整理的效果。一个有效的策略是缓存并重用大对象，或者是（如果数组中对象的类型是一致的）分配一个大对象，然后在需要时手动将其分成小块。</font></p>
+<h2 id="GC-Collect-方法"><a href="#GC-Collect-方法" class="headerlink" title="GC.Collect() 方法"></a>GC.Collect() 方法</h2><p>作用：强制进行垃圾回收。</p>
+<p>Collect()：强制对所有代进行即时垃圾回收。</p>
+<p>Collect(Int32)：强制对零代到指定代进行即时垃圾回收。</p>
+<p>Collect(Int32, GCCollectionMode)：强制在 GCCollectionMode 值所指定的时间对零代到指定代进行垃圾回收</p>
+<p>GC注意事项：</p>
+<ul>
+<li>1、只管理内存，非托管资源，如文件句柄，GDI 资源，数据库连接等还需要用户去管理。</li>
+<li>2、循环引用，网状结构等的实现会变得简单。GC 的标志-压缩算法能有效的检测这些关系，并将不再被引用的网状结构整体删除。</li>
+<li>3、GC 通过从程序的根对象开始遍历来检测一个对象是否可被其他对象访问，而不是用类似于 COM 中的引用计数方法。</li>
+<li>4、GC 在一个独立的线程中运行来删除不再被引用的内存。</li>
+<li>5、GC 每次运行时会压缩托管堆。</li>
+<li>6、你必须对非托管资源的释放负责。可以通过在类型中定义Finalizer来保证资源得到释放。</li>
+<li>7、对象的 Finalizer被执行的时间是在对象不再被引用后的某个不确定的时间。注意并非和C++中一样在对象超出声明周期时立即执行析构函数</li>
+<li>8、Finalizer的使用有性能上的代价。需要Finalization的对象不会立即被清除，而需要先执行Finalizer.Finalizer，不是在GC执行的线程被调用。GC把每一个需要执行Finalizer的对象放到一个队列中去，然后启动另一个线程来执行所有这些Finalizer，而GC线程继续去删除其他待回收的对象。在下一个GC周期，这些执行完Finalizer的对象的内存才会被回收。</li>
+<li>9、.NET GC使用”代”(generations)的概念来优化性能。代帮助GC更迅速的识别那些最可能成为垃圾的对象。在上次执行完垃圾回收后新创建的对象为第0代对象。经历了一次GC周期的对象为第1代对象。经历了两次或更多的GC周期的对象为第2代对象。代的作用是为了区分局部变量和需要在应用程序生存周期中一直存活的对象。大部分第0代对象是局部变量。成员变量和全局变量很快变成第1代对象并最终成为第2代对象。</li>
+<li>10、GC 对不同代的对象执行不同的检查策略以优化性能。每个 GC 周期都会检查第0代对象。大约1/10的 GC 周期检查第0代和第1代对象。大约1/100的GC周期检查所有的对象。重新思考Finalization的代价：需要Finalization的对象可能比不需要 Finalization 在内存中停留额外9个GC周期。如果此时它还没有被Finalize，就变成第2代对象，从而在内存中停留更长时间。</li>
+</ul>
+<h3 id="跨代引用"><a href="#跨代引用" class="headerlink" title="跨代引用"></a>跨代引用</h3><p>一个高代对象引用一个低代对象的情形只会在一种类型的语句中出现：将一个非空引用类型对象赋值给一个引用类型的实例的成员变量（或者复制给一个数组的元素）。</p>
+<h2 id="非托管资源回收"><a href="#非托管资源回收" class="headerlink" title="非托管资源回收"></a>非托管资源回收</h2><p>&emsp;&emsp;非托管资源不受 CLR 或者垃圾回收器的管理（如内核对象句柄，数据库连接和非托管内存等）。释放非托管资源需要使用 终结化特性，即一个对象与一段特定的代码关联起来。这段代码必须在该对象（代表一个非托管资源）不再需要时执行。</p>
+<p>常见的有：ApplicationContext, Brush, Component, ComponentDesigner, Container, Context, Cursor, FileStream, Font, Icon, Image, Matrix, Object, OdbcDataReader, OleDBDataReader, Pen, Regex, Socket, StreamWriter, Timer, Tooltip, 文件句柄, GDI资源, 数据库连接等等资源。</p>
+<p>.NET 中提供释放非托管资源的方式主要是：Finalize() 和 Dispose()。</p>
+<p>.NET的GC机制有这样两个问题：</p>
+<ul>
+<li>GC并不是能释放所有的资源。它不能自动释放非托管资源。</li>
+<li>GC并不是实时性的，这将会造成系统性能上的瓶颈和不确定性。</li>
+</ul>
+<p>　　GC 并不是实时性的，这会造成系统性能上的瓶颈和不确定性。所以有了 IDisposable 接口，IDisposable 接口定义了 Dispose 方法，这个方法用来供程序员显式调用以释放非托管资源。使用 using 语句可以简化资源管理。</p>
+<p>当你用 Dispose 方法释放未托管对象的时候，应该调用 GC.SuppressFinalize。如果对象正在终结队列( finalization queue ), GC.SuppressFinalize 会阻止 GC 调用 Finalize 方法。因为 Finalize 方法的调用会牺牲部分性能。如果你的 Dispose 方法已经对委托管资源作了清理，就没必要让 GC 再调用对象的 Finalize 方法。</p>
+<h3 id="终结器"><a href="#终结器" class="headerlink" title="终结器"></a>终结器</h3><p>所有实现了终结器（析构函数）的对象，会被 GC 特殊照顾，GC 的终止化队列跟踪所有实现了 Finalize 方法（析构函数）的对象。</p>
+<ul>
+<li>当 CLR 在托管堆上分配对象时，GC 检查该对象是否实现了自定义的 Finalize 方法（析构函数）。如果是，对象会被标记为可终结的，同时这个对象的指针被保存在名为终结队列的内部队列中。终结队列是一个由垃圾回收器维护的表，它指向每一个在从堆上删除之前必须被终结的对象。</li>
+<li>当 GC 执行并且检测到一个不被使用的对象时，需要进一步检查“终结队列”来查询该对象类型是否含有 Finalize 方法，如果没有则将该对象视为垃圾，如果存在则将该对象的引用移动到另外一张 Freachable 列表，此时对象会被复活一次。</li>
+<li>CLR 将有一个单独的高优先级线程负责处理 Freachable 列表，就是依次调用其中每个对象的 Finalize 方法，然后删除引用，这时对象实例就被视为不再被使用，对象再次变成垃圾。</li>
+<li>下一个 GC 执行时，将释放已经被调用 Finalize 方法的那些对象实例。</li>
+</ul>
+<p>简单总结：Finalize() 可以确保非托管资源会被释放，但需要很多额外的工作（比如终结对象特殊管理），而且 GC 需要执行两次才会真正释放资源。唯一的优点就是不需要显示调用。</p>
+<h3 id="Finalization-Queue-和-Freachable-Queue"><a href="#Finalization-Queue-和-Freachable-Queue" class="headerlink" title="Finalization Queue 和 Freachable Queue"></a>Finalization Queue 和 Freachable Queue</h3><p>　　这两个队列和 .NET 对象所提供的 Finalize 方法有关。这两个队列并不用于存储真正的对象，而是存储一组指向对象的指针。当程序中使用了 new 操作符在 Managed Heap 上分配空间时，GC 会对其进行分析，如果该对象含有 Finalize 方法则在 Finalization Queue 中添加一个指向该对象的指针。</p>
+<p>　　在 GC 被启动以后，经过 Mark 阶段分辨出哪些是垃圾。再在垃圾中搜索，如果发现垃圾中有被 Finalization Queue 中的指针所指向的对象，则将这个对象从垃圾中分离出来，并将指向它的指针移动到 Freachable Queue 中。这个过程被称为是对象的复生（Resurrection），本来死去的对象就这样被救活了。为什么要救活它呢？因为这个对象的 Finalize 方法还没有被执行，所以不能让它死去。Freachable Queue 平时不做什么事，但是一旦里面被添加了指针之后，它就会去触发所指对象的 Finalize 方法执行，之后将这个指针从队列中剔除，这是对象就可以安静的死去了。</p>
+<p>　　.NET Framework 的 System.GC 类提供了控制Finalize的两个方法，ReRegisterForFinalize 和 SuppressFinalize。前者是请求系统完成对象的 Finalize 方法，后者是请求系统不要完成对象的 Finalize 方法。ReRegisterForFinalize 方法其实就是将指向对象的指针重新添加到 Finalization Queue 中。这就出现了一个很有趣的现象，因为在 Finalization Queue 中的对象可以复生，如果在对象的 Finalize 方法中调用 ReRegisterForFinalize 方法，这样就形成了一个在堆上永远不会死去的对象，像凤凰涅槃一样每次死的时候都可以复生。</p>
+<h3 id="手动确定性终结化"><a href="#手动确定性终结化" class="headerlink" title="手动确定性终结化"></a>手动确定性终结化</h3><p>手动确定性终结化，需要客户端释放资源。</p>
+<h3 id="自动非确定性终结化"><a href="#自动非确定性终结化" class="headerlink" title="自动非确定性终结化"></a>自动非确定性终结化</h3><p>Finalize 来自 System.Object 中受保护的虚方法 Finalize，无法被子类显示重写，也无法显示调用。她的作用就是用来释放非托管资源，由 GC 来执行回收，因此可以保证非托管资源可以被释放。</p>
+<ul>
+<li>无法被子类显示重写：.NET 提供类似 C++ 析构函数的形式来实现重写，因此也有称之为析构函数，但其实她只是外表和C++ 里的析构函数像而已。</li>
+<li>无法显示调用：由 GC 来管理和执行释放，不需要手动执行了，不用担心忘记调用Dispose。</li>
+</ul>
+<p>&emsp;&emsp;任何一种类型都可以通过重写 System.Object 定义的（protected）Finalize 方法表明该类型需要进行自动化终结。例如在 File 类中自动终结化方法 ~File（终结器,析构函数）。在对象将被销毁时，该方法必须得到执行。值类型只有在装箱的情况下才有垃圾回收的必要。</p>
+<p>&emsp;&emsp;当一个拥有终结器的对象被创建时，他的一个引用将被添加到一个特殊的运行时队列上，成为终结队列（finalization queue）。这个队列被垃圾回收器界定为根。这意味着即使应用程序没有针对这个引用对象的引用，它仍然会子啊终结队列上保持活动状态。</p>
+<p>&emsp;&emsp;当这个对象不再被应用程序引用，并开始垃圾回收时，若垃圾回收发现唯一一个针对该对象的引用来自于终结队列，则它会将这个对象的引用移动到另一个运行时管理的队列上，成为终结可达队列（freacheable queue）。该队列仍然被界定为根，因而，该对象仍然在被引用并保持存活。</p>
+<p>&emsp;&emsp;<font color=#0099ff size=4 face="黑体">对象的终结器不会在垃圾回收的过程中执行。</font>在 CLR 初始化的过程会创建一个特殊的线程，称为 终结器线程（finalizaer thread）(每一个进程只会有一个终结器线程，这和垃圾回收器特征无关，该线程运行在 THREAD_PRIORITY_HIGHEST 优先级上)。这个线程会反复等待终结化事件（finalization event）的触发。在垃圾回收器完成垃圾回收并触发该事件后，如果终结可达队列中有对象放入，则终结器线程就会被激活。终结器线程将对象的引用从终结可达队列中移除，同时同步执行对象上的终结器方法。而当下一次垃圾回收开始时，由于该对象再无引用，因此垃圾回收可以将其内存回收。</p>
+<h3 id="非确定性终结的缺点"><a href="#非确定性终结的缺点" class="headerlink" title="非确定性终结的缺点"></a>非确定性终结的缺点</h3><ul>
+<li>有终结器的对象将至少位于第1代，更容易经历“中年危机”，从而更容易进行多次完整回收。</li>
+<li>终结器线程的压力（有很多对象需要进行终结化）可能导致内存泄漏。如果应用程序线程分配对象的频率比终结器线程终结化对象的频率更高，那么应用程序将从等待终结化的对象中持续的泄漏内存。</li>
+<li>自动非确定性终结化还是很多难以发现或调试错误的来源。因为终结化是异步的，因此多个对象的终结顺序是难以保证的。</li>
+</ul>
+<p><strong>终结器也许永远不会被调用</strong></p>
+<p>&emsp;&emsp;终结器无法在进程被野蛮的关闭时执行。如用户通过任务管理器或者 TerminateProcess API 终止线程的执行，则终结器将无法进行资源回收。</p>
+<p><strong>对象的复活</strong></p>
+<p>终结化为对象提供了一个在其不被应用程序引用的情况下执行任意代码的机会。这种机会可以用于创建一个应用程序到该对象的引用，在对象即将失效时，另其起死回生，这种能力称为复活（resurrection）。主要的风险是，该对象引用的其它对象有可能已经被终结化而处于无效状态，此时，只能重新初始化该对象所有引用的对象；另一个问题是该对象的终结器不会被执行，因此你需要将该对象的引用作为参数传递个 GC.ReRegisterForFinnalize 方法。</p>
+<p>适用于复活机制的场景之一就是对象池（object pooling）。</p>
+<h3 id="Dispose模式"><a href="#Dispose模式" class="headerlink" title="Dispose模式"></a>Dispose模式</h3><p>.Net 规定所有需要进行确定终结化的对象都必须实现 IDisposable 接口。而该接口仅有一个方法，即 Dispose 方法。这个方法会释放非托管资源，进行确定终结化。</p>
+<p>Dispose 需要手动调用：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//方式1：显示接口调用</span></span><br><span class="line">SomeType st1=<span class="keyword">new</span> SomeType();</span><br><span class="line"><span class="comment">//do sth</span></span><br><span class="line">st1.Dispose();</span><br><span class="line"></span><br><span class="line"><span class="comment">//方式2：using()语法调用，自动执行Dispose接口</span></span><br><span class="line"><span class="keyword">using</span> (<span class="keyword">var</span> st2 = <span class="keyword">new</span> SomeType())</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">//do sth</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>第一种方式，显示调用，缺点显而易见，如果程序猿忘了调用接口，则会造成资源得不到释放。或者调用前出现异常，当然这一点可以使用 try…finally 避免。</p>
+</li>
+<li><p>建议使用第二种实现方式，他可以保证无论如何 Dispose 接口都可以得到调用，原理其实很简单，using() 的 IL 代码如下图，因为 using 只是一种语法形式，本质上还是 try…finally 的结构。</p>
+</li>
+</ul>
+<p><img src="/img/151257-20160309235625475-414934067.png" alt="151257-20160309235625475-414934067.png"></p>
+<p>微软是推荐同时实现 IDisposable 接口和 Finalize （析构函数），其实 FCL 中很多类库都是这样实现的，这样可以兼具两者的优点：</p>
+<ul>
+<li>如果调用了 Dispose，则可以忽略对象的终结器，对象一次就回收了；</li>
+<li>如果忘了调用 Dispose，则还有一层保障，终结器会负责对象资源的释放；</li>
+</ul>
+<h2 id="性能优化建议"><a href="#性能优化建议" class="headerlink" title="性能优化建议"></a>性能优化建议</h2><p>尽量不要手动执行垃圾回收的方法：GC.Collect()</p>
+<p>垃圾回收的运行成本较高（涉及到了对象块的移动、遍历找到不再被使用的对象、很多状态变量的设置以及 Finalize 方法的调用等等），对性能影响也较大，因此我们在编写程序时，应该避免不必要的内存分配，也尽量减少或避免使用 GC.Collect() 来执行垃圾回收，一般 GC 会在最适合的时间进行垃圾回收。</p>
+<p>需要注意，在执行垃圾回收的时候，所有线程都是要被挂起的（如果回收的时候，代码还在执行，那对象状态就不稳定了，也没办法回收了）。</p>
+<p>推荐 Dispose 代替 Finalize</p>
+<p>如果你了解 GC 内存管理以及 Finalize 的原理，可以同时使用 Dispose 和 Finalize 双保险，否则尽量使用 Dispose。</p>
+<p>选择合适的垃圾回收机制：工作站模式、服务器模式。</p>
+<h2 id="弱引用"><a href="#弱引用" class="headerlink" title="弱引用"></a>弱引用</h2><p>弱引用（weak reference）是用于管理托管对象引用的附加机制。典型的对象引用（通常为强引用（strong reference））是明确的：只要还拥有一个对象的引用，那么这个对象就会存活。这种行为的正确性是有垃圾回收器保证的。</p>
+<p>但在某些情况下，我们还希望有一种隐形的 “绳索”，即能够绑在对象上，又不影响垃圾回收器回收它占用的内存。如果垃圾回收器回收了这个对象，那么我们可以探测到绳索的一端和对象断开了。如果垃圾回收器还没有处理这个对象，我们可以牵动“绳索”来获得这个对象的一个强引用并在此使用这个对象。</p>
+<p>常见的场景：</p>
+<ul>
+<li>在不保持对象的存活的情况下提供外部服务。例如，定时器和事件服务可以为对象所用，但并不需要维持对象的引用。这可以避免很多典型的内存泄漏问题。</li>
+<li>可以自动管理缓存或池策略。一个缓存可以保有最近使用对象的弱引用而不妨碍他们被回收。一个池可以划分为一个非常小的部分用以维持一小部分对象的强引用，以及另外一个可选部分对象的弱引用。</li>
+<li>用以保存一个大对象的引用，并寄希望于它不会被回收。应用程序可以持有一个需要长时间才能初始化的大对象的弱引用。若这个对象被回收，则重新初始化该对象，否则可以在需要时直接复用该对象。</li>
+</ul>
+<p>引用程序代码可以通过 <code>System.WeakReference</code> 类来使用弱引用。可以基于 <code>System.WeakReference</code> 实现事件，这样可以规避.NET内存泄漏的元凶–忘记反注册事件。</p>
+<p>弱引用默认不会跟踪对象的复活。若想允许复活追踪功能，就使用重载的构造函数并将第二个参数传参为true。</p>
+<p><font color=#0099ff size=4 face="黑体">允许追踪对象复活状态的弱引用称为长弱引用（long weak reference）；不追踪对象复活状态的弱引用称为短弱引用（short weak reference）。</font></p>
+<p><strong>垃圾回收句柄</strong></p>
+<p>弱引用是一类特殊的垃圾回收句柄（ GC handle ）。一个垃圾回收句柄是一个特殊的底层值类型，它为对象引用提供了如下的功能。</p>
+<ul>
+<li>维持一个对象的标准的（强）引用，防止对象被回收。以 GCHandleType.Normal 表示。</li>
+<li>维持一个对象的短弱引用。以 GCHandleType.Weak 表示。</li>
+<li>维持一个对象的长弱引用。以 GCHandleType.WeakTrackResurrection 表示。</li>
+<li>维持一个对象的引用，并进行固定，以防止它在内存中被移动。如果需要还可以获得该对象的地址。以 GCHandleType.Pinned 表示。</li>
+</ul>
+<p>实际开发中，我们几乎没有直接使用垃圾回收句柄的需要。但是它们，作为另一种可以保持对象的根，经常出现在诊断结果中。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/anding/p/5260319.html">.NET面试题解析(06)-GC与内存管理</a></p>
+<p><a target="_blank" rel="noopener" href="https://kb.cnblogs.com/page/106720/">C#技术漫谈之垃圾回收机制(GC)</a></p>
+<p>[.Net性能优化]</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/14/CSharp%E8%BD%AC%E6%8D%A2%E5%85%B3%E9%94%AE%E5%AD%97/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/12/14/CSharp%E8%BD%AC%E6%8D%A2%E5%85%B3%E9%94%AE%E5%AD%97/" class="post-title-link" itemprop="url">CSharp转换关键字</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-12-14 10:39:56" itemprop="dateCreated datePublished" datetime="2018-12-14T10:39:56+00:00">2018-12-14</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/CSharp%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index"><span itemprop="name">CSharp基础</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="CSharp转换关键字"><a href="#CSharp转换关键字" class="headerlink" title="CSharp转换关键字"></a>CSharp转换关键字</h1><h2 id="explicit-显示转换"><a href="#explicit-显示转换" class="headerlink" title="explicit(显示转换)"></a>explicit(显示转换)</h2><p><code>explicit</code>:必须通过转换来调用的用户定义的类型转换运算符。</p>
+<p>&emsp;&emsp;此转换运算符从源类型转换为目标类型。 源类型提供转换运算符。 不同于隐式转换，显式转换运算符必须通过转换的方式来调用。 如果转换操作会导致异常或丢失信息，则应将其标记为 explicit。 这可阻止编译器静默调用可能产生意外后果的转换操作。<br>省略转换将导致编译时错误 CS0266。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> Digit</span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">byte</span> <span class="keyword">value</span>;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Digit</span>(<span class="params"><span class="built_in">byte</span> <span class="keyword">value</span></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">value</span> &gt; <span class="number">9</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentException();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">this</span>.<span class="keyword">value</span> = <span class="keyword">value</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Define explicit byte-to-Digit conversion operator:</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">explicit</span> <span class="keyword">operator</span> <span class="title">Digit</span>(<span class="params"><span class="built_in">byte</span> b</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        Digit d = <span class="keyword">new</span> Digit(b);</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;conversion occurred&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> d;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title">ExplicitTest</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">try</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">byte</span> b = <span class="number">3</span>;</span><br><span class="line">            Digit d = (Digit)b; <span class="comment">// explicit conversion</span></span><br><span class="line">        &#125;</span><br><span class="line">        catch (Exception e)</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;&#123;0&#125; Exception caught.&quot;</span>, e);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">Output:</span></span><br><span class="line"><span class="comment">conversion occurred</span></span><br><span class="line"><span class="comment">*/</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="implicit-隐式转换"><a href="#implicit-隐式转换" class="headerlink" title="implicit(隐式转换)"></a>implicit(隐式转换)</h2><p><code>implicit</code> 关键字用于声明隐式的用户定义类型转换运算符。 如果可以确保转换过程不会造成数据丢失，则可使用该关键字在用户定义类型和其他类型之间进行隐式转换。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title">Digit</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Digit</span>(<span class="params"><span class="built_in">double</span> d</span>)</span> &#123; val = d; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">double</span> val;</span><br><span class="line">    <span class="comment">// ...other members</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// User-defined conversion from Digit to double</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">implicit</span> <span class="keyword">operator</span> <span class="title">double</span>(<span class="params">Digit d</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">return</span> d.val;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//  User-defined conversion from double to Digit</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">implicit</span> <span class="keyword">operator</span> <span class="title">Digit</span>(<span class="params"><span class="built_in">double</span> d</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> Digit(d);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        Digit dig = <span class="keyword">new</span> Digit(<span class="number">7</span>);</span><br><span class="line">        <span class="comment">//This call invokes the implicit &quot;double&quot; operator</span></span><br><span class="line">        <span class="built_in">double</span> num = dig;</span><br><span class="line">        <span class="comment">//This call invokes the implicit &quot;Digit&quot; operator</span></span><br><span class="line">        Digit dig2 = <span class="number">12</span>;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;num = &#123;0&#125; dig2 = &#123;1&#125;&quot;</span>, num, dig2.val);</span><br><span class="line">        Console.ReadLine();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">Output:</span></span><br><span class="line"><span class="comment">num = 7 dig2 = 12</span></span><br><span class="line"><span class="comment">*/</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="operator-运算符"><a href="#operator-运算符" class="headerlink" title="operator(运算符)"></a>operator(运算符)</h2><p>operator作用：</p>
+<ul>
+<li>1, 重载内置运算符</li>
+<li>2, 在类或结构声明中提供用户定义的转换</li>
+</ul>
+<p>若要在自定义类或结构上重载运算符，可以在相应的类型中创建运算符声明。 重载内置 C# 运算符的运算符声明必须满足以下规则：</p>
+<ul>
+<li>同时包含 public 和 static 修饰符。</li>
+<li>包含 operator X，其中 X 是被重载运算符的名称或符号。</li>
+<li>一元运算符具有一个参数，二元运算符具有两个参数。 在每种情况下，都必须至少有一个参数与声明运算符的类或结构的类型相同。</li>
+</ul>
+<p>注：<font color=#0099ff size=4 face="黑体"><br>1,一元运算符：++，–，!;<br>2,二元运算符：+，-，* /;<br>3,三元运算符：a=3&gt;4?3:4<br></font></p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title">Fraction</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">int</span> num, den;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Fraction</span>(<span class="params"><span class="built_in">int</span> num, <span class="built_in">int</span> den</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">this</span>.num = num;</span><br><span class="line">        <span class="keyword">this</span>.den = den;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// overload operator +</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> Fraction <span class="keyword">operator</span> +(Fraction a, Fraction b)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> Fraction(a.num * b.den + b.num * a.den,</span><br><span class="line">           a.den * b.den);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// overload operator *</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> Fraction <span class="keyword">operator</span> *(Fraction a, Fraction b)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> Fraction(a.num * b.num, a.den * b.den);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// user-defined conversion from Fraction to double</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">implicit</span> <span class="keyword">operator</span> <span class="title">double</span>(<span class="params">Fraction f</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">return</span> (<span class="built_in">double</span>)f.num / f.den;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title">Test</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        Fraction a = <span class="keyword">new</span> Fraction(<span class="number">1</span>, <span class="number">2</span>);</span><br><span class="line">        Fraction b = <span class="keyword">new</span> Fraction(<span class="number">3</span>, <span class="number">7</span>);</span><br><span class="line">        Fraction c = <span class="keyword">new</span> Fraction(<span class="number">2</span>, <span class="number">3</span>);</span><br><span class="line">        Console.WriteLine((<span class="built_in">double</span>)(a * b + c));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">Output</span></span><br><span class="line"><span class="comment">0.880952380952381</span></span><br><span class="line"><span class="comment">*/</span></span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/csharp/language-reference/keywords/explicit">https://docs.microsoft.com/zh-cn/dotnet/csharp/language-reference/keywords/explicit</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/13/DotNet%E8%A7%A3%E5%86%B3%E4%BA%8B%E4%BB%B6-Event-%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E9%80%9A%E7%94%A8%E6%96%B9%E6%B3%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/12/13/DotNet%E8%A7%A3%E5%86%B3%E4%BA%8B%E4%BB%B6-Event-%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E9%80%9A%E7%94%A8%E6%96%B9%E6%B3%95/" class="post-title-link" itemprop="url">DotNet解决事件(Event)内存泄漏通用方法</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-12-13 15:05:14" itemprop="dateCreated datePublished" datetime="2018-12-13T15:05:14+00:00">2018-12-13</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F/" itemprop="url" rel="index"><span itemprop="name">内存泄漏</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="DotNet解决事件-Event-内存泄漏通用方法"><a href="#DotNet解决事件-Event-内存泄漏通用方法" class="headerlink" title="DotNet解决事件(Event)内存泄漏通用方法"></a>DotNet解决事件(Event)内存泄漏通用方法</h1><p>&emsp;&emsp;一个生命周期较短的对象（对象A）注册到一个生命周期较长（对象B）的某个事件（Event）上，两者便无形之间建立一个引用关系（B引用A）。这种引用关系导致GC在进行垃圾回收的时候不会将A是为垃圾对象，最终使其常驻内存（或者说将A捆绑到B上，具有了和B一样的生命周期）。这种让无用的对象不能被GC垃圾回收的现象，在托管环境下就是一种典型的内存泄漏问题。</p>
+<p><a target="_blank" rel="noopener" href="https://pan.baidu.com/s/1_zrGMRwiyB6Kky8t5kgFlA">代码下载</a><br>提取码：xazz</p>
+<p><font color=#0099ff size=4 face="黑体">事实上，.NET内存泄漏的最普遍原因是静态变量引用了对象。</font></p>
+<h2 id="造成事件-Event-内存泄漏的原因"><a href="#造成事件-Event-内存泄漏的原因" class="headerlink" title="造成事件(Event)内存泄漏的原因"></a>造成事件(Event)内存泄漏的原因</h2><p>事件本质上就是一个System.Delegate对象。<br>Delegate分解成两个部分：委托的事情和委托的对象。与之相似地，.NET的Delegate对象同样可以分解成两个部分：委托的功能（Method）和目标对象（Target），这可以直接从Delegate的定义就可以看出来：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title">Delegate</span> : <span class="title">ICloneable</span>, <span class="title">ISerializable</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// Others</span></span><br><span class="line">    <span class="keyword">public</span> MethodInfo Method &#123; <span class="keyword">get</span>; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">object</span> Target &#123; <span class="keyword">get</span>; &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>常用的事件处理类型<code>EventHandler</code>和<code>EventHandler&lt;TEventArgs&gt;</code>本质上就是一个Delegate。</p>
+<p>他们继承自<code>System.MulticastDelegate</code>，<code>MulticastDelegate</code>派生于<code>Delegate</code>。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[<span class="meta">Serializable, ComVisible(true)</span>]</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="built_in">delegate</span> <span class="keyword">void</span> <span class="title">EventHandler</span>(<span class="params"><span class="built_in">object</span> sender, EventArgs e</span>)</span>;</span><br><span class="line"></span><br><span class="line">[<span class="meta">Serializable</span>]</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="built_in">delegate</span> <span class="keyword">void</span> <span class="title">EventHandler</span>&lt;<span class="title">TEventArgs</span>&gt;(<span class="params"><span class="built_in">object</span> sender, TEventArgs e</span>) <span class="keyword">where</span> TEventArgs: EventArgs</span>;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;经过简单一句事件注册代码就通过一个EventHandler（EventHandler<TodoListArgs>）事件的源（TodoListManager）和事件的监听者（TodoListForm）两着关联起来，三者之间的关系如下图所示。从这张图中我们可以看到：TodoListForm实际上是通过注册的EventHandler的Target属性被TodoListManager间接引用着的。所以才会导致TodoListForm在关闭之后，永远不能拿成为垃圾对象，因为TodoListManager是一个基于static属性定义的Singleton对象，永远是GC的根。</p>
+<p><img src="/img/image_thumb_2.png" alt="image_thumb_2.png"></p>
+<h2 id="解决方法"><a href="#解决方法" class="headerlink" title="解决方法"></a>解决方法</h2><p>&emsp;&emsp;当对象A注册到B的某个事件上，A并不受到B的“强制引用”。既然不能“强引用（Strong Reference）”，那就只能是“弱引用（Weak Reference）”。通过<code>System.WeakReference</code>来解决这个问题。</p>
+<p>方法：采取某种机制，让事件源（Event Source）的EventHandler通过WeakReference的方式与事件监听者建立关系。只有在这种情况下，事件监听者没有了事件源的强制引用，在我们不用的时候才能及时成为垃圾对象，等待GC对它的清理。</p>
+<p><img src="/img/image_thumb_3.png" alt="image_thumb_3.png"></p>
+<p>&emsp;&emsp;通过传入<code>EventHandler&lt;TEventArgs&gt;</code>对象构造WeakReferenceHandler，在EventHandler<TEventArgs>的Target属性基础上建立WeakReference对象，在执行处理事件的时候通过该WeakReference找到真正的目标对象，如果找得到则通过反射在其基础上调用相应的方法；反之，如果通过不能得到Target，那么表明该事件的监听对象已经被GC当作垃圾对象回收掉了。为了在注册事件的时候方遍，特定义了一个隐式的类型转换：WeakReferenceHandler转换成EventHandler<TEventArgs>。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Reflection;</span><br><span class="line"><span class="keyword">namespace</span> <span class="title">Artech.MemLeakByEvents</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">class</span> <span class="title">WeakEventHandler</span>&lt;<span class="title">TEventArgs</span>&gt; <span class="keyword">where</span> <span class="title">TEventArgs</span> : <span class="title">EventArgs</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">public</span> WeakReference Reference</span><br><span class="line">        &#123; <span class="keyword">get</span>; <span class="keyword">private</span> <span class="keyword">set</span>; &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">public</span> MethodInfo Method</span><br><span class="line">        &#123; <span class="keyword">get</span>; <span class="keyword">private</span> <span class="keyword">set</span>; &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">public</span> EventHandler&lt;TEventArgs&gt; Handler</span><br><span class="line">         &#123; <span class="keyword">get</span>; <span class="keyword">private</span> <span class="keyword">set</span>; &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="title">WeakEventHandler</span>(<span class="params">EventHandler&lt;TEventArgs&gt; eventHandler</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            Reference = <span class="keyword">new</span> WeakReference(eventHandler.Target);</span><br><span class="line">            Method = eventHandler.Method;</span><br><span class="line">            Handler = Invoke;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">Invoke</span>(<span class="params"><span class="built_in">object</span> sender, TEventArgs e</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            <span class="built_in">object</span> target = Reference.Target;</span><br><span class="line">            <span class="keyword">if</span> (<span class="literal">null</span> != target)</span><br><span class="line">            &#123;</span><br><span class="line">                Method.Invoke(target, <span class="keyword">new</span> <span class="built_in">object</span>[] &#123; sender, e &#125;);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;summary&gt;</span></span></span><br><span class="line">        <span class="comment"><span class="doctag">///</span> 隐式转换</span></span><br><span class="line">        <span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;/summary&gt;</span></span></span><br><span class="line">        <span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;param name=&quot;weakHandler&quot;&gt;</span><span class="doctag">&lt;/param&gt;</span></span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">implicit</span> <span class="keyword">operator</span> <span class="title">EventHandler</span>&lt;<span class="title">TEventArgs</span>&gt;(<span class="params">WeakEventHandler&lt;TEventArgs&gt; weakHandler</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            <span class="keyword">return</span> weakHandler.Handler;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>实际进行事件注册:</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">TodoListForm_Load</span>(<span class="params"><span class="built_in">object</span> sender, EventArgs e</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    SynchronizationContext = SynchronizationContext.Current;</span><br><span class="line">    TodoListManager.Instance.TodoListChanged += <span class="keyword">new</span> WeakEventHandler&lt;TodoListEventArgs&gt;(TodoListManager_TodoListChanged);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/artech/archive/2009/12/06/1618239.html">事件(Event)，绝大多数内存泄漏（Memory Leak）的元凶[下篇] （提供Source Code下载）</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/13/DotNet%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F-Memory-Leak-%E4%BA%8B%E4%BB%B6-Event/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/12/13/DotNet%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F-Memory-Leak-%E4%BA%8B%E4%BB%B6-Event/" class="post-title-link" itemprop="url">DotNet内存泄漏(Memory Leak)-事件(Event)</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-12-13 11:06:53" itemprop="dateCreated datePublished" datetime="2018-12-13T11:06:53+00:00">2018-12-13</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%A7%94%E6%89%98%E4%B8%8E%E4%BA%8B%E4%BB%B6/" itemprop="url" rel="index"><span itemprop="name">委托与事件</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="DotNet内存泄漏-Memory-Leak-事件-Event"><a href="#DotNet内存泄漏-Memory-Leak-事件-Event" class="headerlink" title="DotNet内存泄漏(Memory Leak)-事件(Event)"></a>DotNet内存泄漏(Memory Leak)-事件(Event)</h1><p>通过<a target="_blank" rel="noopener" href="http://www.cnblogs.com/artech/archive/2009/12/03/1616507.html">事件(Event)，绝大多数内存泄漏（Memory Leak）的元凶[上篇]</a>这篇文章的实例，学习内存泄漏。</p>
+<p><a target="_blank" rel="noopener" href="https://pan.baidu.com/s/1_zrGMRwiyB6Kky8t5kgFlA">代码下载</a><br>提取码：xazz</p>
+<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20181213135838.png" alt="微信截图_20181213135838.png"></p>
+<p>&emsp;&emsp;我们这个应用程序叫做TodoListManager，因为通过它可以实时查看属于用户的“待办事宜（Todolist）”。这是一个GUI的应用，有两个Windows Form组成：左侧的窗体是一个程序的主界面（为了简单起见，我甚至没有将其做成MDI窗体），点击Todo List菜单项，右面的Form被显示出来：所有的代码事宜将会全部列出，为了保证记录的实时显示，每隔5秒钟数据自动刷新一次。</p>
+<p>&emsp;&emsp;首先定义表示每一项TotoList Item定义了一个相应的类型：MyEvent（不是我们谈到的导致内存泄漏的事件）。Event仅仅包含简单的属性：主题（Subject），截至日期（DueDate）和相应的描述性文字（Description），Event定义如下：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">namespace</span> <span class="title">WindowsFormsApp1</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">class</span> <span class="title">MyEvent</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="built_in">string</span> Subject &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">        <span class="keyword">public</span> DateTime DueDate &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">        <span class="keyword">public</span> <span class="built_in">string</span> Description &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="title">MyEvent</span>(<span class="params"><span class="built_in">string</span> subject, DateTime dueDate, <span class="built_in">string</span> desc</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            <span class="keyword">if</span> (<span class="built_in">string</span>.IsNullOrEmpty(subject))</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentNullException(<span class="string">&quot;subject&quot;</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">this</span>.Subject = subject;</span><br><span class="line">            <span class="keyword">this</span>.DueDate = dueDate;</span><br><span class="line">            <span class="keyword">this</span>.Description = desc ?? <span class="built_in">string</span>.Empty;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;然后将所有逻辑（实际上仅仅是定期获取TodoList列表而已）定义在下面一个叫做TodoListManager的类型中。将其定义成Singleton的形式，并采用<code>System.Threading.Timer</code>实现定时地获取Todo List的操作。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">namespace</span> <span class="title">WindowsFormsApp1</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">class</span> <span class="title">TodoListManager</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">readonly</span> TodoListManager instance = <span class="keyword">new</span> TodoListManager();</span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">event</span> EventHandler&lt;TodoListEventArgs&gt; TodoListChanged;</span><br><span class="line">        <span class="keyword">private</span> Timer todoListRefreshSchedler;</span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="title">TodoListManager</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            todoListRefreshSchedler = <span class="keyword">new</span> Timer</span><br><span class="line">            (</span><br><span class="line">                state =&gt;</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="keyword">if</span> (<span class="literal">null</span> == TodoListChanged)</span><br><span class="line">                    &#123;</span><br><span class="line">                        <span class="keyword">return</span>;</span><br><span class="line">                    &#125;</span><br><span class="line"></span><br><span class="line">                    TodoListChanged(<span class="literal">null</span>, <span class="keyword">new</span> TodoListEventArgs(GetTodolist()));</span><br><span class="line">                &#125;</span><br><span class="line">           , <span class="literal">null</span>, <span class="number">0</span>, <span class="number">5000</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">static</span> TodoListManager Instance</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">get</span></span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">return</span> instance;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="function"><span class="keyword">private</span> List&lt;MyEvent&gt; <span class="title">GetTodolist</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            <span class="keyword">var</span> list = <span class="keyword">new</span> List&lt;MyEvent&gt;();</span><br><span class="line">            list.Add(<span class="keyword">new</span> MyEvent(<span class="string">&quot;Meeting with Testing Team&quot;</span>, DateTime.Today.AddDays(<span class="number">2</span>), <span class="string">&quot;NIL&quot;</span>));</span><br><span class="line">            list.Add(<span class="keyword">new</span> MyEvent(<span class="string">&quot;Deliver progress report to manager &quot;</span>, DateTime.Today.AddDays(<span class="number">7</span>), <span class="string">&quot;NIL&quot;</span>));</span><br><span class="line">            <span class="keyword">return</span> list;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;对于Timer的每一个轮询，都会处触发一个类型为<code>EventHandler&lt;TodoListEventArgs&gt;</code>的事件，通过注册这个事件，可以通过类型为TodoListEventArgs的事件参数得到最新的TodoList的列表，TodoListEventArgs定义如下：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">TodoListEventArgs</span> : <span class="title">EventArgs</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> IEnumerable&lt;MyEvent&gt; TodoList</span><br><span class="line">    &#123; <span class="keyword">get</span>; <span class="keyword">private</span> <span class="keyword">set</span>; &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">TodoListEventArgs</span>(<span class="params">IEnumerable&lt;MyEvent&gt; todoList</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="literal">null</span> == todoList)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentNullException(<span class="string">&quot;todoList&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">this</span>.TodoList = todoList;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;在窗体Load的时候注册TodoListManager的TodoListChanged事件，并将获取到的TodoList列表绑定到DataGridView上面。由于TodoListManager异步工作的原因，借助了SynchronizationContext这么一个对象实现对数据的绑定。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Threading;</span><br><span class="line"><span class="keyword">using</span> System.Windows.Forms;</span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">WindowsFormsApp1</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">partial</span> <span class="keyword">class</span> <span class="title">ToDoListForm</span> : <span class="title">Form</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">static</span> SynchronizationContext SynchronizationContext &#123; <span class="keyword">get</span>; <span class="keyword">private</span> <span class="keyword">set</span>; &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="title">ToDoListForm</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            InitializeComponent();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">ToDoListForm_Load</span>(<span class="params"><span class="built_in">object</span> sender, EventArgs e</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            SynchronizationContext = SynchronizationContext.Current;</span><br><span class="line">            TodoListManager.Instance.TodoListChanged += TodoListManager_TodoListChanged;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">TodoListManager_TodoListChanged</span>(<span class="params"><span class="built_in">object</span> sender, TodoListEventArgs e</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            SynchronizationContext.Post(</span><br><span class="line">                state =&gt;</span><br><span class="line">                &#123;</span><br><span class="line">                    BindingSource bindingSource = <span class="keyword">new</span> BindingSource();</span><br><span class="line">                    bindingSource.DataSource = e.TodoList;</span><br><span class="line">                    <span class="keyword">this</span>.dataGridViewTodoList.DataSource = bindingSource;</span><br><span class="line">                &#125;, <span class="literal">null</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在整个应用级别定义了一个静态的System.Threading.Timer，让它每隔半秒调用一次GC.Collect()。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Windows.Forms;</span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">WindowsFormsApp1</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">internal</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">static</span> System.Threading.Timer gcScheduler = <span class="keyword">new</span> System.Threading.Timer</span><br><span class="line">            (state =&gt; GC.Collect(), <span class="literal">null</span>, <span class="number">0</span>, <span class="number">500</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;summary&gt;</span></span></span><br><span class="line">        <span class="comment"><span class="doctag">///</span> 应用程序的主入口点。</span></span><br><span class="line">        <span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;/summary&gt;</span></span></span><br><span class="line">        [<span class="meta">STAThread</span>]</span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            Application.EnableVisualStyles();</span><br><span class="line">            Application.SetCompatibleTextRenderingDefault(<span class="literal">false</span>);</span><br><span class="line">            Application.Run(<span class="keyword">new</span> MainForm());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>查看内存泄漏，需要借助响应的Memory Profiling工具:</p>
+<p>JetBrains的<code>dotTrace</code>（免费），<br>RedGate的<code>ANTS Memory Profiler</code>(收费)</p>
+<p>&emsp;&emsp;ANTS Memory Profiler通过这样的原理来确定你的应用程序是否有泄漏问题：如果你怀疑某个操作会导致应该被GC回收的对象没有被回收，那么你在之前对内存分配情况拍一张快照（Snapshot），然后执行该操作，在操作完成并确定GC完成相应的回收操作后，在拍一张快照。通过对比，找出多余的对象，并根据具体的情况分析该对象是否应该被GC回收，如果是的，怎意味着你的程序存在着内存泄漏问题。</p>
+<p>通过ANTS Memory Profiler启动我们的应用程序后，在一开始的时候我们拍摄一张反映程序初始状态的内存快照，然后选择File\Todo List打开TodoListForm，等待一定的时间，再将TodoListForm关闭。为了让GC有充分的时间进行垃圾回收，不妨再作相应的等待，然后拍下第二张快照。在Class List视图中，你会发现原本应该被垃圾回收的TodoListForm窗体对象还存在于内存之中。</p>
+<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20181213144749.png" alt="微信截图_20181213144749.png"></p>
+<p>&emsp;&emsp;通过上图可以看得，该对象被TodoListManager的一个类型为<code>EventHandler&lt;TodoListEventArgs&gt;</code>的事件引用，这个对象实际上是一个Delegate对象，而TodoListForm作为这个Delegate对象的Target。通过上面给出的代码，我们不难想出是由于在TodoListForm实现了对TodoListManager的TotoListChanged事件注册导致了TodoListManager不能被垃圾回收。</p>
+<p>&emsp;&emsp;对于GUI应用可视化树形结构来说，一个窗体被关闭，照例说它应该成为垃圾对象，GC在执行垃圾回收的时候就可以将其清楚的。但是，由于该对象注册了一个事件到一个生命周期很长的对象（在本例中，TodoManager是一个Singletone对象，具有和整个应用程序一样的生命周期），它就是被这么一个对象长期引用，进而阻止 GC对其的回收工作。</p>
+<p>&emsp;&emsp;短暂生命周期注册事件到长期生命周期对象上，在该对象被Dispose的时候，应该解除事件的注册。你可以通过实现System.IDisposable接口，将解除事件注册的操作放在Dispose方法中。对于本里来说，你可以将相应的操作注册到Form的Closing、Closed或者Disposed事件中。比如在下面代码中，我为TodoListForm添加了如下一个Closing事件处理程序：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Threading;</span><br><span class="line"><span class="keyword">using</span> System.Windows.Forms;</span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">WindowsFormsApp1</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">partial</span> <span class="keyword">class</span> <span class="title">ToDoListForm</span> : <span class="title">Form</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">static</span> SynchronizationContext SynchronizationContext &#123; <span class="keyword">get</span>; <span class="keyword">private</span> <span class="keyword">set</span>; &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="title">ToDoListForm</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            InitializeComponent();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">ToDoListForm_Load</span>(<span class="params"><span class="built_in">object</span> sender, EventArgs e</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            SynchronizationContext = SynchronizationContext.Current;</span><br><span class="line">            TodoListManager.Instance.TodoListChanged += TodoListManager_TodoListChanged;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">TodoListManager_TodoListChanged</span>(<span class="params"><span class="built_in">object</span> sender, TodoListEventArgs e</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            SynchronizationContext.Post(</span><br><span class="line">                state =&gt;</span><br><span class="line">                &#123;</span><br><span class="line">                    BindingSource bindingSource = <span class="keyword">new</span> BindingSource();</span><br><span class="line">                    bindingSource.DataSource = e.TodoList;</span><br><span class="line">                    <span class="keyword">this</span>.dataGridViewTodoList.DataSource = bindingSource;</span><br><span class="line">                &#125;, <span class="literal">null</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">ToDoListForm_FormClosing</span>(<span class="params"><span class="built_in">object</span> sender, FormClosingEventArgs e</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            TodoListManager.Instance.TodoListChanged -= TodoListManager_TodoListChanged;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>修改之后，按照上面的流程利用<code>ANTS Memory Profiler</code>在第二个快照中，你将再也看不到TodoListForm的身影（如下图）。</p>
+<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20181213145711.png" alt="微信截图_20181213145711.png"></p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/artech/archive/2009/12/03/1616507.html">事件(Event)，绝大多数内存泄漏（Memory Leak）的元凶[上篇]</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/12/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9006-%E5%A7%94%E6%89%98/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -216,7 +813,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-22 09:18:38" itemprop="dateModified" datetime="2021-03-22T09:18:38+00:00">2021-03-22</time>
+                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -313,7 +910,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-22 09:18:38" itemprop="dateModified" datetime="2021-03-22T09:18:38+00:00">2021-03-22</time>
+                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -513,7 +1110,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-22 09:18:38" itemprop="dateModified" datetime="2021-03-22T09:18:38+00:00">2021-03-22</time>
+                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -606,7 +1203,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-22 09:18:38" itemprop="dateModified" datetime="2021-03-22T09:18:38+00:00">2021-03-22</time>
+                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -713,7 +1310,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-22 09:18:38" itemprop="dateModified" datetime="2021-03-22T09:18:38+00:00">2021-03-22</time>
+                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1700,7 +2297,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-22 09:18:38" itemprop="dateModified" datetime="2021-03-22T09:18:38+00:00">2021-03-22</time>
+                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1826,7 +2423,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-22 09:18:38" itemprop="dateModified" datetime="2021-03-22T09:18:38+00:00">2021-03-22</time>
+                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2006,7 +2603,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-22 09:18:38" itemprop="dateModified" datetime="2021-03-22T09:18:38+00:00">2021-03-22</time>
+                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2211,7 +2808,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-22 09:18:38" itemprop="dateModified" datetime="2021-03-22T09:18:38+00:00">2021-03-22</time>
+                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2397,7 +2994,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-22 09:18:38" itemprop="dateModified" datetime="2021-03-22T09:18:38+00:00">2021-03-22</time>
+                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2526,7 +3123,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-22 09:18:38" itemprop="dateModified" datetime="2021-03-22T09:18:38+00:00">2021-03-22</time>
+                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2695,457 +3292,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/11/14/CSharp%E4%B8%AD%E8%BF%AD%E4%BB%A3%E5%99%A8-yield-return%E7%94%A8%E6%B3%95/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/11/14/CSharp%E4%B8%AD%E8%BF%AD%E4%BB%A3%E5%99%A8-yield-return%E7%94%A8%E6%B3%95/" class="post-title-link" itemprop="url">CSharp中迭代器-yield-return用法</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-11-14 10:59:41" itemprop="dateCreated datePublished" datetime="2018-11-14T10:59:41+00:00">2018-11-14</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-22 09:18:38" itemprop="dateModified" datetime="2021-03-22T09:18:38+00:00">2021-03-22</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/CSharp%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index"><span itemprop="name">CSharp基础</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="CSharp中迭代器yield-return用法"><a href="#CSharp中迭代器yield-return用法" class="headerlink" title="CSharp中迭代器yield-return用法"></a>CSharp中迭代器yield-return用法</h1><h2 id="迭代器方法"><a href="#迭代器方法" class="headerlink" title="迭代器方法"></a>迭代器方法</h2><p>迭代器方法有一个重要限制：在同一方法中不能同时使用 return 语句和 yield return 语句。</p>
-<p>此限制通常不是问题。 可以选择在整个方法中使用 yield return，或选择将原始方法分成多个方法，一些使用 return，另一些使用 yield return。</p>
-<p>使用 yield return 上下文关键字定义迭代器方法。</p>
-<p>yield关键字用于遍历循环中，<code>yield return</code>用于返回<code>IEnumerable&lt;T&gt;</code>；<br><code>yield break</code>用于终止循环遍历。</p>
-<h2 id="简单理解"><a href="#简单理解" class="headerlink" title="简单理解"></a>简单理解</h2><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="built_in">bool</span> onOff = <span class="literal">false</span>;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> IEnumerable <span class="title">ForExample</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">yield</span> <span class="keyword">return</span> <span class="string">&quot;1&quot;</span>;  <span class="comment">// 第一次调用时执行  </span></span><br><span class="line">    <span class="keyword">yield</span> <span class="keyword">return</span> <span class="string">&quot;2&quot;</span>;  <span class="comment">// 第二次调用时执行  </span></span><br><span class="line">    <span class="keyword">if</span> (onOff)         <span class="comment">// 第三次调用时执行  </span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// 执行 yield break 之后不再执行下面语句  </span></span><br><span class="line">        <span class="keyword">yield</span> <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 否则,onOff为 false  </span></span><br><span class="line">    <span class="keyword">yield</span> <span class="keyword">return</span> <span class="string">&quot;3&quot;</span>;  <span class="comment">// 第四次调用时执行  </span></span><br><span class="line">    <span class="keyword">yield</span> <span class="keyword">return</span> <span class="string">&quot;4&quot;</span>;  <span class="comment">// 第五次调用时执行  </span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="实例"><a href="#实例" class="headerlink" title="实例"></a>实例</h2><p>以下int类型的集合，需要打印出所有值大于2的元素。</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> List&lt;<span class="built_in">int</span>&gt; <span class="title">GetInitialData</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">new</span> List&lt;<span class="built_in">int</span>&gt;()&#123;<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">4</span>&#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="不使用yield-return的实现"><a href="#不使用yield-return的实现" class="headerlink" title="不使用yield return的实现"></a>不使用yield return的实现</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> IEnumerable&lt;<span class="built_in">int</span>&gt; <span class="title">FilterWithoutYield</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    List&lt;<span class="built_in">int</span>&gt; result = <span class="keyword">new</span> List&lt;<span class="built_in">int</span>&gt;();</span><br><span class="line">    <span class="keyword">foreach</span> (<span class="function"><span class="built_in">int</span> i <span class="keyword">in</span> <span class="title">GetInitialData</span>(<span class="params"></span>))</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">if</span> (i &gt; <span class="number">2</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            result.Add(i);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>客户端调用：</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">foreach</span> (<span class="function"><span class="keyword">var</span> item <span class="keyword">in</span> <span class="title">FilterWithoutYield</span>(<span class="params"></span>))</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    Console.WriteLine(item);</span><br><span class="line">&#125;</span><br><span class="line">Console.ReadKey();</span><br></pre></td></tr></table></figure>
-
-<p>结果：3，4</p>
-<h3 id="使用yeild-return实现"><a href="#使用yeild-return实现" class="headerlink" title="使用yeild return实现"></a>使用yeild return实现</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> IEnumerable&lt;<span class="built_in">int</span>&gt; <span class="title">FilterWithYield</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">foreach</span> (<span class="function"><span class="built_in">int</span> i <span class="keyword">in</span> <span class="title">GetInitialData</span>(<span class="params"></span>))</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">if</span> (i &gt; <span class="number">2</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">yield</span> <span class="keyword">return</span> i;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">yield</span> <span class="keyword">break</span>; <span class="comment">// 执行 yield break 之后不再执行下面语句</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;这里的代码不执行&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">foreach</span> (<span class="function"><span class="keyword">var</span> item <span class="keyword">in</span> <span class="title">FilterWithYield</span>(<span class="params"></span>))</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    Console.WriteLine(item);</span><br><span class="line">&#125;</span><br><span class="line">Console.ReadKey();</span><br></pre></td></tr></table></figure>
-
-<p>结果：3，4</p>
-<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>第一种方法（不使用yield），是把结果集全部加载到内存中再遍历；</p>
-<p>第二种方法（使用yield），客户端每调用一次，yield return就返回一个值给客户端，是”按需供给”。</p>
-<p>使用yield return为什么能保证每次循环遍历的时候从前一次停止的地方开始执行呢？</p>
-<p>–因为，编译器会生成一个状态机来维护迭代器的状态。</p>
-<p>简单地说，当希望获取一个<code>IEnumerable&lt;T&gt;</code>类型的集合，而不想把数据一次性加载到内存，就可以考虑使用yield return实现”按需供给”。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/csharp/iterators">https://docs.microsoft.com/zh-cn/dotnet/csharp/iterators</a></p>
-<p><a target="_blank" rel="noopener" href="http://phpstudy.php.cn/b.php/97674.html">C#中yield return用法分析</a></p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/Golden_Shadow/article/details/7204226">C#中 yield return 与 yield break</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/08/24/MongoDB-%E5%AE%89%E5%85%A8%E8%AE%A4%E8%AF%81/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/08/24/MongoDB-%E5%AE%89%E5%85%A8%E8%AE%A4%E8%AF%81/" class="post-title-link" itemprop="url">MongoDB 安全认证</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-08-24 11:37:04" itemprop="dateCreated datePublished" datetime="2018-08-24T11:37:04+00:00">2018-08-24</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-22 09:18:38" itemprop="dateModified" datetime="2021-03-22T09:18:38+00:00">2021-03-22</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/MongoDB/" itemprop="url" rel="index"><span itemprop="name">MongoDB</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="MongoDB权限介绍"><a href="#MongoDB权限介绍" class="headerlink" title="MongoDB权限介绍"></a>MongoDB权限介绍</h2><ul>
-<li><p>1.MongoDB安装时不添加任何参数,默认是没有权限验证的,登录的用户可以对数据库任意操作而且可以远程访问数据库，需以 <code>--auth</code> 参数启动。</p>
-</li>
-<li><p>2.在刚安装完毕的时候 <code>MongoDB</code> 都默认有一个 <code>admin</code> 数据库,此时admin数据库是空的,没有记录权限相关的信息。当 <code>admin.system.users</code> 一个用户都没有时，即使 <code>mongod</code> 启动时添加了 <code>--auth</code> 参数,如果没有在 <code>admin</code> 数据库中添加用户,此时不进行任何认证还是可以做任何操作(不管是否是以 <code>--auth</code> 参数启动),直到在 <code>admin.system.users</code> 中添加了一个用户。</p>
-</li>
-<li><p>3.MongoDB的访问分为连接和权限验证，即使以 <code>--auth</code> 参数启动还是可以不使用用户名连接数据库，但是不会有任何的权限进行任何操作</p>
-</li>
-<li><p>4.<code>admin</code> 数据库中的用户名可以管理所有数据库，其他数据库中的用户只能管理其所在的数据库。</p>
-</li>
-</ul>
-<h2 id="MongoDB中用户的角色说明"><a href="#MongoDB中用户的角色说明" class="headerlink" title="MongoDB中用户的角色说明"></a>MongoDB中用户的角色说明</h2><ul>
-<li>read角色：数据库的只读权限</li>
-<li>readWrite角色：数据库的读写权限</li>
-<li>dbAdmin角色：数据库的管理权限，不具备读写权限</li>
-<li>userAdmin角色：数据库的用户管理权限</li>
-<li>clusterAdmin角色：集群管理权限(副本集、分片、主从等相关管理)</li>
-<li>readAnyDatabase角色：任何数据库的只读权限(和read相似)</li>
-<li>readWriteAnyDatabase角色：任何数据库的读写权限(和readWrite相似)</li>
-<li>userAdminAnyDatabase角色：任何数据库用户的管理权限(和userAdmin相似)</li>
-<li>dbAdminAnyDatabase角色：任何数据库的管理权限(dbAdmin相似)</li>
-</ul>
-<h2 id="启用访问控制和强制认证"><a href="#启用访问控制和强制认证" class="headerlink" title="启用访问控制和强制认证"></a>启用访问控制和强制认证</h2><h3 id="在admin数据库中，创建一个admin-用户"><a href="#在admin数据库中，创建一个admin-用户" class="headerlink" title="在admin数据库中，创建一个admin 用户"></a>在admin数据库中，创建一个admin 用户</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">use admin</span><br><span class="line">db.createUser(&#123;</span><br><span class="line">    user:<span class="string">&quot;admin&quot;</span>,</span><br><span class="line">    <span class="built_in">pwd</span>:<span class="string">&quot;admin&quot;</span>,</span><br><span class="line">    roles:[&#123;</span><br><span class="line">        role:<span class="string">&quot;root&quot;</span>,</span><br><span class="line">        db:<span class="string">&quot;admin&quot;</span></span><br><span class="line">    &#125;]</span><br><span class="line">&#125;)</span><br><span class="line">db.auth(<span class="string">&quot;admin&quot;</span>, <span class="string">&quot;admin&quot;</span>)</span><br></pre></td></tr></table></figure>
-
-<h3 id="对具体的库进行授权"><a href="#对具体的库进行授权" class="headerlink" title="对具体的库进行授权"></a>对具体的库进行授权</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">use mydb</span><br><span class="line">db.createUser(&#123;</span><br><span class="line">    user:<span class="string">&quot;mydbuser1&quot;</span>,</span><br><span class="line">    <span class="built_in">pwd</span>:<span class="string">&quot;123456&quot;</span>,</span><br><span class="line">    roles:[&#123;</span><br><span class="line">        role:<span class="string">&quot;dbAdmin&quot;</span>,</span><br><span class="line">        db:<span class="string">&quot;mydb&quot;</span></span><br><span class="line">    &#125;,&#123;</span><br><span class="line">        role:<span class="string">&quot;readWrite&quot;</span>,</span><br><span class="line">        db:<span class="string">&quot;mydb&quot;</span></span><br><span class="line">    &#125;]</span><br><span class="line">&#125;)</span><br><span class="line">db.auth(<span class="string">&quot;mydbuser1&quot;</span>, <span class="string">&quot;123456&quot;</span>)</span><br></pre></td></tr></table></figure>
-
-<h2 id="常用命令"><a href="#常用命令" class="headerlink" title="常用命令"></a>常用命令</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">// 添加用户</span><br><span class="line">use admin</span><br><span class="line">db.addUser(<span class="string">&quot;test&quot;</span>,<span class="string">&quot;test&quot;</span>)</span><br><span class="line"></span><br><span class="line">// 显示所有数据库</span><br><span class="line">show dbs</span><br><span class="line"></span><br><span class="line">// 使用某个数据库</span><br><span class="line">use mydb</span><br><span class="line"></span><br><span class="line">// 连接数据库</span><br><span class="line">mongo <span class="built_in">test</span> -uroot -p123456</span><br><span class="line"></span><br><span class="line">// 添加用户认证</span><br><span class="line">db.auth(<span class="string">&quot;username&quot;</span>,<span class="string">&quot;password&quot;</span>)</span><br><span class="line"></span><br><span class="line">// 查看用户</span><br><span class="line">db.system.users.find()</span><br></pre></td></tr></table></figure>
-
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://wps2015.org/drops/drops/MongoDB%E5%AE%89%E5%85%A8%E9%85%8D%E7%BD%AE.html">MongoDB安全配置</a></p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/zZ_life/article/details/78664794">MongoDB 3.4.2 添加用户、设置权限</a></p>
-<p><a target="_blank" rel="noopener" href="https://docs.mongodb.com/manual/tutorial/enable-authentication/">https://docs.mongodb.com/manual/tutorial/enable-authentication/</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/08/21/Docker%E5%AE%89%E8%A3%85MongoDB4-1%E7%BE%A4%E9%9B%86/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/08/21/Docker%E5%AE%89%E8%A3%85MongoDB4-1%E7%BE%A4%E9%9B%86/" class="post-title-link" itemprop="url">Docker安装MongoDB4.1群集</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-08-21 10:37:53" itemprop="dateCreated datePublished" datetime="2018-08-21T10:37:53+00:00">2018-08-21</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-22 09:18:38" itemprop="dateModified" datetime="2021-03-22T09:18:38+00:00">2021-03-22</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/MongoDB/" itemprop="url" rel="index"><span itemprop="name">MongoDB</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="docker安装mongodb4-1群集"><a href="#docker安装mongodb4-1群集" class="headerlink" title="docker安装mongodb4.1群集"></a>docker安装mongodb4.1群集</h1><p>官网：<a target="_blank" rel="noopener" href="https://www.mongodb.com">https://www.mongodb.com</a></p>
-<p>镜像：<a target="_blank" rel="noopener" href="https://hub.docker.com/_/mongo/">https://hub.docker.com/_/mongo/</a></p>
-<p>github: <a target="_blank" rel="noopener" href="https://github.com/docker-library/mongo/blob/4958ee0a8a6b1ac1c3734b161db67371720b31b5/4.1/Dockerfile">Dockerfile</a></p>
-<h2 id="相关概念"><a href="#相关概念" class="headerlink" title="相关概念"></a>相关概念</h2><p><img src="/img/sharded-cluster-production-architecture.bakedsvg.svg" alt="sharded-cluster-production-architecture.bakedsvg.svg"></p>
-<p>路由，分片、副本集、配置服务器</p>
-<p>四个组件：<code>mongos</code>、<code>config server</code>、<code>shard</code>、<code>replica set</code>。</p>
-<ul>
-<li><p><code>mongos</code>，数据库集群请求的入口，所有的请求都通过 <code>mongos</code> 进行协调，不需要在应用程序添加一个路由选择器，<code>mongos</code> 自己就是一个请求分发中心，它负责把对应的数据请求请求转发到对应的 <code>shard</code> 服务器上。在生产环境通常有多 <code>mongos</code> 作为请求的入口，防止其中一个挂掉所有的 <code>mongodb</code> 请求都没有办法操作。</p>
-</li>
-<li><p><code>config server</code>，顾名思义为配置服务器，存储所有数据库元信息（路由、分片）的配置。<code>mongos</code> 本身没有物理存储分片服务器和数据路由信息，只是缓存在内存里，配置服务器则实际存储这些数据。<code>mongos</code> 第一次启动或者关掉重启就会从 <code>config server</code> 加载配置信息，以后如果配置服务器信息变化会通知到所有的 <code>mongos</code> 更新自己的状态，这样 <code>mongos</code> 就能继续准确路由。在生产环境通常有多个 <code>config server</code> 配置服务器，因为它存储了分片路由的元数据，防止数据丢失！</p>
-</li>
-<li><p><code>shard</code>，分片（<code>sharding</code>）是指将数据库拆分，将其分散在不同的机器上的过程。将数据分散到不同的机器上，不需要功能强大的服务器就可以存储更多的数据和处理更大的负载。基本思想就是将集合切成小块，这些块分散到若干片里，每个片只负责总数据的一部分，最后通过一个均衡器来对各个分片进行均衡（数据迁移）。</p>
-</li>
-<li><p><code>replica set</code>，中文翻译 <code>副本集</code>，其实就是 <code>shard</code> 的备份，防止 <code>shard</code> 挂掉之后数据丢失。复制提供了数据的冗余备份，并在多个服务器上存储数据副本，提高了数据的可用性， 并可以保证数据的安全性。</p>
-</li>
-</ul>
-<p><code>仲裁者（Arbiter）</code>，是复制集中的一个 <code>MongoDB</code> 实例，它并不保存数据。仲裁节点使用最小的资源并且不要求硬件设备，不能将 <code>Arbiter</code> 部署在同一个数据集节点中，可以部署在其他应用服务器或者监视服务器中，也可部署在单独的虚拟机中。为了确保复制集中有奇数的投票成员（包括 <code>primary</code> ），需要添加仲裁节点做为投票，否则 <code>primary</code> 不能运行时不会自动切换 <code>primary</code>。</p>
-<p>注：<code>mongodb3.4</code> 以后要求配置服务器也创建副本集，不然集群搭建不成功。</p>
-<h2 id="部署"><a href="#部署" class="headerlink" title="部署"></a>部署</h2><p>目录结构：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mongodb</span><br><span class="line"> |--docker-compose.yml</span><br><span class="line"> |- mongodbtest</span><br></pre></td></tr></table></figure>
-
-<p>创建2个路由服务（<code>mongos</code>） 命令：<code>configdb</code></p>
-<p>创建3个配置服务（<code>configsvr</code> ）</p>
-<p>创建2个分片服务（<code>shardsvr</code>），每个 <code>shardsvr</code> 包含3个副本，其中1个主节点，1个从节点，1个仲裁节点。</p>
-<h3 id="创建目录"><a href="#创建目录" class="headerlink" title="创建目录"></a>创建目录</h3><p>在 <code>mongodb</code> 目录运行以下命令生成目录：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">mkdir -p /home/toor/Documents/mongodb/mongodbtest/mongos1 <span class="comment"># mongos1</span></span><br><span class="line">mkdir -p /home/toor/Documents/mongodb/mongodbtest/mongos2 <span class="comment"># mongos2</span></span><br><span class="line">mkdir -p /home/toor/Documents/mongodb/mongodbtest/cs/rs1 /home/toor/Documents/mongodb/mongodbtest/cs/rs2 /home/toor/Documents/mongodb/mongodbtest/cs/rs3 <span class="comment"># config server replset</span></span><br><span class="line">mkdir -p /home/toor/Documents/mongodb/mongodbtest/sh1/rs1 /home/toor/Documents/mongodb/mongodbtest/sh1/rs2 /home/toor/Documents/mongodb/mongodbtest/sh1/rs3 <span class="comment"># sharding</span></span><br><span class="line">mkdir -p /home/toor/Documents/mongodb/mongodbtest/sh2/rs1 /home/toor/Documents/mongodb/mongodbtest/sh2/rs2 /home/toor/Documents/mongodb/mongodbtest/sh2/rs3 <span class="comment"># sharding</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="创建docker-compose"><a href="#创建docker-compose" class="headerlink" title="创建docker-compose"></a>创建docker-compose</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">touch docker-compose.yml</span><br><span class="line">vim docker-compose.yml</span><br></pre></td></tr></table></figure>
-
-<p>docker-compose.yml内容：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line">version: <span class="string">&#x27;3&#x27;</span></span><br><span class="line">services:</span><br><span class="line">  csrs1:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/cs/rs1:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongod --noauth --configsvr --replSet csrs --dbpath /data/db</span><br><span class="line">  csrs2:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/cs/rs2:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongod --noauth --configsvr --replSet csrs --dbpath /data/db</span><br><span class="line">  csrs3:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/cs/rs3:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongod --noauth --configsvr --replSet csrs --dbpath /data/db</span><br><span class="line">  mongos1:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/mongos1:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongos --noauth --configdb csrs/csrs1:27019,csrs2:27019,csrs3:27019</span><br><span class="line">  mongos2:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/mongos2:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongos --noauth --configdb csrs/csrs1:27019,csrs2:27019,csrs3:27019</span><br><span class="line">  sh1rs1:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/sh1/rs1:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongod --noauth --dbpath /data/db --shardsvr --replSet shrs1</span><br><span class="line">  sh1rs2:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/sh1/rs2:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongod --noauth --dbpath /data/db --shardsvr --replSet shrs1</span><br><span class="line">  sh1rs3:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/sh1/rs3:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongod --noauth --dbpath /data/db --shardsvr --replSet shrs1</span><br><span class="line">  sh2rs1:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/sh2/rs1:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongod --noauth --dbpath /data/db --shardsvr --replSet shrs2</span><br><span class="line">  sh2rs2:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/sh2/rs2:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongod --noauth --dbpath /data/db --shardsvr --replSet shrs2</span><br><span class="line">  sh2rs3:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/sh2/rs3:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongod --noauth --dbpath /data/db --shardsvr --replSet shrs2</span><br></pre></td></tr></table></figure>
-
-<p>注：</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">--noauth 不进行身份认证</span><br><span class="line">--auth 进行身份认证</span><br><span class="line"></span><br><span class="line"><span class="comment"># 不加会有一个28017的端口监听，可以通过网页管理mongodb，不需要请去掉</span></span><br><span class="line">--nohttpinterface</span><br><span class="line"></span><br><span class="line"><span class="comment"># 这两个参数的作用就是改变启动端口</span></span><br><span class="line">--shardsvr</span><br><span class="line">--configsvr</span><br><span class="line"></span><br><span class="line"><span class="comment"># 副本集设置</span></span><br><span class="line">--replSet</span><br><span class="line"></span><br><span class="line"><span class="comment"># 这一项是用来指定chunk的大小的，单位是MB，默认大小为200MB</span></span><br><span class="line">--chunkSize</span><br><span class="line"></span><br><span class="line"><span class="comment"># 可以限制访问的ip</span></span><br><span class="line">--bind_ip</span><br><span class="line"></span><br><span class="line"><span class="comment"># 可以重新制定端口，默认为27017</span></span><br><span class="line">--port</span><br></pre></td></tr></table></figure>
-
-<h3 id="初始化-配置服务-副本集-Config-Server"><a href="#初始化-配置服务-副本集-Config-Server" class="headerlink" title="初始化[配置服务]副本集(Config Server)"></a>初始化[配置服务]副本集(Config Server)</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">docker-compose <span class="built_in">exec</span> csrs1 mongo --port 27019</span><br><span class="line">rs.initiate()</span><br><span class="line">rs.add(<span class="string">&#x27;csrs2:27019&#x27;</span>)</span><br><span class="line">rs.add(<span class="string">&#x27;csrs3:27019&#x27;</span>)</span><br><span class="line">rs.status() //查看状态</span><br><span class="line">quit() // 退出 或 <span class="built_in">exit</span></span><br></pre></td></tr></table></figure>
-
-<p>注：<code>config server</code> 默认端口为 27019</p>
-<h3 id="初始化分片"><a href="#初始化分片" class="headerlink" title="初始化分片"></a>初始化分片</h3><p>注：<code>shard server</code> 默认端口号为 27018</p>
-<h4 id="shrs1副本集"><a href="#shrs1副本集" class="headerlink" title="shrs1副本集"></a>shrs1副本集</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">docker-compose <span class="built_in">exec</span> sh1rs1 mongo --port 27018</span><br><span class="line">rs.initiate()</span><br><span class="line">var cfg = rs.conf()</span><br><span class="line">cfg.members[0].host = <span class="string">&#x27;sh1rs1:27018&#x27;</span></span><br><span class="line">rs.reconfig(cfg)</span><br><span class="line">rs.add(<span class="string">&#x27;sh1rs2:27018&#x27;</span>)</span><br><span class="line">rs.add(&#123;host:<span class="string">&quot;sh1rs3:27018&quot;</span>, arbiterOnly:<span class="literal">true</span>&#125;) // 仲裁</span><br><span class="line">quit()</span><br></pre></td></tr></table></figure>
-
-<h4 id="shrs2副本集"><a href="#shrs2副本集" class="headerlink" title="shrs2副本集"></a>shrs2副本集</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">docker-compose <span class="built_in">exec</span> sh2rs1 mongo --port 27018</span><br><span class="line">rs.initiate()</span><br><span class="line">var cfg = rs.conf()</span><br><span class="line">cfg.members[0].host = <span class="string">&#x27;sh2rs1:27018&#x27;</span></span><br><span class="line">rs.reconfig(cfg)</span><br><span class="line">rs.add(<span class="string">&#x27;sh2rs2:27018&#x27;</span>)</span><br><span class="line">rs.add(&#123;host:<span class="string">&quot;sh2rs3:27018&quot;</span>, arbiterOnly:<span class="literal">true</span>&#125;)</span><br><span class="line">quit()</span><br></pre></td></tr></table></figure>
-
-<h3 id="通过mongos添加分片关系到configsvr"><a href="#通过mongos添加分片关系到configsvr" class="headerlink" title="通过mongos添加分片关系到configsvr"></a>通过mongos添加分片关系到configsvr</h3><p>mongos1:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">docker-compose <span class="built_in">exec</span> mongos1 mongo</span><br><span class="line">sh.addShard(<span class="string">&#x27;shrs1/sh1rs1:27018,sh1rs2:27018,sh1rs3:27018&#x27;</span>)</span><br><span class="line">sh.addShard(<span class="string">&#x27;shrs2/sh2rs1:27018,sh2rs2:27018,sh2rs3:27018&#x27;</span>)</span><br><span class="line">sh.status() //查看状态</span><br></pre></td></tr></table></figure>
-
-<p>mongos2:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">docker-compose <span class="built_in">exec</span> mongos2 mongo</span><br><span class="line">sh.addShard(<span class="string">&#x27;shrs1/sh1rs1:27018,sh1rs2:27018,sh1rs3:27018&#x27;</span>)</span><br><span class="line">sh.addShard(<span class="string">&#x27;shrs2/sh2rs1:27018,sh2rs2:27018,sh2rs3:27018&#x27;</span>)</span><br><span class="line">sh.status() //查看状态</span><br></pre></td></tr></table></figure>
-
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180824094655.png" alt="QQ截图20180824094655.png"></p>
-<h2 id="启用分片"><a href="#启用分片" class="headerlink" title="启用分片"></a>启用分片</h2><h3 id="设置分片chunk大小"><a href="#设置分片chunk大小" class="headerlink" title="设置分片chunk大小"></a>设置分片chunk大小</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">use config</span><br><span class="line">db.settings.save(&#123;<span class="string">&quot;_id&quot;</span>:<span class="string">&quot;chunksize&quot;</span>,<span class="string">&quot;value&quot;</span>:1&#125;) // //设置块大小为1M是方便实验，不然就需要插入海量数据</span><br></pre></td></tr></table></figure>
-
-<h3 id="启用数据库分片"><a href="#启用数据库分片" class="headerlink" title="启用数据库分片"></a>启用数据库分片</h3><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#  数据库分片就有针对性，可以自定义需要分片的库或者表，毕竟也不是所有数据都是需要分片操作的</span></span><br><span class="line">sh.enableSharding(<span class="string">&quot;python&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">#  为表创建的索引,以”id“为索引</span></span><br><span class="line">db.user.createIndex(&#123;<span class="string">&quot;id&quot;</span>:1&#125;)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 启用表分片</span></span><br><span class="line">sh.shardCollection(<span class="string">&quot;python.user&quot;</span>,&#123;<span class="string">&quot;id&quot;</span>:1&#125;)</span><br><span class="line">sh.status()</span><br></pre></td></tr></table></figure>
-
-<h3 id="模拟写入数据"><a href="#模拟写入数据" class="headerlink" title="模拟写入数据"></a>模拟写入数据</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">use python</span><br><span class="line"><span class="keyword">for</span>(i=1;i&lt;=50000;i++)&#123;db.user.insert(&#123;<span class="string">&quot;id&quot;</span>:i,<span class="string">&quot;name&quot;</span>:<span class="string">&quot;jack&quot;</span>+i&#125;)&#125;</span><br><span class="line">sh.status()</span><br><span class="line">db.user.stats()</span><br><span class="line">db.user.count()</span><br><span class="line">show dbs</span><br></pre></td></tr></table></figure>
-
-<h2 id="后期运维"><a href="#后期运维" class="headerlink" title="后期运维"></a>后期运维</h2><p>mongodb 的启动顺序是，先启动配置服务器，在启动分片，最后启动 mongos.</p>
-<p>关闭时，直接 <code>killall</code> 杀掉所有进程</p>
-<p>例：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">killall mongod</span><br><span class="line">killall mongos</span><br></pre></td></tr></table></figure>
-
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://www.ityouknow.com/mongodb/2017/08/05/mongodb-cluster-setup.html">mongodb 3.4 集群搭建：分片+副本集</a></p>
-<p><a target="_blank" rel="noopener" href="http://blog.51cto.com/13643643/2148825">MongoDB(4.0)分片——大数据的处理之道</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/ityouknow/p/7566682.html">mongodb 3.4 集群搭建升级版 五台集群</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/4d86e9c33e0d">docker 搭建 mongo 集群</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/hehexiaoxia/p/6192796.html">[原创]在Docker上部署mongodb分片副本集群</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/08/14/CentOS7%E5%AE%89%E8%A3%85MariaDB/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/08/14/CentOS7%E5%AE%89%E8%A3%85MariaDB/" class="post-title-link" itemprop="url">CentOS7安装MariaDB</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-08-14 15:08:05" itemprop="dateCreated datePublished" datetime="2018-08-14T15:08:05+00:00">2018-08-14</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-22 09:18:38" itemprop="dateModified" datetime="2021-03-22T09:18:38+00:00">2021-03-22</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/MariaDB/" itemprop="url" rel="index"><span itemprop="name">MariaDB</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="CentOS7安装MariaDB"><a href="#CentOS7安装MariaDB" class="headerlink" title="CentOS7安装MariaDB"></a>CentOS7安装MariaDB</h1><h2 id="MariaDB简介"><a href="#MariaDB简介" class="headerlink" title="MariaDB简介"></a>MariaDB简介</h2><p>官网：<a target="_blank" rel="noopener" href="https://mariadb.org/">https://mariadb.org/</a></p>
-<p>MariaDB Github地址：<a target="_blank" rel="noopener" href="https://github.com/MariaDB/server">https://github.com/MariaDB/server</a></p>
-<h2 id="安装MariaDB"><a href="#安装MariaDB" class="headerlink" title="安装MariaDB"></a>安装MariaDB</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">su root <span class="comment">## 切换root用户</span></span><br><span class="line">yum -y install mariadb-server mariadb <span class="comment">## 下载MariaDB</span></span><br><span class="line">yum -y install mariadb-server mariadb <span class="comment">## 启动MariaDB服务</span></span><br><span class="line">systemctl <span class="built_in">enable</span> mariadb <span class="comment">## 设置默认开机启动 可选</span></span><br></pre></td></tr></table></figure>
-
-<h2 id="测试是否成功"><a href="#测试是否成功" class="headerlink" title="测试是否成功"></a>测试是否成功</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost toor]<span class="comment"># mysql</span></span><br><span class="line">Welcome to the MariaDB monitor.  Commands end with ; or \g.</span><br><span class="line">Your MariaDB connection id is 2</span><br><span class="line">Server version: 5.5.56-MariaDB MariaDB Server</span><br><span class="line"></span><br><span class="line">Copyright (c) 2000, 2017, Oracle, MariaDB Corporation Ab and others.</span><br><span class="line"></span><br><span class="line">Type <span class="string">&#x27;help;&#x27;</span> or <span class="string">&#x27;\h&#x27;</span> <span class="keyword">for</span> <span class="built_in">help</span>. Type <span class="string">&#x27;\c&#x27;</span> to clear the current input statement.</span><br></pre></td></tr></table></figure>
-
-<h2 id="运行一次mysql-secure-installation安全配置向导"><a href="#运行一次mysql-secure-installation安全配置向导" class="headerlink" title="运行一次mysql_secure_installation安全配置向导"></a>运行一次mysql_secure_installation安全配置向导</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#由于一开始安装MariaDB数据库后, root用户默认密码为空, 所以只需要按Enter键</span></span><br><span class="line">Enter current password <span class="keyword">for</span> root (enter <span class="keyword">for</span> none):</span><br><span class="line">OK, successfully used password, moving on...</span><br><span class="line"></span><br><span class="line"><span class="comment">#是否设置root用户的新密码</span></span><br><span class="line">Set root password? [Y/n] y</span><br><span class="line"></span><br><span class="line"><span class="comment">#录入新密码</span></span><br><span class="line">New password:</span><br><span class="line"></span><br><span class="line"><span class="comment">#确认新密码</span></span><br><span class="line">Re-enter new password:</span><br><span class="line"></span><br><span class="line"><span class="comment">#是否删除匿名用户,生产环境建议删除</span></span><br><span class="line">Remove anonymous users? [Y/n] y</span><br><span class="line">... Success!</span><br><span class="line"></span><br><span class="line"><span class="comment">#是否禁止root远程登录,根据自己的需求选择</span></span><br><span class="line">Disallow root login remotely? [Y/n] n</span><br><span class="line">... skipping.</span><br><span class="line"></span><br><span class="line"><span class="comment">#是否删除test数据库</span></span><br><span class="line">Remove <span class="built_in">test</span> database and access to it? [Y/n] y</span><br><span class="line"></span><br><span class="line"><span class="comment">#是否重新加载权限表</span></span><br><span class="line">Reload privilege tables now? [Y/n] y</span><br><span class="line"> ... Success!</span><br></pre></td></tr></table></figure>
-
-<h2 id="开放端口"><a href="#开放端口" class="headerlink" title="开放端口"></a>开放端口</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">firewall-cmd --zone=public --add-port=3306/tcp --permanent</span><br><span class="line">firewall-cmd --reload</span><br></pre></td></tr></table></figure>
-
-<h2 id="开放远程连接"><a href="#开放远程连接" class="headerlink" title="开放远程连接"></a>开放远程连接</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql -u root -p <span class="comment">## 登录mysql xing123123</span></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#任何远程主机都可以访问数据库</span></span><br><span class="line">mysql&gt; grant all privileges on *.* to <span class="string">&#x27;root&#x27;</span>@<span class="string">&#x27;%&#x27;</span> identified by <span class="string">&#x27;123456&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">#使修改生效</span></span><br><span class="line">mysql&gt; flush privileges;</span><br><span class="line">mysql&gt; <span class="built_in">exit</span></span><br></pre></td></tr></table></figure>
-
-<h2 id="修改编码为UTF-8"><a href="#修改编码为UTF-8" class="headerlink" title="修改编码为UTF-8"></a>修改编码为UTF-8</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/my.cnf</span><br></pre></td></tr></table></figure>
-
-<p>添加以下内容：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[mysqld]</span><br><span class="line">character-set-server=utf8</span><br></pre></td></tr></table></figure>
-
-<p>需要重启数据库</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">## 查看数据库编码</span></span><br><span class="line"></span><br><span class="line"> mysql -uroot -p</span><br><span class="line">show variables like <span class="string">&#x27;character%&#x27;</span>;</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">MariaDB [(none)]&gt; show variables like <span class="string">&#x27;character%&#x27;</span>;</span><br><span class="line">+--------------------------+----------------------------+</span><br><span class="line">| Variable_name            | Value                      |</span><br><span class="line">+--------------------------+----------------------------+</span><br><span class="line">| character_set_client     | utf8                       |</span><br><span class="line">| character_set_connection | utf8                       |</span><br><span class="line">| character_set_database   | utf8                       |</span><br><span class="line">| character_set_filesystem | binary                     |</span><br><span class="line">| character_set_results    | utf8                       |</span><br><span class="line">| character_set_server     | utf8                       |</span><br><span class="line">| character_set_system     | utf8                       |</span><br><span class="line">| character_sets_dir       | /usr/share/mysql/charsets/ |</span><br><span class="line">+--------------------------+----------------------------+</span><br><span class="line">8 rows <span class="keyword">in</span> <span class="built_in">set</span> (0.00 sec)</span><br></pre></td></tr></table></figure>
-
-<h2 id="使用mysql-workbench连接"><a href="#使用mysql-workbench连接" class="headerlink" title="使用mysql workbench连接"></a>使用mysql workbench连接</h2><p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20180905104709.png" alt="微信截图_20180905104709.png"></p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/toubennuhai/article/details/70808610">Centos7 安装配置MariaDB</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/18/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/18/">18</a><span class="page-number current">19</span><a class="page-number" href="/page/20/">20</a><span class="space">&hellip;</span><a class="page-number" href="/page/24/">24</a><a class="extend next" rel="next" href="/page/20/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
+    <a class="extend prev" rel="prev" href="/page/18/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/18/">18</a><span class="page-number current">19</span><a class="page-number" href="/page/20/">20</a><span class="space">&hellip;</span><a class="page-number" href="/page/25/">25</a><a class="extend next" rel="next" href="/page/20/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
   </nav>
 
 
@@ -3211,20 +3361,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">360</span>
+          <span class="site-state-item-count">364</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">116</span>
+        <span class="site-state-item-count">117</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">161</span>
+        <span class="site-state-item-count">162</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
