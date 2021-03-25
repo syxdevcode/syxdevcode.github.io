@@ -131,8 +131,10 @@ badwords = test test1 test2
 
 示例：
 
+```sh
 vim /etc/security/pwquality.conf
 grep -vE "^#|^$" /etc/security/pwquality.conf
+```
 
 ```sh
 minlen = 8
