@@ -4,6 +4,8 @@ date: 2021-03-24 15:13:06
 tags:
 - Linux
 - CentOS7
+- 物联网
+- 嵌入式
 - ELF
 categories:
 - ELF

@@ -23,9 +23,9 @@ categories:
 
 在 /etc/sysctl.conf 添加：
 
-net.core.somaxconn=32767
+net.core.somaxconn=65000
 
-执行命令 sysctl -p 以生效
+执行命令 `sysctl -p` 以生效
 
 ### OOM相关：vm.overcommit_memory
 
@@ -77,6 +77,12 @@ sed 's/6379/6381/g' redis-6379.conf > /usr/local/redis-cluster/redis-6381.conf
 /usr/local/bin/redis-server /usr/local/redis-cluster/redis-6379.conf
 /usr/local/bin/redis-server /usr/local/redis-cluster/redis-6380.conf
 /usr/local/bin/redis-server /usr/local/redis-cluster/redis-6381.conf
+
+# 连接单个节点
+/usr/local/bin/redis-cli -h 127.0.0.1 -p 6379 -a test
+
+# 停止
+/usr/local/bin/redis-cli -h 127.0.0.1 -p 6379 -a test shutdown
 ```
 
 查看redis运行情况：
@@ -163,7 +169,7 @@ maxclients 1000000
 
 # 可选
 # 客户端多长（秒）时间没发包过来关闭它，0表示永不关闭
-timeout 0
+timeout 10
 
 # 集群中的节点最大不可用时长，在这个时长内，不会被判定为fail。
 # 对于master节点，当不可用时长超过此值时，slave在延迟至少0.5秒后会发起选举
@@ -521,6 +527,12 @@ M: fb9923083a70ca2131b3fb6c7633bc7275dfe33c 192.125.30.59:6381
 
 # 节点内存、cpu、key数量等信息（每个节点都需查看）
 /usr/local/bin/redis-cli -h 127.0.0.1 -p 6379 -a password info
+
+# 连接单个节点
+/usr/local/bin/redis-cli -h 127.0.0.1 -p 6379 -a test
+
+# 连接群集
+/usr/local/bin/redis-cli -c -h 127.0.0.1 -p 6379 -a test
 ```
 
 **ps aux|grep redis-server**
