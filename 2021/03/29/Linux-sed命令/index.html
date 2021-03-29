@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"syxdevcode.github.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="Linux sed 命令是利用脚本来处理文本文件。sed 命令采用的是流编辑模式，最明显的特点是，在 sed 处理数据之前，需要预先提供一组规则，sed 会按照此规则来编辑数据。默认情况下，sed 会在所有的脚本指定执行完毕后，会自动输出处理后的内容，而该选项会屏蔽启动输出，需使用 print 命令来完成输出。 默认情况下 sed 并不会修改原始文件，这里被删除的行只是从 sed 的输出中消失了，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux sed命令">
+<meta property="og:url" content="https://syxdevcode.github.com/2021/03/29/Linux-sed%E5%91%BD%E4%BB%A4/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="Linux sed 命令是利用脚本来处理文本文件。sed 命令采用的是流编辑模式，最明显的特点是，在 sed 处理数据之前，需要预先提供一组规则，sed 会按照此规则来编辑数据。默认情况下，sed 会在所有的脚本指定执行完毕后，会自动输出处理后的内容，而该选项会屏蔽启动输出，需使用 print 命令来完成输出。 默认情况下 sed 并不会修改原始文件，这里被删除的行只是从 sed 的输出中消失了，">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-03-29T10:18:17.000Z">
+<meta property="article:modified_time" content="2021-03-29T07:29:58.405Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="Linux">
+<meta property="article:tag" content="CentOS7">
+<meta property="article:tag" content="Linux基础命令">
+<meta property="article:tag" content="Linux优化">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://syxdevcode.github.com/2021/03/29/Linux-sed%E5%91%BD%E4%BB%A4/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Linux sed命令 | syxdevcode博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">syxdevcode博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/syxdevcode" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2021/03/29/Linux-sed%E5%91%BD%E4%BB%A4/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Linux sed命令
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2021-03-29 10:18:17 / 修改时间：07:29:58" itemprop="dateCreated datePublished" datetime="2021-03-29T10:18:17+00:00">2021-03-29</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux%E5%9F%BA%E7%A1%80%E5%91%BD%E4%BB%A4/" itemprop="url" rel="index"><span itemprop="name">Linux基础命令</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>Linux sed 命令是利用脚本来处理文本文件。sed 命令采用的是流编辑模式，最明显的特点是，在 sed 处理数据之前，需要预先提供一组规则，sed 会按照此规则来编辑数据。默认情况下，sed 会在所有的脚本指定执行完毕后，会自动输出处理后的内容，而该选项会屏蔽启动输出，需使用 print 命令来完成输出。</p>
+<p>默认情况下 sed 并不会修改原始文件，这里被删除的行只是从 sed 的输出中消失了，原始文件没做任何改变。</p>
+<p>Sed 主要用来自动编辑一个或多个文件、简化对文件的反复操作、编写转换程序等。</p>
+<p>sed 会根据脚本命令来处理文本文件中的数据，这些命令要么从命令行中输入，要么存储在一个文本文件中，此命令执行数据的顺序如下：</p>
+<ul>
+<li>1，每次仅读取一行内容；</li>
+<li>2，根据提供的规则命令匹配并修改数据。注意，sed 默认不会直接修改源文件数据，而是会将数据复制到缓冲区中，修改也仅限于缓冲区中的数据；</li>
+<li>3，将执行结果输出。</li>
+</ul>
+<p>当一行数据匹配完成后，它会继续读取下一行数据，并重复这个过程，直到将文件中所有数据处理完毕。</p>
+<p>语法 <code>sed [-hnV][-e&lt;script&gt;][-f&lt;script文件&gt;][文本文件]</code></p>
+<p>参数说明：</p>
+<table>
+<thead>
+<tr>
+<th align="center">选项</th>
+<th align="left">含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">-e 脚本命令</td>
+<td align="left">该选项会将其后跟的脚本命令添加到已有的命令中。</td>
+</tr>
+<tr>
+<td align="center">-f 脚本命令文件</td>
+<td align="left">该选项会将其后文件中的脚本命令添加到已有的命令中。</td>
+</tr>
+<tr>
+<td align="center">-n或–quiet或–silent</td>
+<td align="left">仅显示script处理后的结果，默认情况下，sed 会在所有的脚本指定执行完毕后，会自动输出处理后的内容，而该选项会屏蔽启动输出，需使用 print 命令来完成输出。</td>
+</tr>
+<tr>
+<td align="center">-h或–help</td>
+<td align="left">显示帮助。</td>
+</tr>
+<tr>
+<td align="center">-V或–version</td>
+<td align="left">显示版本信息。</td>
+</tr>
+</tbody></table>
+<p>动作说明</p>
+<p>a ：新增， a 的后面可以接字串，而这些字串会在新的一行出现(目前的下一行)<br>c ：取代， c 的后面可以接字串，这些字串可以取代 n1,n2 之间的行！<br>d ：删除， d 后面通常不接任何字符；<br>i ：插入， i 的后面可以接字串，而这些字串会在新的一行出现(目前的上一行)；<br>p ：打印， 将某个选择的数据印出。通常 p 会与参数 sed -n 一起运行<br>s ：取代， 通常搭配正规表示法，例如 1,20s/old/new/g</p>
+<h2 id="sed脚本命令"><a href="#sed脚本命令" class="headerlink" title="sed脚本命令"></a>sed脚本命令</h2><h3 id="sed-s-替换脚本命令"><a href="#sed-s-替换脚本命令" class="headerlink" title="sed s 替换脚本命令"></a>sed s 替换脚本命令</h3><p>此命令的基本格式为：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[address]s/pattern/replacement/flags</span><br></pre></td></tr></table></figure>
+<p>address 表示指定要操作的具体行，pattern 指的是需要替换的内容，replacement 指的是要替换的新内容。</p>
+<p>sed s命令flags标记及功能:</p>
+<table>
+<thead>
+<tr>
+<th align="center">flags 标记</th>
+<th align="left">功能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">n</td>
+<td align="left">1~512 之间的数字，表示指定要替换的字符串出现第几次时才进行替换，例如，一行中有 3 个 A，但用户只想替换第二个 A，这是就用到这个标记；</td>
+</tr>
+<tr>
+<td align="center">g</td>
+<td align="left">对数据中所有匹配到的内容进行替换，如果没有 g，则只会在第一次匹配成功时做替换操作。例如，一行数据中有 3 个 A，则只会替换第一个 A；</td>
+</tr>
+<tr>
+<td align="center">p</td>
+<td align="left">会打印与替换命令中指定的模式匹配的行。此标记通常与 -n 选项一起使用。</td>
+</tr>
+<tr>
+<td align="center">w file</td>
+<td align="left">将缓冲区中的内容写到指定的 file 文件中；</td>
+</tr>
+<tr>
+<td align="center">&amp;</td>
+<td align="left">用正则表达式匹配的内容进行替换；</td>
+</tr>
+<tr>
+<td align="center">\n</td>
+<td align="left">匹配第 n 个子串，该子串之前在 pattern 中用 <code>\(\)</code> 指定。</td>
+</tr>
+<tr>
+<td align="center">\</td>
+<td align="left">转义（转义替换部分包含：&amp; ，\ 等）。</td>
+</tr>
+</tbody></table>
+<p><strong>实例</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># sed 编辑器只替换每行中第 2 次出现的匹配模式</span></span><br><span class="line">sed <span class="string">&#x27;s/test/trial/2&#x27;</span> data4.txt</span><br><span class="line"></span><br><span class="line"><span class="comment"># 用 g 标记，在新文件替换所有匹配的字符串</span></span><br><span class="line">sed <span class="string">&#x27;s/test/trial/g&#x27;</span> data4.txt</span><br><span class="line"></span><br><span class="line"><span class="comment"># -n 选项会禁止 sed 输出，p 标记会输出修改过的行，</span></span><br><span class="line"><span class="comment"># 二者匹配使用的效果就是只输出被替换命令修改过的行</span></span><br><span class="line">sed -n <span class="string">&#x27;s/test/trial/p&#x27;</span> data5.txt</span><br><span class="line"></span><br><span class="line"><span class="comment"># w 标记会将匹配后的结果保存到指定文件中</span></span><br><span class="line">sed <span class="string">&#x27;s/test/trial/w test.txt&#x27;</span> data5.txt</span><br><span class="line"></span><br><span class="line"><span class="comment"># 替换类似文件路径的字符串，需要将路径中的正斜线进行转义</span></span><br><span class="line">sed <span class="string">&#x27;s/\/bin\/bash/\/bin\/csh/&#x27;</span> /etc/passwd</span><br></pre></td></tr></table></figure>
+
+<h3 id="sed-d-替换脚本命令"><a href="#sed-d-替换脚本命令" class="headerlink" title="sed d 替换脚本命令"></a>sed d 替换脚本命令</h3><p>基本格式为：<code>[address]d</code></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 删除所有内容</span></span><br><span class="line">sed <span class="string">&#x27;d&#x27;</span> data1.txt</span><br><span class="line"></span><br><span class="line"><span class="comment"># 通过行号指定，比如删除 data6.txt 文件内容中的第 3 行：</span></span><br><span class="line">sed <span class="string">&#x27;3d&#x27;</span> data6.txt</span><br><span class="line"></span><br><span class="line"><span class="comment"># 通过特定行区间指定，比如删除 data6.txt 文件内容中的第 2、3行</span></span><br><span class="line">sed <span class="string">&#x27;2,3d&#x27;</span> data6.txt</span><br><span class="line"></span><br><span class="line"><span class="comment"># 使用两个文本模式来删除某个区间内的行</span></span><br><span class="line"><span class="comment"># 指定的第一个模式会“打开”行删除功能，第二个模式会“关闭”行删除功能，</span></span><br><span class="line"><span class="comment"># 因此，sed 会删除两个指定行之间的所有行（包括指定的行）</span></span><br><span class="line"><span class="comment"># 删除第 1~3 行的文本数据</span></span><br><span class="line">sed <span class="string">&#x27;/1/,/3/d&#x27;</span> data6.txt</span><br><span class="line"></span><br><span class="line"><span class="comment"># 通过特殊的文件结尾字符，比如删除 data6.txt 文件内容中第 3 行开始的所有的内容</span></span><br><span class="line">sed <span class="string">&#x27;3,$d&#x27;</span> data6.txt</span><br></pre></td></tr></table></figure>
+
+<h3 id="sed-a-和-i-脚本命令"><a href="#sed-a-和-i-脚本命令" class="headerlink" title="sed a 和 i 脚本命令"></a>sed a 和 i 脚本命令</h3><p>a 命令表示在指定行的后面附加一行，i 命令表示在指定行的前面插入一行</p>
+<p>基本格式：<code>[address]a（或 i）\新文本内容</code></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 将一个新行插入到数据流第三行前</span></span><br><span class="line">sed <span class="string">&#x27;3i\</span></span><br><span class="line"><span class="string">&gt; This is an inserted line.&#x27;</span> data6.txt</span><br><span class="line"></span><br><span class="line"><span class="comment"># 将一个新行附加到数据流中第三行后</span></span><br><span class="line">sed <span class="string">&#x27;3a\</span></span><br><span class="line"><span class="string">&gt; This is an appended line.&#x27;</span> data6.txt</span><br><span class="line"></span><br><span class="line"><span class="comment"># 如果想将一个多行数据添加到数据流中，只需对要插入或附加的文本中的每一行末尾（除最后一行）添加反斜线即可</span></span><br><span class="line"> sed <span class="string">&#x27;1i\</span></span><br><span class="line"><span class="string">&gt; This is one line of new text.\</span></span><br><span class="line"><span class="string">&gt; This is another line of new text.&#x27;</span> data6.txt</span><br></pre></td></tr></table></figure>
+
+<h3 id="sed-c-替换脚本命令"><a href="#sed-c-替换脚本命令" class="headerlink" title="sed c 替换脚本命令"></a>sed c 替换脚本命令</h3><p>c 命令表示将指定行中的所有内容，替换成该选项后面的字符串。</p>
+<p>基本格式为：<code>[address]c\用于替换的新文本</code></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">sed <span class="string">&#x27;3c\</span></span><br><span class="line"><span class="string">&gt; This is a changed line of text.&#x27;</span> data6.txt</span><br><span class="line"></span><br><span class="line"><span class="comment"># 或者</span></span><br><span class="line">sed <span class="string">&#x27;/number 3/c\</span></span><br><span class="line"><span class="string">&gt; This is a changed line of text.&#x27;</span> data6.txt</span><br></pre></td></tr></table></figure>
+
+<h3 id="sed-y-转换脚本命令"><a href="#sed-y-转换脚本命令" class="headerlink" title="sed y 转换脚本命令"></a>sed y 转换脚本命令</h3><p>y 转换命令是唯一可以处理单个字符的 sed 脚本命令</p>
+<p>基本格式：<code>[address]y/inchars/outchars/</code></p>
+<p>转换命令会对 inchars 和 outchars 值进行一对一的映射，即 inchars 中的第一个字符会被转换为 outchars 中的第一个字符，第二个字符会被转换成 outchars 中的第二个字符…这个映射过程会一直持续到处理完指定字符。</p>
+<p>如果 inchars 和 outchars 的长度不同，则 sed 会产生一条错误消息。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">sed <span class="string">&#x27;y/123/789/&#x27;</span> data8.txt</span><br><span class="line"></span><br><span class="line"><span class="comment"># 转换命令是一个全局命令，它会文本行中找到的所有指定字符自动进行转换，</span></span><br><span class="line"><span class="comment"># 而不会考虑它们出现的位置</span></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;This 1 is a test of 1 try.&quot;</span> | sed <span class="string">&#x27;y/123/456/&#x27;</span></span><br><span class="line">This 4 is a <span class="built_in">test</span> of 4 try.</span><br></pre></td></tr></table></figure>
+
+<h3 id="sed-p-打印脚本命令"><a href="#sed-p-打印脚本命令" class="headerlink" title="sed p 打印脚本命令"></a>sed p 打印脚本命令</h3><p>p 命令表示搜索符号条件的行，并输出该行的内容</p>
+<p>基本格式为：<code>[address]p</code></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># p 命令常见的用法是打印包含匹配文本模式的行</span></span><br><span class="line">sed -n <span class="string">&#x27;/number 3/p&#x27;</span> data6.txt</span><br><span class="line">This is line number 3.</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查找包含数字 3 的行，然后执行两条命令。</span></span><br><span class="line"><span class="comment"># 首先，脚本用 p 命令来打印出原始行；然后它用 s 命令替换文本，并用 p 标记打印出替换结果。</span></span><br><span class="line"><span class="comment"># 输出同时显示了原来的行文本和新的行文本。</span></span><br><span class="line">sed -n <span class="string">&#x27;/3/&#123;</span></span><br><span class="line"><span class="string">&gt; p</span></span><br><span class="line"><span class="string">&gt; s/line/test/p</span></span><br><span class="line"><span class="string">&gt; &#125;&#x27;</span> data6.txt</span><br><span class="line">This is line number 3.</span><br><span class="line">This is <span class="built_in">test</span> number 3.</span><br></pre></td></tr></table></figure>
+
+<h3 id="sed-w-脚本命令"><a href="#sed-w-脚本命令" class="headerlink" title="sed w 脚本命令"></a>sed w 脚本命令</h3><p>w 命令用来将文本中指定行的内容写入文件中</p>
+<p>基本格式如下：<code>[address]w filename</code></p>
+<p>filename 表示文件名，可以使用相对路径或绝对路径，运行 sed 命令的用户都必须有文件的写权限。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 将 data6.txt 1，2行打印到 test.txt</span></span><br><span class="line">sed <span class="string">&#x27;1,2w test.txt&#x27;</span> data6.txt</span><br><span class="line"></span><br><span class="line"><span class="comment"># 如果不想让行直接输出，可以用 -n 选项</span></span><br><span class="line">sed -n <span class="string">&#x27;/Browncoat/w Browncoats.txt&#x27;</span> data11.txt</span><br></pre></td></tr></table></figure>
+
+<h3 id="sed-r-脚本命令"><a href="#sed-r-脚本命令" class="headerlink" title="sed r 脚本命令"></a>sed r 脚本命令</h3><p>r 命令用于将一个独立文件的数据插入到当前数据流的指定位置，</p>
+<p>基本格式为：<code>[address]r filename</code></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># sed 命令会将 filename 文件中的内容插入到 address 指定行的后面</span></span><br><span class="line">[root@localhost ~]<span class="comment"># cat data12.txt</span></span><br><span class="line">This is an added line.</span><br><span class="line">This is the second added line.</span><br><span class="line">[root@localhost ~]<span class="comment"># sed &#x27;3r data12.txt&#x27; data6.txt</span></span><br><span class="line">This is line number 1.</span><br><span class="line">This is line number 2.</span><br><span class="line">This is line number 3.</span><br><span class="line">This is an added line.</span><br><span class="line">This is the second added line.</span><br><span class="line">This is line number 4.</span><br><span class="line"></span><br><span class="line"><span class="comment"># 将指定文件中的数据插入到数据流的末尾，可以使用 $ 地址符</span></span><br><span class="line">[root@localhost ~]<span class="comment"># sed &#x27;$r data12.txt&#x27; data6.txt</span></span><br><span class="line">This is line number 1.</span><br><span class="line">This is line number 2.</span><br><span class="line">This is line number 3.</span><br><span class="line">This is line number 4.</span><br><span class="line">This is an added line.</span><br><span class="line">This is the second added line.</span><br></pre></td></tr></table></figure>
+
+<h3 id="sed-q-退出脚本命令"><a href="#sed-q-退出脚本命令" class="headerlink" title="sed q 退出脚本命令"></a>sed q 退出脚本命令</h3><p>q 命令的作用是使 sed 命令在第一次匹配任务结束后，退出 sed 程序，不再进行对后续数据的处理。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#sed 命令在打印输出第 2 行之后，就停止</span></span><br><span class="line">[root@localhost ~]<span class="comment"># sed &#x27;2q&#x27; test.txt</span></span><br><span class="line">This is line number 1.</span><br><span class="line">This is line number 2.</span><br><span class="line"></span><br><span class="line"><span class="comment"># 使用 q 命令之后，sed 命令会在匹配到 number 1 时，将其替换成 number 0，然后直接退出。</span></span><br><span class="line">[root@localhost ~]<span class="comment"># sed &#x27;/number 1/&#123; s/number 1/number 0/;q; &#125;&#x27; test.txt</span></span><br><span class="line">This is line number 0.</span><br></pre></td></tr></table></figure>
+
+<h2 id="sed-脚本命令的寻址方式"><a href="#sed-脚本命令的寻址方式" class="headerlink" title="sed 脚本命令的寻址方式"></a>sed 脚本命令的寻址方式</h2><p>默认情况下，sed 命令会作用于文本数据的所有行。如果只想将命令作用于特定行或某些行，则必须写明 address 部分，表示的方法有以下 2 种：</p>
+<ul>
+<li>1，以数字形式指定行区间；</li>
+<li>2，用文本模式指定具体行区间。</li>
+</ul>
+<p>两种形式都可以使用如下这 2 种格式，分别是：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[address]脚本命令</span><br><span class="line"></span><br><span class="line">或者</span><br><span class="line"></span><br><span class="line">address &#123;</span><br><span class="line">    多个脚本命令</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>以数字形式指定行区间</strong></p>
+<p>当使用数字方式的行寻址时，可以用行在文本流中的行位置来引用。sed 会将文本流中的第一行编号为 1，然后继续按顺序为接下来的行分配行号。</p>
+<p>在脚本命令中，指定的地址可以是单个行号，或是用起始行号、逗号以及结尾行号指定的一定区间范围内的行。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># sed 只修改地址指定的第二行的文本</span></span><br><span class="line">[root@localhost ~]<span class="comment">#sed &#x27;2s/dog/cat/&#x27; data1.txt</span></span><br><span class="line">The quick brown fox jumps over the lazy dog</span><br><span class="line">The quick brown fox jumps over the lazy cat</span><br><span class="line">The quick brown fox jumps over the lazy dog</span><br><span class="line">The quick brown fox jumps over the lazy dog</span><br><span class="line"></span><br><span class="line"><span class="comment"># sed 只修改地址指定的第二,三行的文本</span></span><br><span class="line">[root@localhost ~]<span class="comment"># sed &#x27;2,3s/dog/cat/&#x27; data1.txt</span></span><br><span class="line">The quick brown fox jumps over the lazy dog</span><br><span class="line">The quick brown fox jumps over the lazy cat</span><br><span class="line">The quick brown fox jumps over the lazy cat</span><br><span class="line">The quick brown fox jumps over the lazy dog</span><br><span class="line"></span><br><span class="line"><span class="comment"># 如果想将命令作用到文本中从某行开始的所有行，可以用特殊地址——美元符（$）</span></span><br><span class="line">[root@localhost ~]<span class="comment"># sed &#x27;2,$s/dog/cat/&#x27; data1.txt</span></span><br><span class="line">The quick brown fox jumps over the lazy dog</span><br><span class="line">The quick brown fox jumps over the lazy cat</span><br><span class="line">The quick brown fox jumps over the lazy cat</span><br><span class="line">The quick brown fox jumps over the lazy cat</span><br></pre></td></tr></table></figure>
+
+<p><strong>用文本模式指定行区间</strong></p>
+<p>sed 允许指定文本模式来过滤出命令要作用的行，格式如下：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/pattern/<span class="built_in">command</span></span><br></pre></td></tr></table></figure>
+
+<p>注意，必须用正斜线将要指定的 pattern 封起来，sed 会将该命令作用到包含指定文本模式的行上。</p>
+<p>如果你想只修改用户 demo 的默认 shell，可以使用 sed 命令，执行命令如下：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]<span class="comment"># grep demo /etc/passwd</span></span><br><span class="line">demo:x:502:502::/home/Samantha:/bin/bash</span><br><span class="line">[root@localhost ~]<span class="comment"># sed &#x27;/demo/s/bash/csh/&#x27; /etc/passwd</span></span><br><span class="line">root:x:0:0:root:/root:/bin/bash</span><br><span class="line">...</span><br><span class="line">demo:x:502:502::/home/demo:/bin/csh</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<p>虽然使用固定文本模式能帮你过滤出特定的值，就跟上面这个用户名的例子一样，但其作用难免有限，因此，sed 允许在文本模式使用正则表达式指明作用的具体行。正则表达式允许创建高级文本模式匹配表达式来匹配各种数据。这些表达式结合了一系列通配符、特殊字符以及固定文本字符来生成能够匹配几乎任何形式文本的简练模式。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://c.biancheng.net/view/4028.html">Linux sed命令完全攻略</a></p>
+<p><a target="_blank" rel="noopener" href="http://c.biancheng.net/view/4056.html">Linux sed命令高级用法精讲</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/Linux/" rel="tag"><i class="fa fa-tag"></i> Linux</a>
+              <a href="/tags/CentOS7/" rel="tag"><i class="fa fa-tag"></i> CentOS7</a>
+              <a href="/tags/Linux%E5%9F%BA%E7%A1%80%E5%91%BD%E4%BB%A4/" rel="tag"><i class="fa fa-tag"></i> Linux基础命令</a>
+              <a href="/tags/Linux%E4%BC%98%E5%8C%96/" rel="tag"><i class="fa fa-tag"></i> Linux优化</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2021/03/29/Linux-wc%E5%91%BD%E4%BB%A4/" rel="prev" title="Linux wc命令">
+      <i class="fa fa-chevron-left"></i> Linux wc命令
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2021/03/29/Linux-ss%E5%91%BD%E4%BB%A4/" rel="next" title="Linux ss命令">
+      Linux ss命令 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#sed%E8%84%9A%E6%9C%AC%E5%91%BD%E4%BB%A4"><span class="nav-number">1.</span> <span class="nav-text">sed脚本命令</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#sed-s-%E6%9B%BF%E6%8D%A2%E8%84%9A%E6%9C%AC%E5%91%BD%E4%BB%A4"><span class="nav-number">1.1.</span> <span class="nav-text">sed s 替换脚本命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#sed-d-%E6%9B%BF%E6%8D%A2%E8%84%9A%E6%9C%AC%E5%91%BD%E4%BB%A4"><span class="nav-number">1.2.</span> <span class="nav-text">sed d 替换脚本命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#sed-a-%E5%92%8C-i-%E8%84%9A%E6%9C%AC%E5%91%BD%E4%BB%A4"><span class="nav-number">1.3.</span> <span class="nav-text">sed a 和 i 脚本命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#sed-c-%E6%9B%BF%E6%8D%A2%E8%84%9A%E6%9C%AC%E5%91%BD%E4%BB%A4"><span class="nav-number">1.4.</span> <span class="nav-text">sed c 替换脚本命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#sed-y-%E8%BD%AC%E6%8D%A2%E8%84%9A%E6%9C%AC%E5%91%BD%E4%BB%A4"><span class="nav-number">1.5.</span> <span class="nav-text">sed y 转换脚本命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#sed-p-%E6%89%93%E5%8D%B0%E8%84%9A%E6%9C%AC%E5%91%BD%E4%BB%A4"><span class="nav-number">1.6.</span> <span class="nav-text">sed p 打印脚本命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#sed-w-%E8%84%9A%E6%9C%AC%E5%91%BD%E4%BB%A4"><span class="nav-number">1.7.</span> <span class="nav-text">sed w 脚本命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#sed-r-%E8%84%9A%E6%9C%AC%E5%91%BD%E4%BB%A4"><span class="nav-number">1.8.</span> <span class="nav-text">sed r 脚本命令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#sed-q-%E9%80%80%E5%87%BA%E8%84%9A%E6%9C%AC%E5%91%BD%E4%BB%A4"><span class="nav-number">1.9.</span> <span class="nav-text">sed q 退出脚本命令</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#sed-%E8%84%9A%E6%9C%AC%E5%91%BD%E4%BB%A4%E7%9A%84%E5%AF%BB%E5%9D%80%E6%96%B9%E5%BC%8F"><span class="nav-number">2.</span> <span class="nav-text">sed 脚本命令的寻址方式</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">369</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">118</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">165</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

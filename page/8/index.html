@@ -185,6 +185,571 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/11/%E8%B7%A8%E5%9F%9F%E8%B5%84%E6%BA%90%E5%85%B1%E4%BA%ABCORS%E7%AC%94%E8%AE%B0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/11/%E8%B7%A8%E5%9F%9F%E8%B5%84%E6%BA%90%E5%85%B1%E4%BA%ABCORS%E7%AC%94%E8%AE%B0/" class="post-title-link" itemprop="url">跨域资源共享CORS笔记</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-08-11 14:01:20" itemprop="dateCreated datePublished" datetime="2020-08-11T14:01:20+00:00">2020-08-11</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-03-29 07:29:58" itemprop="dateModified" datetime="2021-03-29T07:29:58+00:00">2021-03-29</time>
+              </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>转载：</p>
+<p><a target="_blank" rel="noopener" href="http://www.ruanyifeng.com/blog/2016/04/cors.html">跨域资源共享 CORS 详解</a></p>
+<h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>CORS是一个W3C标准，全称是”跨域资源共享”（Cross-origin resource sharing）。</p>
+<p>它允许浏览器向跨源服务器，发出XMLHttpRequest请求，从而克服了AJAX只能同源使用的限制。</p>
+<p>CORS需要浏览器和服务器同时支持。目前，所有浏览器都支持该功能，IE浏览器不能低于IE10。</p>
+<p>整个CORS通信过程，都是浏览器自动完成，不需要用户参与。对于开发者来说，CORS通信与同源的AJAX通信没有差别，代码完全一样。浏览器一旦发现AJAX请求跨源，就会自动添加一些附加的头信息，有时还会多出一次附加的请求，但用户不会有感觉。</p>
+<p>因此，实现CORS通信的关键是服务器。只要服务器实现了CORS接口，就可以跨源通信。</p>
+<h2 id="与JSONP的比较"><a href="#与JSONP的比较" class="headerlink" title="与JSONP的比较"></a>与JSONP的比较</h2><p><code>CORS</code> 与 <code>JSONP</code> 的使用目的相同，但是比 <code>JSONP</code> 更强大。</p>
+<p><code>JSONP</code> 只支持 <code>GET</code> 请求，<code>CORS</code> 支持所有类型的 <code>HTTP</code> 请求。<code>JSONP</code> 的优势在于支持老式浏览器，以及可以向不支持 <code>CORS</code> 的网站请求数据。</p>
+<h2 id="两种请求"><a href="#两种请求" class="headerlink" title="两种请求"></a>两种请求</h2><p>浏览器将 <code>CORS</code> 请求分成两类：</p>
+<p>简单请求（simple request）和 非简单请求（not-so-simple request）。</p>
+<p>只要同时满足以下两大条件，就属于简单请求。</p>
+<figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">2.请求方法是以下三种方法之一：</span><br><span class="line">HEAD</span><br><span class="line">GET</span><br><span class="line">POST</span><br><span class="line"></span><br><span class="line">2.HTTP的头信息不超出以下几种字段：</span><br><span class="line">Accept</span><br><span class="line">Accept-Language</span><br><span class="line">Content-Language</span><br><span class="line">Last-Event-ID</span><br><span class="line">Content-Type：只限于三个值application/x-www-form-urlencoded、multipart/form-data、text/plain</span><br></pre></td></tr></table></figure>
+
+<p>这是为了兼容表单（form），因为历史上表单一直可以发出跨域请求。<code>AJAX</code> 的跨域设计就是，只要表单可以发，<code>AJAX</code> 就可以直接发。</p>
+<p>凡是不同时满足上面两个条件，就属于非简单请求。</p>
+<p>浏览器对这两种请求的处理，是不一样的。</p>
+<h3 id="简单请求"><a href="#简单请求" class="headerlink" title="简单请求"></a>简单请求</h3><p>浏览器直接发出 <code>CORS</code> 请求。具体来说，就是在头信息之中，增加一个 <code>Origin</code> 字段。</p>
+<p>下面是一个例子，浏览器发现这次跨源 <code>AJAX</code> 请求是简单请求，就自动在头信息之中，添加一个Origin字段。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">GET /cors HTTP/<span class="number">1.1</span></span><br><span class="line">Origin: http:<span class="comment">//api.bob.com</span></span><br><span class="line">Host: api.alice.com</span><br><span class="line">Accept-Language: en-US</span><br><span class="line">Connection: keep-alive</span><br><span class="line">User-Agent: Mozilla/<span class="number">5.0</span>...</span><br></pre></td></tr></table></figure>
+
+<p><code>Origin</code> 字段用来说明，本次请求来自哪个源（协议 + 域名 + 端口）。服务器根据这个值，决定是否同意这次请求。</p>
+<p>如果Origin指定的源，不在许可范围内，服务器会返回一个正常的HTTP回应。浏览器发现，这个回应的头信息没有包含 <code>Access-Control-Allow-Origin</code> 字段，就知道出错了，从而抛出一个错误，被 <code>XMLHttpRequest</code> 的onerror回调函数捕获。注意，这种错误无法通过状态码识别，因为HTTP回应的状态码有可能是200。</p>
+<p>如果Origin指定的域名在许可范围内，服务器返回的响应，会多出几个头信息字段，都以 <code>Access-Control-</code> 开头。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Access-Control-Allow-Origin: http:<span class="comment">//api.bob.com</span></span><br><span class="line">Access-Control-Allow-Credentials: <span class="literal">true</span></span><br><span class="line">Access-Control-Expose-Headers: FooBar</span><br><span class="line">Content-Type: text/html; charset=utf-<span class="number">8</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>Access-Control-Allow-Origin</strong></p>
+<p>该字段是必须的。它的值要么是请求时 <code>Origin</code> 字段的值，要么是一个*，表示接受任意域名的请求。</p>
+<p><strong>Access-Control-Allow-Credentials</strong></p>
+<p>该字段可选。它的值是一个布尔值，表示是否允许发送Cookie。默认情况下，Cookie不包括在CORS请求之中。设为true，即表示服务器明确许可，Cookie可以包含在请求中，一起发给服务器。这个值也只能设为true，如果服务器不要浏览器发送Cookie，删除该字段即可。</p>
+<p><strong>Access-Control-Expose-Headers</strong></p>
+<p>该字段可选。CORS请求时，<code>XMLHttpRequest</code> 对象的getResponseHeader()方法只能拿到6个基本字段：<code>Cache-Control</code>、<code>Content-Language</code>、<code>Content-Type</code>、<code>Expires</code>、<code>Last-Modified</code>、<code>Pragma</code>。如果想拿到其他字段，就必须在 <code>Access-Control-Expose-Headers</code> 里面指定。上面的例子指定，getResponseHeader(‘FooBar’)可以返回FooBar字段的值。</p>
+<p><strong>withCredentials 属性</strong></p>
+<p>CORS请求默认不发送Cookie和HTTP认证信息。如果要把Cookie发到服务器，一方面要服务器同意，指定</p>
+<p><code>Access-Control-Allow-Credentials</code> 字段。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Access-Control-Allow-Credentials: <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+
+<p>另一方面，开发者必须在AJAX请求中打开 <code>withCredentials</code> 属性。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> xhr = <span class="keyword">new</span> XMLHttpRequest();</span><br><span class="line">xhr.withCredentials = <span class="literal">true</span>;</span><br></pre></td></tr></table></figure>
+
+<p>否则，即使服务器同意发送Cookie，浏览器也不会发送。或者，服务器要求设置Cookie，浏览器也不会处理。</p>
+<p>但是，如果省略 <code>withCredentials</code> 设置，有的浏览器还是会一起发送Cookie。这时，可以显式关闭 <code>withCredentials</code>。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">xhr.withCredentials = <span class="literal">false</span>;</span><br></pre></td></tr></table></figure>
+
+<p>需要注意的是，如果要发送Cookie，<code>Access-Control-Allow-Origin</code> 就不能设为星号，必须指定明确的、与请求网页一致的域名。同时，Cookie依然遵循同源政策，只有用服务器域名设置的Cookie才会上传，其他域名的Cookie并不会上传，且（跨源）原网页代码中的document.cookie也无法读取服务器域名下的Cookie。</p>
+<h3 id="非简单请求"><a href="#非简单请求" class="headerlink" title="非简单请求"></a>非简单请求</h3><h4 id="预检请求"><a href="#预检请求" class="headerlink" title="预检请求"></a>预检请求</h4><p>非简单请求是那种对服务器有特殊要求的请求，比如请求方法是 <code>PUT</code> 或 <code>DELETE</code> ，或者 <code>Content-Type</code> 字段的类型是 <code>application/json</code>。</p>
+<p>非简单请求的CORS请求，会在正式通信之前，增加一次HTTP查询请求，称为”预检”请求（preflight）。</p>
+<p>浏览器先询问服务器，当前网页所在的域名是否在服务器的许可名单之中，以及可以使用哪些HTTP动词和头信息字段。只有得到肯定答复，浏览器才会发出正式的 <code>XMLHttpRequest</code> 请求，否则就报错。</p>
+<p>下面是一段浏览器的JavaScript脚本。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> url = <span class="string">&#x27;http://api.alice.com/cors&#x27;</span>;</span><br><span class="line"><span class="keyword">var</span> xhr = <span class="keyword">new</span> XMLHttpRequest();</span><br><span class="line">xhr.open(<span class="string">&#x27;PUT&#x27;</span>, url, <span class="literal">true</span>);</span><br><span class="line">xhr.setRequestHeader(<span class="string">&#x27;X-Custom-Header&#x27;</span>, <span class="string">&#x27;value&#x27;</span>);</span><br><span class="line">xhr.send();</span><br></pre></td></tr></table></figure>
+
+<p>上面代码中，HTTP请求的方法是PUT，并且发送一个自定义头信息 <code>X-Custom-Header</code>。</p>
+<p>浏览器发现，这是一个非简单请求，就自动发出一个”预检”请求，要求服务器确认可以这样请求。下面是这个”预检”请求的HTTP头信息。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">OPTIONS /cors HTTP/<span class="number">1.1</span></span><br><span class="line">Origin: http:<span class="comment">//api.bob.com</span></span><br><span class="line">Access-Control-Request-Method: PUT</span><br><span class="line">Access-Control-Request-Headers: X-Custom-Header</span><br><span class="line">Host: api.alice.com</span><br><span class="line">Accept-Language: en-US</span><br><span class="line">Connection: keep-alive</span><br><span class="line">User-Agent: Mozilla/<span class="number">5.0</span>...</span><br></pre></td></tr></table></figure>
+
+<p>“预检”请求用的请求方法是 <code>OPTIONS</code>，表示这个请求是用来询问的。头信息里面，关键字段是Origin，表示请求来自哪个源。</p>
+<p>除了 <code>Origin</code> 字段，”预检”请求的头信息包括两个特殊字段。</p>
+<p><strong>Access-Control-Request-Method</strong></p>
+<p>该字段是必须的，用来列出浏览器的 <code>CORS</code> 请求会用到哪些HTTP方法，上例是PUT。</p>
+<p><strong>Access-Control-Request-Headers</strong></p>
+<p>该字段是一个逗号分隔的字符串，指定浏览器CORS请求会额外发送的头信息字段，上例是 <code>X-Custom-Header</code> 。</p>
+<h4 id="预检请求的回应"><a href="#预检请求的回应" class="headerlink" title="预检请求的回应"></a>预检请求的回应</h4><p>服务器收到”预检”请求以后，检查了 <code>Origin</code>、<code>Access-Control-Request-Method</code> 和 <code>Access-Control-Request-Headers</code> 字段以后，确认允许跨源请求，就可以做出回应。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">HTTP/<span class="number">1.1</span> <span class="number">200</span> OK</span><br><span class="line"><span class="built_in">Date</span>: Mon, <span class="number">01</span> Dec <span class="number">2008</span> <span class="number">01</span>:<span class="number">15</span>:<span class="number">39</span> GMT</span><br><span class="line">Server: Apache/<span class="number">2.0</span><span class="number">.61</span> (Unix)</span><br><span class="line">Access-Control-Allow-Origin: http:<span class="comment">//api.bob.com</span></span><br><span class="line">Access-Control-Allow-Methods: GET, POST, PUT</span><br><span class="line">Access-Control-Allow-Headers: X-Custom-Header</span><br><span class="line">Content-Type: text/html; charset=utf-<span class="number">8</span></span><br><span class="line">Content-Encoding: gzip</span><br><span class="line">Content-Length: <span class="number">0</span></span><br><span class="line">Keep-Alive: timeout=<span class="number">2</span>, max=<span class="number">100</span></span><br><span class="line">Connection: Keep-Alive</span><br><span class="line">Content-Type: text/plain</span><br></pre></td></tr></table></figure>
+
+<p>上面的HTTP回应中，关键的是 <code>Access-Control-Allow-Origin</code> 字段，表示 <code>http://api.bob.com</code> 可以请求数据。该字段也可以设为星号，表示同意任意跨源请求。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Access-Control-Allow-Origin: *</span><br></pre></td></tr></table></figure>
+
+<p>如果服务器否定了”预检”请求，会返回一个正常的HTTP回应，但是没有任何 <code>CORS</code> 相关的头信息字段。这时，浏览器就会认定，服务器不同意预检请求，因此触发一个错误，被 <code>XMLHttpRequest</code> 对象的 <code>onerror</code> 回调函数捕获。控制台会打印出如下的报错信息。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">XMLHttpRequest cannot load http:<span class="comment">//api.alice.com.</span></span><br><span class="line">Origin http:<span class="comment">//api.bob.com is not allowed by Access-Control-Allow-Origin.</span></span><br></pre></td></tr></table></figure>
+
+<p>服务器回应的其他 <code>CORS</code> 相关字段如下。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Access-Control-Allow-Methods: GET, POST, PUT</span><br><span class="line">Access-Control-Allow-Headers: X-Custom-Header</span><br><span class="line">Access-Control-Allow-Credentials: <span class="literal">true</span></span><br><span class="line">Access-Control-Max-Age: <span class="number">1728000</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>Access-Control-Allow-Methods</strong></p>
+<p>该字段必需，它的值是逗号分隔的一个字符串，表明服务器支持的所有跨域请求的方法。注意，返回的是所有支持的方法，而不单是浏览器请求的那个方法。这是为了避免多次”预检”请求。</p>
+<p><strong>Access-Control-Allow-Headers</strong></p>
+<p>如果浏览器请求包括 <code>Access-Control-Request-Headers</code> 字段，则 <code>Access-Control-Allow-Headers</code> 字段是必需的。它也是一个逗号分隔的字符串，表明服务器支持的所有头信息字段，不限于浏览器在”预检”中请求的字段。</p>
+<p><strong>Access-Control-Allow-Credentials</strong></p>
+<p>该字段与简单请求时的含义相同。</p>
+<p><strong>Access-Control-Max-Age</strong></p>
+<p>该字段可选，用来指定本次预检请求的有效期，单位为秒。上面结果中，有效期是20天（1728000秒），即允许缓存该条回应1728000秒（即20天），在此期间，不用发出另一条预检请求。</p>
+<h4 id="浏览器的正常请求和回应"><a href="#浏览器的正常请求和回应" class="headerlink" title="浏览器的正常请求和回应"></a>浏览器的正常请求和回应</h4><p>一旦服务器通过了”预检”请求，以后每次浏览器正常的CORS请求，就都跟简单请求一样，会有一个 <code>Origin</code> 头信息字段。服务器的回应，也都会有一个 <code>Access-Control-Allow-Origin</code> 头信息字段。</p>
+<p>下面是”预检”请求之后，浏览器的正常CORS请求。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">PUT /cors HTTP/<span class="number">1.1</span></span><br><span class="line">Origin: http:<span class="comment">//api.bob.com</span></span><br><span class="line">Host: api.alice.com</span><br><span class="line">X-Custom-Header: value</span><br><span class="line">Accept-Language: en-US</span><br><span class="line">Connection: keep-alive</span><br><span class="line">User-Agent: Mozilla/<span class="number">5.0</span>...</span><br></pre></td></tr></table></figure>
+
+<p>上面头信息的Origin字段是浏览器自动添加的。</p>
+<p>下面是服务器正常的回应。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Access-Control-Allow-Origin: http:<span class="comment">//api.bob.com</span></span><br><span class="line">Content-Type: text/html; charset=utf-<span class="number">8</span></span><br></pre></td></tr></table></figure>
+
+<p>上面头信息中，<code>Access-Control-Allow-Origin</code> 字段是每次回应都必定包含的。</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/06/Linux%20Crontab%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E8%AF%A6%E8%A7%A3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/06/Linux%20Crontab%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E8%AF%A6%E8%A7%A3/" class="post-title-link" itemprop="url">Linux Crontab定时任务详解</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-08-06 17:38:28" itemprop="dateCreated datePublished" datetime="2020-08-06T17:38:28+00:00">2020-08-06</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-03-29 07:29:58" itemprop="dateModified" datetime="2021-03-29T07:29:58+00:00">2021-03-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Crontab/" itemprop="url" rel="index"><span itemprop="name">Crontab</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="Linux-crontab简介"><a href="#Linux-crontab简介" class="headerlink" title="Linux crontab简介"></a>Linux crontab简介</h2><p>Linux crontab是用来定期执行程序的命令。<br>当安装完成操作系统之后，默认便会启动此任务调度命令。</p>
+<p>注意：新创建的 cron 任务，不会马上执行，至少要过 2 分钟后才可以，当然你可以重启 cron 来马上执行。</p>
+<p>crontab命令用于设置周期性被执行的指令。该命令从标准输入设备读取指令，并将其存放于 <code>/etc/crontab</code> 文件中，以供之后读取和执行。</p>
+<p>cron 系统调度进程。 可以使用它在每天的非高峰负荷时间段运行作业，或在一周或一月中的不同时段运行。cron是系统主要的调度进程，可以在无需人工干预的情况下运行作业。crontab命令允许用户提交、编辑或删除相应的作业。每一个用户都可以有一个crontab文件来保存调度信息。</p>
+<p>linux 任务调度的工作主要分为以下两类：</p>
+<p>1、系统执行的工作：系统周期性所要执行的工作，如备份系统数据、清理缓存<br>2、个人执行的工作：某个用户定期要做的工作，例如每隔10分钟检查邮件服务器是否有新信，这些工作可由每个用户自行设置</p>
+<h2 id="crontab-命令"><a href="#crontab-命令" class="headerlink" title="crontab 命令"></a>crontab 命令</h2><p>crontab命令是 <code>cron table</code> 的简写，它是 cron 的配置文件，也可以叫它作业列表，我们可以在以下文件夹内找到相关配置文件。</p>
+<p><code>/var/spool/cron/</code> 目录下存放的是每个用户包括root的crontab任务，每个任务以创建者的名字命名<br><code>/etc/crontab</code> 这个文件负责调度各种管理和维护任务。<br><code>/etc/cron.d/</code> 这个目录用来存放任何要执行的crontab文件或脚本。</p>
+<p><strong><code>/etc/crontab</code></strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">more /etc/crontab</span><br><span class="line">SHELL=/bin/bash</span><br><span class="line">PATH=/sbin:/bin:/usr/sbin:/usr/bin</span><br><span class="line">MAILTO=root</span><br><span class="line"></span><br><span class="line"><span class="comment"># For details see man 4 crontabs</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Example of job definition:</span></span><br><span class="line"><span class="comment"># .---------------- minute (0 - 59)</span></span><br><span class="line"><span class="comment"># |  .------------- hour (0 - 23)</span></span><br><span class="line"><span class="comment"># |  |  .---------- day of month (1 - 31)</span></span><br><span class="line"><span class="comment"># |  |  |  .------- month (1 - 12) OR jan,feb,mar,apr ...</span></span><br><span class="line"><span class="comment"># |  |  |  |  .---- day of week (0 - 6) (Sunday=0 or 7) OR sun,mon,tue,wed,thu,fri,sat</span></span><br><span class="line"><span class="comment"># |  |  |  |  |</span></span><br><span class="line"><span class="comment"># *  *  *  *  * user-name  command to be executed</span></span><br></pre></td></tr></table></figure>
+
+<p><strong><code>/var/spool/cron</code></strong></p>
+<p>每个用户都会生成一个自动生成一个自己的 <code>crontab</code> 文件，一般位于 <code>/var/spool/cron</code> 目录下</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /var/spool/cron</span><br></pre></td></tr></table></figure>
+
+<p>如果你用命令 <code>crontab -r</code> 就会删除当前用户的crontab文件，例如你切换到oracle账号下，执行了该命令，那么 <code>/var/spool/cron/oracle</code> 文件就会删除，如果要创建该文件只需要用 <code>crontab -e</code> 命令即可。注意，普通用户一般没有权限访问 <code>/var/spool/cron</code></p>
+<p>我们还可以把脚本放在 <code>/etc/cron.hourly</code>、<code>/etc/cron.daily</code>、<code>/etc/cron.weekly</code>、<code>/etc/cron.monthly</code> 目录中，让它每小时/天/星期、月执行一次。</p>
+<p>系统管理员可以通过 cron.deny 和 cron.allow 这两个文件来禁止或允许用户拥有自己的crontab文件。</p>
+<p><code>/etc/cron.deny</code> 表示不能使用 <code>crontab</code> 命令的用户</p>
+<p><code>/etc/cron.allow</code> 表示能使用 <code>crontab</code> 的用户。</p>
+<p>默认情况下，<code>cron.allow</code> 文件不存在。如果两个文件同时存在，那么 <code>/etc/cron.allow</code> 优先。如果两个文件都不存在，那么只有超级用户可以安排作业。</p>
+<p><strong><code>ls -lrt cron*</code></strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">ls -lrt cron*</span><br><span class="line">-rw-r--r--. 1 root root 451 6月  10 2014 crontab</span><br><span class="line">-rw-------. 1 root root   0 11月 20 2018 cron.deny</span><br><span class="line"></span><br><span class="line">cron.weekly:</span><br><span class="line">总用量 0</span><br><span class="line"></span><br><span class="line">cron.monthly:</span><br><span class="line">总用量 0</span><br><span class="line"></span><br><span class="line">cron.hourly:</span><br><span class="line">总用量 4</span><br><span class="line">-rwxr-xr-x. 1 root root 392 11月 20 2018 0anacron</span><br><span class="line"></span><br><span class="line">cron.daily:</span><br><span class="line">总用量 8</span><br><span class="line">-rwxr-xr-x. 1 root root 618 10月 30 2018 man-db.cron</span><br><span class="line">-rwx------. 1 root root 219 10月 31 2018 logrotate</span><br><span class="line"></span><br><span class="line">cron.d:</span><br><span class="line">总用量 4</span><br><span class="line">-rw-r--r--. 1 root root 128 11月 20 2018 0hourl</span><br></pre></td></tr></table></figure>
+
+<h2 id="CRONTAB在线手册"><a href="#CRONTAB在线手册" class="headerlink" title="CRONTAB在线手册"></a>CRONTAB在线手册</h2><p>注意：不同版本的Linux系统，可能crontab手册内容有所出入，请以实际版本为准。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">man crontab | more</span><br></pre></td></tr></table></figure>
+
+<h2 id="注意事项"><a href="#注意事项" class="headerlink" title="注意事项"></a>注意事项</h2><p>配置定时任务时，需要注意两个问题：</p>
+<p>1: 在SHELL中设置了必要的环境变量；例如一个shell脚本手工执行OK，但是配置成后台作业执行时，获取不到ORACLE的环境变量，这是因为crontab环境变量问题，Crontab的环境默认情况下并不包含系统中当前用户的环境。所以，你需要在shell脚本中添加必要的环境变量的设置</p>
+<p>2: 尽量所有的文件都采用完全路径方式，避免使用相对路径。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.jb51.net/article/98640.htm">Linux crontab定时任务配置方法(详解)</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.runoob.com/w3cnote/linux-crontab-tasks.html">Linux Crontab 定时任务</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.runoob.com/linux/linux-comm-crontab.html">Linux crontab 命令</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.linuxidc.com/Linux/2019-03/157851.htm">CentOS安装配置Crontab定时任务</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/06/%E4%BD%BF%E7%94%A8Linux%E8%87%AA%E5%B8%A6%E6%97%A5%E5%BF%97%E6%BB%9A%E5%8A%A8%E5%B7%A5%E5%85%B7logrotate%E6%BB%9A%E5%8A%A8redis%E6%97%A5%E5%BF%97%E7%A4%BA%E4%BE%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/06/%E4%BD%BF%E7%94%A8Linux%E8%87%AA%E5%B8%A6%E6%97%A5%E5%BF%97%E6%BB%9A%E5%8A%A8%E5%B7%A5%E5%85%B7logrotate%E6%BB%9A%E5%8A%A8redis%E6%97%A5%E5%BF%97%E7%A4%BA%E4%BE%8B/" class="post-title-link" itemprop="url">使用Linux自带日志滚动工具logrotate滚动redis日志示例</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-08-06 15:51:36" itemprop="dateCreated datePublished" datetime="2020-08-06T15:51:36+00:00">2020-08-06</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-03-29 07:29:58" itemprop="dateModified" datetime="2021-03-29T07:29:58+00:00">2021-03-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="Linux-logrotate简介"><a href="#Linux-logrotate简介" class="headerlink" title="Linux logrotate简介"></a>Linux logrotate简介</h2><p><code>Linux logrotate</code> 命令用于管理记录文件。</p>
+<p>使用 <code>logrotate</code> 指令，可让你轻松管理系统所产生的记录文件。它提供自动替换，压缩，删除和邮寄记录文件，每个记录文件都可被设置成每日，每周或每月处理，也能在文件太大时立即处理。例如，你可以设置 <code>logrotate</code>，让 <code>/var/log/foo</code> 日志文件每30天轮循，并删除超过6个月的日志。配置完后，<code>logrotate</code> 的运作完全自动化，不必进行任何进一步的人为干预。</p>
+<p><code>logrotate</code> 需要的 <code>cron</code> 任务应该在安装时就自动创建好了，下面代码以centos7.4为例：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">cat /etc/cron.daily/logrotate</span><br><span class="line"><span class="meta">#!/bin/sh</span></span><br><span class="line"></span><br><span class="line">/usr/sbin/logrotate -s /var/lib/logrotate/logrotate.status /etc/logrotate.conf</span><br><span class="line">EXITVALUE=$?</span><br><span class="line"><span class="keyword">if</span> [ <span class="variable">$EXITVALUE</span> != 0 ]; <span class="keyword">then</span></span><br><span class="line">    /usr/bin/logger -t logrotate <span class="string">&quot;ALERT exited abnormally with [<span class="variable">$EXITVALUE</span>]&quot;</span></span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"><span class="built_in">exit</span> 0</span><br></pre></td></tr></table></figure>
+
+<p>Linux系统自带的日志滚动工具 <code>logrotate</code> 由两部分组成：</p>
+<p>一是命令行工具 <code>logrotate</code>;<br>二是后台服务 <code>rsyslogd</code>。</p>
+<p>使用 <code>rsyslogd</code> ，只需简单的配置即可实现日志滚动。<br><code>rsyslogd</code> 的配置文件为 <code>/etc/logrotate.conf</code>，但一般不建议直接修改 <code>logrotate.conf</code> ，而是在目录 <code>/etc/logrotate.d</code> 下新增文件的方式。<br><code>logrotate.conf</code> 会 <code>include</code> 所有 <code>logrotate.d</code> 目录下的文件，<br>语法是一致的，区别是 <code>logrotate.conf</code> 定义了默认的配置，而 <code>logrotate.d</code> 目录下为专有配置。</p>
+<h2 id="Redis日志设置"><a href="#Redis日志设置" class="headerlink" title="Redis日志设置"></a>Redis日志设置</h2><p>截至到 <code>redis-5.0</code> 版本，redis 仍然不会自动滚动日志文件，如果不处理则日志文件日积月累越来越大，最终将导致磁盘满告警，</p>
+<p>使用命令查看磁盘使用情况：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ls -lh</span><br></pre></td></tr></table></figure>
+
+<p>下列为redis的配置示例：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># cat /etc/logrotate.d/redis</span></span><br><span class="line"><span class="comment"># 以下为 redis 文件的内容：</span></span><br><span class="line">/usr/<span class="built_in">local</span>/redis-cluster/<span class="built_in">log</span>/redis-6379.log</span><br><span class="line">/usr/<span class="built_in">local</span>/redis-cluster/<span class="built_in">log</span>/redis-6380.log</span><br><span class="line">/usr/<span class="built_in">local</span>/redis-cluster/<span class="built_in">log</span>/redis-6381.log</span><br><span class="line">&#123;</span><br><span class="line">    monthly</span><br><span class="line">    rotate 5</span><br><span class="line">    minsize 100M</span><br><span class="line">    nocompress</span><br><span class="line">    dateext</span><br><span class="line">    missingok</span><br><span class="line">    notifempty</span><br><span class="line">    create 0664 root root</span><br><span class="line">    postrotate</span><br><span class="line">        /usr/bin/killall -HUP rsyslogd</span><br><span class="line">    endscript</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>注：<code>postrotate/endscript</code> 可以去掉，即：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># cat /etc/logrotate.d/redis</span></span><br><span class="line"><span class="comment"># 以下为 redis 文件的内容：</span></span><br><span class="line">/usr/<span class="built_in">local</span>/redis-cluster/<span class="built_in">log</span>/redis-6379.log</span><br><span class="line">/usr/<span class="built_in">local</span>/redis-cluster/<span class="built_in">log</span>/redis-6380.log</span><br><span class="line">/usr/<span class="built_in">local</span>/redis-cluster/<span class="built_in">log</span>/redis-6381.log</span><br><span class="line">&#123;</span><br><span class="line">    monthly</span><br><span class="line">    rotate 5</span><br><span class="line">    minsize 100M</span><br><span class="line">    nocompress</span><br><span class="line">    dateext</span><br><span class="line">    missingok</span><br><span class="line">    notifempty</span><br><span class="line">    create 0664 root root</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>配置项说明：</p>
+<p>可以使用 <code>man logrotate</code> 命令查看详情。</p>
+<ul>
+<li><code>monthly</code>: 日志文件将按月轮循。其它可用值为 <code>daily</code>，<code>weekly</code> 或者 <code>yearly</code>。</li>
+<li><code>rotate</code> 指定日志文件备份数，一次将存储5个归档日志。对于第六个归档，时间最久的归档将被删除，如果值为0表示不备份</li>
+<li><code>minsize</code> 表示日志文件达到多大才滚动</li>
+<li><code>nocompress</code> 表示是否压缩备份的日志文件，取值：<code>compress</code>，<code>nocompress</code></li>
+<li><code>delaycompress</code>: 总是与 <code>compress</code> 选项一起用，<code>delaycompress</code> 选项指示 <code>logrotate</code> 不要将最近的归档压缩，压缩将在下一次轮循周期进行。这在你或任何软件仍然需要读取最新归档时很有用。</li>
+<li><code>missingok</code> 在日志轮循期间，任何错误将被忽略</li>
+<li><code>notifempty</code> 日志文件为空时，不进行轮转，默认值为 <code>ifempty</code></li>
+<li><code>create</code> 以指定的权限创建全新的日志文件，同时logrotate也会重命名原始日志文件。<code>logrotate</code> 是以 root 运行的，如果目标日志文件非root运行，则这个一定要指定好。</li>
+<li><code>postrotate/endscript</code>: 在所有其它指令完成后，<code>postrotate</code> 和 <code>endscript</code> 里面指定的命令将被执行。在这种情况下，<code>rsyslogd</code> 进程将立即再次读取其配置并继续运行。</li>
+<li><code>dateext</code>：就是切割后的日志文件以当前日期为格式结尾，如 xxx.log-20201016 这样,如果注释掉,切割出来是按数字递增,即前面说的 xxx.log-1这种格式。</li>
+</ul>
+<p>注意，修改后需要重启下 <code>rsyslogd</code>。如果是 <code>CentOS</code> 可使用下列任意一种方式重启<br>（实际上 <code>systemctl</code> 新方式，而 <code>service</code> 实际也是使用 <code>systemctl</code> ）：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">service rsyslog restart </span><br><span class="line">systemctl restart rsyslog.service</span><br></pre></td></tr></table></figure>
+
+<h2 id="实例"><a href="#实例" class="headerlink" title="实例"></a>实例</h2><p><strong>创建测试日志文件</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建文件</span></span><br><span class="line">touch /var/<span class="built_in">log</span>/log-file</span><br><span class="line">head -c 50M &lt; /dev/urandom &gt; /var/<span class="built_in">log</span>/log-file</span><br><span class="line"></span><br><span class="line"><span class="comment"># 编辑配置</span></span><br><span class="line">vim /etc/logrotate.d/log-file</span><br><span class="line"></span><br><span class="line"><span class="comment"># 以下为内容</span></span><br><span class="line">/var/<span class="built_in">log</span>/log-file &#123;</span><br><span class="line">    minsize 50M</span><br><span class="line">    rotate 5</span><br><span class="line">    create 644 root root</span><br><span class="line">    postrotate</span><br><span class="line">        /usr/bin/killall -HUP rsyslogd</span><br><span class="line">    endscript</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="手动运行"><a href="#手动运行" class="headerlink" title="手动运行"></a>手动运行</h2><p>logrotate 可以在任何时候从命令行手动调用。</p>
+<p>要调用为 <code>/etc/lograte.d/</code> 下配置的所有日志调用 <code>logrotate</code> ：</p>
+<p><code>logrotate /etc/logrotate.conf</code> </p>
+<p>要为某个特定的配置调用 <code>logrotate</code> ：</p>
+<p><code>logrotate /etc/logrotate.d/log-file</code> </p>
+<p><strong>logrotate参数说明</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># -d 选项以预演方式运行logrotate</span></span><br><span class="line">logrotate -d /etc/logrotate.d/log-file </span><br><span class="line"></span><br><span class="line"><span class="comment"># -f 强制logrotate轮循日志文件</span></span><br><span class="line"><span class="comment"># -v 参数提供了详细的输出。</span></span><br><span class="line">logrotate -vf /etc/logrotate.d/log-file</span><br><span class="line"></span><br><span class="line"><span class="comment"># 输出到指定的文件</span></span><br><span class="line"><span class="comment"># 注：logrotate自身的日志通常存放于/var/lib/logrotate/status目录。</span></span><br><span class="line">logrotate -vf –s /var/<span class="built_in">log</span>/logrotate-status /etc/logrotate.d/log-file</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://blog.chinaunix.net/uid-20682147-id-5818053.html">使用Linux自带日志滚动工具logrotate滚动redis日志示例</a></p>
+<p><a target="_blank" rel="noopener" href="https://linux.cn/article-4126-1.html">Linux日志文件总管——logrotate</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.runoob.com/linux/linux-comm-logrotate.html">Linux logrotate命令</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/06/CentOS7%E6%89%A7%E8%A1%8CShell%E8%84%9A%E6%9C%AC/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/06/CentOS7%E6%89%A7%E8%A1%8CShell%E8%84%9A%E6%9C%AC/" class="post-title-link" itemprop="url">CentOS7执行Shell脚本</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-08-06 14:00:15" itemprop="dateCreated datePublished" datetime="2020-08-06T14:00:15+00:00">2020-08-06</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-03-29 07:29:58" itemprop="dateModified" datetime="2021-03-29T07:29:58+00:00">2021-03-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Shell%E8%84%9A%E6%9C%AC/" itemprop="url" rel="index"><span itemprop="name">Shell脚本</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>先用 <code>chmod</code> 让Shell脚本有可执行权限，Linux下面用命令如何运行Shell脚本的方法，有两种方法：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1， ./ 加上文件名 .sh</span></span><br><span class="line">./test.sh</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2，sh 加上 文件名.sh</span></span><br><span class="line">sh test.sh</span><br></pre></td></tr></table></figure>
+
+<p>如果没有权限，需要先设置权限，命令如下：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 添加执行权限</span></span><br><span class="line">chmod + x testsh</span><br><span class="line"></span><br><span class="line"><span class="comment"># 转到指定文件的目录下</span></span><br><span class="line"><span class="built_in">cd</span> <span class="built_in">test</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#执行文件</span></span><br><span class="line">./test.sh  </span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/xiaopu99/article/details/82978743">centos执行.sh文件</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.runoob.com/linux/linux-shell.html">Shell 教程</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/05/Linux%20Transparent%20HugePages(%E9%80%8F%E6%98%8E%E5%A4%A7%E9%A1%B5)/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/05/Linux%20Transparent%20HugePages(%E9%80%8F%E6%98%8E%E5%A4%A7%E9%A1%B5)/" class="post-title-link" itemprop="url">Linux Transparent HugePages(透明大页)</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-08-05 14:40:31" itemprop="dateCreated datePublished" datetime="2020-08-05T14:40:31+00:00">2020-08-05</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-03-29 07:29:58" itemprop="dateModified" datetime="2021-03-29T07:29:58+00:00">2021-03-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>什么是 Transparent Huge Pages？为提升性能，通过大内存页来替代传统的4K页，使用得管理虚拟地址数变少，加快从虚拟地址到物理地址的映射，以及摒弃内存页面的换入换出以提高内存的整体性能。内核 Kernel 将程序缓存内存中，每页内存以2M为单位。相应的系统进程为 khugepaged。</p>
+<p>在Linux中，有两种方式使用 Huge Pages，一种是2.6内核引入的 HugeTLBFS，另一种是2.6.36内核引入的THP。HugeTLBFS 主要用于数据库，THP广泛应用于应用程序。</p>
+<p>一般可以在 rc.local 或 /etc/default/grub 中对 Huge Pages 进行设置。</p>
+<p>Linux下的大页分为两种类型：标准大页（Huge Pages）和透明大页（Transparent Huge Pages）。Huge Pages有时候也翻译成大页/标准大页/传统大页，它们都是Huge Pages的不同中文翻译名而已。目的是使用更大的内存页面（memory page size） 以适应越来越大的系统内存，让操作系统可以支持现代硬件架构的大页面容量功能。透明大页（Transparent Huge Pages）缩写为THP，这个是RHEL 6（其它分支版本SUSE Linux Enterprise Server 11, and Oracle Linux 6 with earlier releases of Oracle Linux Unbreakable Enterprise Kernel 2 (UEK2)）开始引入的一个功能。具体可以参考官方文档。这两者的区别在于大页的分配机制，标准大页管理是预分配的方式，而透明大页管理则是动态分配的方式。</p>
+<h2 id="CentOS7-禁用Transparent-Huge-Pages"><a href="#CentOS7-禁用Transparent-Huge-Pages" class="headerlink" title="CentOS7 禁用Transparent Huge Pages"></a>CentOS7 禁用Transparent Huge Pages</h2><p>自CentOS6版本开始引入了Transparent Huge Pages(THP)，从 CentOS7 版本开始，该特性默认就会启用。尽管THP的本意是为提升内存的性能，不过某些数据库厂商还是建议直接关闭THP(比如说 ORACLE、MariaDB、MongoDB 等)，否则可能会导致性能出现下降。</p>
+<p>首先检查THP的启用状态：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]<span class="comment"># cat /sys/kernel/mm/transparent_hugepage/defrag</span></span><br><span class="line">[always] madvise never</span><br><span class="line">[root@localhost ~]<span class="comment"># cat /sys/kernel/mm/transparent_hugepage/enabled</span></span><br><span class="line">[always] madvise never</span><br></pre></td></tr></table></figure>
+<p>这个状态就说明都是启用的。</p>
+<p>我们这个时候当然可以逐个修改上述两文件，来禁用THP，但要想一劳永逸的令其永久生效，还是参考下列的步骤。</p>
+<p>编辑 rc.local 文件：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# vim &#x2F;etc&#x2F;rc.local</span><br></pre></td></tr></table></figure>
+
+<p>增加下列内容：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> <span class="built_in">test</span> -f /sys/kernel/mm/transparent_hugepage/enabled; <span class="keyword">then</span></span><br><span class="line"><span class="built_in">echo</span> never &gt; /sys/kernel/mm/transparent_hugepage/enabled</span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"><span class="keyword">if</span> <span class="built_in">test</span> -f /sys/kernel/mm/transparent_hugepage/defrag; <span class="keyword">then</span></span><br><span class="line"><span class="built_in">echo</span> never &gt; /sys/kernel/mm/transparent_hugepage/defrag</span><br><span class="line"><span class="keyword">fi</span></span><br></pre></td></tr></table></figure>
+
+<p>保存退出，然后赋予 rc.local 文件执行权限：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]<span class="comment"># chmod +x /etc/rc.local</span></span><br></pre></td></tr></table></figure>
+
+<p>最后重启系统，以后再检查THP应该就是被禁用了</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]<span class="comment"># cat /sys/kernel/mm/transparent_hugepage/enabled</span></span><br><span class="line">always madvise [never]</span><br><span class="line">[root@localhost ~]<span class="comment"># cat /sys/kernel/mm/transparent_hugepage/defrag </span></span><br><span class="line">always madvise [never]</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/kerrycode/p/7760026.html">Linux传统Huge Pages与Transparent Huge Pages再次学习总结</a></p>
+<p><a target="_blank" rel="noopener" href="http://blog.itpub.net/26736162/viewspace-2214374/">Huge pages (标准大页)和 Transparent Huge pages(透明大页)</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.jb51.net/article/98191.htm">CentOS7 禁用Transparent Huge Pages的实现方法</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/05/Linux%20OOM%E6%9C%BA%E5%88%B6%E7%AE%80%E4%BB%8B/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -216,7 +781,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
+                <time title="修改时间：2021-03-29 07:29:58" itemprop="dateModified" datetime="2021-03-29T07:29:58+00:00">2021-03-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -314,7 +879,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
+                <time title="修改时间：2021-03-29 07:29:58" itemprop="dateModified" datetime="2021-03-29T07:29:58+00:00">2021-03-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -426,7 +991,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
+                <time title="修改时间：2021-03-29 07:29:58" itemprop="dateModified" datetime="2021-03-29T07:29:58+00:00">2021-03-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -509,7 +1074,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
+                <time title="修改时间：2021-03-29 07:29:58" itemprop="dateModified" datetime="2021-03-29T07:29:58+00:00">2021-03-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -610,7 +1175,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
+                <time title="修改时间：2021-03-29 07:29:58" itemprop="dateModified" datetime="2021-03-29T07:29:58+00:00">2021-03-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -854,7 +1419,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
+                <time title="修改时间：2021-03-29 07:29:58" itemprop="dateModified" datetime="2021-03-29T07:29:58+00:00">2021-03-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1019,7 +1584,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
+                <time title="修改时间：2021-03-29 07:29:58" itemprop="dateModified" datetime="2021-03-29T07:29:58+00:00">2021-03-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1045,8 +1610,8 @@
           <h2 id="修改系统参数"><a href="#修改系统参数" class="headerlink" title="修改系统参数"></a>修改系统参数</h2><h3 id="修改最大可打开文件数"><a href="#修改最大可打开文件数" class="headerlink" title="修改最大可打开文件数"></a>修改最大可打开文件数</h3><p>参考：<a target="_blank" rel="noopener" href="https://syxdevcode.github.io/2020/08/04/Linux%E6%9C%80%E5%A4%A7%E6%96%87%E4%BB%B6%E6%89%93%E5%BC%80%E6%95%B0/">Linux最大文件打开数 </a></p>
 <h3 id="TCP监听队列大小"><a href="#TCP监听队列大小" class="headerlink" title="TCP监听队列大小"></a>TCP监听队列大小</h3><p>参考：<a target="_blank" rel="noopener" href="https://syxdevcode.github.io/2020/08/04/Linux%E8%AE%BE%E7%BD%AETCP%E7%9B%91%E5%90%AC%E9%98%9F%E5%88%97/">Linux设置TCP监听队列</a></p>
 <p>在 /etc/sysctl.conf 添加：</p>
-<p>net.core.somaxconn=32767</p>
-<p>执行命令 sysctl -p 以生效</p>
+<p>net.core.somaxconn=65000</p>
+<p>执行命令 <code>sysctl -p</code> 以生效</p>
 <h3 id="OOM相关：vm-overcommit-memory"><a href="#OOM相关：vm-overcommit-memory" class="headerlink" title="OOM相关：vm.overcommit_memory"></a>OOM相关：vm.overcommit_memory</h3><p>参考：<a target="_blank" rel="noopener" href="https://syxdevcode.github.io/2020/08/05/Linux%20OOM%E6%9C%BA%E5%88%B6%E7%AE%80%E4%BB%8B/">Linux OOM机制简介</a></p>
 <p>在 /etc/sysctl.conf 添加：</p>
 <p>vm.overcommit_memory=1</p>
@@ -1056,7 +1621,7 @@
 <h2 id="目录结构"><a href="#目录结构" class="headerlink" title="目录结构"></a>目录结构</h2><p>完成公共的 redis.conf 和一个端口号的，如 <code>redis-6379.conf</code>，其它端口号的配置文件基于一个修改后的端口号配置文件即可。</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@host-192-125-30-59 redis-cluster]<span class="comment"># ls</span></span><br><span class="line">data  <span class="built_in">log</span>  redis-6379.conf  redis-6380.conf  redis-6381.conf  redis.conf</span><br></pre></td></tr></table></figure>
 
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建目录</span></span><br><span class="line">mkdir /usr/<span class="built_in">local</span>/redis-cluster</span><br><span class="line"><span class="built_in">cd</span> /usr/<span class="built_in">local</span>/redis-cluster</span><br><span class="line">mkdir -p data <span class="built_in">log</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">cd</span> /usr/<span class="built_in">local</span>/redis-cluster/data</span><br><span class="line">mkdir -p 6379 6380 6381</span><br><span class="line"></span><br><span class="line"><span class="built_in">cd</span> /usr/<span class="built_in">local</span>/redis-cluster</span><br><span class="line"></span><br><span class="line"><span class="comment"># 生成共有配置文件</span></span><br><span class="line">touch redis.conf</span><br><span class="line"></span><br><span class="line"><span class="comment"># 生成端口文件</span></span><br><span class="line">touch redis-6379.conf</span><br><span class="line"></span><br><span class="line"><span class="comment"># 生成不同端口的配置文件</span></span><br><span class="line">sed <span class="string">&#x27;s/6379/6380/g&#x27;</span> redis-6379.conf &gt; /usr/<span class="built_in">local</span>/redis-cluster/redis-6380.conf</span><br><span class="line">sed <span class="string">&#x27;s/6379/6381/g&#x27;</span> redis-6379.conf &gt; /usr/<span class="built_in">local</span>/redis-cluster/redis-6381.conf</span><br><span class="line"></span><br><span class="line"><span class="comment"># 启动</span></span><br><span class="line">/usr/<span class="built_in">local</span>/bin/redis-server /usr/<span class="built_in">local</span>/redis-cluster/redis-6379.conf</span><br><span class="line">/usr/<span class="built_in">local</span>/bin/redis-server /usr/<span class="built_in">local</span>/redis-cluster/redis-6380.conf</span><br><span class="line">/usr/<span class="built_in">local</span>/bin/redis-server /usr/<span class="built_in">local</span>/redis-cluster/redis-6381.conf</span><br></pre></td></tr></table></figure>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建目录</span></span><br><span class="line">mkdir /usr/<span class="built_in">local</span>/redis-cluster</span><br><span class="line"><span class="built_in">cd</span> /usr/<span class="built_in">local</span>/redis-cluster</span><br><span class="line">mkdir -p data <span class="built_in">log</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">cd</span> /usr/<span class="built_in">local</span>/redis-cluster/data</span><br><span class="line">mkdir -p 6379 6380 6381</span><br><span class="line"></span><br><span class="line"><span class="built_in">cd</span> /usr/<span class="built_in">local</span>/redis-cluster</span><br><span class="line"></span><br><span class="line"><span class="comment"># 生成共有配置文件</span></span><br><span class="line">touch redis.conf</span><br><span class="line"></span><br><span class="line"><span class="comment"># 生成端口文件</span></span><br><span class="line">touch redis-6379.conf</span><br><span class="line"></span><br><span class="line"><span class="comment"># 生成不同端口的配置文件</span></span><br><span class="line">sed <span class="string">&#x27;s/6379/6380/g&#x27;</span> redis-6379.conf &gt; /usr/<span class="built_in">local</span>/redis-cluster/redis-6380.conf</span><br><span class="line">sed <span class="string">&#x27;s/6379/6381/g&#x27;</span> redis-6379.conf &gt; /usr/<span class="built_in">local</span>/redis-cluster/redis-6381.conf</span><br><span class="line"></span><br><span class="line"><span class="comment"># 启动</span></span><br><span class="line">/usr/<span class="built_in">local</span>/bin/redis-server /usr/<span class="built_in">local</span>/redis-cluster/redis-6379.conf</span><br><span class="line">/usr/<span class="built_in">local</span>/bin/redis-server /usr/<span class="built_in">local</span>/redis-cluster/redis-6380.conf</span><br><span class="line">/usr/<span class="built_in">local</span>/bin/redis-server /usr/<span class="built_in">local</span>/redis-cluster/redis-6381.conf</span><br><span class="line"></span><br><span class="line"><span class="comment"># 连接单个节点</span></span><br><span class="line">/usr/<span class="built_in">local</span>/bin/redis-cli -h 127.0.0.1 -p 6379 -a <span class="built_in">test</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 停止</span></span><br><span class="line">/usr/<span class="built_in">local</span>/bin/redis-cli -h 127.0.0.1 -p 6379 -a <span class="built_in">test</span> shutdown</span><br></pre></td></tr></table></figure>
 
 <p>查看redis运行情况：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">netstat -tunpl | grep 6379</span><br><span class="line">netstat -tunpl | grep 6380</span><br><span class="line">netstat -tunpl | grep 6381</span><br><span class="line">ps aux | grep redis</span><br><span class="line"></span><br><span class="line">[root@host-192-125-30-111 redis-cluster]<span class="comment"># netstat -tunpl | grep 6379</span></span><br><span class="line">tcp        0      0 0.0.0.0:16379           0.0.0.0:*               LISTEN      6184/redis-server * </span><br><span class="line">tcp        0      0 0.0.0.0:6379            0.0.0.0:*               LISTEN      6184/redis-server * </span><br><span class="line">tcp6       0      0 :::16379                :::*                    LISTEN      6184/redis-server * </span><br><span class="line">tcp6       0      0 :::6379                 :::*                    LISTEN      6184/redis-server * </span><br><span class="line">[root@host-192-125-30-111 redis-cluster]<span class="comment"># netstat -tunpl | grep 6380</span></span><br><span class="line">tcp        0      0 0.0.0.0:16380           0.0.0.0:*               LISTEN      6189/redis-server * </span><br><span class="line">tcp        0      0 0.0.0.0:6380            0.0.0.0:*               LISTEN      6189/redis-server * </span><br><span class="line">tcp6       0      0 :::16380                :::*                    LISTEN      6189/redis-server * </span><br><span class="line">tcp6       0      0 :::6380                 :::*                    LISTEN      6189/redis-server * </span><br><span class="line">[root@host-192-125-30-111 redis-cluster]<span class="comment"># netstat -tunpl | grep 6381</span></span><br><span class="line">tcp        0      0 0.0.0.0:16381           0.0.0.0:*               LISTEN      6194/redis-server * </span><br><span class="line">tcp        0      0 0.0.0.0:6381            0.0.0.0:*               LISTEN      6194/redis-server * </span><br><span class="line">tcp6       0      0 :::16381                :::*                    LISTEN      6194/redis-server * </span><br><span class="line">tcp6       0      0 :::6381                 :::*                    LISTEN      6194/redis-server * </span><br><span class="line">[root@host-192-125-30-111 redis-cluster]<span class="comment"># ps aux|grep redis</span></span><br><span class="line">root      6184  0.0  0.0 156964  7724 ?        Ssl  10:38   0:00 /usr/<span class="built_in">local</span>/bin/redis-server *:6379 [cluster]</span><br><span class="line">root      6189  0.0  0.0 153892  7692 ?        Ssl  10:39   0:00 /usr/<span class="built_in">local</span>/bin/redis-server *:6380 [cluster]</span><br><span class="line">root      6194  0.0  0.0 153892  7692 ?        Ssl  10:39   0:00 /usr/<span class="built_in">local</span>/bin/redis-server *:6381 [cluster]</span><br><span class="line">root      6339  0.0  0.0 112724   992 pts/1    S+   10:42   0:00 grep --color=auto redis</span><br></pre></td></tr></table></figure>
@@ -1107,7 +1672,7 @@
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line">[root@host-192-125-30-111 redis-cluster]<span class="comment"># /usr/local/bin/redis-cli -a Perfect1 --cluster create 192.125.30.111:6379 192.125.30.111:6380 192.125.30.59:6381 192.125.30.59:6379 192.125.30.59:6380 192.125.30.111:6381 --cluster-replicas 1</span></span><br><span class="line">Warning: Using a password with <span class="string">&#x27;-a&#x27;</span> or <span class="string">&#x27;-u&#x27;</span> option on the <span class="built_in">command</span> line interface may not be safe.</span><br><span class="line">&gt;&gt;&gt; Performing <span class="built_in">hash</span> slots allocation on 6 nodes...</span><br><span class="line">Master[0] -&gt; Slots 0 - 5460</span><br><span class="line">Master[1] -&gt; Slots 5461 - 10922</span><br><span class="line">Master[2] -&gt; Slots 10923 - 16383</span><br><span class="line">Adding replica 192.125.30.59:6380 to 192.125.30.111:6379</span><br><span class="line">Adding replica 192.125.30.111:6381 to 192.125.30.59:6381</span><br><span class="line">Adding replica 192.125.30.59:6379 to 192.125.30.111:6380</span><br><span class="line">M: 9df266851fa7d8d9363d584a5bc644f36ea1d052 192.125.30.111:6379</span><br><span class="line">   slots:[0-5460] (5461 slots) master</span><br><span class="line">M: 932a6ab157056e2d36e3915780b5d77138bbabdb 192.125.30.111:6380</span><br><span class="line">   slots:[10923-16383] (5461 slots) master</span><br><span class="line">M: fb9923083a70ca2131b3fb6c7633bc7275dfe33c 192.125.30.59:6381</span><br><span class="line">   slots:[5461-10922] (5462 slots) master</span><br><span class="line">S: 53ab782834f304013ac055a35e5275e5004b30c7 192.125.30.59:6379</span><br><span class="line">   replicates 932a6ab157056e2d36e3915780b5d77138bbabdb</span><br><span class="line">S: 7854f8ed0234945e89af5079331ce7779449d632 192.125.30.59:6380</span><br><span class="line">   replicates 9df266851fa7d8d9363d584a5bc644f36ea1d052</span><br><span class="line">S: 1141e28e7b135db55cdb1c87c143ee0c0502d26d 192.125.30.111:6381</span><br><span class="line">   replicates fb9923083a70ca2131b3fb6c7633bc7275dfe33c</span><br><span class="line">Can I <span class="built_in">set</span> the above configuration? (<span class="built_in">type</span> <span class="string">&#x27;yes&#x27;</span> to accept): yes</span><br><span class="line">&gt;&gt;&gt; Nodes configuration updated</span><br><span class="line">&gt;&gt;&gt; Assign a different config epoch to each node</span><br><span class="line">&gt;&gt;&gt; Sending CLUSTER MEET messages to join the cluster</span><br><span class="line">Waiting <span class="keyword">for</span> the cluster to join</span><br><span class="line">..</span><br><span class="line">&gt;&gt;&gt; Performing Cluster Check (using node 192.125.30.111:6379)</span><br><span class="line">M: 9df266851fa7d8d9363d584a5bc644f36ea1d052 192.125.30.111:6379</span><br><span class="line">   slots:[0-5460] (5461 slots) master</span><br><span class="line">   1 additional replica(s)</span><br><span class="line">S: 1141e28e7b135db55cdb1c87c143ee0c0502d26d 192.125.30.111:6381</span><br><span class="line">   slots: (0 slots) slave</span><br><span class="line">   replicates fb9923083a70ca2131b3fb6c7633bc7275dfe33c</span><br><span class="line">M: 932a6ab157056e2d36e3915780b5d77138bbabdb 192.125.30.111:6380</span><br><span class="line">   slots:[10923-16383] (5461 slots) master</span><br><span class="line">   1 additional replica(s)</span><br><span class="line">S: 7854f8ed0234945e89af5079331ce7779449d632 192.125.30.59:6380</span><br><span class="line">   slots: (0 slots) slave</span><br><span class="line">   replicates 9df266851fa7d8d9363d584a5bc644f36ea1d052</span><br><span class="line">S: 53ab782834f304013ac055a35e5275e5004b30c7 192.125.30.59:6379</span><br><span class="line">   slots: (0 slots) slave</span><br><span class="line">   replicates 932a6ab157056e2d36e3915780b5d77138bbabdb</span><br><span class="line">M: fb9923083a70ca2131b3fb6c7633bc7275dfe33c 192.125.30.59:6381</span><br><span class="line">   slots:[5461-10922] (5462 slots) master</span><br><span class="line">   1 additional replica(s)</span><br><span class="line">[OK] All nodes agree about slots configuration.</span><br><span class="line">&gt;&gt;&gt; Check <span class="keyword">for</span> open slots...</span><br><span class="line">&gt;&gt;&gt; Check slots coverage...</span><br><span class="line">[OK] All 16384 slots covered.</span><br></pre></td></tr></table></figure>
 
 <p><strong>集群相关信息查看</strong></p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 集群状态</span></span><br><span class="line">/usr/<span class="built_in">local</span>/bin/redis-cli -h 127.0.0.1 -p 6379 -a password cluster info</span><br><span class="line"></span><br><span class="line"><span class="comment"># 集群节点信息</span></span><br><span class="line">/usr/<span class="built_in">local</span>/bin/redis-cli -h 127.0.0.1 -p 6379 -a password cluster nodes</span><br><span class="line"></span><br><span class="line"><span class="comment"># 节点内存、cpu、key数量等信息（每个节点都需查看）</span></span><br><span class="line">/usr/<span class="built_in">local</span>/bin/redis-cli -h 127.0.0.1 -p 6379 -a password info</span><br></pre></td></tr></table></figure>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 集群状态</span></span><br><span class="line">/usr/<span class="built_in">local</span>/bin/redis-cli -h 127.0.0.1 -p 6379 -a password cluster info</span><br><span class="line"></span><br><span class="line"><span class="comment"># 集群节点信息</span></span><br><span class="line">/usr/<span class="built_in">local</span>/bin/redis-cli -h 127.0.0.1 -p 6379 -a password cluster nodes</span><br><span class="line"></span><br><span class="line"><span class="comment"># 节点内存、cpu、key数量等信息（每个节点都需查看）</span></span><br><span class="line">/usr/<span class="built_in">local</span>/bin/redis-cli -h 127.0.0.1 -p 6379 -a password info</span><br><span class="line"></span><br><span class="line"><span class="comment"># 连接单个节点</span></span><br><span class="line">/usr/<span class="built_in">local</span>/bin/redis-cli -h 127.0.0.1 -p 6379 -a <span class="built_in">test</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 连接群集</span></span><br><span class="line">/usr/<span class="built_in">local</span>/bin/redis-cli -c -h 127.0.0.1 -p 6379 -a <span class="built_in">test</span></span><br></pre></td></tr></table></figure>
 
 <p><strong>ps aux|grep redis-server</strong></p>
 <p>查看redis进程是否已切换为集群状态（cluster）</p>
@@ -1199,7 +1764,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
+                <time title="修改时间：2021-03-29 07:29:58" itemprop="dateModified" datetime="2021-03-29T07:29:58+00:00">2021-03-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1284,7 +1849,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
+                <time title="修改时间：2021-03-29 07:29:58" itemprop="dateModified" datetime="2021-03-29T07:29:58+00:00">2021-03-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1379,7 +1944,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
+                <time title="修改时间：2021-03-29 07:29:58" itemprop="dateModified" datetime="2021-03-29T07:29:58+00:00">2021-03-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1407,447 +1972,6 @@
 <p>示例：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">rpm -e --nodeps glib2</span><br><span class="line"></span><br><span class="line"><span class="comment"># 进入挂载的镜像内</span></span><br><span class="line"><span class="built_in">cd</span> /media/cdrom/</span><br><span class="line"><span class="built_in">cd</span> Packages/</span><br><span class="line">ls | grep glib2</span><br><span class="line"></span><br><span class="line">[root@host Packages]<span class="comment"># ls | grep glib2</span></span><br><span class="line">compat-libpackagekit-glib2-16-0.8.9-1.el7.x86_64.rpm</span><br><span class="line">glib2-2.54.2-2.el7.x86_64.rpm</span><br><span class="line">glib2-devel-2.54.2-2.el7.x86_64.rpm</span><br><span class="line">pulseaudio-libs-glib2-10.0-5.el7.x86_64.rpm</span><br><span class="line"></span><br><span class="line">[root@host Packages]<span class="comment"># rpm -ivh glib2-2.54.2-2.el7.x86_64.rpm </span></span><br></pre></td></tr></table></figure>
 
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/07/20/java%E9%94%99%E8%AF%AF%EF%BC%9A%E6%89%BE%E4%B8%8D%E5%88%B0%E6%88%96%E6%97%A0%E6%B3%95%E5%8A%A0%E8%BD%BD%E4%B8%BB%E7%B1%BB/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/07/20/java%E9%94%99%E8%AF%AF%EF%BC%9A%E6%89%BE%E4%B8%8D%E5%88%B0%E6%88%96%E6%97%A0%E6%B3%95%E5%8A%A0%E8%BD%BD%E4%B8%BB%E7%B1%BB/" class="post-title-link" itemprop="url">java错误：找不到或无法加载主类</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-07-20 13:46:06" itemprop="dateCreated datePublished" datetime="2020-07-20T13:46:06+00:00">2020-07-20</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>1.编译的时候后缀带了.class：把后缀去掉；<br>2.删除java文件中的package包；（不推荐）<br>2.当java文件带了package包，但是还在java文件所在目录运行，这种情况会报错；</p>
-<p>正确做法：返回包的前一目录进行运行；</p>
-<p>正确示例：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">PS E:\java\javademo\src&gt; javac -encoding UTF-<span class="number">8</span> ServerSocketTest/GreetingServer.java</span><br><span class="line">PS E:\java\javademo\src&gt; java ServerSocketTest/GreetingServer</span><br></pre></td></tr></table></figure>
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/07/20/java%E9%94%99%E8%AF%AF%EF%BC%9A%E7%BC%96%E7%A0%81GBK%E7%9A%84%E4%B8%8D%E5%8F%AF%E6%98%A0%E5%B0%84%E5%AD%97%E7%AC%A6/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/07/20/java%E9%94%99%E8%AF%AF%EF%BC%9A%E7%BC%96%E7%A0%81GBK%E7%9A%84%E4%B8%8D%E5%8F%AF%E6%98%A0%E5%B0%84%E5%AD%97%E7%AC%A6/" class="post-title-link" itemprop="url">java错误：编码GBK的不可映射字符</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-07-20 13:43:37" itemprop="dateCreated datePublished" datetime="2020-07-20T13:43:37+00:00">2020-07-20</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>当Java源代码中包含中文字符时，我们在用javac编译时会出现“错误：编码GBK的不可映射字符”。</p>
-<p>由于JDK是国际版的，我们在用javac编译时，编译程序首先会获得我们操作系统默认采用的编码格式（GBK），然后JDK就把Java源文件从GBK编码格式转换为Java内部默认的Unicode格式放入内存中，然后javac把转换后的Unicode格式的文件编译成class类文件，此时，class文件是Unicode编码的，它暂存在内存中，紧接着，JDK将此以Unicode格式编码的class文件保存到操作系统中形成我们见到的class文件。当我们不加设置就编译时，相当于使用了参数：<code>javac -encoding GBK Test.java</code>，就会出现不兼容的情况。</p>
-<p>使用-encoding参数指明编码方式：<code>javac -encoding UTF-8 Test.java</code>，就可以了。</p>
-<p>转载：<a target="_blank" rel="noopener" href="https://www.cnblogs.com/lucky-zhangcd/p/8409810.html">错误：编码GBK的不可映射字符</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/07/16/win10%E9%85%8D%E7%BD%AEjava%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/07/16/win10%E9%85%8D%E7%BD%AEjava%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F/" class="post-title-link" itemprop="url">win10配置java环境变量</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-07-16 15:15:37" itemprop="dateCreated datePublished" datetime="2020-07-16T15:15:37+00:00">2020-07-16</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="打开环境变量窗口"><a href="#打开环境变量窗口" class="headerlink" title="打开环境变量窗口"></a>打开环境变量窗口</h2><p>右键 This PC(此电脑) -&gt; Properties（属性） -&gt; Advanced system settings（高级系统设置） -&gt; Environment Variables（环境变量）</p>
-<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20200716151758.png" alt="微信截图_20200716151758.png"></p>
-<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20200716151834.png" alt="微信截图_20200716151834.png"></p>
-<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20200716151910.png" alt="微信截图_20200716151910.png"></p>
-<h2 id="新建JAVA-HOME-变量"><a href="#新建JAVA-HOME-变量" class="headerlink" title="新建JAVA_HOME 变量"></a>新建JAVA_HOME 变量</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">变量名：JAVA_HOME</span><br><span class="line">变量值：电脑上JDK安装的绝对路径</span><br></pre></td></tr></table></figure>
-
-<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20200716152023.png" alt="微信截图_20200716152023.png"></p>
-<h2 id="新建-修改-CLASSPATH-变量"><a href="#新建-修改-CLASSPATH-变量" class="headerlink" title="新建/修改 CLASSPATH 变量"></a>新建/修改 CLASSPATH 变量</h2><p>如果存在 <code>CLASSPATH</code> 变量，选中点击 Edit(编辑)。</p>
-<p>如果没有，点击 New（新建）… 新建。</p>
-<p>输入/在已有的变量值后面添加：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">变量名：CLASSPATH</span><br><span class="line">变量值：.;%JAVA_HOME%\lib\dt.jar;%JAVA_HOME%\lib\tools.jar;</span><br></pre></td></tr></table></figure>
-
-<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20200716152137.png" alt="微信截图_20200716152137.png"></p>
-<h2 id="修改Path-变量"><a href="#修改Path-变量" class="headerlink" title="修改Path 变量"></a>修改Path 变量</h2><p>由于 win10 的不同，当选中 Path 变量的时候，系统会很方便的把所有不同路径都分开了，不会像 win7 或者 win8 那样连在一起。</p>
-<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20200716152234.png" alt="微信截图_20200716152234.png"></p>
-<p>新建两条路径：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">%JAVA_HOME%\bin</span><br><span class="line">%JAVA_HOME%\jre\bin</span><br></pre></td></tr></table></figure>
-
-<h2 id="验证"><a href="#验证" class="headerlink" title="验证"></a>验证</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">java</span><br><span class="line">java -version</span><br><span class="line">javac</span><br></pre></td></tr></table></figure>
-
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://www.runoob.com/w3cnote/windows10-java-setup.html">Windows 10 配置Java 环境变量</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/07/15/IDEA%E6%8F%92%E4%BB%B6%E8%AE%B0%E5%BD%95/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/07/15/IDEA%E6%8F%92%E4%BB%B6%E8%AE%B0%E5%BD%95/" class="post-title-link" itemprop="url">IDEA插件记录</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-07-15 13:25:43" itemprop="dateCreated datePublished" datetime="2020-07-15T13:25:43+00:00">2020-07-15</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/IDEA/" itemprop="url" rel="index"><span itemprop="name">IDEA</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>转载：</p>
-<p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/99354824">IDEA最好用插件推荐</a></p>
-<h2 id="Alibaba-Java-Coding-Guidelines"><a href="#Alibaba-Java-Coding-Guidelines" class="headerlink" title="Alibaba Java Coding Guidelines"></a>Alibaba Java Coding Guidelines</h2><p>安装该插件后，代码超过 80 行、手动创建线程池等，这些和《手册》中的规约不符时，IDEA中会给出警告提示。</p>
-<p>建议大家一定要安装该插件，它会帮助你检查出很多隐患，督促你写更规范的代码。</p>
-<p>地址：<a target="_blank" rel="noopener" href="https://plugins.jetbrains.com/plugin/10046-alibaba-java-coding-guidelines">Alibaba Java Coding Guidelines</a></p>
-<h2 id="jclasslib-bytecode-viewer"><a href="#jclasslib-bytecode-viewer" class="headerlink" title="jclasslib bytecode viewer"></a>jclasslib bytecode viewer</h2><p>地址：<a target="_blank" rel="noopener" href="https://plugins.jetbrains.com/plugin/9248-jclasslib-bytecode-viewer">jclasslib bytecode viewer</a></p>
-<p>jclasslib：一款可视化的字节码查看插件。</p>
-<p>大家可以直接在 IDEA 插件管理中安装（安装步骤略）。</p>
-<p>使用方法：</p>
-<p>1，在 IDEA 打开想研究的类。<br>2，编译该类或者直接编译整个项目（ 如果想研究的类在 jar 包中，此步可略过）。<br>3，打开“view” 菜单，选择“Show Bytecode With jclasslib” 选项。<br>4，选择上述菜单项后 IDEA 中会弹出 jclasslib 工具窗口。</p>
-<p>那么有自带的强大的反汇编工具 javap 还有必要用这个插件吗？</p>
-<p>这个插件的强大之处在于：</p>
-<p>不需要敲命令，简单直接，在右侧方便和源代码进行对比学习。<br>字节码命令支持超链接，点击其中的虚拟机指令即可跳转到 jvms 相关章节，超级方便。<br>该插件对我们学习虚拟机指令有极大的帮助。</p>
-<p>具体可以参考：<a target="_blank" rel="noopener" href="https://www.imooc.com/article/296257">IDEA字节码学习查看神器介绍</a></p>
-<h2 id="Codota"><a href="#Codota" class="headerlink" title="Codota"></a>Codota</h2><p>支持智能代码自动提示，该功能可以增强 IDEA 的代码提示功能。<br>支持 JDK 和知名第三方库的函数的使用方法搜索，可以看到其他知名开源项目对该函数的用法。<br>当我们第一次使用某个类，对某个函数不够熟悉时，可以通过该插件搜索相关用法，快速模仿学习。<br>可以使用该插件查看知名开源项目的用法。插件窗口顶部还给出了该类最常用的函数，可以点击查看相关用法案例，每个案例右侧的 “view source”可以跳转到该片段对应的开源项目的源码中。</p>
-<p>地址：<a target="_blank" rel="noopener" href="https://plugins.jetbrains.com/plugin/7638-codota">Codota</a></p>
-<h2 id="Auto-filling-Java-call-arguments"><a href="#Auto-filling-Java-call-arguments" class="headerlink" title="Auto filling Java call arguments"></a>Auto filling Java call arguments</h2><p>开发中，我们通常会调用其他已经编写好的函数，调用后需要填充参数，但是绝大多数情况下，传入的变量名称和该函数的参数名一致，当参数较多时，手动单个填充参数非常浪费时间。</p>
-<p>该插件就可以帮你解决这个问题。</p>
-<p>安装完该插件以后，调用一个函数，使用 Alt+Enter 组合键，调出 “Auto fill call parameters” 自动使用该函数定义的参数名填充。</p>
-<h2 id="GenerateO2O、GenerateAllSette"><a href="#GenerateO2O、GenerateAllSette" class="headerlink" title="GenerateO2O、GenerateAllSette"></a>GenerateO2O、GenerateAllSette</h2><p>我们定义好从 A 类转换到 B 类的函数转换函数后，使用这两个插件可以自动调用 Getter 和 Setter 函数实行自动转换。</p>
-<p>实际开发中还有一个非常常见的场景： 我们创建一个对象后，想依次调用 Setter 函数对属性赋值，如果属性较多很容易遗漏或者重复。</p>
-<p>可以使用这 GenerateAllSetter 提供的功能，自动调用所有 Setter 函数（可填充默认值），然后自己再跟进实际需求设置属性值。</p>
-<h2 id="Rainbow-Brackets"><a href="#Rainbow-Brackets" class="headerlink" title="Rainbow Brackets"></a>Rainbow Brackets</h2><p>由于很多人没有养成好的编码风格，没有随手 format 代码的习惯，甚至有些同事会写代码超过几百行，阅读起来将非常痛苦。</p>
-<p>痛苦的原因之一就是找到上下文，由于括号太多，不确定当前代码行是否属于某个代码块，此时这个插件就会帮上大忙。</p>
-<p>插件 github 地址：<a target="_blank" rel="noopener" href="https://github.com/izhangzhihao/intellij-rainbow-brackets">https://github.com/izhangzhihao/intellij-rainbow-brackets</a></p>
-<h2 id="Maven-Helper"><a href="#Maven-Helper" class="headerlink" title="Maven Helper"></a>Maven Helper</h2><p>现在 Java 项目通常会使用 maven 或者 gradle 构建，对于maven 项目来说， jar 包冲突非常常见。</p>
-<p>那么如何更容易地查看和解决 jar 包冲突呢？</p>
-<p>大家可以安装该插件，安装后 IDEA 中打开 pom.xml 文件时，就会多出一个 “Dependency Analyzer” 选项卡。</p>
-<p>如上图所示，该插件支持值插件冲突的 jar 包，可以选择冲突的 jar 包将其 exclude 掉。</p>
-<h2 id="FindBugs"><a href="#FindBugs" class="headerlink" title="FindBugs"></a>FindBugs</h2><p>FindBugs 作为静态代码检查插件，可以检查你代码中的隐患，并给出原因。</p>
-<p>地址：<a target="_blank" rel="noopener" href="https://plugins.jetbrains.com/plugin/3847-findbugs-idea">FindBugs-IDEA</a></p>
-<h2 id="SequenceDiagram"><a href="#SequenceDiagram" class="headerlink" title="SequenceDiagram"></a>SequenceDiagram</h2><p>SequenceDiagram 可以根据代码调用链路自动生成时序图，超级赞，超级推荐！</p>
-<p>这对研究源码，梳理工作中的业务代码有极大的帮助，堪称神器。</p>
-<p>安装完成后，在某个类的某个函数中，右键 –&gt; Sequence Diagaram 即可调出。</p>
-<p>如下图是 Netty 的源码，可以通过该插件绘制出当前函数的调用链路。</p>
-<p>双击顶部的类名可以跳转到对应类的源码中，双击调用的函数名可以直接调入某个函数的源码，总之非常强大。</p>
-<p>地址：<a target="_blank" rel="noopener" href="https://plugins.jetbrains.com/plugin/8286-sequencediagram/">SequenceDiagram</a></p>
-<h2 id="Stack-trace-to-UML"><a href="#Stack-trace-to-UML" class="headerlink" title="Stack trace to UML"></a>Stack trace to UML</h2><p>Stack trace to UML 支持根据 JVM 异常堆栈画 UML时序图和通信图。</p>
-<p>打开方式 Analyze &gt; Open Stack trace to UML plugin + Generate UML diagrams from stacktrace from debug</p>
-<p>地址：<a target="_blank" rel="noopener" href="https://plugins.jetbrains.com/plugin/10749-stack-trace-to-uml/">Stack trace to UML</a></p>
-<h2 id="Java-Stream-Debugger"><a href="#Java-Stream-Debugger" class="headerlink" title="Java Stream Debugger"></a>Java Stream Debugger</h2><p>Stream 非常好用，可以灵活对数据进行操作，但是对很多刚接触的人来说，不好理解。</p>
-<p>那么 Java Stream Debugger 这款神器的 IDEA 就可以帮到你。它可以将 Stream 的操作步骤可视化，非常有助于我们的学习。</p>
-<p>地址：<a target="_blank" rel="noopener" href="https://plugins.jetbrains.com/plugin/9696-java-stream-debugger/">Java Stream Debugger</a></p>
-<h2 id="JOL-Java-Object-Layout"><a href="#JOL-Java-Object-Layout" class="headerlink" title="JOL Java Object Layout"></a>JOL Java Object Layout</h2><p>查看对象布局和大小的插件，非常赞。</p>
-<p>地址：<a target="_blank" rel="noopener" href="https://plugins.jetbrains.com/plugin/10953-jol-java-object-layout">JOL Java Object Layout</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/07/14/Java%E6%A0%BC%E5%BC%8F%E5%8C%96%E8%BE%93%E5%87%BAprintf%E4%BE%8B%E5%AD%90/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/07/14/Java%E6%A0%BC%E5%BC%8F%E5%8C%96%E8%BE%93%E5%87%BAprintf%E4%BE%8B%E5%AD%90/" class="post-title-link" itemprop="url">Java格式化输出printf例子</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-07-14 16:49:21" itemprop="dateCreated datePublished" datetime="2020-07-14T16:49:21+00:00">2020-07-14</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-25 05:45:13" itemprop="dateModified" datetime="2021-03-25T05:45:13+00:00">2021-03-25</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>转载：</p>
-<p><a target="_blank" rel="noopener" href="https://www.runoob.com/w3cnote/java-printf-formate-demo.html">Java格式化输出printf例子</a></p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> java.util.Date;</span><br><span class="line"> </span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 使用printf输出</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="comment">/**关键技术点</span></span><br><span class="line"><span class="comment"> * 使用java.io.PrintStream的printf方法实现C风格的输出</span></span><br><span class="line"><span class="comment"> * printf 方法的第一个参数为输出的格式,第二个参数是可变长的,表示待输出的数据对象</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Printf</span> </span>&#123;</span><br><span class="line"> </span><br><span class="line">       <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">              <span class="comment">/*** 输出字符串 ***/</span></span><br><span class="line">              <span class="comment">// %s表示输出字符串，也就是将后面的字符串替换模式中的%s</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%s&quot;</span>, <span class="keyword">new</span> Integer(<span class="number">1212</span>));</span><br><span class="line">              <span class="comment">// %n表示换行</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%s%n&quot;</span>, <span class="string">&quot;end line&quot;</span>);</span><br><span class="line">              <span class="comment">// 还可以支持多个参数</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%s = %s%n&quot;</span>, <span class="string">&quot;Name&quot;</span>, <span class="string">&quot;Zhangsan&quot;</span>);</span><br><span class="line">              <span class="comment">// %S将字符串以大写形式输出</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%S = %s%n&quot;</span>, <span class="string">&quot;Name&quot;</span>, <span class="string">&quot;Zhangsan&quot;</span>);</span><br><span class="line">              <span class="comment">// 支持多个参数时，可以在%s之间插入变量编号，1$表示第一个字符串，3$表示第3个字符串</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$s = %3$s %2$s%n&quot;</span>, <span class="string">&quot;Name&quot;</span>, <span class="string">&quot;san&quot;</span>, <span class="string">&quot;Zhang&quot;</span>);</span><br><span class="line">             </span><br><span class="line">              <span class="comment">/*** 输出boolean类型 ***/</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;true = %b; false = &quot;</span>, <span class="keyword">true</span>);</span><br><span class="line">              System.out.printf(<span class="string">&quot;%b%n&quot;</span>, <span class="keyword">false</span>);</span><br><span class="line"> </span><br><span class="line">              <span class="comment">/*** 输出整数类型***/</span></span><br><span class="line">              Integer iObj = <span class="number">342</span>;</span><br><span class="line">              <span class="comment">// %d表示将整数格式化为10进制整数</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%d; %d; %d%n&quot;</span>, -<span class="number">500</span>, <span class="number">2343L</span>, iObj);</span><br><span class="line">              <span class="comment">// %o表示将整数格式化为8进制整数</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%o; %o; %o%n&quot;</span>, -<span class="number">500</span>, <span class="number">2343L</span>, iObj);</span><br><span class="line">              <span class="comment">// %x表示将整数格式化为16进制整数</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%x; %x; %x%n&quot;</span>, -<span class="number">500</span>, <span class="number">2343L</span>, iObj);</span><br><span class="line">              <span class="comment">// %X表示将整数格式化为16进制整数，并且字母变成大写形式</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%X; %X; %X%n&quot;</span>, -<span class="number">500</span>, <span class="number">2343L</span>, iObj);</span><br><span class="line">             </span><br><span class="line">              <span class="comment">/*** 输出浮点类型***/</span></span><br><span class="line">              Double dObj = <span class="number">45.6d</span>;</span><br><span class="line">              <span class="comment">// %e表示以科学技术法输出浮点数</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%e; %e; %e%n&quot;</span>, -<span class="number">756.403f</span>, <span class="number">7464.232641d</span>, dObj);</span><br><span class="line">              <span class="comment">// %E表示以科学技术法输出浮点数，并且为大写形式            </span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%E; %E; %E%n&quot;</span>, -<span class="number">756.403f</span>, <span class="number">7464.232641d</span>, dObj);</span><br><span class="line">              <span class="comment">// %f表示以十进制格式化输出浮点数</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%f; %f; %f%n&quot;</span>, -<span class="number">756.403f</span>, <span class="number">7464.232641d</span>, dObj);</span><br><span class="line">              <span class="comment">// 还可以限制小数点后的位数</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%.1f; %.3f; %f%n&quot;</span>, -<span class="number">756.403f</span>, <span class="number">7464.232641d</span>, dObj);</span><br><span class="line">             </span><br><span class="line">              <span class="comment">/*** 输出日期类型***/</span></span><br><span class="line">              <span class="comment">// %t表示格式化日期时间类型，%T是时间日期的大写形式，在%t之后用特定的字母表示不同的输出格式</span></span><br><span class="line">              Date date = <span class="keyword">new</span> Date();</span><br><span class="line">              <span class="keyword">long</span> dataL = date.getTime();</span><br><span class="line">              <span class="comment">// 格式化年月日</span></span><br><span class="line">              <span class="comment">// %t之后用y表示输出日期的年份（2位数的年，如99）</span></span><br><span class="line">              <span class="comment">// %t之后用m表示输出日期的月份，%t之后用d表示输出日期的日号</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$ty-%1$tm-%1$td; %2$ty-%2$tm-%2$td%n&quot;</span>, date, dataL);</span><br><span class="line">              <span class="comment">// %t之后用Y表示输出日期的年份（4位数的年），</span></span><br><span class="line">              <span class="comment">// %t之后用B表示输出日期的月份的完整名， %t之后用b表示输出日期的月份的简称</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$tY-%1$tB-%1$td; %2$tY-%2$tb-%2$td%n&quot;</span>, date, dataL);</span><br><span class="line">             </span><br><span class="line">              <span class="comment">// 以下是常见的日期组合</span></span><br><span class="line">              <span class="comment">// %t之后用D表示以 &quot;%tm/%td/%ty&quot;格式化日期</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$tD%n&quot;</span>, date);</span><br><span class="line">              <span class="comment">//%t之后用F表示以&quot;%tY-%tm-%td&quot;格式化日期</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$tF%n&quot;</span>, date);</span><br><span class="line">             </span><br><span class="line">              <span class="comment">/*** 输出时间类型***/</span></span><br><span class="line">              <span class="comment">// 输出时分秒</span></span><br><span class="line">              <span class="comment">// %t之后用H表示输出时间的时（24进制），%t之后用I表示输出时间的时（12进制），</span></span><br><span class="line">              <span class="comment">// %t之后用M表示输出时间的分，%t之后用S表示输出时间的秒</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$tH:%1$tM:%1$tS; %2$tI:%2$tM:%2$tS%n&quot;</span>, date, dataL);</span><br><span class="line">              <span class="comment">// %t之后用L表示输出时间的秒中的毫秒</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$tH:%1$tM:%1$tS %1$tL%n&quot;</span>, date);</span><br><span class="line">              <span class="comment">// %t之后p表示输出时间的上午或下午信息</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$tH:%1$tM:%1$tS %1$tL %1$tp%n&quot;</span>, date);</span><br><span class="line">             </span><br><span class="line">              <span class="comment">// 以下是常见的时间组合</span></span><br><span class="line">              <span class="comment">// %t之后用R表示以&quot;%tH:%tM&quot;格式化时间</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$tR%n&quot;</span>, date);</span><br><span class="line">              <span class="comment">// %t之后用T表示以&quot;%tH:%tM:%tS&quot;格式化时间</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$tT%n&quot;</span>, date);</span><br><span class="line">              <span class="comment">// %t之后用r表示以&quot;%tI:%tM:%tS %Tp&quot;格式化时间</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$tr%n&quot;</span>, date);</span><br><span class="line">             </span><br><span class="line">              <span class="comment">/*** 输出星期***/</span></span><br><span class="line">              <span class="comment">// %t之后用A表示得到星期几的全称</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$tF %1$tA%n&quot;</span>, date);</span><br><span class="line">              <span class="comment">// %t之后用a表示得到星期几的简称</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$tF %1$ta%n&quot;</span>, date);</span><br><span class="line">             </span><br><span class="line">              <span class="comment">// 输出时间日期的完整信息</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$tc%n&quot;</span>, date);</span><br><span class="line">       &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> *printf方法中,格式为&quot;%s&quot;表示以字符串的形式输出第二个可变长参数的第一个参数值;</span></span><br><span class="line"><span class="comment"> *格式为&quot;%n&quot;表示换行;格式为&quot;%S&quot;表示将字符串以大写形式输出;在&quot;%s&quot;之间用&quot;n$&quot;表示</span></span><br><span class="line"><span class="comment"> *输出可变长参数的第n个参数值.格式为&quot;%b&quot;表示以布尔值的形式输出第二个可变长参数</span></span><br><span class="line"><span class="comment"> *的第一个参数值.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 格式为&quot;%d&quot;表示以十进制整数形式输出;&quot;%o&quot;表示以八进制形式输出;&quot;%x&quot;表示以十六进制</span></span><br><span class="line"><span class="comment"> * 输出;&quot;%X&quot;表示以十六进制输出,并且将字母(A、B、C、D、E、F)换成大写.格式为&quot;%e&quot;表</span></span><br><span class="line"><span class="comment"> * 以科学计数法输出浮点数;格式为&quot;%E&quot;表示以科学计数法输出浮点数,而且将e大写;格式为</span></span><br><span class="line"><span class="comment"> * &quot;%f&quot;表示以十进制浮点数输出,在&quot;%f&quot;之间加上&quot;.n&quot;表示输出时保留小数点后面n位.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 格式为&quot;%t&quot;表示输出时间日期类型.&quot;%t&quot;之后用y表示输出日期的二位数的年份(如99)、用m</span></span><br><span class="line"><span class="comment"> * 表示输出日期的月份,用d表示输出日期的日号;&quot;%t&quot;之后用Y表示输出日期的四位数的年份</span></span><br><span class="line"><span class="comment"> * (如1999)、用B表示输出日期的月份的完整名,用b表示输出日期的月份的简称.&quot;%t&quot;之后用D</span></span><br><span class="line"><span class="comment"> * 表示以&quot;%tm/%td/%ty&quot;的格式输出日期、用F表示以&quot;%tY-%tm-%td&quot;的格式输出日期.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * &quot;%t&quot;之后用H表示输出时间的时(24进制),用I表示输出时间的时(12进制),用M表示输出时间</span></span><br><span class="line"><span class="comment"> * 分,用S表示输出时间的秒,用L表示输出时间的秒中的毫秒数、用 p 表示输出时间的是上午还是</span></span><br><span class="line"><span class="comment"> * 下午.&quot;%t&quot;之后用R表示以&quot;%tH:%tM&quot;的格式输出时间、用T表示以&quot;%tH:%tM:%tS&quot;的格式输出</span></span><br><span class="line"><span class="comment"> * 时间、用r表示以&quot;%tI:%tM:%tS %Tp&quot;的格式输出时间.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * &quot;%t&quot;之后用A表示输出日期的全称,用a表示输出日期的星期简称.</span></span><br><span class="line"><span class="comment"> */</span></span><br></pre></td></tr></table></figure>
       
     </div>
 
@@ -1931,20 +2055,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">364</span>
+          <span class="site-state-item-count">369</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">117</span>
+        <span class="site-state-item-count">118</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">162</span>
+        <span class="site-state-item-count">165</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
