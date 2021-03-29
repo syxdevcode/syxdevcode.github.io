@@ -10,6 +10,9 @@ yum -y install lsof
 
 # 使用
 lsof -i:3306
+
+# 查看当前打开文件数
+lsof | wc -l
 ```
 
 参考：

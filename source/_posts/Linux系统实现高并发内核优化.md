@@ -17,9 +17,12 @@ vi /etc/security/limits.conf
 * hard nproc 65535
 * soft nofile 65535
 * hard nofile 65535
+
+# 查看当前打开文件数
+lsof | wc -l
 ```
 
-参考：[Linux最大文件打开数](https://syxdevcode.github.io/2020/08/04/Linux%E6%9C%80%E5%A4%A7%E6%96%87%E4%BB%B6%E6%89%93%E5%BC%80%E6%95%B0/)
+参考：{% post_link Linux最大文件打开数 %}
 
 ## 内核优化
 
@@ -106,6 +109,7 @@ net.ipv4.tcp_keepalive_time = 300
 # 如果现有的TCP客户端连接已将所有的本地端口号占满。将不能创建新的TCP连接。
 # 该参数对应系统路径为：/proc/sys/net/ipv4/ip_local_port_range 默认，32768 60999
 # 理论上单独一个进程最多可以同时建立60000多个TCP客户端连接。
+# 影响 CLOSE_WAIT 数量
 net.ipv4.ip_local_port_range = 1024 65000
 
 # 表示SYN队列的长度，默认为1024，建议加大队列的长度，为8182或更多，这样可以容纳更多等待链接的网络连接数，

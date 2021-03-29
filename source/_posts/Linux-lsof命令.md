@@ -4,6 +4,7 @@ date: 2020-10-26 17:12:53
 tags:
 - Linux
 - CentOS7
+- Linux优化
 - Linux基础命令
 categories:
 - Linux基础命令
@@ -37,6 +38,9 @@ lsof(选项)
 ### 实例
 
 ```sh
+# 查看当前打开文件数
+lsof | wc -l
+
 lsof -i:3306 # -i:port 显示与指定端口相关信息
 lsof-i  # 显示所有连接
 lsof-i 6 # 仅获取IPv6流量
