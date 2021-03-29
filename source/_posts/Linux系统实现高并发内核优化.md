@@ -104,7 +104,7 @@ net.ipv4.tcp_syncookies = 1
 # 该参数对应系统路径为：/proc/sys/net/ipv4/tcp_keepalive_time，默认为7200秒
 net.ipv4.tcp_keepalive_time = 300
 
-# 该选项用来设定允许系统打开的端口范围，即用于向外链接的端口范围，
+# 该选项用来设定允许系统打开的端口范围，用于向外链接的端口范围，
 # 每个TCP客户端连接都要占用一个唯一的本地端口号(此端口号在系统的本地端口号范围限制中)，
 # 如果现有的TCP客户端连接已将所有的本地端口号占满。将不能创建新的TCP连接。
 # 该参数对应系统路径为：/proc/sys/net/ipv4/ip_local_port_range 默认，32768 60999
