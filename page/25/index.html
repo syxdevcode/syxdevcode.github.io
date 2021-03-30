@@ -185,6 +185,284 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2017/05/18/CentOS7-Nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2017/05/18/CentOS7-Nginx%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE/" class="post-title-link" itemprop="url">CentOS7-Nginx安装配置</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2017-05-18 09:46:54" itemprop="dateCreated datePublished" datetime="2017-05-18T09:46:54+00:00">2017-05-18</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-03-30 09:16:26" itemprop="dateModified" datetime="2021-03-30T09:16:26+00:00">2021-03-30</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Nginx/" itemprop="url" rel="index"><span itemprop="name">Nginx</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="Nginx安装"><a href="#Nginx安装" class="headerlink" title="Nginx安装"></a>Nginx安装</h2><h3 id="Yum安装方式"><a href="#Yum安装方式" class="headerlink" title="Yum安装方式"></a>Yum安装方式</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost &#x2F;]# yum install epel-release</span><br><span class="line">[root@localhost &#x2F;]# yum install nginx</span><br><span class="line">[root@localhost &#x2F;]# systemctl start nginx #启动</span><br><span class="line">[root@localhost &#x2F;]# systemctl enable nginx #可用</span><br><span class="line">Created symlink from &#x2F;etc&#x2F;systemd&#x2F;system&#x2F;multi-user.target.wants&#x2F;nginx.service to &#x2F;usr&#x2F;lib&#x2F;systemd&#x2F;system&#x2F;nginx.service.</span><br></pre></td></tr></table></figure>
+
+<p>将nginx 设置为启动系统自动启动nginx</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost &#x2F;]# echo &quot;&#x2F;usr&#x2F;local&#x2F;nginx&#x2F;sbin&#x2F;nginx&quot; &gt;&gt; &#x2F;etc&#x2F;rc.local</span><br></pre></td></tr></table></figure>
+
+<h3 id="nginx-conf配置文件"><a href="#nginx-conf配置文件" class="headerlink" title="nginx.conf配置文件"></a>nginx.conf配置文件</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost &#x2F;]# cd &#x2F;etc&#x2F;nginx #定位到nginx安装目录</span><br><span class="line">[root@localhost nginx]# vim nginx.conf #通过vim打开nginx.conf配置文件进行配置</span><br></pre></td></tr></table></figure>
+
+<p>在http节点中，添加配置</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">#设定负载均衡的服务器列表</span><br><span class="line">upstream load_balance_server &#123;</span><br><span class="line">    #weigth参数表示权值，权值越高被分配到的几率越大</span><br><span class="line">    server 192.168.1.131:5100   weight&#x3D;5;</span><br><span class="line">    server 192.168.1.132:5100   weight&#x3D;1;</span><br><span class="line">    server 192.168.1.130:5100   weight&#x3D;6;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在http-&gt;server节点中添加配置：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">location &#x2F; &#123;</span><br><span class="line">    root   html;</span><br><span class="line">    index  index.aspx index.html index.htm;</span><br><span class="line">    #其中load_balance_server 对应着upstream设置的集群名称</span><br><span class="line">    proxy_pass         http:&#x2F;&#x2F;load_balance_server;</span><br><span class="line">    #设置主机头和客户端真实地址，以便服务器获取客户端真实IP</span><br><span class="line">    proxy_set_header   Host             $host;</span><br><span class="line">    proxy_set_header   X-Real-IP        $remote_addr;</span><br><span class="line">    proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="报错"><a href="#报错" class="headerlink" title="报错"></a>报错</h4><p>nginx 启动失败</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost nginx]# service nginx restart</span><br><span class="line">Redirecting to &#x2F;bin&#x2F;systemctl restart  nginx.service</span><br><span class="line">Job for nginx.service failed because the control process exited with error code. See &quot;systemctl status nginx.service&quot; and &quot;journalctl -xe&quot; for details.</span><br><span class="line">[root@localhost nginx]# systemctl status nginx -l</span><br><span class="line">● nginx.service - The nginx HTTP and reverse proxy server</span><br><span class="line">   Loaded: loaded (&#x2F;usr&#x2F;lib&#x2F;systemd&#x2F;system&#x2F;nginx.service; enabled; vendor preset: disabled)</span><br><span class="line">   Active: failed (Result: exit-code) since Thu 2017-05-18 09:34:41 CST; 6s ago</span><br><span class="line">  Process: 121270 ExecStartPre&#x3D;&#x2F;usr&#x2F;sbin&#x2F;nginx -t (code&#x3D;exited, status&#x3D;1&#x2F;FAILURE)</span><br><span class="line">  Process: 121265 ExecStartPre&#x3D;&#x2F;usr&#x2F;bin&#x2F;rm -f &#x2F;run&#x2F;nginx.pid (code&#x3D;exited, status&#x3D;0&#x2F;SUCCESS)</span><br><span class="line"> Main PID: 117382 (code&#x3D;exited, status&#x3D;0&#x2F;SUCCESS)</span><br><span class="line"></span><br><span class="line">May 18 09:34:41 localhost.localdomain systemd[1]: Starting The nginx HTTP and reverse proxy server...</span><br><span class="line">May 18 09:34:41 localhost.localdomain nginx[121270]: nginx: the configuration file &#x2F;etc&#x2F;nginx&#x2F;nginx.conf syntax is ok</span><br><span class="line">May 18 09:34:41 localhost.localdomain nginx[121270]: nginx: [emerg] bind() to 0.0.0.0:5100 failed (13: Permission denied)</span><br><span class="line">May 18 09:34:41 localhost.localdomain nginx[121270]: nginx: configuration file &#x2F;etc&#x2F;nginx&#x2F;nginx.conf test failed</span><br><span class="line">May 18 09:34:41 localhost.localdomain systemd[1]: nginx.service: control process exited, code&#x3D;exited status&#x3D;1</span><br><span class="line">May 18 09:34:41 localhost.localdomain systemd[1]: Failed to start The nginx HTTP and reverse proxy server.</span><br><span class="line">May 18 09:34:41 localhost.localdomain systemd[1]: Unit nginx.service entered failed state.</span><br><span class="line">May 18 09:34:41 localhost.localdomain systemd[1]: nginx.service failed.</span><br></pre></td></tr></table></figure>
+
+<p>权限拒绝，经检查发现是开启selinux 导致的。 直接关闭</p>
+<p>getenforce   这个命令可以查看当前是否开启了selinux 如果输出 disabled 或 permissive 那就是关闭了</p>
+<p>如果输出 enforcing 那就是开启了 selinux</p>
+<p>1、临时关闭selinux</p>
+<p>setenforce 0            ##设置SELinux 成为permissive模式</p>
+<p>setenforce 1    ##设置SELinux 成为enforcing模式</p>
+<p>2、永久关闭selinux,</p>
+<p>修改/etc/selinux/config 文件</p>
+<p>将SELINUX=enforcing改为SELINUX=disabled</p>
+<p>重启机器即可</p>
+<h3 id="重启nginx服务"><a href="#重启nginx服务" class="headerlink" title="重启nginx服务"></a>重启nginx服务</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">service nginx restart</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/Andon_liu/p/5353522.html" title="Nginx安装">http://www.cnblogs.com/Andon_liu/p/5353522.html</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/jingmoxukong/p/5945200.html" title="Nginx详细配置">http://www.cnblogs.com/jingmoxukong/p/5945200.html</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2017/05/16/CentOS7%E5%AE%89%E8%A3%85Redis-3.2.8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2017/05/16/CentOS7%E5%AE%89%E8%A3%85Redis-3.2.8/" class="post-title-link" itemprop="url">centos7安装Redis-3.2.8</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2017-05-16 16:22:36" itemprop="dateCreated datePublished" datetime="2017-05-16T16:22:36+00:00">2017-05-16</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-03-30 09:16:26" itemprop="dateModified" datetime="2021-03-30T09:16:26+00:00">2021-03-30</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><p><a target="_blank" rel="noopener" href="https://redis.io/" title="官网">官网</a>下载</p>
+<p>下载地址：<a target="_blank" rel="noopener" href="http://download.redis.io/releases/redis-3.2.8.tar.gz" title="redis-3.2.8.tar.gz">redis-3.2.8.tar.gz</a></p>
+<h3 id="依赖包"><a href="#依赖包" class="headerlink" title="依赖包"></a>依赖包</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum install gcc</span><br></pre></td></tr></table></figure>
+
+<h3 id="编译安装"><a href="#编译安装" class="headerlink" title="编译安装"></a>编译安装</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">wget http:&#x2F;&#x2F;download.redis.io&#x2F;releases&#x2F;redis-3.2.8.tar.gz # 获取包</span><br><span class="line">tar -zxvf redis-3.2.8.tar.gz</span><br><span class="line">cd redis-3.2.8</span><br><span class="line">cd src</span><br><span class="line">make distclean </span><br><span class="line">make &amp;&amp; make install</span><br></pre></td></tr></table></figure>
+
+<h3 id="移动文件夹"><a href="#移动文件夹" class="headerlink" title="移动文件夹"></a>移动文件夹</h3><p>移动文件，便于管理：(所有源代码安装的软件都安装在/usr/local下)</p>
+<p>创建两个文件夹，bin用于存放命令，etc拥有存放配置文件。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">mkdir -p &#x2F;usr&#x2F;local&#x2F;redis&#x2F;etc</span><br><span class="line">mkdir -p &#x2F;usr&#x2F;local&#x2F;redis&#x2F;bin</span><br></pre></td></tr></table></figure>
+
+<p>-p是递归创建。</p>
+<p>接下来，将redis-3.2.8文件夹下的redis.conf复制到/usr/local/redis/etc/</p>
+<p>并将src目录下的6个命令文件（绿色的），移动到/usr/local/redis/bin/</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost src]# mkdir -p &#x2F;usr&#x2F;local&#x2F;redis&#x2F;etc</span><br><span class="line">[root@localhost src]# mkdir -p &#x2F;usr&#x2F;local&#x2F;redis&#x2F;bin</span><br><span class="line">[root@localhost src]# cd ..</span><br><span class="line">[root@localhost redis-3.2.8]# ls</span><br><span class="line">00-RELEASENOTES  COPYING  Makefile   redis.conf       runtest-sentinel  tests</span><br><span class="line">BUGS             deps     MANIFESTO  runtest          sentinel.conf     utils</span><br><span class="line">CONTRIBUTING     INSTALL  README.md  runtest-cluster  src</span><br><span class="line">[root@localhost redis-3.2.8]# mv .&#x2F;redis.conf &#x2F;usr&#x2F;local&#x2F;redis&#x2F;etc</span><br><span class="line">[root@localhost redis-3.2.8]# ls</span><br><span class="line">00-RELEASENOTES  COPYING  Makefile   runtest           sentinel.conf  utils</span><br><span class="line">BUGS             deps     MANIFESTO  runtest-cluster   src</span><br><span class="line">CONTRIBUTING     INSTALL  README.md  runtest-sentinel  tests</span><br><span class="line">[root@localhost redis-3.2.8]# cd src</span><br><span class="line">[root@localhost src]# mv mkreleasehdr.sh redis-benchmark redis-check-aof redis-check-dump redis-cli redis-sentinel redis-server &#x2F;usr&#x2F;local&#x2F;redis&#x2F;bin&#x2F;</span><br></pre></td></tr></table></figure>
+
+<h3 id="启动redis服务"><a href="#启动redis服务" class="headerlink" title="启动redis服务"></a>启动redis服务</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[toor@localhost redis]$ cd bin</span><br><span class="line">[toor@localhost bin]$ .&#x2F;redis-server</span><br></pre></td></tr></table></figure>
+
+<p>显示结果：</p>
+<p><img src="/img/redis-3.2.8%E5%AE%89%E8%A3%85.png" alt="结果"></p>
+<p>但是，这样做的话，我们并没有使用etc的下的配置文件进行启动（图中红线部分）。</p>
+<p>如果希望通过指定的配置文件启动，需要在启动时指定配置文件：</p>
+<p>使用ctrl+C终止服务(显示错误，可以重试几次)，然后查看redis服务是否终止干净了，之后通过设置配置文件来启动服务</p>
+<p>运行：<code>pstree -p | grep redis</code> 发现redis服务已经被终止干净</p>
+<p>现在我们带上配置文件 /usr/local/etc/redis.conf 运行redis</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[toor@localhost bin]$  .&#x2F;redis-server &#x2F;usr&#x2F;local&#x2F;redis&#x2F;etc&#x2F;redis.conf</span><br></pre></td></tr></table></figure>
+
+<p>启动结果：<br><img src="/img/redis-3.2.8%E8%BF%90%E8%A1%8C%E7%BB%93%E6%9E%9C.png" alt="启动结果"></p>
+<p>这样启动redis仍然在前台运行；</p>
+<p>redis后台运行需要将daemonize由no改为yes</p>
+<p>首先在超级权限下打开redis.conf。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost bin]# vim &#x2F;usr&#x2F;local&#x2F;redis&#x2F;etc&#x2F;redis.conf</span><br></pre></td></tr></table></figure>
+
+<p>保存退出，然后再次使用配置文件启动redis-server</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost bin]# .&#x2F;redis-server &#x2F;usr&#x2F;local&#x2F;redis&#x2F;etc&#x2F;redis.conf</span><br><span class="line">[root@localhost bin]# ps -ef|grep redis</span><br><span class="line">root     101598      1  0 17:04 ?        00:00:00 .&#x2F;redis-server 127.0.0.1:6379</span><br><span class="line">root     101607 101338  0 17:04 pts&#x2F;0    00:00:00 grep --color&#x3D;auto redis</span><br><span class="line">[root@localhost bin]# pstree -p|grep redis</span><br><span class="line">           |-redis-server(101598)-+-&#123;redis-server&#125;(101601)</span><br><span class="line">           |                      &#96;-&#123;redis-server&#125;(101602)</span><br></pre></td></tr></table></figure>
+
+<p>详细参数说明：</p>
+<p>daemonize 如果需要在后台运行，把该项改为yes</p>
+<p>pidfile 配置多个pid的地址 默认在/var/run/redis.pid</p>
+<p>bind 绑定ip，设置后只接受来自该ip的请求</p>
+<p>port 监听端口，默认是6379</p>
+<p>loglevel 分为4个等级：debug verbose notice warning</p>
+<p>logfile 用于配置log文件地址</p>
+<p>databases 设置数据库个数，默认使用的数据库为0</p>
+<p>save 设置redis进行数据库镜像的频率。</p>
+<p>rdbcompression 在进行镜像备份时，是否进行压缩</p>
+<p>dbfilename 镜像备份文件的文件名</p>
+<p>Dir 数据库镜像备份的文件放置路径</p>
+<p>Slaveof 设置数据库为其他数据库的从数据库</p>
+<p>Masterauth 主数据库连接需要的密码验证</p>
+<p>Requriepass 设置 登陆时需要使用密码</p>
+<p>Maxclients 限制同时使用的客户数量</p>
+<p>Maxmemory 设置redis能够使用的最大内存</p>
+<p>Appendonly 开启append only模式</p>
+<p>Appendfsync 设置对appendonly.aof文件同步的频率（对数据进行备份的第二种方式）</p>
+<p>vm-enabled 是否开启虚拟内存支持   （vm开头的参数都是配置虚拟内存的）</p>
+<p>vm-swap-file 设置虚拟内存的交换文件路径</p>
+<p>vm-max-memory 设置redis使用的最大物理内存大小</p>
+<p>vm-page-size 设置虚拟内存的页大小</p>
+<p>vm-pages 设置交换文件的总的page数量</p>
+<p>vm-max-threads 设置VM IO同时使用的线程数量</p>
+<p>Glueoutputbuf 把小的输出缓存存放在一起</p>
+<p>hash-max-zipmap-entries 设置hash的临界值</p>
+<p>Activerehashing 重新hash</p>
+<p>Redis服务端默认连接端口是6379.</p>
+<p>mysql 服务端默认连接端口是3306</p>
+<p>Mogodb 服务端默认连接端口是27017，还有28017。</p>
+<p>在平时，我们往往需要查看6379端口是否被占用。可以用以下命令：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">[toor@localhost bin]$ netstat -tunpl | grep 6379</span><br><span class="line">(Not all processes could be identified, non-owned process info</span><br><span class="line"> will not be shown, you would have to be root to see it all.)</span><br><span class="line">tcp        0      0 127.0.0.1:6379          0.0.0.0:*               LISTEN      -</span><br><span class="line">[toor@localhost bin]$ sudo netstat -tunpl | grep 6379</span><br><span class="line">[sudo] password for toor:</span><br><span class="line">toor is not in the sudoers file.  This incident will be reported.</span><br><span class="line">[toor@localhost bin]$ su root</span><br><span class="line">Password:</span><br><span class="line">[root@localhost bin]# netstat -tunpl | grep 6379</span><br><span class="line">tcp        0      0 127.0.0.1:6379          0.0.0.0:*               LISTEN      101598&#x2F;.&#x2F;redis-serv </span><br></pre></td></tr></table></figure>
+
+<p>注意，redis服务需要su权限才能查看，不然只能检查到6379被某个进程占用，但是看不到进程名称。</p>
+<p>至此，redis服务已经按照配置文件启动成功！！</p>
+<h3 id="客户端登陆"><a href="#客户端登陆" class="headerlink" title="客户端登陆"></a>客户端登陆</h3><p>进入 <code>/usr/local/redis/bin/</code></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost bin]# redis-cli</span><br><span class="line">127.0.0.1:6379&gt;</span><br><span class="line"></span><br><span class="line">[root@localhost bin]# redis-cli -h 192.168.1.131 -p 6379 # 指定主机，端口 -a password #指定密码</span><br><span class="line">192.168.1.131:6379&gt;</span><br><span class="line">[root@localhost bin]# redis-cli -h 192.168.1.131 -p 6379 shutdown # 关闭redis服务</span><br></pre></td></tr></table></figure>
+
+<h3 id="关闭Redis服务"><a href="#关闭Redis服务" class="headerlink" title="关闭Redis服务"></a>关闭Redis服务</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost bin]# pkill redis-server</span><br><span class="line">[root@localhost bin]# netstat -tunpl | grep 6379</span><br><span class="line">[root@localhost bin]# pstree -p | grep redis</span><br><span class="line">[root@localhost bin]# redis-cli</span><br><span class="line">Could not connect to Redis at 127.0.0.1:6379: Connection refused</span><br><span class="line">Could not connect to Redis at 127.0.0.1:6379: Connection refused</span><br><span class="line">not connected&gt;</span><br></pre></td></tr></table></figure>
+
+<p>也可以使用/usr/local/redis/bin/redis-cli shutdown，这种方法使用客户端命令redis-cli</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost bin]# .&#x2F;redis-server &#x2F;usr&#x2F;local&#x2F;redis&#x2F;etc&#x2F;redis.conf</span><br><span class="line">[root@localhost bin]# pstree -p | grep redis</span><br><span class="line">           |-redis-server(101927)-+-&#123;redis-server&#125;(101929)</span><br><span class="line">           |                      &#96;-&#123;redis-server&#125;(101930)</span><br><span class="line">[root@localhost bin]# &#x2F;usr&#x2F;local&#x2F;redis&#x2F;bin&#x2F;redis-cli shutdown</span><br><span class="line">[root@localhost bin]# pstree -p | grep redis</span><br><span class="line">[root@localhost bin]# sudo netstat -tunpl | grep 6379</span><br></pre></td></tr></table></figure>
+
+<h3 id="开启远程访问端口"><a href="#开启远程访问端口" class="headerlink" title="开启远程访问端口"></a>开启远程访问端口</h3><p>开启端口：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">firewall-cmd --zone=public --add-port=6379/tcp --permanent</span><br><span class="line">firewall-cmd --reload  <span class="comment">#重启防火墙</span></span><br><span class="line"></span><br><span class="line"><span class="comment">## 重新查询端口是否开放</span></span><br><span class="line">firewall-cmd --query-port=6379/tcp</span><br><span class="line"></span><br><span class="line"><span class="comment">## 查看监听的端口</span></span><br><span class="line">netstat -lnpt</span><br><span class="line"></span><br><span class="line"><span class="comment">#关闭6379端口</span></span><br><span class="line">firewall-cmd --zone=public --remove-port=6379/tcp --permanent  </span><br><span class="line"></span><br><span class="line"><span class="comment">## 查看防火墙所有开放的端口</span></span><br><span class="line">firewall-cmd --zone=public --list-ports</span><br></pre></td></tr></table></figure>
+
+<p>命令含义：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">--zone #作用域</span><br><span class="line">--add-port&#x3D;6379&#x2F;tcp #添加端口，格式为：端口&#x2F;通讯协议</span><br><span class="line">--permanent #永久生效，没有此参数重启后失效</span><br></pre></td></tr></table></figure>
+
+<h3 id="配置密码认证"><a href="#配置密码认证" class="headerlink" title="配置密码认证"></a>配置密码认证</h3><p>找到/usr/local/redis/etc/redis.conf文件中</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">requirepass foobared</span><br></pre></td></tr></table></figure>
+
+<p>去掉注释，并且设置密码</p>
+<p>重启redis</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost bin]# .&#x2F;redis-server &#x2F;usr&#x2F;local&#x2F;redis&#x2F;etc&#x2F;redis.conf</span><br><span class="line">[root@localhost bin]# redis-cli -h 192.168.1.131 -p 6379 -a toor</span><br><span class="line">192.168.1.131:6379&gt; keys *</span><br><span class="line">(empty list or set)</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost bin]# .&#x2F;redis-server &#x2F;usr&#x2F;local&#x2F;redis&#x2F;etc&#x2F;redis.conf</span><br><span class="line">[root@localhost bin]# redis-cli -h 192.168.1.131 -p 6379</span><br><span class="line">192.168.1.131:6379&gt; keys *</span><br><span class="line">(error) NOAUTH Authentication required.</span><br><span class="line">192.168.1.131:6379&gt; auth toor</span><br><span class="line">OK</span><br><span class="line">192.168.1.131:6379&gt; keys *</span><br><span class="line">(empty list or set)</span><br></pre></td></tr></table></figure>
+
+<p>master配置了密码，slave如何配置</p>
+<p>若master配置了密码则slave也要配置相应的密码参数否则无法进行正常复制的。</p>
+<p>slave中配置文件内找到如下行，移除注释，修改密码即可</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">#masterauth  mstpassword</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.open-open.com/lib/view/open1426468117367.html" title="参考链接">http://www.open-open.com/lib/view/open1426468117367.html</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2017/05/15/centos-7-rhel7-%E5%A6%82%E4%BD%95%E9%87%8D%E5%90%AF-%E5%81%9C%E6%AD%A2-%E5%90%AF%E5%8A%A8%E7%BD%91%E7%BB%9C%E6%9C%8D%E5%8A%A1/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -216,7 +494,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-30 07:00:20" itemprop="dateModified" datetime="2021-03-30T07:00:20+00:00">2021-03-30</time>
+                <time title="修改时间：2021-03-30 09:16:26" itemprop="dateModified" datetime="2021-03-30T09:16:26+00:00">2021-03-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -296,7 +574,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-30 07:00:20" itemprop="dateModified" datetime="2021-03-30T07:00:20+00:00">2021-03-30</time>
+                <time title="修改时间：2021-03-30 09:16:26" itemprop="dateModified" datetime="2021-03-30T09:16:26+00:00">2021-03-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -433,7 +711,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-30 07:00:20" itemprop="dateModified" datetime="2021-03-30T07:00:20+00:00">2021-03-30</time>
+                <time title="修改时间：2021-03-30 09:16:26" itemprop="dateModified" datetime="2021-03-30T09:16:26+00:00">2021-03-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -547,7 +825,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-30 07:00:20" itemprop="dateModified" datetime="2021-03-30T07:00:20+00:00">2021-03-30</time>
+                <time title="修改时间：2021-03-30 09:16:26" itemprop="dateModified" datetime="2021-03-30T09:16:26+00:00">2021-03-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -642,7 +920,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-30 07:00:20" itemprop="dateModified" datetime="2021-03-30T07:00:20+00:00">2021-03-30</time>
+                <time title="修改时间：2021-03-30 09:16:26" itemprop="dateModified" datetime="2021-03-30T09:16:26+00:00">2021-03-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -742,7 +1020,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-30 07:00:20" itemprop="dateModified" datetime="2021-03-30T07:00:20+00:00">2021-03-30</time>
+                <time title="修改时间：2021-03-30 09:16:26" itemprop="dateModified" datetime="2021-03-30T09:16:26+00:00">2021-03-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -891,7 +1169,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-30 07:00:20" itemprop="dateModified" datetime="2021-03-30T07:00:20+00:00">2021-03-30</time>
+                <time title="修改时间：2021-03-30 09:16:26" itemprop="dateModified" datetime="2021-03-30T09:16:26+00:00">2021-03-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1010,7 +1288,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-30 07:00:20" itemprop="dateModified" datetime="2021-03-30T07:00:20+00:00">2021-03-30</time>
+                <time title="修改时间：2021-03-30 09:16:26" itemprop="dateModified" datetime="2021-03-30T09:16:26+00:00">2021-03-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1092,7 +1370,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-30 07:00:20" itemprop="dateModified" datetime="2021-03-30T07:00:20+00:00">2021-03-30</time>
+                <time title="修改时间：2021-03-30 09:16:26" itemprop="dateModified" datetime="2021-03-30T09:16:26+00:00">2021-03-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1178,7 +1456,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-30 07:00:20" itemprop="dateModified" datetime="2021-03-30T07:00:20+00:00">2021-03-30</time>
+                <time title="修改时间：2021-03-30 09:16:26" itemprop="dateModified" datetime="2021-03-30T09:16:26+00:00">2021-03-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1310,7 +1588,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-03-30 07:00:20" itemprop="dateModified" datetime="2021-03-30T07:00:20+00:00">2021-03-30</time>
+                <time title="修改时间：2021-03-30 09:16:26" itemprop="dateModified" datetime="2021-03-30T09:16:26+00:00">2021-03-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1543,7 +1821,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">371</span>
+          <span class="site-state-item-count">373</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -1556,7 +1834,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">167</span>
+        <span class="site-state-item-count">168</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
