@@ -41,6 +41,9 @@ lsof(选项)
 # 查看当前打开文件数
 lsof | wc -l
 
+# 把当前打开文件列表保存
+lsof >> /tmp/lsof.log
+
 lsof -i:3306 # -i:port 显示与指定端口相关信息
 lsof-i  # 显示所有连接
 lsof-i 6 # 仅获取IPv6流量
