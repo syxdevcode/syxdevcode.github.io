@@ -26,7 +26,7 @@ xargs 默认的命令是 echo，这意味着通过管道传递给 xargs 的输�
 * -p 当每次执行一个argument的时候询问一次用户。
 * -n num 后面加次数，xargs生成的命令行参数，每次传递几个参数给其后面的命令执行，默认是用所有的。
 * -t 表示先打印命令，然后再执行。
-* -i 或者是-I，这得看linux支持了，将xargs的每项名称，一般是一行一行赋值给 {}，可以用 {} 代替。
+* -i 或者是-I，将xargs的每项名称，一般是一行一行赋值给 {}，可以用 {} 代替。
 * -r no-run-if-empty 当xargs的输入为空的时候则停止xargs，不用再去执行了。
 * -s num 命令行的最大字符数，指的是 xargs 后面那个命令的最大命令行字符数。
 * -L num 从标准输入一次读取 num 行送给 command 命令。
@@ -34,6 +34,7 @@ xargs 默认的命令是 echo，这意味着通过管道传递给 xargs 的输�
 * -d delim 分隔符，默认的xargs分隔符是回车，argument的分隔符是空格，这里修改的是xargs的分隔符。
 * -x exit的意思，主要是配合-s使用。。
 * -P 修改最大的进程数，默认是1，为0时候为as many as it can ，这个例子我没有想到，应该平时都用不到的吧。
+* -0：参数表示用null当作分隔符。
 
 **实例**
 
@@ -98,11 +99,15 @@ ls *.jpg | xargs -n1 -I {} cp {} /data/images
 
 **xargs 结合 find 使用**
 
+由于 `xargs` 默认将空格作为分隔符，所以不太适合处理文件名，因为文件名可能包含空格。
+
+`find`命令有一个特别的参数 `-print0`，指定输出的文件列表以 `null`分隔。然后，`xargs` 命令的 `-0` 参数表示用 `null`当作分隔符。
+
 用 rm 删除太多的文件时候，可能得到一个错误信息：`/bin/rm Argument list too long`. 用 xargs 去避免这个问题：
 
 ```sh
 find . -type f -name "*.log" -print0 | xargs -0 rm -f
-xargs -0 将 \0 作为定界符。
+xargs -0
 ```
 
 统计一个源代码目录中所有 php 文件的行数：
@@ -128,3 +133,5 @@ find . -type f -name "*.jpg" -print | xargs tar -czvf images.tar.gz
 参考：
 
 [Linux xargs 命令](https://www.runoob.com/linux/linux-comm-xargs.html)
+
+[xargs 命令教程](https://ruanyifeng.com/blog/2019/08/xargs-tutorial.html)
