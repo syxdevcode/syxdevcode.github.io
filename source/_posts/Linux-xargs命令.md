@@ -127,7 +127,7 @@ find . -type f -name "*.jpg" -print | xargs tar -czvf images.tar.gz
 假如你有一个文件包含了很多你希望下载的 URL，你能够使用 xargs下载所有链接：
 
 ```sh
-# cat url-list.txt | xargs wget -c
+cat url-list.txt | xargs wget -c
 ```
 
 参考：
