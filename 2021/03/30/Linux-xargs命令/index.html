@@ -28,7 +28,7 @@
 <meta property="og:description" content="xargs（英文全拼： eXtended ARGuments）是给命令传递参数的一个过滤器，也是组合多个命令的一个工具。它能够捕获一个命令的输出，然后传递给另外一个命令。 xargs 可以将管道或标准输入（stdin）数据转换成命令行参数，也能够从文件的输出中读取数据。xargs 一般是和管道一起使用。 xargs 默认的命令是 echo，这意味着通过管道传递给 xargs 的输入将会包含换行和空">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2021-03-30T16:11:22.000Z">
-<meta property="article:modified_time" content="2021-03-30T09:16:26.056Z">
+<meta property="article:modified_time" content="2021-03-31T01:07:47.012Z">
 <meta property="article:author" content="syxdevcode">
 <meta property="article:tag" content="Linux">
 <meta property="article:tag" content="CentOS7">
@@ -215,10 +215,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2021-03-30 16:11:22 / 修改时间：09:16:26" itemprop="dateCreated datePublished" datetime="2021-03-30T16:11:22+00:00">2021-03-30</time>
+              <time title="创建时间：2021-03-30 16:11:22" itemprop="dateCreated datePublished" datetime="2021-03-30T16:11:22+00:00">2021-03-30</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-03-31 01:07:47" itemprop="dateModified" datetime="2021-03-31T01:07:47+00:00">2021-03-31</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -252,7 +258,7 @@
 <li>-p 当每次执行一个argument的时候询问一次用户。</li>
 <li>-n num 后面加次数，xargs生成的命令行参数，每次传递几个参数给其后面的命令执行，默认是用所有的。</li>
 <li>-t 表示先打印命令，然后再执行。</li>
-<li>-i 或者是-I，这得看linux支持了，将xargs的每项名称，一般是一行一行赋值给 {}，可以用 {} 代替。</li>
+<li>-i 或者是-I，将xargs的每项名称，一般是一行一行赋值给 {}，可以用 {} 代替。</li>
 <li>-r no-run-if-empty 当xargs的输入为空的时候则停止xargs，不用再去执行了。</li>
 <li>-s num 命令行的最大字符数，指的是 xargs 后面那个命令的最大命令行字符数。</li>
 <li>-L num 从标准输入一次读取 num 行送给 command 命令。</li>
@@ -260,6 +266,7 @@
 <li>-d delim 分隔符，默认的xargs分隔符是回车，argument的分隔符是空格，这里修改的是xargs的分隔符。</li>
 <li>-x exit的意思，主要是配合-s使用。。</li>
 <li>-P 修改最大的进程数，默认是1，为0时候为as many as it can ，这个例子我没有想到，应该平时都用不到的吧。</li>
+<li>-0：参数表示用null当作分隔符。</li>
 </ul>
 <p><strong>实例</strong></p>
 <p>xargs 用作替换工具，读取输入数据重新格式化后输出。</p>
@@ -282,8 +289,10 @@
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ls *.jpg | xargs -n1 -I &#123;&#125; cp &#123;&#125; /data/images</span><br></pre></td></tr></table></figure>
 
 <p><strong>xargs 结合 find 使用</strong></p>
+<p>由于 <code>xargs</code> 默认将空格作为分隔符，所以不太适合处理文件名，因为文件名可能包含空格。</p>
+<p><code>find</code>命令有一个特别的参数 <code>-print0</code>，指定输出的文件列表以 <code>null</code>分隔。然后，<code>xargs</code> 命令的 <code>-0</code> 参数表示用 <code>null</code>当作分隔符。</p>
 <p>用 rm 删除太多的文件时候，可能得到一个错误信息：<code>/bin/rm Argument list too long</code>. 用 xargs 去避免这个问题：</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">find . -<span class="built_in">type</span> f -name <span class="string">&quot;*.log&quot;</span> -print0 | xargs -0 rm -f</span><br><span class="line">xargs -0 将 \0 作为定界符。</span><br></pre></td></tr></table></figure>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">find . -<span class="built_in">type</span> f -name <span class="string">&quot;*.log&quot;</span> -print0 | xargs -0 rm -f</span><br><span class="line">xargs -0</span><br></pre></td></tr></table></figure>
 
 <p>统计一个源代码目录中所有 php 文件的行数：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">find . -<span class="built_in">type</span> f -name <span class="string">&quot;*.php&quot;</span> -print0 | xargs -0 wc -l</span><br></pre></td></tr></table></figure>
@@ -297,6 +306,7 @@
 
 <p>参考：</p>
 <p><a target="_blank" rel="noopener" href="https://www.runoob.com/linux/linux-comm-xargs.html">Linux xargs 命令</a></p>
+<p><a target="_blank" rel="noopener" href="https://ruanyifeng.com/blog/2019/08/xargs-tutorial.html">xargs 命令教程</a></p>
 
     </div>
 
