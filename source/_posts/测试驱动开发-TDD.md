@@ -9,7 +9,6 @@ categories:
 - TDD
 description: 测试驱动开发-TDD,编写易于测试的代码。
 ---
-# 测试驱动开发-TDD
 
 在TDD里有两条规则：
 
