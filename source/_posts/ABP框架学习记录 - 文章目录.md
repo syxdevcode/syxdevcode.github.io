@@ -15,15 +15,6 @@ ASP.NET Boilerplate（ABP）是一个开源且文档齐全的应用程序框架�
 
 ABP与最新的ASP.NET Core和EF Core一起使用，但也支持ASP.NET MVC 5.x和EF 6.x。
 
-
-
-
-
-
-
-
-
-
 参考：
 
 [https://aspnetboilerplate.com/Pages/Documents](https://aspnetboilerplate.com/Pages/Documents)
