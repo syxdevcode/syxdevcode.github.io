@@ -61,7 +61,7 @@ categories:
 
 [https://blog.csdn.net/brave_insist/article/details/78434877](https://blog.csdn.net/brave_insist/article/details/78434877)
 
-``` scm
+```scm
 每15分钟构建一次：H/15 * * * *   或*/5 * * * *
 
 每天8点构建一次：0 8 * * *
@@ -111,7 +111,7 @@ categories:
 
 ![12](/img/QQ截图20180508152609.png)
 
-``` bash
+```sh
 #!/bin/bash
 # 获取短版本号
 
@@ -132,7 +132,7 @@ docker rm dotnetcoreapp1_ci-build_1
 
 命令说明：
 
-``` docker
+```sh
 -f, --file FILE 指定使用的 Compose 模板文件，默认为 docker-compose.yml，可以多次指定。
 
 -p, --project-name NAME 指定项目名称，默认将使用所在目录名称作为项目名。
@@ -140,7 +140,7 @@ docker rm dotnetcoreapp1_ci-build_1
 
 修改docker-compose.override.yml文件：
 
-``` docker
+```yaml
 version: '3'
 
 services:
@@ -151,7 +151,7 @@ services:
       - "8081:80"
 ```
 
-``` jenkins
+```sh
 [MvcTest] $ /bin/bash /tmp/jenkins3923627102865574973.sh
 ---------------Remove-Orphans------------------
 
@@ -174,33 +174,33 @@ Creating network "dotnetcoreapp1_default" with the default driver
 
 Creating dotnetcoreapp1_ci-build_1 ... 
 
-[1A[2K
-Creating dotnetcoreapp1_ci-build_1 ... [32mdone[0m
-[1BAttaching to dotnetcoreapp1_ci-build_1
-[36mci-build_1  |[0m   Restoring packages for /src/DotNetCoreApp/DotNetCoreApp.csproj...
+[1A[2K
+Creating dotnetcoreapp1_ci-build_1 ... [32mdone[0m
+[1BAttaching to dotnetcoreapp1_ci-build_1
+[36mci-build_1  |[0m   Restoring packages for /src/DotNetCoreApp/DotNetCoreApp.csproj...
 
-[36mci-build_1  |[0m   Generating MSBuild file /src/DotNetCoreApp/obj/DotNetCoreApp.csproj.nuget.g.props.
+[36mci-build_1  |[0m   Generating MSBuild file /src/DotNetCoreApp/obj/DotNetCoreApp.csproj.nuget.g.props.
 
-[36mci-build_1  |[0m   Generating MSBuild file /src/DotNetCoreApp/obj/DotNetCoreApp.csproj.nuget.g.targets.
-[36mci-build_1  |[0m   Restore completed in 30.06 sec for /src/DotNetCoreApp/DotNetCoreApp.csproj.
-[36mci-build_1  |[0m   Restoring packages for /src/DotNetCoreApp/DotNetCoreApp.csproj...
+[36mci-build_1  |[0m   Generating MSBuild file /src/DotNetCoreApp/obj/DotNetCoreApp.csproj.nuget.g.targets.
+[36mci-build_1  |[0m   Restore completed in 30.06 sec for /src/DotNetCoreApp/DotNetCoreApp.csproj.
+[36mci-build_1  |[0m   Restoring packages for /src/DotNetCoreApp/DotNetCoreApp.csproj...
 
-[36mci-build_1  |[0m   Restore completed in 2.64 sec for /src/DotNetCoreApp/DotNetCoreApp.csproj.
+[36mci-build_1  |[0m   Restore completed in 2.64 sec for /src/DotNetCoreApp/DotNetCoreApp.csproj.
 
-[36mci-build_1  |[0m Microsoft (R) Build Engine version 15.6.84.34536 for .NET Core
-[36mci-build_1  |[0m Copyright (C) Microsoft Corporation. All rights reserved.
-[36mci-build_1  |[0m 
+[36mci-build_1  |[0m Microsoft (R) Build Engine version 15.6.84.34536 for .NET Core
+[36mci-build_1  |[0m Copyright (C) Microsoft Corporation. All rights reserved.
+[36mci-build_1  |[0m 
 
-[36mci-build_1  |[0m   Restore completed in 97.25 ms for /src/DotNetCoreApp/DotNetCoreApp.csproj.
-[36mci-build_1  |[0m   Restore completed in 24.37 ms for /src/DotNetCoreApp/DotNetCoreApp.csproj.
+[36mci-build_1  |[0m   Restore completed in 97.25 ms for /src/DotNetCoreApp/DotNetCoreApp.csproj.
+[36mci-build_1  |[0m   Restore completed in 24.37 ms for /src/DotNetCoreApp/DotNetCoreApp.csproj.
 
-[36mci-build_1  |[0m   DotNetCoreApp -> /src/DotNetCoreApp/bin/Release/netcoreapp2.0/DotNetCoreApp.dll
+[36mci-build_1  |[0m   DotNetCoreApp -> /src/DotNetCoreApp/bin/Release/netcoreapp2.0/DotNetCoreApp.dll
 
-[36mci-build_1  |[0m   DotNetCoreApp -> /src/DotNetCoreApp/obj/Docker/publish/
+[36mci-build_1  |[0m   DotNetCoreApp -> /src/DotNetCoreApp/obj/Docker/publish/
 
-[36mdotnetcoreapp1_ci-build_1 exited with code 0
+[36mdotnetcoreapp1_ci-build_1 exited with code 0
 
-[0m---------------Publishing...------------------
+[0m---------------Publishing...------------------
 
 Building dotnetcoreapp
 
@@ -227,9 +227,9 @@ Successfully built d8dea36554b4
 Successfully tagged dotnetcoreapp:latest
 Recreating dotnetcoreapp2_dotnetcoreapp_1 ... 
 
-[1A[2K
-Recreating dotnetcoreapp2_dotnetcoreapp_1 ... [32mdone[0m
-[1B---------------Clear-Images...------------------
+[1A[2K
+Recreating dotnetcoreapp2_dotnetcoreapp_1 ... [32mdone[0m
+[1B---------------Clear-Images...------------------
 
 Deleted: sha256:238c39ae8c13a1d6816361946429024cb46e6911329dad2d714033d2578da618
 Deleted: sha256:12dfe61eae3ee68775237340f3e50e19554a653357baec0de52a50d0cff96652
