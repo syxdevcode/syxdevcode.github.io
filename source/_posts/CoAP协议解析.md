@@ -158,6 +158,8 @@ Content-Formats参数的具体数值：
 | application/json	| 50| 
 | application/cbor	| 60| 
 
+CBOR格式：在CoAP协议中广泛使用，该格式可理解为二进制JSON格式。
+
 #### Option Delta
 
 `Option Delta` 占用4位（0.5字节）
@@ -201,7 +203,7 @@ Payload 占用字节数不定
 
 ## COAP的安全性
 
-COAP的安全性是用DTLS加密实现的。DTLS的实现需要的资源和带宽较多，如果是资源非常少的终端和极有限的带宽下可能会跑不起来。DTLS仅仅在单播情况下适用。
+COAP的安全性是用DTLS加密实现的，DTLS(Datagram Transport Layer Security)即数据包传输层安全性协议。DTLS的实现需要的资源和带宽较多，如果是资源非常少的终端和极有限的带宽下可能会跑不起来。DTLS仅仅在单播情况下适用。
 
 ![微信截图_20210402141929.png](/img/微信截图_20210402141929.png)
 
@@ -386,3 +388,5 @@ I was deleted, and you put here: testing for post data
 [coap组包格式的简单解析](https://www.chenxublog.com/2018/09/28/coap-pack-by-hand.html)
 
 [物联网协议Coap协议介绍](https://baijiahao.baidu.com/s?id=1609055547851599818&wfr=spider&for=pc)
+
+[CoAP连接通信](https://help.aliyun.com/document_detail/57697.html)
