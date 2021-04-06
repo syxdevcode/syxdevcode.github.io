@@ -77,10 +77,14 @@ rmmod <module> - remove/unload 指定的module
 ```sh
 cd /dev
 ls -l
+[root@host-192-125-30-71 dev]# ls -l
+总用量 0
+crw-------  1 root root     10, 235 9月  18 2020 autofs
+drwxr-xr-x  2 root root         200 12月 31 16:08 block
 ```
 
 * 以 `c` 开头的一行表示该设备是一个字符设备，以 `b` 开头的行表示这是一个块设备。
-* 10,175 这两个数字中，前面的 10 表示 `major number`，后面的 175 表示 `minor number`。
+* 10,235 这两个数字中，前面的 10 表示 `major number`，后面的 235 表示 `minor number`。
 
 ### major 和 minor 值的设置
 
@@ -114,7 +118,7 @@ stat -c %T /dev/vda #minor number
 stat -c %T /dev/vdb
 10
 
-/dev# stat -c %T /dev/sda
+stat -c %T /dev/sda
 0
 
 stat -c %t /dev/vda #major number
