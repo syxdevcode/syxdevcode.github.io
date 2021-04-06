@@ -182,6 +182,356 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2017/03/02/Emit%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2017/03/02/Emit%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/" class="post-title-link" itemprop="url">Emit基本操作</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2017-03-02 16:32:27" itemprop="dateCreated datePublished" datetime="2017-03-02T16:32:27+00:00">2017-03-02</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-06 06:05:15" itemprop="dateModified" datetime="2021-04-06T06:05:15+00:00">2021-04-06</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Emit-%E5%8F%8D%E5%B0%84%E5%8F%91%E5%87%BA/" itemprop="url" rel="index"><span itemprop="name">Emit(反射发出)</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="ILGenerator"><a href="#ILGenerator" class="headerlink" title="ILGenerator"></a>ILGenerator</h2><p>ILGenerator：生成IL代码</p>
+<p>获取ILGenerator类的实例方法：</p>
+<blockquote>
+<p>ConstructorBuilder.GetILGenerator方法<br>DynamicMethod.GetILGenerator 方法<br>MethodBuilder.GetILGenerator 方法</p>
+</blockquote>
+<p>上面涉及到了在Emit中能够动态生成方法的三种途径，</p>
+<p>ConstructorBuilder类用来配置的构造函数，构造函数内部的IL要使用它的</p>
+<p>GetILGenerator方法返回的ILGenerator类发出。</p>
+<p>DynamicMethod类，是在当前运行上下文环境中动态生成方法的类，使用该类不必</p>
+<p>事先创建程序集、模块和类型，同样发出其内部的IL使用DynamicMethod.GetILGenerator</p>
+<p>方法返回的ILGenerator类实例.</p>
+<p>最终实现的调用效果：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">Mock&lt;IAssessmentAopAdviceProvider&gt; mocker = <span class="keyword">new</span> Mock&lt;IAssessmentAopAdviceProvider&gt;();</span><br><span class="line"></span><br><span class="line">mocker.Setup(t =&gt; t.Before(<span class="number">3</span>)).Returns(<span class="string">&quot;Hello World!&quot;</span>);</span><br><span class="line"></span><br><span class="line">Console.WriteLine(mocker.Obj.Before(<span class="number">2</span>));</span><br><span class="line"></span><br><span class="line">Console.Read();</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>接收一个接口，初始化一个Mock类的实例，然后通过Setup和Returns扩展方法设定实现</p>
+<p>该接口的实例在指定方法上的返回值。这里我们先不考虑对不同参数的处理逻辑。</p>
+<p>Mock类定义如下：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Mock</span>&lt;<span class="title">T</span>&gt; <span class="keyword">where</span> <span class="title">T</span> : <span class="title">IAssessmentAopAdviceProvider</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> T Obj</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span>; <span class="keyword">set</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> SetupContext Contex &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Mock</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Mock类的Obj属性是特定接口的实例。Contex属性是上下文信息</p>
+<p>Contex类定义如下：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">SetupContext</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> MethodInfo MethodInfo &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>只包含一个MethodInfo属性</p>
+<p>扩展方法：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title">MockExtention</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="title">Mock</span>&lt;<span class="title">T</span>&gt; <span class="title">Setup</span>&lt;<span class="title">T</span>&gt;(<span class="params"><span class="keyword">this</span> Mock&lt;T&gt; mocker, Expression&lt;Action&lt;T&gt;&gt; expression</span>) <span class="keyword">where</span> T : IAssessmentAopAdviceProvider</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        mocker.Contex = <span class="keyword">new</span> SetupContext();</span><br><span class="line"></span><br><span class="line">        mocker.Contex.MethodInfo = expression.ToMethodInfo();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> mocker;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Returns</span>&lt;<span class="title">T</span>&gt;(<span class="params"><span class="keyword">this</span> Mock&lt;T&gt; mocker, <span class="built_in">object</span> returnValue</span>) <span class="keyword">where</span> T : IAssessmentAopAdviceProvider</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">if</span> (mocker.Contex != <span class="literal">null</span> &amp;&amp; mocker.Contex.MethodInfo != <span class="literal">null</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="comment">//这里为简单起见，只考虑IAssessmentAopAdviceProvider接口</span></span><br><span class="line">            mocker.Obj = (T)AdviceProviderFactory.GetProvider(mocker.Contex.MethodInfo.Name, (<span class="built_in">string</span>)returnValue);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> MethodInfo <span class="title">ToMethodInfo</span>(<span class="params"><span class="keyword">this</span> LambdaExpression expression</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">var</span> memberExpression = expression.Body <span class="keyword">as</span> System.Linq.Expressions.MethodCallExpression;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (memberExpression != <span class="literal">null</span>)</span><br><span class="line"></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> memberExpression.Method;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Setup是Mock类的扩展方法，配置要Mock的方法信息;</p>
+<p>Returns扩展方法则调去对应的工厂获取接口的实例。</p>
+<p>ToMethodInfo是LambdaExpression扩展方法，该方法从Lambda表达式中获取MethodInfo.</p>
+<p>对应的工厂方法直接返回IAssessmentAopAdviceProvider接口实例。</p>
+<p>在构造方法中初始化assemblyBuilder和moduleBuilder<br>代码：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">readonly</span> AssemblyName assemblyName = <span class="keyword">new</span> AssemblyName(<span class="string">&quot;EmitTest.MvcAdviceProvider&quot;</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> AssemblyBuilder assemblyBuilder;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> ModuleBuilder moduleBuilder;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="title">AdviceProviderFactory</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    assemblyName.Version = <span class="keyword">new</span> Version(<span class="string">&quot;1.0.0.0&quot;</span>);</span><br><span class="line"></span><br><span class="line">    assemblyBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.RunAndSave);</span><br><span class="line"></span><br><span class="line">    moduleBuilder = assemblyBuilder.DefineDynamicModule(<span class="string">&quot;MvcAdviceProviderModule&quot;</span>, <span class="string">&quot;test.dll&quot;</span>, <span class="literal">true</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>CreateInstance方法负责创建类型和方法的实现：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> IAssessmentAopAdviceProvider <span class="title">CreateInstance</span>(<span class="params"><span class="built_in">string</span> instanceName, <span class="built_in">string</span> methodName, <span class="built_in">string</span> returnValue</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    TypeBuilder typeBuilder = moduleBuilder.DefineType(<span class="string">&quot;MvcAdviceProvider.MvcAdviceProviderType&quot;</span>, TypeAttributes.Public, <span class="keyword">typeof</span>(<span class="built_in">object</span>), <span class="keyword">new</span> Type[] &#123; <span class="keyword">typeof</span>(IAssessmentAopAdviceProvider) &#125;);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// typeBuilder.AddInterfaceImplementation(typeof(IAssessmentAopAdviceProvider));</span></span><br><span class="line"></span><br><span class="line">    MethodBuilder beforeMethodBuilder = typeBuilder.DefineMethod(methodName, MethodAttributes.Public | MethodAttributes.Virtual, <span class="keyword">typeof</span>(<span class="built_in">string</span>), <span class="keyword">new</span> Type[] &#123; <span class="keyword">typeof</span>(<span class="built_in">int</span>) &#125;);</span><br><span class="line"></span><br><span class="line">    beforeMethodBuilder.DefineParameter(<span class="number">1</span>, ParameterAttributes.None, <span class="string">&quot;value&quot;</span>);</span><br><span class="line"></span><br><span class="line">    ILGenerator generator1 = beforeMethodBuilder.GetILGenerator();</span><br><span class="line"></span><br><span class="line">    LocalBuilder local1 = generator1.DeclareLocal(<span class="keyword">typeof</span>(<span class="built_in">string</span>));</span><br><span class="line"></span><br><span class="line">    local1.SetLocalSymInfo(<span class="string">&quot;param1&quot;</span>);</span><br><span class="line"></span><br><span class="line">    generator1.Emit(OpCodes.Nop);</span><br><span class="line"></span><br><span class="line">    generator1.Emit(OpCodes.Ldstr, returnValue);</span><br><span class="line"></span><br><span class="line">    generator1.Emit(OpCodes.Stloc_0);</span><br><span class="line"></span><br><span class="line">    generator1.Emit(OpCodes.Ldloc_0);</span><br><span class="line"></span><br><span class="line">    generator1.Emit(OpCodes.Ret);</span><br><span class="line"></span><br><span class="line">    Type providerType = typeBuilder.CreateType();</span><br><span class="line"></span><br><span class="line">    assemblyBuilder.Save(<span class="string">&quot;test.dll&quot;</span>);</span><br><span class="line"></span><br><span class="line">    IAssessmentAopAdviceProvider provider = Activator.CreateInstance(providerType) <span class="keyword">as</span> IAssessmentAopAdviceProvider;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> provider;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在CreateInstance方法中，首先定义类型：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">TypeBuilder typeBuilder = moduleBuilder.DefineType(<span class="string">&quot;MvcAdviceProvider.MvcAdviceProviderType&quot;</span>, TypeAttributes.Public, <span class="keyword">typeof</span>(<span class="built_in">object</span>), <span class="keyword">new</span> Type[] &#123; <span class="keyword">typeof</span>(IAssessmentAopAdviceProvider) &#125;);</span><br></pre></td></tr></table></figure>
+
+<p>第三个和第四个参数，分别是该类型大的基类型和实现的接口列表。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">MethodBuilder beforeMethodBuilder = typeBuilder.DefineMethod(methodName, MethodAttributes.Public | MethodAttributes.Virtual, <span class="keyword">typeof</span>(<span class="built_in">string</span>), <span class="keyword">new</span> Type[] &#123; <span class="keyword">typeof</span>(<span class="built_in">int</span>) &#125;);</span><br></pre></td></tr></table></figure>
+
+<p>DefineMethod方法中，传人的第一个参数是方法的名称，第二个参数是访问类型，第三个参数是修饰符，第四个参数是方法的参数类型列表。这里需要注意第二个参数，也就是方法的修饰符，因为接口中的方法定义都是virtual的，所以在实现接口的时候，方法也必须声明为MethodAttributes.Virtual。</p>
+<p>定义方法的参数，使用MethodBuilder.DefineParameter方法。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">beforeMethodBuilder.DefineParameter(<span class="number">1</span>, ParameterAttributes.None, <span class="string">&quot;value&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>DefineParameter方法的第一参数指定当前定义的参数在方法参数列表中的顺序，从1开始，如果设置为0则代表方法的返回参数。第二个参数是设置参数的特性，如输入参数，输出参数等等。第三个参数是指定该参数的名称。</p>
+<p>方法定义完毕，接下来就是发出Opcode，返回一个指定的字符串。先获取ILGenerator实例，如下：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ILGenerator generator1 = beforeMethodBuilder.GetILGenerator();</span><br></pre></td></tr></table></figure>
+
+<p>我们若想返回一个字符串，必须先为该字符串声明一个局部变量，可以使用LocalBuilder.DeclareLocal方法，如下：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">LocalBuilder local1 = generator1.DeclareLocal(<span class="keyword">typeof</span>(<span class="built_in">string</span>));</span><br><span class="line"></span><br><span class="line">local1.SetLocalSymInfo(<span class="string">&quot;param1&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>ocal1.SetLocalSymInfo(“param1”)指定局部变量的名称。</p>
+<p>需要注意，如果模块定义时不允许发出符号信息，是无法使用SetLocalSymInfo方法的，AdviceProviderFactory的构造函数中，我们定义模块的代码</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">moduleBuilder = assemblyBuilder.DefineDynamicModule(<span class="string">&quot;MvcAdviceProviderModule&quot;</span>, <span class="string">&quot;test.dll&quot;</span>,<span class="literal">true</span>);</span><br></pre></td></tr></table></figure>
+
+<p>最后一个参数是指定是否允许发出符号信息的。</p>
+<p>发出的Opcode:</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">generator1.Emit(OpCodes.Nop);</span><br><span class="line"></span><br><span class="line">generator1.Emit(OpCodes.Ldstr, returnValue);</span><br><span class="line"></span><br><span class="line">generator1.Emit(OpCodes.Stloc_0);</span><br><span class="line"></span><br><span class="line">generator1.Emit(OpCodes.Ldloc_0);</span><br><span class="line"></span><br><span class="line">generator1.Emit(OpCodes.Ret);</span><br></pre></td></tr></table></figure>
+
+<p>第一条指令不执行任何操作。</p>
+<p>第二条指令加载一个字符串到计算堆栈中。</p>
+<p>第三条指令赋值计算堆栈顶部的数据到局部变量列表中的第一个变量。</p>
+<p>第四条指令加载局部变量列表中的第一个变量的数据引用到计算堆栈。</p>
+<p>第五条指令方法返回。</p>
+<p>整个Emit的过程结束了，接下来要创建实例：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Type providerType = typeBuilder.CreateType();</span><br><span class="line"></span><br><span class="line">assemblyBuilder.Save(<span class="string">&quot;test.dll&quot;</span>);</span><br><span class="line"></span><br><span class="line">IAssessmentAopAdviceProvider provider = Activator.CreateInstance(providerType) <span class="keyword">as</span> IAssessmentAopAdviceProvider;</span><br></pre></td></tr></table></figure>
+
+<p>控制台调用：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Mock&lt;IAssessmentAopAdviceProvider&gt; mocker = <span class="keyword">new</span> Mock&lt;IAssessmentAopAdviceProvider&gt;();</span><br><span class="line"></span><br><span class="line">mocker.Setup(t =&gt; t.Before(<span class="number">3</span>)).Returns(<span class="string">&quot;Hello World!&quot;</span>);</span><br><span class="line"></span><br><span class="line">Console.WriteLine(mocker.Obj.Before(<span class="number">2</span>));</span><br><span class="line"></span><br><span class="line">Console.Read();</span><br></pre></td></tr></table></figure>
+
+<p><a target="_blank" rel="noopener" href="https://github.com/syxdevcode/EmitTest" title="github代码">代码</a></p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/xuanhun/archive/2012/06/22/2558698.html" title="Emit详解">http://www.cnblogs.com/xuanhun/archive/2012/06/22/2558698.html</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2017/03/02/Emit%E5%AD%A6%E4%B9%A0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2017/03/02/Emit%E5%AD%A6%E4%B9%A0/" class="post-title-link" itemprop="url">Emit学习</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2017-03-02 11:00:30" itemprop="dateCreated datePublished" datetime="2017-03-02T11:00:30+00:00">2017-03-02</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-06 06:05:15" itemprop="dateModified" datetime="2021-04-06T06:05:15+00:00">2021-04-06</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Emit-%E5%8F%8D%E5%B0%84%E5%8F%91%E5%87%BA/" itemprop="url" rel="index"><span itemprop="name">Emit(反射发出)</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="动态创建完整的程序集"><a href="#动态创建完整的程序集" class="headerlink" title="动态创建完整的程序集"></a>动态创建完整的程序集</h2><h3 id="创建程序集"><a href="#创建程序集" class="headerlink" title="创建程序集"></a>创建程序集</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Reflection;</span><br><span class="line"><span class="keyword">using</span> System.Reflection.Emit;</span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">EmitTest</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">internal</span> <span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            AssemblyName assemblyName = <span class="keyword">new</span> AssemblyName(<span class="string">&quot;EmitTest.MvcAdviceProvider&quot;</span>);</span><br><span class="line"></span><br><span class="line">            AssemblyBuilder assemblyBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>AppDomain.CurrentDomain.DefineDynamicAssembly</code>方法返回一个AssemblyBuilder实例。</p>
+<p>其中，第一个参数是AssemblyName实例，是程序集的唯一标识；第二个参数AssemblyBuilderAccess.Run表明该程序集只能用来执行代码，</p>
+<p>不能被持久保存。AssemblyBuilderAccess还有如下选项：</p>
+<p>  <code>AssemblyBuilderAccess.ReflectionOnly</code>：程序集只能在反射上下文中执行。</p>
+<p>  <code>AssemblyBuilderAccess.RunAndCollect</code>：程序集可以运行和垃圾回收。</p>
+<p>  <code>AssemblyBuilderAccess.RunAndSave</code>：程序集可以执行代码而且被持久保存。</p>
+<p>  <code>AssemblyBuilderAccess.Save</code>：程序集是持久化的，保存之前不可以执行代码。</p>
+<p>创建了程序集之后，我们继续向程序集中添加模块。</p>
+<h4 id="向程序集添加模块"><a href="#向程序集添加模块" class="headerlink" title="向程序集添加模块"></a>向程序集添加模块</h4><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Reflection;</span><br><span class="line"><span class="keyword">using</span> System.Reflection.Emit;</span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">EmitTest</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">internal</span> <span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            AssemblyName assemblyName = <span class="keyword">new</span> AssemblyName(<span class="string">&quot;EmitTest.MvcAdviceProvider&quot;</span>);</span><br><span class="line"></span><br><span class="line">            AssemblyBuilder assemblyBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);</span><br><span class="line"></span><br><span class="line">            ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule(<span class="string">&quot;MvcAdviceProvider&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>AssemblyBuilder.DefineDynamicModule</code>方法来创建模块，该方法共有三个重载，如下表所示：</p>
+<p><code>DefineDynamicModule(String)</code>定义指定名称的模块。</p>
+<p><code>DefineDynamicModule(String, Boolean)</code>定义指定名称的模块，并指定是否发出符号信息。</p>
+<p><code>DefineDynamicModule(String, String)</code>定义持久模块。用给定名称定义将保存到指定文件路径的模块。不发出符号信息。</p>
+<p><code>DefineDynamicModule(String, String, Boolean)</code>定义持久模块，并指定模块名称、用于保存模块的文件名，同时指定是否使用默认符号编写器发出符号信息。</p>
+<h4 id="定义类型"><a href="#定义类型" class="headerlink" title="定义类型"></a>定义类型</h4><p>我们要定义的类型必须继承并实现IAssessmentAopAdviceProvider接口</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">TypeBuilder typeBuilder = moduleBuilder.DefineType(<span class="string">&quot;EmitTest.MvcAdviceProvider&quot;</span>, TypeAttributes.Public,</span><br><span class="line">                                    <span class="keyword">typeof</span>(<span class="built_in">object</span>), <span class="keyword">new</span> Type[] &#123; <span class="keyword">typeof</span>(IAssessmentAopAdviceProvider) &#125;);</span><br></pre></td></tr></table></figure>
+
+<p>上述代码中mb.DefineType方法返回一个TypeBuilder实例，该方法有6个重载方法，这里采用的方法有四个参数，</p>
+<p>第一个参数是类型名称，第二个参数的TypeAttributes枚举是类型的访问级别和类型类别等其他信息，第三个参数</p>
+<p>是类型继承的基类，第四个参数是类型实现的接口。其他重载函数的说明如下（引自MSDN）：</p>
+<p><code>DefineType(String)</code>在此模块中用指定的名称为私有类型构造 TypeBuilder。</p>
+<p><code>DefineType(String, TypeAttributes)</code>在给定类型名称和类型特性的情况下，构造 TypeBuilder。</p>
+<p><code>DefineType(String, TypeAttributes, Type)</code>在给定类型名称、类型特性和已定义类型扩展的类型的情况下，构造 TypeBuilder。</p>
+<p><code>DefineType(String, TypeAttributes, Type, Int32)</code>在给定类型名称、特性、已定义类型扩展的类型和类型的总大小的情况下，构造 TypeBuilder。</p>
+<p><code>DefineType(String, TypeAttributes, Type, PackingSize)</code>在给定类型名称、特性、已定义类型扩展的类型和类型的封装大小的情况下，构造 TypeBuilder。</p>
+<p><code>DefineType(String, TypeAttributes, Type, Type[])</code>在给定类型名称、特性、已定义类型扩展的类型和已定义类型实现的接口的情况下，构造 TypeBuilder。</p>
+<p><code>DefineType(String, TypeAttributes, Type, PackingSize, Int32)</code>在给定类型名称、特性、已定义类型扩展的类型，已定义类型的封装</p>
+<p>通过TypeBuilder，可以使用TypeBuilder.DefineField来定义字段，使用TypeBuilder.DefineConstructor来定义构造函数，</p>
+<p>使用TypeBuilder.DefineMethod来定义方法，并使用TypeBuilder.DefineEvent来定义事件等，总之可以定义类型里的任何成员。</p>
+<p>这里我们只需要定义方法</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">MethodBuilder beforeMethodBuilder &#x3D; typeBuilder.DefineMethod(&quot;Before&quot;, MethodAttributes.Public, typeof(object), new Type[] &#123; typeof(object) &#125;);</span><br><span class="line"></span><br><span class="line">MethodBuilder afterMethodBuilder &#x3D; typeBuilder.DefineMethod(&quot;After&quot;, MethodAttributes.Public, typeof(object), new Type[] &#123; typeof(object), typeof(object) &#125;);</span><br></pre></td></tr></table></figure>
+
+<p>在上面的代码中，使用TypeBuilder.DefineMethod 方法来创建MethodBuilder对象。该方法有5个重载，如下表（引自MSDN）:</p>
+<p><code>DefineMethod(String, MethodAttributes)</code>使用指定的名称和方法特性向类型中添加新方法。</p>
+<p><code>DefineMethod(String, MethodAttributes, CallingConventions)</code>使用指定名称、方法特性和调用约定向类型中添加新方法。</p>
+<p><code>DefineMethod(String, MethodAttributes, Type, Type[])</code>使用指定的名称、方法特性和调用约定向类型中添加新方法。</p>
+<p><code>DefineMethod(String, MethodAttributes, CallingConventions, Type, Type[])</code>使用指定的名称、方法特性、调用约定和方法签名向类型中添加新方法。</p>
+<p><code>DefineMethod(String, MethodAttributes, CallingConventions, Type, Type[], Type[], Type[], Type[][], Type[][])</code>使用指定的名称、方法特性、调用约定、方法签名和自定义修饰符向类型中添加新方法。</p>
+<p>完整代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line">using System;</span><br><span class="line">using System.Reflection;</span><br><span class="line">using System.Reflection.Emit;</span><br><span class="line"></span><br><span class="line">namespace EmitTest</span><br><span class="line">&#123;</span><br><span class="line">    internal class Program</span><br><span class="line">    &#123;</span><br><span class="line">        private static void Main(string[] args)</span><br><span class="line">        &#123;</span><br><span class="line">            AssemblyName assemblyName &#x3D; new AssemblyName(&quot;EmitTest.MvcAdviceProvider&quot;);</span><br><span class="line"></span><br><span class="line">            AssemblyBuilder assemblyBuilder &#x3D; AppDomain.CurrentDomain.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);</span><br><span class="line"></span><br><span class="line">            ModuleBuilder moduleBuilder &#x3D; assemblyBuilder.DefineDynamicModule(&quot;MvcAdviceProvider&quot;);</span><br><span class="line"></span><br><span class="line">            TypeBuilder typeBuilder &#x3D; moduleBuilder.DefineType(&quot;EmitTest.MvcAdviceProvider&quot;, TypeAttributes.Public,</span><br><span class="line"></span><br><span class="line">                                                               typeof(object), new Type[] &#123; typeof(IAssessmentAopAdviceProvider) &#125;);</span><br><span class="line"></span><br><span class="line">            MethodBuilder beforeMethodBuilder &#x3D; typeBuilder.DefineMethod(&quot;Before&quot;, MethodAttributes.Public, typeof(object), new Type[] &#123; typeof(object) &#125;);</span><br><span class="line"></span><br><span class="line">            MethodBuilder afterMethodBuilder &#x3D; typeBuilder.DefineMethod(&quot;After&quot;, MethodAttributes.Public, typeof(object), new Type[] &#123; typeof(object), typeof(object) &#125;);</span><br><span class="line"></span><br><span class="line">            TestType(typeBuilder);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        private static void TestType(TypeBuilder typeBuilder)</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(typeBuilder.Assembly.FullName);</span><br><span class="line"></span><br><span class="line">            Console.WriteLine(typeBuilder.Module.Name);</span><br><span class="line"></span><br><span class="line">            Console.WriteLine(typeBuilder.Namespace);</span><br><span class="line"></span><br><span class="line">            Console.WriteLine(typeBuilder.Name);</span><br><span class="line"></span><br><span class="line">            Console.Read();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/xuanhun/archive/2012/06/03/2532922.html" title="Emit基本操作">http://www.cnblogs.com/xuanhun/archive/2012/06/03/2532922.html</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2017/02/17/Host%20'xx.xx.xx.xx'%20is%20not%20allowed%20to%20connect%20to%20this%20MySQL%20server/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2017/02/17/Host%20'xx.xx.xx.xx'%20is%20not%20allowed%20to%20connect%20to%20this%20MySQL%20server/" class="post-title-link" itemprop="url">Host  'xx.xx.xx.xx' is not allowed to connect to this MySQL server</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2017-02-17 14:33:37" itemprop="dateCreated datePublished" datetime="2017-02-17T14:33:37+00:00">2017-02-17</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-06 06:05:15" itemprop="dateModified" datetime="2021-04-06T06:05:15+00:00">2021-04-06</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/MySql/" itemprop="url" rel="index"><span itemprop="name">MySql</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="Host-‘xx-xx-xx-xx’-is-not-allowed-to-connect-to-this-MySQL-server"><a href="#Host-‘xx-xx-xx-xx’-is-not-allowed-to-connect-to-this-MySQL-server" class="headerlink" title="Host  ‘xx.xx.xx.xx’ is not allowed to connect to this MySQL server"></a>Host  ‘xx.xx.xx.xx’ is not allowed to connect to this MySQL server</h1><p>注：需要在服务器登录mysql终端</p>
+<h3 id="改表法"><a href="#改表法" class="headerlink" title="改表法"></a>改表法</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; use mysql;</span><br><span class="line">Reading table information for completion of table and column names</span><br><span class="line">You can turn off this feature to get a quicker startup with -A</span><br><span class="line"></span><br><span class="line">Database changed</span><br><span class="line">mysql&gt; update user set host &#x3D; &#39;%&#39; where user &#x3D; &#39;root&#39;;&#x2F;&#x2F;需要远程连接的用户</span><br><span class="line">mysql&gt; select host,user from user;</span><br><span class="line">+-----------+-----------+</span><br><span class="line">| host      | user      |</span><br><span class="line">+-----------+-----------+</span><br><span class="line">| %         | root      |</span><br><span class="line">| localhost | mysql     |</span><br><span class="line">| localhost | mysql.sys |</span><br><span class="line">+-----------+-----------+</span><br><span class="line">3 rows in set (0.00 sec)</span><br></pre></td></tr></table></figure>
+
+<h3 id="授权法"><a href="#授权法" class="headerlink" title="授权法"></a>授权法</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; GRANT ALL PRIVILEGES ON *.* TO &#39;mysql&#39;@&#39;%&#39; IDENTIFIED BY &#39;mypassword&#39; WITH GRANT OPTION; &#x2F;&#x2F;mysql 密码强度有验证；mypassword：密码</span><br><span class="line">Query OK, 0 rows affected, 1 warning (0.00 sec)</span><br><span class="line"></span><br><span class="line">mysql&gt; FLUSH   PRIVILEGES; &#x2F;&#x2F; 刷新</span><br><span class="line">Query OK, 0 rows affected (0.01 sec)</span><br></pre></td></tr></table></figure>
+
+<p>如果你想允许用户myuser从ip为192.168.1.6的主机连接到mysql服务器，并使用mypassword作为密码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GRANT ALL PRIVILEGES ON *.* TO &#39;myuser&#39;@&#39;192.168.1.3&#39; IDENTIFIED BY &#39;mypassword&#39; WITH GRANT OPTION;</span><br><span class="line">FLUSH   PRIVILEGES;</span><br></pre></td></tr></table></figure>
+
+<p>如果你想允许用户myuser从ip为192.168.1.6的主机连接到mysql服务器的dk数据库，并使用mypassword作为密码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GRANT ALL PRIVILEGES ON dk.* TO &#39;myuser&#39;@&#39;192.168.1.3&#39; IDENTIFIED BY &#39;mypassword&#39; WITH GRANT OPTION;</span><br><span class="line">FLUSH   PRIVILEGES;</span><br></pre></td></tr></table></figure>
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2017/02/16/mysql-centos7%E5%8D%B8%E8%BD%BD/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +563,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-02 09:54:17" itemprop="dateModified" datetime="2021-04-02T09:54:17+00:00">2021-04-02</time>
+                <time title="修改时间：2021-04-06 06:05:15" itemprop="dateModified" datetime="2021-04-06T06:05:15+00:00">2021-04-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -299,7 +649,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-02 09:54:17" itemprop="dateModified" datetime="2021-04-02T09:54:17+00:00">2021-04-02</time>
+                <time title="修改时间：2021-04-06 06:05:15" itemprop="dateModified" datetime="2021-04-06T06:05:15+00:00">2021-04-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -431,7 +781,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-02 09:54:17" itemprop="dateModified" datetime="2021-04-02T09:54:17+00:00">2021-04-02</time>
+                <time title="修改时间：2021-04-06 06:05:15" itemprop="dateModified" datetime="2021-04-06T06:05:15+00:00">2021-04-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -664,7 +1014,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">378</span>
+          <span class="site-state-item-count">381</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>

@@ -182,6 +182,673 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/20/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9008-%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%8E%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/12/20/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9008-%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%8E%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5/" class="post-title-link" itemprop="url">DotNet面试题解析08-多线程与线程同步</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-12-20 16:29:55" itemprop="dateCreated datePublished" datetime="2018-12-20T16:29:55+00:00">2018-12-20</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-06 06:05:15" itemprop="dateModified" datetime="2021-04-06T06:05:15+00:00">2021-04-06</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%90/" itemprop="url" rel="index"><span itemprop="name">DotNet面试题解析</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="线程基础"><a href="#线程基础" class="headerlink" title="线程基础"></a>线程基础</h2><h3 id="进程与线程"><a href="#进程与线程" class="headerlink" title="进程与线程"></a>进程与线程</h3><p>我们运行一个exe，就是一个进程实例，系统中有很多个进程。每一个进程都有自己的内存地址空间，每个进程相当于一个独立的边界，有自己的独占的资源，进程之间不能共享代码和数据空间。</p>
+<p><img src="/img/151257-20160321141549448-1325816759.png" alt="151257-20160321141549448-1325816759.png"></p>
+<p>每一个进程有一个或多个线程，进程内多个线程可以共享所属进程的资源和数据，线程是操作系统调度的基本单元。线程是由操作系统来调度和执行的，她的基本状态如下图。</p>
+<p><img src="/img/151257-20160321141550120-2131692214.png" alt="151257-20160321141550120-2131692214.png"></p>
+<h3 id="线程的开销及调度"><a href="#线程的开销及调度" class="headerlink" title="线程的开销及调度"></a>线程的开销及调度</h3><p>创建一个线程,主要包括线程内核对象、线程环境块、1M大小的用户模式栈、内核模式栈。其中用户模式栈对于普通的系统线程那1M是预留的，在需要的时候才会分配，但是对于CLR线程，那1M是一开始就分类了内存空间的。</p>
+<p><img src="/img/151257-20160321141550589-1339297361.png" alt="151257-20160321141550589-1339297361.png"></p>
+<p>操作系统中那么多线程（一般都有上千个线程，大部分都处于休眠状态），对于单核CPU，一次只能有一个线程被调度执行，那么多线程怎么分配的呢？Windows系统采用时间轮询机制，CPU计算资源以时间片(大约30ms)的形式分配给执行线程。</p>
+<p>计算机资源（CPU核心和CPU寄存器）一次只能调度一个线程，具体的调度流程：</p>
+<ul>
+<li>把CPU寄存器内的数据保存到当前线程内部（线程上下文等地方），给下一个线程腾地方；</li>
+<li>线程调度：在线程集合里取出一个需要执行的线程；</li>
+<li>加载新线程的上下文数据到CPU寄存器；</li>
+<li>新线程执行，享受她自己的CPU时间片（大约30ms），完了之后继续回到第一步，继续轮回；</li>
+</ul>
+<p>上面线程调度的过程，就是一次线程切换，一次切换就涉及到线程上下文等数据的搬入搬出，性能开销是很大的。因此线程不可滥用，线程的创建和消费也是很昂贵的，这也是为什么建议尽量使用线程池的一个主要原因。</p>
+<p>线程的主要几点性能影响：</p>
+<ul>
+<li>线程的创建、销毁都是很昂贵的；</li>
+<li>线程上下文切换有极大的性能开销，当然假如需要调度的新线程与当前是同一线程的话，就不需要线程上下文切换了，效率要快很多；</li>
+<li>GC执行回收时，首先要（安全的）挂起所有线程，遍历所有线程栈（根），GC回收后更新所有线程的根地址，再恢复线程调用，线程越多，GC要干的活就越多；</li>
+</ul>
+<h2 id="多线程"><a href="#多线程" class="headerlink" title="多线程"></a>多线程</h2><h3 id="线程池-ThreadPool"><a href="#线程池-ThreadPool" class="headerlink" title="线程池(ThreadPool)"></a>线程池(ThreadPool)</h3><p>将任务添加进线程池:</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ThreadPool.QueueUserWorkItem(<span class="keyword">new</span> WaitCallback(方法名));</span><br><span class="line"><span class="comment">//重载</span></span><br><span class="line">ThreadPool.QueueUserWorkItem(<span class="keyword">new</span> WaitCallback(方法名), 参数);</span><br></pre></td></tr></table></figure>
+
+<p>因为ThreadPool是静态类 所以不需要实例化.</p>
+<p>每个CLR都有一个线程池，线程池在CLR内可以多个AppDomain共享，线程池是CLR内部管理的一个线程集合，初始是没有线程的，在需要的时候才会创建。</p>
+<p>基本流程如下：</p>
+<ul>
+<li>线程池内部维护一个请求列队，用于缓存用户请求需要执行的代码任务，就是ThreadPool.QueueUserWorkItem提交的请求；</li>
+<li>有新任务后，线程池使用空闲线程或新线程来执行队列请求；</li>
+<li>任务执行完后线程不会销毁，留着重复使用；</li>
+<li>线程池自己负责维护线程的创建和销毁，当线程池中有大量闲置的线程时，线程池会自动结束一部分多余的线程来释放资源；</li>
+</ul>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Collections.Generic;</span><br><span class="line"><span class="keyword">using</span> System.Linq;</span><br><span class="line"><span class="keyword">using</span> System.Text;</span><br><span class="line"><span class="keyword">using</span> System.Threading;</span><br><span class="line">namespace 多线程池试验</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            <span class="comment">//新建ManualResetEvent对象并且初始化为无信号状态</span></span><br><span class="line">            ManualResetEvent eventX = <span class="keyword">new</span> ManualResetEvent(<span class="literal">false</span>);</span><br><span class="line">            ThreadPool.SetMaxThreads(<span class="number">3</span>, <span class="number">3</span>);</span><br><span class="line">            thr t = <span class="keyword">new</span> thr(<span class="number">15</span>, eventX);</span><br><span class="line">            <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; <span class="number">15</span>; i++)</span><br><span class="line">            &#123;</span><br><span class="line">                ThreadPool.QueueUserWorkItem(<span class="keyword">new</span> WaitCallback(t.ThreadProc), i);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//等待事件的完成，即线程调用ManualResetEvent.Set()方法</span></span><br><span class="line">            <span class="comment">//eventX.WaitOne  阻止当前线程，直到当前 WaitHandle 收到信号为止。 </span></span><br><span class="line">            eventX.WaitOne(Timeout.Infinite, <span class="literal">true</span>);</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;断点测试&quot;</span>);</span><br><span class="line">            Thread.Sleep(<span class="number">10000</span>);</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;运行结束&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">class</span> <span class="title">thr</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="title">thr</span>(<span class="params"><span class="built_in">int</span> count,ManualResetEvent mre</span>)</span></span><br><span class="line"><span class="function"></span>            &#123;</span><br><span class="line">                iMaxCount = count;</span><br><span class="line">                eventX = mre;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">static</span> <span class="built_in">int</span> iCount = <span class="number">0</span>;</span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">static</span> <span class="built_in">int</span> iMaxCount = <span class="number">0</span>;</span><br><span class="line">            <span class="keyword">public</span> ManualResetEvent eventX;</span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">ThreadProc</span>(<span class="params"><span class="built_in">object</span> i</span>)</span></span><br><span class="line"><span class="function"></span>            &#123;</span><br><span class="line">                Console.WriteLine(<span class="string">&quot;Thread[&quot;</span> + i.ToString() + <span class="string">&quot;]&quot;</span>);</span><br><span class="line">                Thread.Sleep(<span class="number">2000</span>);</span><br><span class="line">                <span class="comment">//Interlocked.Increment()操作是一个原子操作，作用是:iCount++ 具体请看下面说明 </span></span><br><span class="line">                <span class="comment">//原子操作，就是不能被更高等级中断抢夺优先的操作。你既然提这个问题，我就说深一点。</span></span><br><span class="line">                <span class="comment">//由于操作系统大部分时间处于开中断状态，</span></span><br><span class="line">                <span class="comment">//所以，一个程序在执行的时候可能被优先级更高的线程中断。</span></span><br><span class="line">                <span class="comment">//而有些操作是不能被中断的，不然会出现无法还原的后果，这时候，这些操作就需要原子操作。</span></span><br><span class="line">                <span class="comment">//就是不能被中断的操作。</span></span><br><span class="line">                Interlocked.Increment(<span class="keyword">ref</span> iCount);</span><br><span class="line">                <span class="keyword">if</span> (iCount == iMaxCount)</span><br><span class="line">                &#123;</span><br><span class="line">                    Console.WriteLine(<span class="string">&quot;发出结束信号!&quot;</span>);</span><br><span class="line">                    <span class="comment">//将事件状态设置为终止状态，允许一个或多个等待线程继续。</span></span><br><span class="line">                    eventX.Set();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>AutoResetEvent和ManualResetEvent区别：</strong><br><font color=#0099ff size=4 face="黑体">AutoResetEvent的WaitOne()方法执行后会自动又将信号置为不发送状态也就是阻塞状态，当再次遇到WaitOne()方法是又会被阻塞，而ManualResetEvent则不会，只要线程处于非阻塞状态则无论遇到多少次WaitOne()方法都不会被阻塞，除非调用ReSet()方法来手动阻塞线程。</font></p>
+<p>线程池是有一个容量的，可以设置线程池的最大活跃线程数，调用方法ThreadPool.SetMaxThreads可以设置相关参数。但很多编程实践里都不建议程序猿们自己去设置这些参数，其实微软为了提高线程池性能，做了大量的优化，线程池可以很智能的确定是否要创建或是消费线程，大多数情况都可以满足需求了。</p>
+<p>线程池使得线程可以充分有效地被利用，减少了任务启动的延迟，也不用大量的去创建线程，避免了大量线程的创建和销毁对性能的极大影响。</p>
+<p>线程池的不足：</p>
+<ul>
+<li>线程池内的线程不支持线程的挂起、取消等操作，如想要取消线程里的任务，.NET支持一种协作式方式取消，使用起来也不很方便，而且有些场景并不满足需求；</li>
+<li>线程内的任务没有返回值，也不知道何时执行完成；</li>
+<li>不支持设置线程的优先级，还包括其他类似需要对线程有更多的控制的需求都不支持；</li>
+</ul>
+<h3 id="任务Task与并行Parallel"><a href="#任务Task与并行Parallel" class="headerlink" title="任务Task与并行Parallel"></a>任务Task与并行Parallel</h3><p>任务Task与并行Parallel本质上内部都是使用的线程池，提供了更丰富的并行编程的方式。任务Task基于线程池，可支持返回值，支持比较强大的任务执行计划定制等功能。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//创建一个任务</span></span><br><span class="line">Task&lt;<span class="built_in">int</span>&gt; t1 = <span class="keyword">new</span> Task&lt;<span class="built_in">int</span>&gt;(n =&gt;</span><br><span class="line">&#123;</span><br><span class="line">    System.Threading.Thread.Sleep(<span class="number">1000</span>);</span><br><span class="line">    <span class="keyword">return</span> (<span class="built_in">int</span>)n;</span><br><span class="line">&#125;, <span class="number">1000</span>);</span><br><span class="line"><span class="comment">//定制一个延续任务计划</span></span><br><span class="line">t1.ContinueWith(task =&gt;</span><br><span class="line">&#123;</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;end&quot;</span> + t1.Result);</span><br><span class="line">&#125;, TaskContinuationOptions.AttachedToParent);</span><br><span class="line">t1.Start();</span><br><span class="line"><span class="comment">//使用Task.Factory创建并启动一个任务</span></span><br><span class="line"><span class="keyword">var</span> t2 = System.Threading.Tasks.Task.Factory.StartNew(() =&gt;</span><br><span class="line">&#123;</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;t1:&quot;</span> + t1.Status);</span><br><span class="line">&#125;);</span><br><span class="line">Task.WaitAll();</span><br><span class="line">Console.WriteLine(t1.Result);</span><br></pre></td></tr></table></figure>
+
+<p>并行Parallel内部其实使用的是Task对象（TPL会在内部创建System.Threading.Tasks.Task的实例），所有并行任务完成后才会返回。少量短时间任务建议就不要使用并行Parallel了，并行Parallel本身也是有性能开销的，而且还要进行并行任务调度、创建调用方法的委托等等。</p>
+<p><img src="/img/221025576742743.png" alt="221025576742743.png"></p>
+<h3 id="GUI线程处理模型"><a href="#GUI线程处理模型" class="headerlink" title="GUI线程处理模型"></a>GUI线程处理模型</h3><p>这是很多开发C/S客户端应用程序会遇到的问题，GUI程序的界面控件不允许跨线程访问，如果在其他线程中访问了界面控件，运行时就会抛出一个异常，就像下面的图示，是不是很熟悉！这其中的罪魁祸首就是，就是“GUI的线程处理模型”。</p>
+<p><img src="/img/151257-20160321141551714-1827445547.png" alt="151257-20160321141551714-1827445547.png"></p>
+<p>.NET支持多种不同应用程序模型，大多数的线程都是可以做任何事情（他们可能没有引入线程模型），但GUI应用程序（主要是Winform、WPF）引入了一个特殊线程处理模型，<font color=#0099ff size=4 face="黑体">UI控件元素只能由创建它的线程访问或修改，微软这样处理是为了保证UI控件的线程安全。</font></p>
+<p>为什么在UI线程中执行一个耗时的计算操作，会导致UI假死呢？这个问题要追溯到Windows的消息机制了。</p>
+<p>因为Windows是基于消息机制的，我们在UI上所有的键盘、鼠标操作都是以消息的形式发送给各个应用程序的。GUI线程内部就有一个消息队列，GUI线程不断的循环处理这些消息，并根据消息更新UI的呈现。如果这个时候，你让GUI线程去处理一个耗时的操作（比如花10秒去下载一个文件），那GUI线程就没办法处理消息队列了，UI界面就处于假死的状态。</p>
+<p><img src="/img/151257-20160321141552292-299214517.png" alt="151257-20160321141552292-299214517.png"></p>
+<p>在线程里处理事件完成后，需要更新UI控件的状态:</p>
+<p><font color=#0099ff size=4 face="黑体">（1）使用GUI控件提供的方法，Winform是控件的Invoke方法，WPF中是控件的Dispatcher.Invoke方法</font></p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//1.Winform：Invoke方法和BeginInvoke</span></span><br><span class="line"> <span class="keyword">this</span>.label.Invoke(method, <span class="literal">null</span>); </span><br><span class="line"></span><br><span class="line"><span class="comment">//2.WPF：Dispatcher.Invoke</span></span><br><span class="line"><span class="keyword">this</span>.label.Dispatcher.Invoke(method, <span class="literal">null</span>);</span><br></pre></td></tr></table></figure>
+
+<p><font color=#0099ff size=4 face="黑体">（2）使用.NET中提供的BackgroundWorker执行耗时计算操作，在其任务完成事件RunWorkerCompleted 中更新UI控件</font></p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> (BackgroundWorker bw = <span class="keyword">new</span> BackgroundWorker())</span><br><span class="line">&#123;</span><br><span class="line">    bw.RunWorkerCompleted += <span class="keyword">new</span> RunWorkerCompletedEventHandler((ojb,arg) =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">this</span>.label.Text = <span class="string">&quot;test&quot;</span>;</span><br><span class="line">    &#125;);</span><br><span class="line">    bw.RunWorkerAsync();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><font color=#0099ff size=4 face="黑体">（3）使用GUI线程处理模型的同步上下文来送封UI控件修改操作，这样可以不需要调用UI控件元素</font></p>
+<p>.NET中提供一个用于同步上下文的类SynchronizationContext，利用它可以把应用程序模型链接到他的线程处理模型，其实它的本质还是调用的第一步（1）中的方法。</p>
+<p>实现代码分为三步，第一步定义一个静态类，用于GUI线程的UI元素访问封装：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title">GUIThreadHelper</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> System.Threading.SynchronizationContext GUISyncContext</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span> &#123; <span class="keyword">return</span> _GUISyncContext; &#125;</span><br><span class="line">        <span class="keyword">set</span> &#123; _GUISyncContext = <span class="keyword">value</span>; &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> System.Threading.SynchronizationContext _GUISyncContext =</span><br><span class="line">        System.Threading.SynchronizationContext.Current;</span><br><span class="line"></span><br><span class="line">    <span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;summary&gt;</span></span></span><br><span class="line">    <span class="comment"><span class="doctag">///</span> 主要用于GUI线程的同步回调</span></span><br><span class="line">    <span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;/summary&gt;</span></span></span><br><span class="line">    <span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;param name=&quot;callback&quot;&gt;</span><span class="doctag">&lt;/param&gt;</span></span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">SyncContextCallback</span>(<span class="params">Action callback</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">if</span> (callback == <span class="literal">null</span>) <span class="keyword">return</span>;</span><br><span class="line">        <span class="keyword">if</span> (GUISyncContext == <span class="literal">null</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            callback();</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        GUISyncContext.Post(result =&gt; callback(), <span class="literal">null</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;summary&gt;</span></span></span><br><span class="line">    <span class="comment"><span class="doctag">///</span> 支持APM异步编程模型的GUI线程的同步回调</span></span><br><span class="line">    <span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;/summary&gt;</span></span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> AsyncCallback <span class="title">SyncContextCallback</span>(<span class="params">AsyncCallback callback</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">if</span> (callback == <span class="literal">null</span>) <span class="keyword">return</span> callback;</span><br><span class="line">        <span class="keyword">if</span> (GUISyncContext == <span class="literal">null</span>) <span class="keyword">return</span> callback;</span><br><span class="line">        <span class="keyword">return</span> asynresult =&gt; GUISyncContext.Post(result =&gt; callback(result <span class="keyword">as</span> IAsyncResult), asynresult);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>第二步，在主窗口注册当前SynchronizationContext：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">partial</span> <span class="keyword">class</span> <span class="title">MainWindow</span> : <span class="title">Window</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="title">MainWindow</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            InitializeComponent();</span><br><span class="line">            CLRTest.ConsoleTest.GUIThreadHelper.GUISyncContext = System.Threading.SynchronizationContext.Current;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>第三步，就是使用了，可以在任何地方使用</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">GUIThreadHelper.SyncContextCallback(() =&gt;</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">this</span>.txtMessage.Text = res.ToString();</span><br><span class="line">    <span class="keyword">this</span>.btnTest.Content = <span class="string">&quot;DoTest&quot;</span>;</span><br><span class="line">    <span class="keyword">this</span>.btnTest.IsEnabled = <span class="literal">true</span>;</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<h2 id="线程同步构造"><a href="#线程同步构造" class="headerlink" title="线程同步构造"></a>线程同步构造</h2><p>基元线程同步构造分为：基元用户模式构造和基元内核模式构造，两种同步构造方式各有优缺点，而混合构造（如lock）就是综合两种构造模式的优点。</p>
+<h3 id="用户模式构造"><a href="#用户模式构造" class="headerlink" title="用户模式构造"></a>用户模式构造</h3><p>基元用户模式比基元内核模式速度要快，她使用特殊的cpu指令来协调线程，在硬件中发生，速度很快。但也因此Windows操作系统永远检测不到一个线程在一个用户模式构造上阻塞了。举个例子来模拟一下用户模式构造的同步方式：</p>
+<ul>
+<li>线程1请求了临界资源，并在资源门口使用了用户模式构造的锁；</li>
+<li>线程2请求临界资源时，发现有锁，因此就在门口等待，并不停的去询问资源是否可用；</li>
+<li>线程1如果使用资源时间较长，则线程2会一直运行，并且占用CPU时间。占用CPU干什么呢？她会不停的轮询锁的状态，直到资源可用，这就是所谓的活锁；</li>
+</ul>
+<p>缺点：<font color=#0099ff size=4 face="黑体">线程2会一直使用CPU时间（假如当前系统只有这两个线程在运行），也就意味着不仅浪费了CPU时间，而且还会有频繁的线程上下文切换，对性能影响是很严重的。</font></p>
+<p><font color=#0099ff size=4 face="黑体">当然她的优点是效率高，适合哪种对资源占用时间很短的线程同步。</font></p>
+<p>.NET中为我们提供了两种原子性操作，利用原子操作可以实现一些简单的用户模式锁（如自旋锁）。</p>
+<ul>
+<li>System.Threading.Interlocked：易失构造，它在包含一个简单数据类型的变量上执行原子性的读或写操作。</li>
+<li>Thread.VolatileRead 和 Thread.VolatileWrite：互锁构造，它在包含一个简单数据类型的变量上执行原子性的读和写操作。</li>
+</ul>
+<h3 id="内核模式构造"><a href="#内核模式构造" class="headerlink" title="内核模式构造"></a>内核模式构造</h3><p>这是针对用户模式的一个补充，先模拟一个内核模式构造的同步流程来理解她的工作方式：</p>
+<ul>
+<li>线程1请求了临界资源，并在资源门口使用了内核模式构造的锁；</li>
+<li>线程2请求临界资源时，发现有锁，就会被系统要求睡眠（阻塞），线程2就不会被执行了，也就不会浪费CPU和线程上下文切换了；</li>
+<li>等待线程1使用完资源后，解锁后会发送一个通知，然后操作系统会把线程2唤醒。假如有多个线程在临界资源门口等待，则会挑选一个唤醒；</li>
+</ul>
+<p>看上去是不是非常棒！彻底解决了用户模式构造的缺点，但内核模式也有缺点的：将线程从用户模式切换到内核模式（或相反）导致巨大性能损失。调用线程将从托管代码转换为内核代码，再转回来，会浪费大量CPU时间，同时还伴随着线程上下文切换，因此尽量不要让线程从用户模式转到内核模式。</p>
+<p><font color=#0099ff size=4 face="黑体">它的优点就是阻塞线程，不浪费CPU时间，适合那种需要长时间占用资源的线程同步。</font></p>
+<p>内核模式构造的主要有两种方式，以及基于这两种方式的常见的锁：</p>
+<ul>
+<li>基于事件：如AutoResetEvent、ManualResetEvent</li>
+<li>基于信号量：如Semaphore</li>
+</ul>
+<h3 id="混合线程同步"><a href="#混合线程同步" class="headerlink" title="混合线程同步"></a>混合线程同步</h3><p>Lock、SemaphoreSlim、ManualResetEventSlim、Monitor、ReadWriteLockSlim</p>
+<p>lock的本质就是使用的Monitor，lock只是一种简化的语法形式，实质的语法形式如下：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">bool</span> lockTaken = <span class="literal">false</span>;</span><br><span class="line"><span class="keyword">try</span></span><br><span class="line">&#123;</span><br><span class="line">    Monitor.Enter(obj, <span class="keyword">ref</span> lockTaken);</span><br><span class="line">    <span class="comment">//...</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">finally</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">if</span> (lockTaken) Monitor.Exit(obj);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>Semaphore 信号量</strong></p>
+<p>它可以控制对某一段代码或者对某个资源访问的线程的数量，超过这个数量之后，其它的线程就得等待，只有等现在有线程释放了之后，下面的线程才能访问。这个跟锁有相似的功能，只不过不是独占的，它允许一定数量的线程同时访问。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> SemaphoreSlim _sem = <span class="keyword">new</span> SemaphoreSlim(<span class="number">3</span>);    <span class="comment">// 我们限制能同时访问的线程数量是3</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">1</span>; i &lt;= <span class="number">5</span>; i++) <span class="keyword">new</span> Thread(Enter).Start(i);</span><br><span class="line">    Console.ReadLine();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Enter</span>(<span class="params"><span class="built_in">object</span> id</span>)</span>&#123;</span><br><span class="line">    Console.WriteLine(id + <span class="string">&quot; 开始排队...&quot;</span>);</span><br><span class="line">    _sem.Wait();</span><br><span class="line">    Console.WriteLine(id + <span class="string">&quot; 开始执行！&quot;</span>);</span><br><span class="line">    Thread.Sleep(<span class="number">1000</span> * (<span class="built_in">int</span>)id);</span><br><span class="line">    Console.WriteLine(id + <span class="string">&quot; 执行完毕，离开！&quot;</span>);</span><br><span class="line">    _sem.Release();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/img/222030017324376.png" alt="222030017324376.png"></p>
+<p>同步索引块是.NET中解决对象同步问题的基本机制，该机制为每个堆内的对象（即引用类型对象实例）分配一个同步索引，她其实是一个地址指针，初始值为-1不指向任何地址。</p>
+<ul>
+<li>创建一个锁对象Object obj，obj的同步索引块（地址）为-1，不指向任何地址；</li>
+<li>Monitor.Enter（obj），创建或使用一个空闲的同步索引块（如下图中的同步块1），这个才是真正的同步索引块，其内部结构就是一个混合锁的结构，包含线程ID、递归计数、等待线程统计、内核对象等，类似一个混合锁AnotherHybridLock。obj对象（同步索引块AsynBlockIndex）指向该同步块1；</li>
+<li>Exit时，重置为-1，那个同步索引块1可以被重复利用；</li>
+</ul>
+<h3 id="Lock关键字"><a href="#Lock关键字" class="headerlink" title="Lock关键字"></a>Lock关键字</h3><p>lock 确保当一个线程位于代码的临界区时，另一个线程不进入临界区。如果其他线程试图进入锁定的代码，则它将一直等待（即被阻止），直到该对象被释放。</p>
+<p>通常，应避免锁定 public 类型，否则实例将超出代码的控制范围。常见的结构 lock (this)、lock (typeof (MyType)) 和 lock (“myLock”) 违反此准则：</p>
+<ul>
+<li>如果实例可以被公共访问，将出现 lock (this) 问题。</li>
+<li>如果 MyType 可以被公共访问，将出现 lock (typeof (MyType)) 问题。</li>
+<li>由于进程中使用同一字符串的任何其他代码将共享同一个锁，所以出现lock(“myLock”) 问题。</li>
+</ul>
+<p>最佳做法是定义 private 对象来锁定, 或 private static 对象变量来保护所有实例所共有的数据。</p>
+<p><font color=#0099ff size=4 face="黑体">不要Lock值类型,不要Lock(this),不要Lock(null对象),推荐Lock只读静态对象。</font></p>
+<p><img src="/img/151257-20160321141553854-448927161.jpg" alt="151257-20160321141553854-448927161.jpg"></p>
+<p>因此，锁对象要求必须为一个引用对象（在堆上）。</p>
+<h3 id="多线程使用及线程同步总结"><a href="#多线程使用及线程同步总结" class="headerlink" title="多线程使用及线程同步总结"></a>多线程使用及线程同步总结</h3><p>在使用Lock时，关键点就是锁对象了，需要注意以下几个方面：</p>
+<ul>
+<li>这个对象肯定要是引用类型，值类型可不可呢？值类型可以装箱啊！你觉得可不可以？但也不要用值类型，因为值类型多次装箱后的对象是不同的，会导致无法锁定；</li>
+<li>不要锁定this，尽量使用一个没有意义的Object对象来锁；</li>
+<li>不要锁定一个类型对象，因类型对象是全局的；</li>
+<li>不要锁定一个字符串，因为字符串可能被驻留，不同字符对象可能指向同一个字符串；</li>
+<li>不要使用[System.Runtime.CompilerServices.MethodImpl(MethodImplOptions.Synchronized)]，这个可以使用在方法上面，保证方法同一时刻只能被一个线程调用。她实质上是使用lock的，如果是实例方法，会锁定this，如果是静态方法，则会锁定类型对象</li>
+</ul>
+<h2 id="题目答案解析"><a href="#题目答案解析" class="headerlink" title="题目答案解析"></a>题目答案解析</h2><h3 id="1-描述线程与进程的区别？"><a href="#1-描述线程与进程的区别？" class="headerlink" title="1. 描述线程与进程的区别？"></a>1. 描述线程与进程的区别？</h3><ul>
+<li>一个应用程序实例是一个进程，一个进程内包含一个或多个线程，线程是进程的一部分；</li>
+<li>进程之间是相互独立的，他们有各自的私有内存空间和资源，进程内的线程可以共享其所属进程的所有资源；</li>
+</ul>
+<h3 id="2-为什么GUI不支持跨线程访问控件？一般如何解决这个问题？"><a href="#2-为什么GUI不支持跨线程访问控件？一般如何解决这个问题？" class="headerlink" title="2. 为什么GUI不支持跨线程访问控件？一般如何解决这个问题？"></a>2. 为什么GUI不支持跨线程访问控件？一般如何解决这个问题？</h3><p>因为GUI应用程序引入了一个特殊的线程处理模型，为了保证UI控件的线程安全，这个线程处理模型不允许其他子线程跨线程访问UI元素。解决方法还是比较多的，如：</p>
+<ul>
+<li>利用UI控件提供的方法，Winform是控件的Invoke方法，WPF中是控件的Dispatcher.Invoke方法；</li>
+<li>使用BackgroundWorker；</li>
+<li>使用GUI线程处理模型的同步上下文SynchronizationContext来提交UI更新操作</li>
+</ul>
+<p>上面几个方式在文中已详细给出。</p>
+<h3 id="3-简述后台线程和前台线程的区别？"><a href="#3-简述后台线程和前台线程的区别？" class="headerlink" title="3. 简述后台线程和前台线程的区别？"></a>3. 简述后台线程和前台线程的区别？</h3><p>应用程序必须运行完所有的前台线程才可以退出，或者主动结束前台线程，不管后台线程是否还在运行，应用程序都会结束；而对于后台线程，应用程序则可以不考虑其是否已经运行完毕而直接退出，所有的后台线程在应用程序退出时都会自动结束。</p>
+<p>通过将 Thread.IsBackground 设置为 true，就可以将线程指定为后台线程，主线程就是一个前台线程。</p>
+<h3 id="4-说说常用的锁，lock是一种什么样的锁？"><a href="#4-说说常用的锁，lock是一种什么样的锁？" class="headerlink" title="4. 说说常用的锁，lock是一种什么样的锁？"></a>4. 说说常用的锁，lock是一种什么样的锁？</h3><p>常用的如如SemaphoreSlim、ManualResetEventSlim、Monitor、ReadWriteLockSlim，lock是一个混合锁，其实质是Monitor[‘mɒnɪtə]。</p>
+<h3 id="5-lock为什么要锁定一个参数，可不可锁定一个值类型？这个参数有什么要求？"><a href="#5-lock为什么要锁定一个参数，可不可锁定一个值类型？这个参数有什么要求？" class="headerlink" title="5. lock为什么要锁定一个参数，可不可锁定一个值类型？这个参数有什么要求？"></a>5. lock为什么要锁定一个参数，可不可锁定一个值类型？这个参数有什么要求？</h3><p>lock的锁对象要求为一个引用类型。她可以锁定值类型，但值类型会被装箱，每次装箱后的对象都不一样，会导致锁定无效。</p>
+<p>对于lock锁，锁定的这个对象参数才是关键，这个参数的同步索引块指针会指向一个真正的锁（同步块），这个锁（同步块）会被复用。</p>
+<h3 id="6-多线程和异步有什么关系和区别？"><a href="#6-多线程和异步有什么关系和区别？" class="headerlink" title="6. 多线程和异步有什么关系和区别？"></a>6. 多线程和异步有什么关系和区别？</h3><p>多线程是实现异步的主要方式之一，异步并不等同于多线程。实现异步的方式还有很多，比如利用硬件的特性、使用进程或纤程等。在.NET中就有很多的异步编程支持，比如很多地方都有Begin、End的方法，就是一种异步编程支持，她内部有些是利用多线程，有些是利用硬件的特性来实现的异步编程。</p>
+<h3 id="7-线程池的优点有哪些？又有哪些不足？"><a href="#7-线程池的优点有哪些？又有哪些不足？" class="headerlink" title="7. 线程池的优点有哪些？又有哪些不足？"></a>7. 线程池的优点有哪些？又有哪些不足？</h3><p>优点：减小线程创建和销毁的开销，可以复用线程；也从而减少了线程上下文切换的性能损失；在GC回收时，较少的线程更有利于GC的回收效率。</p>
+<p>缺点：线程池无法对一个线程有更多的精确的控制，如了解其运行状态等；不能设置线程的优先级；加入到线程池的任务（方法）不能有返回值；对于需要长期运行的任务就不适合线程池。</p>
+<h3 id="8-Mutex和lock有何不同？一般用哪一个作为锁使用更好？"><a href="#8-Mutex和lock有何不同？一般用哪一个作为锁使用更好？" class="headerlink" title="8. Mutex和lock有何不同？一般用哪一个作为锁使用更好？"></a>8. Mutex和lock有何不同？一般用哪一个作为锁使用更好？</h3><p>Mutex是一个基于内核模式的互斥锁，支持锁的递归调用，而Lock是一个混合锁，一般建议使用Lock更好，因为lock的性能更好。</p>
+<h3 id="9-下面的代码，调用方法DeadLockTest（20），是否会引起死锁？并说明理由。"><a href="#9-下面的代码，调用方法DeadLockTest（20），是否会引起死锁？并说明理由。" class="headerlink" title="9. 下面的代码，调用方法DeadLockTest（20），是否会引起死锁？并说明理由。"></a>9. 下面的代码，调用方法DeadLockTest（20），是否会引起死锁？并说明理由。</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">DeadLockTest</span>(<span class="params"><span class="built_in">int</span> i</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">lock</span> (<span class="keyword">this</span>)   <span class="comment">//或者lock一个静态object变量</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (i &gt; <span class="number">10</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(i--);</span><br><span class="line">            DeadLockTest(i);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>不会的，因为lock是一个混合锁，支持锁的递归调用，如果你使用一个ManualResetEvent或AutoResetEvent可能就会发生死锁。</p>
+<h3 id="10-用双检锁实现一个单例模式Singleton。"><a href="#10-用双检锁实现一个单例模式Singleton。" class="headerlink" title="10. 用双检锁实现一个单例模式Singleton。"></a>10. 用双检锁实现一个单例模式Singleton。</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">public static class Singleton&lt;T&gt; where T : class,new()</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> T _Instance;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="built_in">object</span> _lockObj = <span class="keyword">new</span> <span class="built_in">object</span>();</span><br><span class="line"></span><br><span class="line">    <span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;summary&gt;</span></span></span><br><span class="line">    <span class="comment"><span class="doctag">///</span> 获取单例对象的实例</span></span><br><span class="line">    <span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;/summary&gt;</span></span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> T <span class="title">GetInstance</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">if</span> (_Instance != <span class="literal">null</span>) <span class="keyword">return</span> _Instance;</span><br><span class="line">        <span class="keyword">lock</span> (_lockObj)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (_Instance == <span class="literal">null</span>)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">var</span> temp = Activator.CreateInstance&lt;T&gt;();</span><br><span class="line">                System.Threading.Interlocked.Exchange(<span class="keyword">ref</span> _Instance, temp);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> _Instance;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="11-下面代码输出结果是什么？为什么？如何改进她？"><a href="#11-下面代码输出结果是什么？为什么？如何改进她？" class="headerlink" title="11.下面代码输出结果是什么？为什么？如何改进她？"></a>11.下面代码输出结果是什么？为什么？如何改进她？</h3><p>int a = 0;<br>System.Threading.Tasks.Parallel.For(0, 100000, (i) =&gt;<br>{<br>    a++;<br>});<br>Console.Write(a);</p>
+<p>输出结果不稳定，小于等于100000。因为多线程访问，没有使用锁机制，会导致有更新丢失。</p>
+<p>改进：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">System.Threading.Interlocked.Add(<span class="keyword">ref</span> a, <span class="number">1</span>);<span class="comment">//正确</span></span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/anding/p/5301754.html">.NET面试题解析(07)-多线程编程与线程同步</a></p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.autoresetevent?view=netframework-4.7.2">https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.autoresetevent?view=netframework-4.7.2</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/yifengjianbai/p/5499493.html">C#多线程–线程池（ThreadPool）</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/henw/archive/2012/01/06/2314870.html">C#多线程学习 之 线程池[ThreadPool]</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/chengqscjh/archive/2010/12/12/1903784.html">C#深入学习笔记—Lock</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/20/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9007-GC%E4%B8%8E%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/12/20/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9007-GC%E4%B8%8E%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/" class="post-title-link" itemprop="url">DotNet面试题解析07-GC与内存管理</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-12-20 11:28:04" itemprop="dateCreated datePublished" datetime="2018-12-20T11:28:04+00:00">2018-12-20</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-06 06:05:15" itemprop="dateModified" datetime="2021-04-06T06:05:15+00:00">2021-04-06</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%90/" itemprop="url" rel="index"><span itemprop="name">DotNet面试题解析</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="面试题解析"><a href="#面试题解析" class="headerlink" title="面试题解析"></a>面试题解析</h2><h3 id="1-简述一下一个引用对象的生命周期？"><a href="#1-简述一下一个引用对象的生命周期？" class="headerlink" title="1. 简述一下一个引用对象的生命周期？"></a>1. 简述一下一个引用对象的生命周期？</h3><ul>
+<li>new 创建对象并分配内存</li>
+<li>对象初始化</li>
+<li>对象操作、使用</li>
+<li>资源清理（非托管资源）</li>
+<li>GC 垃圾回收</li>
+</ul>
+<h3 id="2-创建下面对象实例，需要申请多少内存空间？"><a href="#2-创建下面对象实例，需要申请多少内存空间？" class="headerlink" title="2. 创建下面对象实例，需要申请多少内存空间？"></a>2. 创建下面对象实例，需要申请多少内存空间？</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">User</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">int</span> Age &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">string</span> Name &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">string</span> _Name = <span class="string">&quot;123&quot;</span> + <span class="string">&quot;abc&quot;</span>;</span><br><span class="line">    <span class="keyword">public</span> List&lt;<span class="built_in">string</span>&gt; _Names;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>40字节内存空间。</p>
+<p>详细信息参考：<a target="_blank" rel="noopener" href="https://syxdevcode.github.io/2018/12/14/DotNet%E5%9F%BA%E7%A1%80-GC%E4%B8%8E%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/">DotNet基础-GC与内存管理</a></p>
+<h3 id="3-什么是垃圾？"><a href="#3-什么是垃圾？" class="headerlink" title="3. 什么是垃圾？"></a>3. 什么是垃圾？</h3><p>一个变量如果在其生存期内的某一时刻已经不再被引用，那么，这个对象就有可能成为垃圾</p>
+<h3 id="4-GC是什么，简述一下GC的工作方式？"><a href="#4-GC是什么，简述一下GC的工作方式？" class="headerlink" title="4. GC是什么，简述一下GC的工作方式？"></a>4. GC是什么，简述一下GC的工作方式？</h3><p>GC 是<strong>垃圾回收（Garbage Collect）</strong>的缩写，是 .NET 核心机制的重要部分。她的基本工作原理就是遍历托管堆中的对象，标记哪些被使用对象（哪些没人使用的就是所谓的垃圾），然后把可达对象转移到一个连续的地址空间（也叫压缩），其余的所有没用的对象内存被回收掉。</p>
+<h3 id="5-GC进行垃圾回收时的主要流程是？"><a href="#5-GC进行垃圾回收时的主要流程是？" class="headerlink" title="5. GC进行垃圾回收时的主要流程是？"></a>5. GC进行垃圾回收时的主要流程是？</h3><p><strong>(1)标记：</strong>先假设所有对象都是垃圾，根据应用程序根Root遍历堆上的每一个引用对象，生成可达对象图，对于还在使用的对象（可达对象）进行标记（其实就是在对象同步索引块中开启一个标示位）。</p>
+<p><strong>(2)清除</strong>：针对所有不可达对象进行清除操作，针对普通对象直接回收内存，而对于实现了终结器的对象（实现了析构函数的对象）需要单独回收处理。清除之后，内存就会变得不连续了，就是步骤3的工作了。</p>
+<p><strong>(3)压缩</strong>：把剩下的对象转移到一个连续的内存，因为这些对象地址变了，还需要把那些 Root 跟指针的地址修改为移动后的新地址。</p>
+<h3 id="6-GC在哪些情况下回进行回收工作？"><a href="#6-GC在哪些情况下回进行回收工作？" class="headerlink" title="6. GC在哪些情况下回进行回收工作？"></a>6. GC在哪些情况下回进行回收工作？</h3><ul>
+<li>内存不足溢出时（0代对象充满时）</li>
+<li>Windwos 报告内存不足时，CLR 会强制执行垃圾回收</li>
+<li>CLR 卸载 AppDomian，GC 回收所有</li>
+<li>调用 GC.Collect</li>
+<li>其他情况，如主机拒绝分配内存，物理内存不足，超出短期存活代的存段门限</li>
+</ul>
+<h3 id="7-using-语法是如何确保对象资源被释放的？如果内部出现异常依然会释放资源吗？"><a href="#7-using-语法是如何确保对象资源被释放的？如果内部出现异常依然会释放资源吗？" class="headerlink" title="7. using() 语法是如何确保对象资源被释放的？如果内部出现异常依然会释放资源吗？"></a>7. using() 语法是如何确保对象资源被释放的？如果内部出现异常依然会释放资源吗？</h3><p>using() 只是一种语法形式，其本质还是 try…finally 的结构，可以保证 Dispose 始终会被执行。</p>
+<h3 id="8-解释一下C-里的析构函数？为什么有些编程建议里不推荐使用析构函数呢？"><a href="#8-解释一下C-里的析构函数？为什么有些编程建议里不推荐使用析构函数呢？" class="headerlink" title="8. 解释一下C#里的析构函数？为什么有些编程建议里不推荐使用析构函数呢？"></a>8. 解释一下C#里的析构函数？为什么有些编程建议里不推荐使用析构函数呢？</h3><p>C# 里的析构函数其实就是终结器 Finalize，因为长得像 C++ 里的析构函数而已。</p>
+<p>有些编程建议里不推荐使用析构函数要原因在于：第一是 Finalize 本身性能并不好；其次很多人搞不清楚 Finalize 的原理，可能会滥用，导致内存泄露，因此就干脆别用了</p>
+<h3 id="9-Finalize-和-Dispose-之间的区别？"><a href="#9-Finalize-和-Dispose-之间的区别？" class="headerlink" title="9. Finalize() 和 Dispose() 之间的区别？"></a>9. Finalize() 和 Dispose() 之间的区别？</h3><p>Finalize() 和 Dispose() 都是 .NET 中提供释放非托管资源的方式，他们的主要区别在于执行者和执行时间不同：</p>
+<ul>
+<li>finalize 由垃圾回收器调用；dispose 由对象调用。</li>
+<li>finalize 无需担心因为没有调用 finalize 而使非托管资源得不到释放，而 dispose 必须手动调用。</li>
+<li>finalize 不能保证立即释放非托管资源，Finalizer 被执行的时间是在对象不再被引用后的某个不确定的时间；而 dispose 一调用便释放非托管资源。</li>
+<li>只有 class 类型才能重写 finalize ，而结构不能；类和结构都能实现 IDispose 。</li>
+</ul>
+<p>另外一个重点区别就是终结器会导致对象复活一次，也就说会被 GC 回收两次才最终完成回收工作，这也是不建议开发人员使用终结器的主要原因。</p>
+<h3 id="10-Dispose和Finalize方法在何时被调用？"><a href="#10-Dispose和Finalize方法在何时被调用？" class="headerlink" title="10. Dispose和Finalize方法在何时被调用？"></a>10. Dispose和Finalize方法在何时被调用？</h3><ul>
+<li>Dispose 一调用便释放非托管资源；</li>
+<li>Finalize 不能保证立即释放非托管资源，Finalizer 被执行的时间是在对象不再被引用后的某个不确定的时间；</li>
+</ul>
+<h3 id="11-NET中的托管堆中是否可能出现内存泄露的现象？"><a href="#11-NET中的托管堆中是否可能出现内存泄露的现象？" class="headerlink" title="11. .NET中的托管堆中是否可能出现内存泄露的现象？"></a>11. .NET中的托管堆中是否可能出现内存泄露的现象？</h3><p>是的，可能会。比如：</p>
+<ul>
+<li>不正确的使用静态字段，导致大量数据无法被GC释放；</li>
+<li>没有正确执行 Dispose()，非托管资源没有得到释放；</li>
+<li>不正确的使用终结器 Finalize()，导致无法正常释放资源；</li>
+<li>其他不正确的引用，导致大量托管对象无法被 GC 释放；</li>
+</ul>
+<h3 id="12-在托管堆上创建新对象有哪几种常见方式？"><a href="#12-在托管堆上创建新对象有哪几种常见方式？" class="headerlink" title="12. 在托管堆上创建新对象有哪几种常见方式？"></a>12. 在托管堆上创建新对象有哪几种常见方式？</h3><ul>
+<li>new 一个对象；</li>
+<li>字符串赋值，如 string s1=”abc”；</li>
+<li>值类型装箱；</li>
+</ul>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/anding/p/5260319.html">.NET面试题解析(06)-GC与内存管理</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/14/DotNet%E5%9F%BA%E7%A1%80-GC%E4%B8%8E%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/12/14/DotNet%E5%9F%BA%E7%A1%80-GC%E4%B8%8E%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/" class="post-title-link" itemprop="url">DotNet基础-GC与内存管理</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-12-14 14:33:47" itemprop="dateCreated datePublished" datetime="2018-12-14T14:33:47+00:00">2018-12-14</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-06 06:05:15" itemprop="dateModified" datetime="2021-04-06T06:05:15+00:00">2021-04-06</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/CSharp%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index"><span itemprop="name">CSharp基础</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="内存管理"><a href="#内存管理" class="headerlink" title="内存管理"></a>内存管理</h2><p>GC的内存管理的目标主要都是引用类型对象。</p>
+<h3 id="对象创建及生命周期"><a href="#对象创建及生命周期" class="headerlink" title="对象创建及生命周期"></a>对象创建及生命周期</h3><p>一个对象的生命周期简单概括就是：创建 &gt; 使用 &gt; 释放，在.NET中一个对象的生命周期：</p>
+<ul>
+<li>new创建对象并分配内存</li>
+<li>对象初始化</li>
+<li>对象操作、使用</li>
+<li>资源清理（非托管资源）</li>
+<li>GC垃圾回收</li>
+</ul>
+<p>大部分的对象创建都是开始于关键字 new,有个别引用类型是由专门 IL 指令的，比如 string 有 ldstr 指令。</p>
+<p>引用对象都是分配在托管堆上的， 先来看看托管堆的基本结构，如下图，托管堆中的对象是顺序存放的，托管堆维护着一个指针 NextObjPtr，它指向下一个对象在堆中的分配位置。</p>
+<p><img src="/img/82a2b4be6318aebc0dc9b7b29c2a7599.png" alt="82a2b4be6318aebc0dc9b7b29c2a7599.png"></p>
+<p>创建一个新对象的主要流程:</p>
+<p><img src="/img/151257-20160309235623241-1001221060.png" alt="151257-20160309235623241-1001221060.png"></p>
+<p>模拟一个对象的创建过程：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">User</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">int</span> Age &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">string</span> Name &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">string</span> _Name = <span class="string">&quot;123&quot;</span> + <span class="string">&quot;abc&quot;</span>;</span><br><span class="line">    <span class="keyword">public</span> List&lt;<span class="built_in">string</span>&gt; _Names;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>1，对象大小估算，共计40个字节：<br>  (1) 属性 Age 值类型 Int，4字节；<br>  (2) 属性 Name，引用类型，初始为 NULL，4个字节，指向空地址；<br>  (3) 字段 _Name 初始赋值了，代码会被编译器优化为 _Name=”123abc” 。一个字符两个字节，字符串占用 2×6+8（附加成员：4字节 TypeHandle 地址，4字节 同步索引块 ）= 20 字节，总共 内存大小 = 字符串对象20字节 + _Name 指向字符串的内存地址4字节=24字节；<br>  (4) 引用类型字段 List<string> _Names 初始默认为 NULL，4个字节；<br>  (5) User对象的初始附加成员（4字节 TypeHandle 地址，4字节同步索引块）8个字节；</li>
+<li>2，内存申请： 申请 44 个字节的内存块，从指针 NextObjPtr 开始验证，空间是否足够，若不够则触发垃圾回收。</li>
+<li>3，内存分配： 从指针 NextObjPtr 处开始划分 44 个字节内存块。</li>
+<li>4，对象初始化： 首先初始化对象附加成员，再调用User对象的构造函数，对成员初始化，值类型默认初始为0，引用类型默认初始化为 NULL；</li>
+<li>5，托管堆指针后移： 指针 NextObjPtr 后移44个字节。</li>
+<li>6，返回内存地址： 返回对象的内存地址给引用变量。</li>
+</ul>
+<h2 id="GC垃圾回收"><a href="#GC垃圾回收" class="headerlink" title="GC垃圾回收"></a>GC垃圾回收</h2><p>GC是垃圾回收（ Garbage Collect）的缩写，是 .NET 核心机制的重要部分。她的基本工作原理就是遍历托管堆中的对象，标记哪些被使用对象（那些没人使用的就是所谓的垃圾），然后把可达对象转移到一个连续的地址空间（也叫压缩），其余的所有没用的对象内存被回收掉。</p>
+<p><img src="/img/151257-20160309235624382-1396676769.png" alt="151257-20160309235624382-1396676769.png"></p>
+<h3 id="垃圾回收基本流程"><a href="#垃圾回收基本流程" class="headerlink" title="垃圾回收基本流程"></a>垃圾回收基本流程</h3><h4 id="标记阶段"><a href="#标记阶段" class="headerlink" title="标记阶段"></a>标记阶段</h4><p>先假设所有对象都是垃圾，根据应用程序根指针 Root 遍历堆上的每一个引用对象，生成可达对象图，对于还在使用的对象（可达对象）进行标记（其实就是在对象同步索引块中开启一个标示位）。</p>
+<p>其中 Root 根指针保存了当前所有需要使用的对象引用，他其实只是一个统称，意思就是这些对象当前还在使用，主要包含：静态对象/静态字段的引用；线程栈引用（局部变量、方法参数、栈帧）；任何引用对象的 CPU 寄存器；根引用对象中引用的对象；GC Handle table；Freachable 队列等。</p>
+<p><strong>对性能的影响</strong></p>
+<p>标记阶段是一个 “几乎仅有只读操作” 的阶段。这个阶段中没有任何对象被移动，也没有任何内存被回收。</p>
+<ul>
+<li>1，当进行一次完整的标记时，垃圾回收器几乎遍历了每一个被引用的对象。若这部分数据并不存在于程序工作区（working set）中就会造成页面错误，从而导致重新加载对象时缓存丢失（cache miss）与缓存抖动(cache thrashing)。</li>
+<li>2，在一个多处理器系统中，当垃圾回收器在对象的头部进行位标记操作时，若相应的对象已被加载至其他处理器的缓存中，则会造成缓存失效。</li>
+<li>3，标记阶段的性能取决于引用图中对象的数目，但是和对象占用的内存大小并无关系。</li>
+</ul>
+<h5 id="根"><a href="#根" class="headerlink" title="根"></a>根</h5><p>垃圾回收器遍历对象图中所有被应用程序引用的对象。为了正确的遍历图中的对象，需要选定一系列起点保证引用对象的遍历，这些起点称为 <strong>根</strong>。</p>
+<p><strong>1.局部根</strong></p>
+<p>局部变量是一种最显而易见的根。</p>
+<p><strong>2.静态根</strong></p>
+<p>另一种类型的根是 <strong>静态变量</strong>。静态成员类型在类型加载时被创建，并且可以在整个应用程序域（ application domain ）的生命周期内作为潜藏根。</p>
+<p>例如：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">event</span> EventHandler ButtonClick;</span><br><span class="line">    <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">while</span> (<span class="literal">true</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            Button button = <span class="keyword">new</span> Button();</span><br><span class="line">            ButtonClick += button.OnClick;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title">Button</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">OnClick</span>(<span class="params"><span class="built_in">object</span> sender, EventArgs e</span>)</span> &#123; &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上面代码会造成内存泄漏。因为静态事件包含一个委托列表，而这个委托列表引用了我们创建的对象。<br><font color=#0099ff size=4 face="黑体">事实上，.NET 内存泄漏的最普遍原因是静态变量引用了对象。</font></p>
+<p>可以使用 SOS.DLL 查看根，!gcroot 命令提供跟得类型和引用链的简明信息。</p>
+<h4 id="清理阶段与压缩阶段"><a href="#清理阶段与压缩阶段" class="headerlink" title="清理阶段与压缩阶段"></a>清理阶段与压缩阶段</h4><p><strong>清理</strong></p>
+<p>针对所有不可达对象进行清除操作，针对普通对象直接回收内存，而对于实现了终结器的对象（实现了析构函数的对象）需要单独回收处理。清除之后，内存就会变得不连续了，这时就需要压缩阶段了。</p>
+<p>建议不要随意手动调用垃圾回收 GC.Collect()，GC 会选择合适的时机、合适的方式进行内存回收的。</p>
+<p><strong>压缩</strong></p>
+<p>把剩下的对象转移到一个连续的内存，因为这些对象地址变了，还需要把那些 Root 根指针的地址修改为移动后的新地址。</p>
+<p><img src="/img/net-mem-02-mark-compact.png" alt="net-mem-02-mark-compact.png"></p>
+<p><strong>性能影响</strong></p>
+<ul>
+<li>1，移动对象意味着内存复制，这对于内存占用多的对象来说是昂贵的开销。</li>
+<li>2，对象被移动之后，所有的引用的值必须更新其地址。对于频繁引用的对象来说，这种分散的内存操作势必造成性能影响。</li>
+</ul>
+<p><strong>固定</strong></p>
+<p>该场景涉及到托管对象传递给非托管代码。</p>
+<h3 id="垃圾回收器的特性"><a href="#垃圾回收器的特性" class="headerlink" title="垃圾回收器的特性"></a>垃圾回收器的特性</h3><p>垃圾回收器是如何和其他应用程序线程（通常称为赋值线程，mutator thread）进行交互的。</p>
+<h4 id="垃圾回收时暂停线程"><a href="#垃圾回收时暂停线程" class="headerlink" title="垃圾回收时暂停线程"></a>垃圾回收时暂停线程</h4><p>垃圾回收器和其他应用程序线程并发执行可以产生的问题：</p>
+<ul>
+<li>假阴性（false negative）:一个对象满足垃圾回收的条件，但被标记为活动的。</li>
+<li>假阳性（false positive）:一个对象被认为是可回收对象，但它依然被应用程序所引用。尽量避免该情况发生。</li>
+</ul>
+<h4 id="在垃圾回收时挂起线程"><a href="#在垃圾回收时挂起线程" class="headerlink" title="在垃圾回收时挂起线程"></a>在垃圾回收时挂起线程</h4><p>垃圾回收时会在安全点（safe point）出挂起线程，JIT 编译器通过生成额外的信息确保只有安全的时候才挂起线程进行垃圾回收。而 CLR 也会尝试安全的挂起线程。</p>
+<p>非托管线程并不会由于托管线程的挂起而受到影响，除非它已经切换回了托管线程，这一过程有平台调用转换器负责的。</p>
+<h5 id="在标记阶段挂起线程"><a href="#在标记阶段挂起线程" class="headerlink" title="在标记阶段挂起线程"></a>在标记阶段挂起线程</h5><p><strong>出现假阳性</strong><br>如果垃圾回收器在对象创建之前，已经完成了相关部分引用图更新，那么一个刚刚被创建的对象，即使已经被应用程序引用，也可能判断为未引用。</p>
+<p><strong>出现假阴性</strong><br>对于一个已经被标记的对象，如果它的最后一个引用在标记阶段被移除，那么这个本该被回收的对象就会继续存活。<br>如果对象真的不可达，那就不可能重新变成可达状态，它将在下一轮垃圾回收周期中被回收。</p>
+<h5 id="在清理阶段挂起线程"><a href="#在清理阶段挂起线程" class="headerlink" title="在清理阶段挂起线程"></a>在清理阶段挂起线程</h5><p>CLR 禁止应用程序和垃圾回收过程并发执行。</p>
+<h4 id="工作站垃圾回收"><a href="#工作站垃圾回收" class="headerlink" title="工作站垃圾回收"></a>工作站垃圾回收</h4><p>工作站垃圾回收（workstation GC）,分为<strong>并发工作站垃圾回收</strong> 与 <strong>非并发工作站垃圾回收</strong></p>
+<p><strong>并发工作站垃圾回收</strong></p>
+<p>并发工作站垃圾回收 是默认的特征。在并发工作站垃圾回收下，有一个独立的专门的垃圾回收线程。该线程在执行垃圾回收的过程时，始终具有 THRAD_PRIORITY_HIGHEST 优先级。CRL 可以决定是否允许某些垃圾回收阶段与应用程序线程并发执行。<br>图形界面应用程序应该尽量避免从 UI 线程触发垃圾回收，即在后台线程进行资源分配，且不要显示的从 UI 线程调用 GC.Collect 方法。因为UI线程被垃圾回收阻塞的同时，其它应用程序线程却在和垃圾回收过程争抢资源。</p>
+<p><strong>非并发工作站垃圾回收</strong></p>
+<p>非并发工作站垃圾回收特征在标记和清理阶段均会挂起应用程序线程。适用于从 UI 线程触发垃圾回收的情形。<br>由于在 UI 线程等待垃圾回收时，其它的后台线程不会和垃圾回收器争夺资源，一次 UI 线程可以即可恢复响应。</p>
+<h4 id="服务器垃圾回收"><a href="#服务器垃圾回收" class="headerlink" title="服务器垃圾回收"></a>服务器垃圾回收</h4><p>服务器垃圾回收专门针对服务器应用程序进行了优化。</p>
+<p>使用服务器垃圾回收特征的唯一限制是物理处理器的数目。如果仅有一个处理器，则只能够选择工作站垃圾回收特征。</p>
+<p>由于并发工作站垃圾回收是默认的垃圾回收特征，一般运行于默认的 CLR 宿主下的命令行，windonws 应用程序，windows 服务都使用默认的垃圾回收特征；不在默认的 CLR 宿主运行的应用程序则可以选择其他的垃圾回收特征。由于 IIS 大多安装在服务器上，在 IIS ASP.NET 宿主下运行的应用程序使用的就是服务器垃圾回收特征（可以通过 web.config 修改这个定义）</p>
+<h4 id="切换垃圾回收特征"><a href="#切换垃圾回收特征" class="headerlink" title="切换垃圾回收特征"></a>切换垃圾回收特征</h4><p>在默认的宿主下，可以通过应用程序配置文件( app.config )修改垃圾回收特征及其子特征。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version&#x3D;&quot;1.0&quot; encoding&#x3D;&quot;utf-8&quot;?&gt;</span><br><span class="line"></span><br><span class="line">&lt;configuration&gt;</span><br><span class="line">  &lt;runtime&gt;</span><br><span class="line">    &lt;gcServer enabled&#x3D;&quot;true&quot;&#x2F;&gt;</span><br><span class="line">    &lt;gcConcurrent enabled&#x3D;&quot;false&quot;&#x2F;&gt;</span><br><span class="line">  &lt;&#x2F;runtime&gt;</span><br><span class="line">&lt;&#x2F;configuration&gt;</span><br></pre></td></tr></table></figure>
+
+<p><strong>安全的使用低延迟垃圾回收</strong></p>
+<p>安全的使用低延迟垃圾回收的唯一途径是将其放在受限执行区域（constrained execution region,CER）内。</p>
+<p>需要引用：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System.Runtime;</span><br><span class="line"><span class="keyword">using</span> System.Runtime.CompilerServices;</span><br><span class="line"></span><br><span class="line">GCLatencyMode oldModel = GCSettings.LatencyMode;</span><br><span class="line">RuntimeHelpers.PrepareConstrainedRegions();</span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span></span><br><span class="line">&#123;</span><br><span class="line">    GCSettings.LatencyMode = GCLatencyMode.LowLatency;</span><br><span class="line">    <span class="comment">// Perform time-sensitive work here (执行时间敏感操作)</span></span><br><span class="line">&#125;<span class="keyword">finally</span></span><br><span class="line">&#123;</span><br><span class="line">    GCSettings.LatencyMode = oldModel;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="代龄（Generation）"><a href="#代龄（Generation）" class="headerlink" title="代龄（Generation）"></a>代龄（Generation）</h3><p>.NET 垃圾回收器的“代”模型（generational model）使用局部垃圾回收进行性能优化。</p>
+<p>和真实世界的人和动物不同，.NET 认为年轻的对象更容易死亡，而年老的对象更倾向于存货。<br>年轻和年老的定义取决于应用程序垃圾回收的频率。在大多数应用程序中，临时对象（在一个方法张中分配的对象）大多是年轻的，而随着应用程序初始化的对象大多是年老的。</p>
+<p>分代(Generation)算法 是 CLR 垃圾回收器采用的一种机制，它唯一的目的就是提升应用程序的性能。分代回收，速度显然快于回收整个堆。分代( Generation )算法的假设前提条件：</p>
+<ul>
+<li>1、大量新创建的对象生命周期都比较短，而较老的对象生命周期会更长</li>
+<li>2、对部分内存进行回收比基于全部内存的回收操作要快</li>
+<li>3、新创建的对象之间关联程度通常较强。heap 分配的对象是连续的，关联度较强有利于提高 CPU cache 的命中率</li>
+</ul>
+<p>在 “代”模型 中，托管堆被划分为三个区域：第0代，第1代和第2代。</p>
+<ul>
+<li>第0代，最新分配在堆上的对象，从来没有被垃圾收集过。任何一个新对象，当它第一次被分配在托管堆上时，就是第0代（大于85000的大对象除外）。 </li>
+<li>第1代，0代满了会触发0代的垃圾回收，0代垃圾回收后，剩下的对象会搬到1代。 </li>
+<li>第2代，当0代、1代满了，会触发0代、1代的垃圾回收，第0代升为第1代，第1代升为第2代。</li>
+</ul>
+<p><img src="/img/net-mem-06-generation.png" alt="net-mem-06-generation.png"></p>
+<p>大部分情况，GC 只需要回收0代即可，这样可以显著提高 GC 的效率，而且 GC 使用启发式内存优化算法，自动优化内存负载，自动调整各代的内存大小。</p>
+<p>如果 Gen 0 heap 内存达到阀值，则触发0代GC，0代GC后Gen 0中幸存的对象进入Gen1。如果Gen 1的内存达到阀值，则进行1代GC，1代GC将Gen 0 heap和Gen 1 heap一起进行回收，幸存的对象进入Gen2。</p>
+<p>　　2代 GC 将Gen 0 heap、Gen 1 heap和Gen 2 heap一起回收，Gen 0和Gen 1比较小，这两个代龄加起来总是保持在16M左右；Gen2的大小由应用程序确定，可能达到几G，因此0代和1代GC的成本非常低，2代GC称为full GC，通常成本很高。粗略的计算0代和1代GC应当能在几毫秒到几十毫秒之间完成，Gen 2 heap比较大时，full GC可能需要花费几秒时间。大致上来讲 .NET 应用运行期间，2代、1代和0代GC的频率应当大致为1:10:100。</p>
+<h4 id="第0代"><a href="#第0代" class="headerlink" title="第0代"></a>第0代</h4><p>第0代通常以 256KB-4MB 起步，根据使用情况缓慢增长。当第0代已满而不能完成一个新的内存分配请求时，第0代就会发起一次垃圾回收。<br>由于第0代的大小受高速缓存大小的影响，因此很可能在高速缓存中就可以找到第0代的所有对象。<font color=#0099ff size=4 face="黑体">第0代的所有对象几乎都在一次垃圾回收结束之后清理殆尽。</font><br>但是，仍然有一些对象会出于各种原因得以存活。</p>
+<ul>
+<li>应用程序具有糟糕的行为，分配的临时对象在一次垃圾回收之后仍然存活。</li>
+<li>应用程序处于初始化阶段，这个阶段分配的对象多是长生命周期对象。</li>
+<li>应用程序创建的是短期临时对象，但是在垃圾回收触发时这些对象恰巧正在被使用。</li>
+</ul>
+<p>这些撑过一次垃圾回收的对象不会被排列在第0代的起始位置。它们会被提升到第1代。</p>
+<p><strong>跨代移动固定对象</strong></p>
+<p>垃圾回收器无法移动固定的对象。但是 CLR 用一种非常巧妙的方法完成了固定对象的代升级：如果第0代由于固定对象的原因严重碎片化了，则 CLR 可以将整个第0代声明为更高代，并将一块新的内存声明为第0代，在这块内存中处理新的分配请求。</p>
+<h4 id="第1代"><a href="#第1代" class="headerlink" title="第1代"></a>第1代</h4><p>第1代是第0代和第2代之间的缓冲区域。第1代典型的初始长度为 512KB-4MB。当第1代被填满时，会在第1代触发垃圾回收。只有第1代中的对象会被垃圾回收器标记和清除。自然触发第1代垃圾回收的唯一时机是在第0代垃圾回收后，存活的对象被提升至第1级时（另一种是手动触发垃圾回收）。</p>
+<h4 id="第2代"><a href="#第2代" class="headerlink" title="第2代"></a>第2代</h4><p>第2代是在至少两次垃圾回收过程后存活对象的终极区域（还有大对象），在“代”模型中，这些对象属于老年对象，这些对象不太可能在短期内回收。<font color=#0099ff size=4 face="黑体">第2代区域不会人为的进行大小限制，它可以扩展到整个系统进程的专用内存空间，在32位系统中为2GB，在64位系统中最多为8TB。第2代中设定了动态阈值（水印）以触发垃圾回收操作。</font></p>
+<p>若垃圾回收发生在第二代，则这是一个完全的垃圾回收。这是昂贵的，需要消耗最多的时间。</p>
+<h4 id="大对象堆"><a href="#大对象堆" class="headerlink" title="大对象堆"></a>大对象堆</h4><p>大对象堆（large object heap,LOH）是一个专门容纳大对象的特殊区域。指内存占用大于85KB（85000字节）的对象。这个区域的主要特点就是：不会轻易被回收；就是回收了也不会被压缩（因为对象太大，移动复制的成本太高了）。</p>
+<p><font color=#0099ff size=4 face="黑体">这个大小指对象本身的大小而非以该对象为根的整个对象树的大小。</font>因此，包含1000个字符串（每个字符串含有100个字符）的数组不是一个大对象，但是一个长度为50000的整数数组是一个大对象。</p>
+<p>大对象从 LOH 中直接分配而不会放在第0代，第1代或者第2代中。</p>
+<p>垃圾回收在 LOH 上进行回收时，并不会清理大对象并进行数据复制。LOH 维护了一个未使用内存的链表，新的内存分配请求可以从链表中进行。</p>
+<p><font color=#0099ff size=4 face="黑体">当第2代对象占用的内存达到阈值时，则 LOH 就会进行垃圾回收。类似的，若 LOH 占用的内存达到阈值，也会触发第2代垃圾回收。因此，创建太多大型的临时对象也会造成类似 “中年危机” –必须进行完全回收以释放这些对象。LOH 中的碎片是另一个潜在问题，因为 LOH 中对象之间的空洞无法在清理阶段被移除并达到对堆进行碎片整理的效果。一个有效的策略是缓存并重用大对象，或者是（如果数组中对象的类型是一致的）分配一个大对象，然后在需要时手动将其分成小块。</font></p>
+<h2 id="GC-Collect-方法"><a href="#GC-Collect-方法" class="headerlink" title="GC.Collect() 方法"></a>GC.Collect() 方法</h2><p>作用：强制进行垃圾回收。</p>
+<p>Collect()：强制对所有代进行即时垃圾回收。</p>
+<p>Collect(Int32)：强制对零代到指定代进行即时垃圾回收。</p>
+<p>Collect(Int32, GCCollectionMode)：强制在 GCCollectionMode 值所指定的时间对零代到指定代进行垃圾回收</p>
+<p>GC注意事项：</p>
+<ul>
+<li>1、只管理内存，非托管资源，如文件句柄，GDI 资源，数据库连接等还需要用户去管理。</li>
+<li>2、循环引用，网状结构等的实现会变得简单。GC 的标志-压缩算法能有效的检测这些关系，并将不再被引用的网状结构整体删除。</li>
+<li>3、GC 通过从程序的根对象开始遍历来检测一个对象是否可被其他对象访问，而不是用类似于 COM 中的引用计数方法。</li>
+<li>4、GC 在一个独立的线程中运行来删除不再被引用的内存。</li>
+<li>5、GC 每次运行时会压缩托管堆。</li>
+<li>6、你必须对非托管资源的释放负责。可以通过在类型中定义Finalizer来保证资源得到释放。</li>
+<li>7、对象的 Finalizer被执行的时间是在对象不再被引用后的某个不确定的时间。注意并非和C++中一样在对象超出声明周期时立即执行析构函数</li>
+<li>8、Finalizer的使用有性能上的代价。需要Finalization的对象不会立即被清除，而需要先执行Finalizer.Finalizer，不是在GC执行的线程被调用。GC把每一个需要执行Finalizer的对象放到一个队列中去，然后启动另一个线程来执行所有这些Finalizer，而GC线程继续去删除其他待回收的对象。在下一个GC周期，这些执行完Finalizer的对象的内存才会被回收。</li>
+<li>9、.NET GC使用”代”(generations)的概念来优化性能。代帮助GC更迅速的识别那些最可能成为垃圾的对象。在上次执行完垃圾回收后新创建的对象为第0代对象。经历了一次GC周期的对象为第1代对象。经历了两次或更多的GC周期的对象为第2代对象。代的作用是为了区分局部变量和需要在应用程序生存周期中一直存活的对象。大部分第0代对象是局部变量。成员变量和全局变量很快变成第1代对象并最终成为第2代对象。</li>
+<li>10、GC 对不同代的对象执行不同的检查策略以优化性能。每个 GC 周期都会检查第0代对象。大约1/10的 GC 周期检查第0代和第1代对象。大约1/100的GC周期检查所有的对象。重新思考Finalization的代价：需要Finalization的对象可能比不需要 Finalization 在内存中停留额外9个GC周期。如果此时它还没有被Finalize，就变成第2代对象，从而在内存中停留更长时间。</li>
+</ul>
+<h3 id="跨代引用"><a href="#跨代引用" class="headerlink" title="跨代引用"></a>跨代引用</h3><p>一个高代对象引用一个低代对象的情形只会在一种类型的语句中出现：将一个非空引用类型对象赋值给一个引用类型的实例的成员变量（或者复制给一个数组的元素）。</p>
+<h2 id="非托管资源回收"><a href="#非托管资源回收" class="headerlink" title="非托管资源回收"></a>非托管资源回收</h2><p>&emsp;&emsp;非托管资源不受 CLR 或者垃圾回收器的管理（如内核对象句柄，数据库连接和非托管内存等）。释放非托管资源需要使用 终结化特性，即一个对象与一段特定的代码关联起来。这段代码必须在该对象（代表一个非托管资源）不再需要时执行。</p>
+<p>常见的有：ApplicationContext, Brush, Component, ComponentDesigner, Container, Context, Cursor, FileStream, Font, Icon, Image, Matrix, Object, OdbcDataReader, OleDBDataReader, Pen, Regex, Socket, StreamWriter, Timer, Tooltip, 文件句柄, GDI资源, 数据库连接等等资源。</p>
+<p>.NET 中提供释放非托管资源的方式主要是：Finalize() 和 Dispose()。</p>
+<p>.NET的GC机制有这样两个问题：</p>
+<ul>
+<li>GC并不是能释放所有的资源。它不能自动释放非托管资源。</li>
+<li>GC并不是实时性的，这将会造成系统性能上的瓶颈和不确定性。</li>
+</ul>
+<p>　　GC 并不是实时性的，这会造成系统性能上的瓶颈和不确定性。所以有了 IDisposable 接口，IDisposable 接口定义了 Dispose 方法，这个方法用来供程序员显式调用以释放非托管资源。使用 using 语句可以简化资源管理。</p>
+<p>当你用 Dispose 方法释放未托管对象的时候，应该调用 GC.SuppressFinalize。如果对象正在终结队列( finalization queue ), GC.SuppressFinalize 会阻止 GC 调用 Finalize 方法。因为 Finalize 方法的调用会牺牲部分性能。如果你的 Dispose 方法已经对委托管资源作了清理，就没必要让 GC 再调用对象的 Finalize 方法。</p>
+<h3 id="终结器"><a href="#终结器" class="headerlink" title="终结器"></a>终结器</h3><p>所有实现了终结器（析构函数）的对象，会被 GC 特殊照顾，GC 的终止化队列跟踪所有实现了 Finalize 方法（析构函数）的对象。</p>
+<ul>
+<li>当 CLR 在托管堆上分配对象时，GC 检查该对象是否实现了自定义的 Finalize 方法（析构函数）。如果是，对象会被标记为可终结的，同时这个对象的指针被保存在名为终结队列的内部队列中。终结队列是一个由垃圾回收器维护的表，它指向每一个在从堆上删除之前必须被终结的对象。</li>
+<li>当 GC 执行并且检测到一个不被使用的对象时，需要进一步检查“终结队列”来查询该对象类型是否含有 Finalize 方法，如果没有则将该对象视为垃圾，如果存在则将该对象的引用移动到另外一张 Freachable 列表，此时对象会被复活一次。</li>
+<li>CLR 将有一个单独的高优先级线程负责处理 Freachable 列表，就是依次调用其中每个对象的 Finalize 方法，然后删除引用，这时对象实例就被视为不再被使用，对象再次变成垃圾。</li>
+<li>下一个 GC 执行时，将释放已经被调用 Finalize 方法的那些对象实例。</li>
+</ul>
+<p>简单总结：Finalize() 可以确保非托管资源会被释放，但需要很多额外的工作（比如终结对象特殊管理），而且 GC 需要执行两次才会真正释放资源。唯一的优点就是不需要显示调用。</p>
+<h3 id="Finalization-Queue-和-Freachable-Queue"><a href="#Finalization-Queue-和-Freachable-Queue" class="headerlink" title="Finalization Queue 和 Freachable Queue"></a>Finalization Queue 和 Freachable Queue</h3><p>　　这两个队列和 .NET 对象所提供的 Finalize 方法有关。这两个队列并不用于存储真正的对象，而是存储一组指向对象的指针。当程序中使用了 new 操作符在 Managed Heap 上分配空间时，GC 会对其进行分析，如果该对象含有 Finalize 方法则在 Finalization Queue 中添加一个指向该对象的指针。</p>
+<p>　　在 GC 被启动以后，经过 Mark 阶段分辨出哪些是垃圾。再在垃圾中搜索，如果发现垃圾中有被 Finalization Queue 中的指针所指向的对象，则将这个对象从垃圾中分离出来，并将指向它的指针移动到 Freachable Queue 中。这个过程被称为是对象的复生（Resurrection），本来死去的对象就这样被救活了。为什么要救活它呢？因为这个对象的 Finalize 方法还没有被执行，所以不能让它死去。Freachable Queue 平时不做什么事，但是一旦里面被添加了指针之后，它就会去触发所指对象的 Finalize 方法执行，之后将这个指针从队列中剔除，这是对象就可以安静的死去了。</p>
+<p>　　.NET Framework 的 System.GC 类提供了控制Finalize的两个方法，ReRegisterForFinalize 和 SuppressFinalize。前者是请求系统完成对象的 Finalize 方法，后者是请求系统不要完成对象的 Finalize 方法。ReRegisterForFinalize 方法其实就是将指向对象的指针重新添加到 Finalization Queue 中。这就出现了一个很有趣的现象，因为在 Finalization Queue 中的对象可以复生，如果在对象的 Finalize 方法中调用 ReRegisterForFinalize 方法，这样就形成了一个在堆上永远不会死去的对象，像凤凰涅槃一样每次死的时候都可以复生。</p>
+<h3 id="手动确定性终结化"><a href="#手动确定性终结化" class="headerlink" title="手动确定性终结化"></a>手动确定性终结化</h3><p>手动确定性终结化，需要客户端释放资源。</p>
+<h3 id="自动非确定性终结化"><a href="#自动非确定性终结化" class="headerlink" title="自动非确定性终结化"></a>自动非确定性终结化</h3><p>Finalize 来自 System.Object 中受保护的虚方法 Finalize，无法被子类显示重写，也无法显示调用。她的作用就是用来释放非托管资源，由 GC 来执行回收，因此可以保证非托管资源可以被释放。</p>
+<ul>
+<li>无法被子类显示重写：.NET 提供类似 C++ 析构函数的形式来实现重写，因此也有称之为析构函数，但其实她只是外表和C++ 里的析构函数像而已。</li>
+<li>无法显示调用：由 GC 来管理和执行释放，不需要手动执行了，不用担心忘记调用Dispose。</li>
+</ul>
+<p>&emsp;&emsp;任何一种类型都可以通过重写 System.Object 定义的（protected）Finalize 方法表明该类型需要进行自动化终结。例如在 File 类中自动终结化方法 ~File（终结器,析构函数）。在对象将被销毁时，该方法必须得到执行。值类型只有在装箱的情况下才有垃圾回收的必要。</p>
+<p>&emsp;&emsp;当一个拥有终结器的对象被创建时，他的一个引用将被添加到一个特殊的运行时队列上，成为终结队列（finalization queue）。这个队列被垃圾回收器界定为根。这意味着即使应用程序没有针对这个引用对象的引用，它仍然会子啊终结队列上保持活动状态。</p>
+<p>&emsp;&emsp;当这个对象不再被应用程序引用，并开始垃圾回收时，若垃圾回收发现唯一一个针对该对象的引用来自于终结队列，则它会将这个对象的引用移动到另一个运行时管理的队列上，成为终结可达队列（freacheable queue）。该队列仍然被界定为根，因而，该对象仍然在被引用并保持存活。</p>
+<p>&emsp;&emsp;<font color=#0099ff size=4 face="黑体">对象的终结器不会在垃圾回收的过程中执行。</font>在 CLR 初始化的过程会创建一个特殊的线程，称为 终结器线程（finalizaer thread）(每一个进程只会有一个终结器线程，这和垃圾回收器特征无关，该线程运行在 THREAD_PRIORITY_HIGHEST 优先级上)。这个线程会反复等待终结化事件（finalization event）的触发。在垃圾回收器完成垃圾回收并触发该事件后，如果终结可达队列中有对象放入，则终结器线程就会被激活。终结器线程将对象的引用从终结可达队列中移除，同时同步执行对象上的终结器方法。而当下一次垃圾回收开始时，由于该对象再无引用，因此垃圾回收可以将其内存回收。</p>
+<h3 id="非确定性终结的缺点"><a href="#非确定性终结的缺点" class="headerlink" title="非确定性终结的缺点"></a>非确定性终结的缺点</h3><ul>
+<li>有终结器的对象将至少位于第1代，更容易经历“中年危机”，从而更容易进行多次完整回收。</li>
+<li>终结器线程的压力（有很多对象需要进行终结化）可能导致内存泄漏。如果应用程序线程分配对象的频率比终结器线程终结化对象的频率更高，那么应用程序将从等待终结化的对象中持续的泄漏内存。</li>
+<li>自动非确定性终结化还是很多难以发现或调试错误的来源。因为终结化是异步的，因此多个对象的终结顺序是难以保证的。</li>
+</ul>
+<p><strong>终结器也许永远不会被调用</strong></p>
+<p>&emsp;&emsp;终结器无法在进程被野蛮的关闭时执行。如用户通过任务管理器或者 TerminateProcess API 终止线程的执行，则终结器将无法进行资源回收。</p>
+<p><strong>对象的复活</strong></p>
+<p>终结化为对象提供了一个在其不被应用程序引用的情况下执行任意代码的机会。这种机会可以用于创建一个应用程序到该对象的引用，在对象即将失效时，另其起死回生，这种能力称为复活（resurrection）。主要的风险是，该对象引用的其它对象有可能已经被终结化而处于无效状态，此时，只能重新初始化该对象所有引用的对象；另一个问题是该对象的终结器不会被执行，因此你需要将该对象的引用作为参数传递个 GC.ReRegisterForFinnalize 方法。</p>
+<p>适用于复活机制的场景之一就是对象池（object pooling）。</p>
+<h3 id="Dispose模式"><a href="#Dispose模式" class="headerlink" title="Dispose模式"></a>Dispose模式</h3><p>.Net 规定所有需要进行确定终结化的对象都必须实现 IDisposable 接口。而该接口仅有一个方法，即 Dispose 方法。这个方法会释放非托管资源，进行确定终结化。</p>
+<p>Dispose 需要手动调用：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//方式1：显示接口调用</span></span><br><span class="line">SomeType st1=<span class="keyword">new</span> SomeType();</span><br><span class="line"><span class="comment">//do sth</span></span><br><span class="line">st1.Dispose();</span><br><span class="line"></span><br><span class="line"><span class="comment">//方式2：using()语法调用，自动执行Dispose接口</span></span><br><span class="line"><span class="keyword">using</span> (<span class="keyword">var</span> st2 = <span class="keyword">new</span> SomeType())</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">//do sth</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>第一种方式，显示调用，缺点显而易见，如果程序猿忘了调用接口，则会造成资源得不到释放。或者调用前出现异常，当然这一点可以使用 try…finally 避免。</p>
+</li>
+<li><p>建议使用第二种实现方式，他可以保证无论如何 Dispose 接口都可以得到调用，原理其实很简单，using() 的 IL 代码如下图，因为 using 只是一种语法形式，本质上还是 try…finally 的结构。</p>
+</li>
+</ul>
+<p><img src="/img/151257-20160309235625475-414934067.png" alt="151257-20160309235625475-414934067.png"></p>
+<p>微软是推荐同时实现 IDisposable 接口和 Finalize （析构函数），其实 FCL 中很多类库都是这样实现的，这样可以兼具两者的优点：</p>
+<ul>
+<li>如果调用了 Dispose，则可以忽略对象的终结器，对象一次就回收了；</li>
+<li>如果忘了调用 Dispose，则还有一层保障，终结器会负责对象资源的释放；</li>
+</ul>
+<h2 id="性能优化建议"><a href="#性能优化建议" class="headerlink" title="性能优化建议"></a>性能优化建议</h2><p>尽量不要手动执行垃圾回收的方法：GC.Collect()</p>
+<p>垃圾回收的运行成本较高（涉及到了对象块的移动、遍历找到不再被使用的对象、很多状态变量的设置以及 Finalize 方法的调用等等），对性能影响也较大，因此我们在编写程序时，应该避免不必要的内存分配，也尽量减少或避免使用 GC.Collect() 来执行垃圾回收，一般 GC 会在最适合的时间进行垃圾回收。</p>
+<p>需要注意，在执行垃圾回收的时候，所有线程都是要被挂起的（如果回收的时候，代码还在执行，那对象状态就不稳定了，也没办法回收了）。</p>
+<p>推荐 Dispose 代替 Finalize</p>
+<p>如果你了解 GC 内存管理以及 Finalize 的原理，可以同时使用 Dispose 和 Finalize 双保险，否则尽量使用 Dispose。</p>
+<p>选择合适的垃圾回收机制：工作站模式、服务器模式。</p>
+<h2 id="弱引用"><a href="#弱引用" class="headerlink" title="弱引用"></a>弱引用</h2><p>弱引用（weak reference）是用于管理托管对象引用的附加机制。典型的对象引用（通常为强引用（strong reference））是明确的：只要还拥有一个对象的引用，那么这个对象就会存活。这种行为的正确性是有垃圾回收器保证的。</p>
+<p>但在某些情况下，我们还希望有一种隐形的 “绳索”，即能够绑在对象上，又不影响垃圾回收器回收它占用的内存。如果垃圾回收器回收了这个对象，那么我们可以探测到绳索的一端和对象断开了。如果垃圾回收器还没有处理这个对象，我们可以牵动“绳索”来获得这个对象的一个强引用并在此使用这个对象。</p>
+<p>常见的场景：</p>
+<ul>
+<li>在不保持对象的存活的情况下提供外部服务。例如，定时器和事件服务可以为对象所用，但并不需要维持对象的引用。这可以避免很多典型的内存泄漏问题。</li>
+<li>可以自动管理缓存或池策略。一个缓存可以保有最近使用对象的弱引用而不妨碍他们被回收。一个池可以划分为一个非常小的部分用以维持一小部分对象的强引用，以及另外一个可选部分对象的弱引用。</li>
+<li>用以保存一个大对象的引用，并寄希望于它不会被回收。应用程序可以持有一个需要长时间才能初始化的大对象的弱引用。若这个对象被回收，则重新初始化该对象，否则可以在需要时直接复用该对象。</li>
+</ul>
+<p>引用程序代码可以通过 <code>System.WeakReference</code> 类来使用弱引用。可以基于 <code>System.WeakReference</code> 实现事件，这样可以规避.NET内存泄漏的元凶–忘记反注册事件。</p>
+<p>弱引用默认不会跟踪对象的复活。若想允许复活追踪功能，就使用重载的构造函数并将第二个参数传参为true。</p>
+<p><font color=#0099ff size=4 face="黑体">允许追踪对象复活状态的弱引用称为长弱引用（long weak reference）；不追踪对象复活状态的弱引用称为短弱引用（short weak reference）。</font></p>
+<p><strong>垃圾回收句柄</strong></p>
+<p>弱引用是一类特殊的垃圾回收句柄（ GC handle ）。一个垃圾回收句柄是一个特殊的底层值类型，它为对象引用提供了如下的功能。</p>
+<ul>
+<li>维持一个对象的标准的（强）引用，防止对象被回收。以 GCHandleType.Normal 表示。</li>
+<li>维持一个对象的短弱引用。以 GCHandleType.Weak 表示。</li>
+<li>维持一个对象的长弱引用。以 GCHandleType.WeakTrackResurrection 表示。</li>
+<li>维持一个对象的引用，并进行固定，以防止它在内存中被移动。如果需要还可以获得该对象的地址。以 GCHandleType.Pinned 表示。</li>
+</ul>
+<p>实际开发中，我们几乎没有直接使用垃圾回收句柄的需要。但是它们，作为另一种可以保持对象的根，经常出现在诊断结果中。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/anding/p/5260319.html">.NET面试题解析(06)-GC与内存管理</a></p>
+<p><a target="_blank" rel="noopener" href="https://kb.cnblogs.com/page/106720/">C#技术漫谈之垃圾回收机制(GC)</a></p>
+<p>[.Net性能优化]</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/14/CSharp%E8%BD%AC%E6%8D%A2%E5%85%B3%E9%94%AE%E5%AD%97/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +880,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-02 09:54:16" itemprop="dateModified" datetime="2021-04-02T09:54:16+00:00">2021-04-02</time>
+                <time title="修改时间：2021-04-06 06:05:15" itemprop="dateModified" datetime="2021-04-06T06:05:15+00:00">2021-04-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -309,7 +976,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-02 09:54:16" itemprop="dateModified" datetime="2021-04-02T09:54:16+00:00">2021-04-02</time>
+                <time title="修改时间：2021-04-06 06:05:15" itemprop="dateModified" datetime="2021-04-06T06:05:15+00:00">2021-04-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -405,7 +1072,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-02 09:54:16" itemprop="dateModified" datetime="2021-04-02T09:54:16+00:00">2021-04-02</time>
+                <time title="修改时间：2021-04-06 06:05:15" itemprop="dateModified" datetime="2021-04-06T06:05:15+00:00">2021-04-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -511,7 +1178,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-02 09:54:16" itemprop="dateModified" datetime="2021-04-02T09:54:16+00:00">2021-04-02</time>
+                <time title="修改时间：2021-04-06 06:05:15" itemprop="dateModified" datetime="2021-04-06T06:05:15+00:00">2021-04-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -608,7 +1275,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-02 09:54:16" itemprop="dateModified" datetime="2021-04-02T09:54:16+00:00">2021-04-02</time>
+                <time title="修改时间：2021-04-06 06:05:15" itemprop="dateModified" datetime="2021-04-06T06:05:15+00:00">2021-04-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -808,7 +1475,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-02 09:54:17" itemprop="dateModified" datetime="2021-04-02T09:54:17+00:00">2021-04-02</time>
+                <time title="修改时间：2021-04-06 06:05:15" itemprop="dateModified" datetime="2021-04-06T06:05:15+00:00">2021-04-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -901,7 +1568,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-02 09:54:16" itemprop="dateModified" datetime="2021-04-02T09:54:16+00:00">2021-04-02</time>
+                <time title="修改时间：2021-04-06 06:05:15" itemprop="dateModified" datetime="2021-04-06T06:05:15+00:00">2021-04-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1008,7 +1675,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-02 09:54:16" itemprop="dateModified" datetime="2021-04-02T09:54:16+00:00">2021-04-02</time>
+                <time title="修改时间：2021-04-06 06:05:15" itemprop="dateModified" datetime="2021-04-06T06:05:15+00:00">2021-04-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1995,7 +2662,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-02 09:54:16" itemprop="dateModified" datetime="2021-04-02T09:54:16+00:00">2021-04-02</time>
+                <time title="修改时间：2021-04-06 06:05:15" itemprop="dateModified" datetime="2021-04-06T06:05:15+00:00">2021-04-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2121,7 +2788,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-02 09:54:16" itemprop="dateModified" datetime="2021-04-02T09:54:16+00:00">2021-04-02</time>
+                <time title="修改时间：2021-04-06 06:05:15" itemprop="dateModified" datetime="2021-04-06T06:05:15+00:00">2021-04-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2301,7 +2968,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-02 09:54:16" itemprop="dateModified" datetime="2021-04-02T09:54:16+00:00">2021-04-02</time>
+                <time title="修改时间：2021-04-06 06:05:15" itemprop="dateModified" datetime="2021-04-06T06:05:15+00:00">2021-04-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2506,7 +3173,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-02 09:54:16" itemprop="dateModified" datetime="2021-04-02T09:54:16+00:00">2021-04-02</time>
+                <time title="修改时间：2021-04-06 06:05:15" itemprop="dateModified" datetime="2021-04-06T06:05:15+00:00">2021-04-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2657,441 +3324,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/05/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9002-%E6%8B%86%E7%AE%B1%E4%B8%8E%E8%A3%85%E7%AE%B1/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/12/05/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9002-%E6%8B%86%E7%AE%B1%E4%B8%8E%E8%A3%85%E7%AE%B1/" class="post-title-link" itemprop="url">DotNet面试题解析02-拆箱与装箱</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-12-05 14:53:30" itemprop="dateCreated datePublished" datetime="2018-12-05T14:53:30+00:00">2018-12-05</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-02 09:54:16" itemprop="dateModified" datetime="2021-04-02T09:54:16+00:00">2021-04-02</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%90/" itemprop="url" rel="index"><span itemprop="name">DotNet面试题解析</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="装箱与拆箱"><a href="#装箱与拆箱" class="headerlink" title="装箱与拆箱"></a>装箱与拆箱</h2><font color=#0099ff size=4 face="黑体">
-所有值类型都是继承自 System.ValueType ，而 System.ValueType 继承自 System.Object 。因此 Object 是 .NET 中的万物之源，几乎所有类型都来自她，这是装箱与拆箱的基础。</font>
-
-<h3 id="基本概念"><a href="#基本概念" class="headerlink" title="基本概念"></a>基本概念</h3><p>拆箱与装箱就是值类型与引用类型的转换，她是值类型和引用类型之间的桥梁，他们可以相互转换的一个基本前提就是上面所说的：Object 是 .NET 中的万物之源</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">int</span> x = <span class="number">1023</span>;</span><br><span class="line"><span class="built_in">object</span> o = x; <span class="comment">//装箱</span></span><br><span class="line"><span class="built_in">int</span> y = (<span class="built_in">int</span>) o; <span class="comment">//拆箱</span></span><br></pre></td></tr></table></figure>
-
-<p><strong>装箱</strong>：值类型转换为引用对象，一般是转换为 System.Object 类型或值类型实现的接口引用类型；<br><strong>拆箱</strong>：引用类型转换为值类型，注意，这里的引用类型只能是被装箱的引用类型对象；</p>
-<font color=#0099ff size=4 face="黑体">
-装箱是非常“昂贵”的操作，它需要 内存分配 和 内存复制，并且由于需要回收临时创建的装箱对象，因此会对垃圾回收器产生压力。</font>
-
-<h3 id="装箱的过程"><a href="#装箱的过程" class="headerlink" title="装箱的过程"></a>装箱的过程</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">int</span> x = <span class="number">1023</span>;</span><br><span class="line"><span class="built_in">object</span> o = x; <span class="comment">//装箱</span></span><br></pre></td></tr></table></figure>
-
-<font color=#0099ff size=4 face="黑体">
-当编译器检测到需要将值类型实例当作引用类型时，就会生成IL指令box。然后，JIT编译器解释该指令，调用某个方法分派堆内存，将值类型实例的内容复制到堆上，并用对象头（对象头字节和方法表指针（类型对象指针））包装起来。每当需要对象引用的时候，就使用这种“箱子”。</font>
-
-<h3 id="拆箱的过程"><a href="#拆箱的过程" class="headerlink" title="拆箱的过程"></a>拆箱的过程</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">int</span> x = <span class="number">1023</span>;</span><br><span class="line"><span class="built_in">object</span> o = x; <span class="comment">//装箱</span></span><br><span class="line"><span class="built_in">int</span> y = (<span class="built_in">int</span>) o; <span class="comment">//拆箱</span></span><br></pre></td></tr></table></figure>
-
-<p>具体过程：</p>
-<ul>
-<li>1.检查实例对象（ object o ）是否有效，如是否为 null，其装箱的类型与拆箱的类型（int）是否一致，如检测不合法，抛出异常；</li>
-<li>2.指针返回，就是获取装箱对象（object o）中值类型字段值的地址；</li>
-<li>3.字段拷贝，把装箱对象（object o）中值类型字段值拷贝到栈上，意思就是创建一个新的值类型变量来存储拆箱后的值；</li>
-</ul>
-<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>只有值类型才有装箱、拆箱两个状态，而引用类型一直都在箱子里。</p>
-<p>一般来说，装箱的性能开销更大，因为引用对象的分配更加复杂，成本也更高，值类型分配在栈上，分配和释放的效率都很高。装箱过程是需要创建一个新的引用类型对象实例，拆箱过程需要创建一个值类型字段，开销更低。</p>
-<p>为了尽量避免这种性能损失，尽量使用泛型，在代码编写中也尽量避免隐式装箱。</p>
-<p>在值类型中重写 Equals ,重载 Equals ,实现 IEquatable<T> ,以及重载操作符==和!=（通过 constrained IL  前缀）。</p>
-<p>注：constrained：强迫;强使;限制;约束</p>
-<h2 id="题目答案解析"><a href="#题目答案解析" class="headerlink" title="题目答案解析"></a>题目答案解析</h2><h3 id="1-什么是拆箱和装箱？"><a href="#1-什么是拆箱和装箱？" class="headerlink" title="1.什么是拆箱和装箱？"></a>1.什么是拆箱和装箱？</h3><p>装箱就是值类型转换为引用类型，拆箱就是引用类型（被装箱的对象）转换为值类型。</p>
-<h3 id="2-什么是箱子？"><a href="#2-什么是箱子？" class="headerlink" title="2.什么是箱子？"></a>2.什么是箱子？</h3><p>值类型转换为引用类型的对象。</p>
-<h3 id="3-箱子放在哪里？"><a href="#3-箱子放在哪里？" class="headerlink" title="3.箱子放在哪里？"></a>3.箱子放在哪里？</h3><p>托管堆上。</p>
-<h3 id="4-装箱和拆箱有什么性能影响？"><a href="#4-装箱和拆箱有什么性能影响？" class="headerlink" title="4.装箱和拆箱有什么性能影响？"></a>4.装箱和拆箱有什么性能影响？</h3><p>装箱和拆箱都涉及到内存的分配和对象的创建，有较大的性能影响。</p>
-<h3 id="5-如何避免隐身装箱？"><a href="#5-如何避免隐身装箱？" class="headerlink" title="5.如何避免隐身装箱？"></a>5.如何避免隐身装箱？</h3><p>编码中，多使用泛型、显示装箱。</p>
-<h3 id="6-箱子的基本结构？"><a href="#6-箱子的基本结构？" class="headerlink" title="6.箱子的基本结构？"></a>6.箱子的基本结构？</h3><p>上面说了，箱子就是一个引用类型对象，因此它的结构，主要包含两部分：</p>
-<ul>
-<li>值类型字段值；</li>
-<li>引用类型的标准配置，引用对象的额外空间：对象头字节（包括同步块索引）和 TypeHandle（或方法表指针，类型对象指针）</li>
-</ul>
-<h3 id="7-装箱的过程？"><a href="#7-装箱的过程？" class="headerlink" title="7.装箱的过程？"></a>7.装箱的过程？</h3><ul>
-<li>1.在堆中申请内存，内存大小为值类型的大小，再加上额外固定空间（引用类型的标配：对象头字节（包括同步块索引）和 TypeHandle（或方法表指针，类型对象指针））；</li>
-<li>2.将值类型的字段值（x=1023）拷贝新分配的内存中；</li>
-<li>3.返回新引用对象的地址（给引用变量object o）</li>
-</ul>
-<h3 id="8-拆箱的过程？"><a href="#8-拆箱的过程？" class="headerlink" title="8.拆箱的过程？"></a>8.拆箱的过程？</h3><ul>
-<li>1.检查实例对象（object o）是否有效，如是否为null，其装箱的类型与拆箱的类型（int）是否一致，如检测不合法，抛出异常；</li>
-<li>2.指针返回，就是获取装箱对象（object o）中值类型字段值的地址；</li>
-<li>3.字段拷贝，把装箱对象（object o）中值类型字段值拷贝到栈上，意思就是创建一个新的值类型变量来存储拆箱后的值；</li>
-</ul>
-<h3 id="9-下面这段代码输出什么？共发生多少次装箱？多少次拆箱？"><a href="#9-下面这段代码输出什么？共发生多少次装箱？多少次拆箱？" class="headerlink" title="9.下面这段代码输出什么？共发生多少次装箱？多少次拆箱？"></a>9.下面这段代码输出什么？共发生多少次装箱？多少次拆箱？</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">int</span> i = <span class="number">5</span>;</span><br><span class="line"><span class="built_in">object</span> obj = i;</span><br><span class="line">IFormattable ftt = i;</span><br><span class="line">Console.WriteLine(System.Object.ReferenceEquals(i, obj));</span><br><span class="line">Console.WriteLine(System.Object.ReferenceEquals(i, ftt));</span><br><span class="line">Console.WriteLine(System.Object.ReferenceEquals(ftt, obj));</span><br><span class="line">Console.WriteLine(System.Object.ReferenceEquals(i, (<span class="built_in">int</span>)obj));</span><br><span class="line">Console.WriteLine(System.Object.ReferenceEquals(i, (<span class="built_in">int</span>)ftt));</span><br></pre></td></tr></table></figure>
-
-<p>上面代码输出如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">False</span><br><span class="line">False</span><br><span class="line">False</span><br><span class="line">False</span><br><span class="line">False</span><br></pre></td></tr></table></figure>
-
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/anding/p/5236739.html">.NET面试题解析(02)-拆箱与装箱</a></p>
-<p><a target="_blank" rel="noopener" href="https://phodal.github.io/2md/">2md</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/04/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9001-%E5%80%BC%E7%B1%BB%E5%9E%8B%E4%B8%8E%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/12/04/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9001-%E5%80%BC%E7%B1%BB%E5%9E%8B%E4%B8%8E%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/" class="post-title-link" itemprop="url">DotNet面试题解析01-值类型与引用类型</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-12-04 10:17:55" itemprop="dateCreated datePublished" datetime="2018-12-04T10:17:55+00:00">2018-12-04</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-02 09:54:16" itemprop="dateModified" datetime="2021-04-02T09:54:16+00:00">2021-04-02</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%90/" itemprop="url" rel="index"><span itemprop="name">DotNet面试题解析</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="基本概念"><a href="#基本概念" class="headerlink" title="基本概念"></a>基本概念</h2><p><code>CLR</code> 支持两种类型：<strong>引用类型</strong>和<strong>值类型</strong>。这是 <code>.NET</code> 语言的基础和关键，他们从类型定义、实例创建、参数传递，到内存分配都有所不同。</p>
-<p><img src="/img/typesystem.gif" alt="typesystem.gif"></p>
-<p>下图清晰了展示了 <code>.NET</code> 中类型分类，值类型主要是一些简单的、基础的数据类型，引用类型主要用于更丰富的、复杂的、复合的数据类型。</p>
-<p><img src="/img/2009020510331710.jpg" alt="2009020510331710.jpg"></p>
-<h3 id="使用值类型最佳实践"><a href="#使用值类型最佳实践" class="headerlink" title="使用值类型最佳实践"></a>使用值类型最佳实践</h3><ul>
-<li>对象很小，并且打算创建很多这样的对象</li>
-<li>需要高密度的内存集合</li>
-<li>在值类型中重写 <code>Equals</code> ,重载 <code>Equals</code> ,实现 <code>IEquatable&lt;T&gt;</code> ,以及重载操作符==和!=。</li>
-<li>在值类型中重写 <code>GetHashCode</code>。</li>
-<li>考虑将值类型实现为不可变的。</li>
-</ul>
-<h3 id="为什么要为值类型重定义相等性"><a href="#为什么要为值类型重定义相等性" class="headerlink" title="为什么要为值类型重定义相等性"></a>为什么要为值类型重定义相等性</h3><p>原因主要有以下几点：</p>
-<ul>
-<li>值类型默认无法使用 == 操作符，除非对它进行重写 ( <code>System.ValueType</code> 里面对 <code>object.Equals()</code> 方法的重写)</li>
-<li>性能原因，因为值类型默认的相等性比较会使用装箱和反射，所以性能很差</li>
-<li>根据业务需求，其实际相等性的意义和默认的比较结果可能会不同，但是这种情况可能不较少</li>
-</ul>
-<p><img src="/img/986268-20190413072415659-1667812156.png" alt="986268-20190413072415659-1667812156.png"></p>
-<p>值类型和 <code>string</code> 类型除外，因为所有值类型继承于 <code>System.ValueType()</code> ( <code>System.ValueType()</code> 同样继承于<code>Object</code>，但是 <code>System.ValueType()</code> 本身却是引用类型)，而 <code>System.ValueType()</code> 对 <code>Equals()</code> 和==操作符进行了重写，是逐字节比较的。而 <code>string</code> 类型是比较特殊的引用类型，所以 <code>string</code> 在很多地方都是特殊处理的。</p>
-<p>在值类型使用 <code>Equals()</code> 时，因为 <code>Equals()</code> 使用了反射，在比较时会影响效率。</p>
-<p>注意：</p>
-<p>如果要把引用类型做为 <code>Dictionary</code> 或 <code>HashTable</code> 的 <code>key</code> 使用时，必须重写这两个方法。</p>
-<p>原因：当我们把引用类型( <code>string</code> 除外)做为 <code>Dictionary</code> 或 <code>HashTable</code> 的key时，有可能永远无法根据 <code>Key</code> 获得 <code>value</code> 的值，或者说两个类型的 <code>HashCode</code> 永远不会相等。</p>
-<p>拿 <code>Dictionary</code> 来说，虽然我们存储的时候是键值对，但是 <code>CLR</code> 会先把 <code>key</code> 转成 <code>HashCode</code> 并且验证 <code>Equals</code> 后再做存储，根据 <code>key</code> 取值的时候也是把 <code>key</code> 转换成 <code>HashCode</code> 并且验证 <code>Equals</code> 后再取值。</p>
-<p>注意验证时 <code>HashCode</code> 和 <code>Equals</code> 的关系是并且( <code>&amp;&amp;</code> )的关系。也就是说，只要 <code>GetHashCode</code> 和 <code>Equlas</code> 中有一个方法没有重写，在验证时没有重写的那个方法会调用基类的默认实现，而这两个方法的默认实现都是根据内存地址判断的，也就是说，只重写一个方法的返回值永远会是 <code>false</code> 。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/xiaochen-vip8/p/5506478.html">聊一聊C#的Equals()和GetHashCode()方法</a></p>
-<h3 id="实现步骤"><a href="#实现步骤" class="headerlink" title="实现步骤"></a>实现步骤</h3><ul>
-<li>重写 <code>object.Equals()</code> 方法</li>
-<li>实现 <code>IEquatable&lt;T&gt;.Equals()</code> 接口方法</li>
-<li>重写 == 和 != 操作符</li>
-<li>重写 <code>object.GetHashCode()</code></li>
-</ul>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/cgzl/p/10699667.html">C# 为值类型重定义相等性</a></p>
-<h3 id="如何重写GetHashCode方法"><a href="#如何重写GetHashCode方法" class="headerlink" title="如何重写GetHashCode方法"></a>如何重写GetHashCode方法</h3><p><code>Object</code> 中 <code>GetHasCode</code> 的算法保证了同一对象返回同一 <code>HashCode</code>，而不同的对象返回不同的 <code>HashCode</code>，但对于值类型等，视内容相等的对象为相等对象的类型时，默认的 <code>GetHashCode</code> 算法并不正确。重写后的 <code>GetHashCode</code> 必须要保证同一对象无论何时都返回同一 <code>HashCode</code> 值，而相等的对象也必须返回相同的值。并且在此基础上，保证 <code>HashCode</code> 尽量随机地散列分布。</p>
-<h3 id="引用类型"><a href="#引用类型" class="headerlink" title="引用类型"></a>引用类型</h3><p>标准配置，引用对象的额外空间：<code>对象头字节（包括同步块索引）</code>和 <code>TypeHandle（或方法表指针，类型对象指针）</code></p>
-<p>方法表指针指向一个 <code>CLR</code> 内部数据结构–方法表（ <code>MT</code> ）。方法表指向另一个内部数据结构—<code>EEClass</code> (EE代表<code>Execution Engine</code>,执行引擎)。方法表和 <code>EEClass</code> 包含一些信息，可用来分发虚方法和接口方法调用，访问静态变量，确定对象的运行时类型，高效访问基类型方法等。</p>
-<h2 id="内存结构"><a href="#内存结构" class="headerlink" title="内存结构"></a>内存结构</h2><p><code>值类型</code> 和 <code>引用类型</code> 最根源的区别就是其内存分配的差异，在这之前首先要理解 <code>CLR</code> 的内存中两个重要的概念：</p>
-<p><strong>Stack 栈</strong>：线程栈，由操作系统管理，<strong>存放值类型、引用类型变量（就是引用对象在托管堆上的地址）</strong>。栈是基于线程的，也就是说一个线程会包含一个线程栈，线程栈中的值类型在对象作用域结束后会被清理，效率很高。</p>
-<p><strong>GC Heap托管堆</strong>：进程初始化后在进程地址空间上划分的内存空间，存储 <code>.NET</code> 运行过程中的对象，<strong>所有的引用类型都分配在托管堆上</strong>，托管堆上分配的对象是由 <code>GC</code> 来管理和释放的。托管堆是基于进程的，当然托管堆内部还有其他更为复杂的结构。</p>
-<p>结合下图理解，变量a及其值3都是存储在栈上面。变量b在栈上存储，其值指向字符串“123”的托管堆对象地址(字符串是引用类型，字符串对象是存储在托管堆上面。字符串是一个特殊的引用类型)</p>
-<p><img src="/img/151257-20160301092426314-1061559039.png" alt="151257-20160301092426314-1061559039.png"></p>
-<p><strong>值类型一直都存储在栈上面吗？所有的引用类型都存储在托管堆上面吗？</strong></p>
-<ul>
-<li>1.单独的值类型变量，如局部值类型变量都是存储在栈上面的；</li>
-<li>2.当值类型是自定义 <code>class</code> 的一个字段、属性时，它随引用类型存储在托管堆上，此时她是引用类型的一部分；</li>
-<li>4.所有的引用类型肯定都是存放在托管堆上的。</li>
-<li>5.结构体（值类型）中定义引用类型字段，结构体是存储在栈上，其引用变量字段只存储内存地址，指向堆中的引用实例。</li>
-</ul>
-<h2 id="对象的传递"><a href="#对象的传递" class="headerlink" title="对象的传递"></a>对象的传递</h2><p><font color=#0099ff size=4 face="黑体">将值类型的变量赋值给另一个变量（或者作为参数传递），会执行一次值复制。<br>将引用类型的变量赋值给另一个引用类型的变量，它复制的值是引用对象的内存地址，因此赋值后就会多个变量指向同一个引用对象实例。</font></p>
-<p>理解这一点非常重要，下面代码测试验证一下：</p>
-<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">int</span> v1 = <span class="number">0</span>;</span><br><span class="line"><span class="built_in">int</span> v2 = v1;</span><br><span class="line">v2 = <span class="number">100</span>;</span><br><span class="line">Console.WriteLine(<span class="string">&quot;v1=&quot;</span> + v1); <span class="comment">//输出：v1=0</span></span><br><span class="line">Console.WriteLine(<span class="string">&quot;v2=&quot;</span> + v2); <span class="comment">//输出：v2=100</span></span><br><span class="line"></span><br><span class="line">User u1=<span class="keyword">new</span> User();</span><br><span class="line">u1.Age = <span class="number">0</span>;</span><br><span class="line">User u2 = u1;</span><br><span class="line">u2.Age = <span class="number">100</span>;</span><br><span class="line">Console.WriteLine(<span class="string">&quot;u1.Age=&quot;</span> + u1.Age); <span class="comment">//输出：u1.Age=100</span></span><br><span class="line">Console.WriteLine(<span class="string">&quot;u2.Age=&quot;</span> + u2.Age); <span class="comment">//输出：u2.Age=100，因为u1/u2指向同一个对象</span></span><br></pre></td></tr></table></figure>
-
-<p>当把对象作为参数传递的时候，效果同上面一样，他们都称为按值传递，但因为值类型和引用类型的区别，导致其产生的效果也不同。</p>
-<h3 id="参数-按值传递："><a href="#参数-按值传递：" class="headerlink" title="参数-按值传递："></a>参数-按值传递：</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">DoTest</span>(<span class="params"><span class="built_in">int</span> a</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    a *= <span class="number">2</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">DoUserTest</span>(<span class="params">User user</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    user.Age *= <span class="number">2</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">[<span class="meta">NUnit.Framework.Test</span>]</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">DoParaTest</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">int</span> a = <span class="number">10</span>;</span><br><span class="line">    DoTest(a);</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;a=&quot;</span> + a); <span class="comment">//输出：a=10</span></span><br><span class="line">    User user = <span class="keyword">new</span> User();</span><br><span class="line">    user.Age = <span class="number">10</span>;</span><br><span class="line">    DoUserTest(user);</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;user.Age=&quot;</span> + user.Age); <span class="comment">//输出：user.Age=20</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>上面的代码示例，两个方法的参数，都是按值传递</p>
-<ul>
-<li>对于值类型( <code>int a</code>) ：传递的是变量a的值拷贝副本，因此原本的a值并没有改变。</li>
-<li>对于引用类型( <code>User user</code>) ：传递的是变量 <code>user</code> 的引用地址（ <code>User</code> 对象实例的内存地址）拷贝副本，因此他们操作都是同一个 <code>User</code> 对象实例。</li>
-</ul>
-<h3 id="参数-按引用传递："><a href="#参数-按引用传递：" class="headerlink" title="参数-按引用传递："></a>参数-按引用传递：</h3><font color=#0099ff size=4 face="黑体">
-按引用传递的两个主要关键字：out 和 ref不管值类型还是引用类型，按引用传递的效果是一样的，都不传递值副本，而是引用的引用（类似c++的指针的指针）。out 和 ref告诉编译器方法传递额是参数地址，而不是参数本身，理解这一点很重要。
-</font>
-
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">DoTest</span>(<span class="params"><span class="keyword">ref</span> <span class="built_in">int</span> a</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    a *= <span class="number">2</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">DoUserTest</span>(<span class="params"><span class="keyword">ref</span> User user</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    user.Age *= <span class="number">2</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">DoParaTest</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">int</span> a = <span class="number">10</span>;</span><br><span class="line">    DoTest(<span class="keyword">ref</span> a);</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;a=&quot;</span> + a); <span class="comment">//输出：a=20 ,a的值改变了</span></span><br><span class="line">    User user = <span class="keyword">new</span> User();</span><br><span class="line">    user.Age = <span class="number">10</span>;</span><br><span class="line">    DoUserTest(<span class="keyword">ref</span> user);</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;user.Age=&quot;</span> + user.Age); <span class="comment">//输出：user.Age=20</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">int</span> m = <span class="number">0</span>;</span><br><span class="line">Console.WriteLine(RefValue(<span class="number">1</span>, <span class="keyword">ref</span> m)); <span class="comment">//输出 1</span></span><br><span class="line">Console.WriteLine(m);  <span class="comment">//输出 222</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">int</span> n;</span><br><span class="line">Console.WriteLine(OutValue(<span class="number">1</span>, <span class="keyword">out</span> n));  <span class="comment">//输出 223</span></span><br><span class="line">Console.WriteLine(n);  <span class="comment">//输出 222</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="built_in">int</span> <span class="title">RefValue</span>(<span class="params"><span class="built_in">int</span> i, <span class="keyword">ref</span> <span class="built_in">int</span> j</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">int</span> k = j;</span><br><span class="line">    j = <span class="number">222</span>;</span><br><span class="line">    <span class="keyword">return</span> i + k;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="built_in">int</span> <span class="title">OutValue</span>(<span class="params"><span class="built_in">int</span> i, <span class="keyword">out</span> <span class="built_in">int</span> j</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    j = <span class="number">222</span>;</span><br><span class="line">    <span class="keyword">return</span> i + j;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p><code>out</code> 和 <code>ref</code>的主要异同:</p>
-<ul>
-<li><code>out</code> 和 <code>ref</code> 都指示编译器传递参数地址，在行为上是相同的；</li>
-<li>他们的使用机制稍有不同，ref 必须要求参数在使用之前要显式初始化，out 必须要在方法内部初始化；</li>
-<li>使用 ref 和 out 时，在方法的参数和执行方法时，都要加Ref或Out关键字，以满足匹配；</li>
-<li>out 适合用在需要 retrun 多个返回值的地方，而 ref 则用在需要被调用的方法修改调用者的引用的时候。</li>
-<li>out 和 ref 不可以重载，就是不能定义 <code>Method(ref int a)</code> 和 <code>Method(out int a)</code> 这样的重载，从编译角度看，二者的实质是相同的，只是使用时有区别；</li>
-<li>ref 是有进有出，而 out 是只出不进。</li>
-</ul>
-<font color=#ff0000 size=4 face="黑体">
-注：在C#中，方法的参数传递有四种类型：传值（by value），传址（by reference），输出参数（by output），数组参数（by array）。传值参数无需额外的修饰符，传址参数需要修饰符ref，输出参数需要修饰符out，数组参数需要修饰符params。</font>
-
-<h3 id="常见问题"><a href="#常见问题" class="headerlink" title="常见问题"></a>常见问题</h3><p><img src="/img/%E5%80%BC%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B%E5%8C%BA%E5%88%AB.jpg" alt="值类型和引用类型区别.jpg"></p>
-<h2 id="题目答案解析"><a href="#题目答案解析" class="headerlink" title="题目答案解析"></a>题目答案解析</h2><h3 id="1-值类型和引用类型的区别？"><a href="#1-值类型和引用类型的区别？" class="headerlink" title="1. 值类型和引用类型的区别？"></a>1. 值类型和引用类型的区别？</h3><p>值类型包括简单类型、结构体类型和枚举类型，引用类型包括自定义类、数组、接口、委托等。</p>
-<ul>
-<li>1、赋值方式：将一个值类型变量赋给另一个值类型变量时，将复制包含的值。这与引用类型变量的赋值不同，引用类型变量的赋值只复制对象的引用（即内存地址，类似 <code>C++</code> 中的指针），而不复制对象本身。</li>
-<li>2、继承：值类型不可能派生出新的类型，所有的值类型均隐式派生自 <code>System.ValueType</code>。但与引用类型相同的是，结构也可以实现接口。</li>
-<li>3、null：与引用类型不同，值类型不可能包含 null 值。然而，可空类型允许将 null 赋给值类型（他其实只是一种语法形式，在 <code>clr</code> 底层做了特殊处理）。</li>
-<li>4、每种值类型均有一个隐式的默认构造函数来初始化该类型的默认值，值类型初始会默认为0，引用类型默认为null。</li>
-<li>5、值类型存储在栈中，引用类型存储在托管堆中。</li>
-</ul>
-<h3 id="2-结构和类的区别？"><a href="#2-结构和类的区别？" class="headerlink" title="2. 结构和类的区别？"></a>2. 结构和类的区别？</h3><p>结构体是值类型，类是引用类型，主要区别如题1。其他的区别：</p>
-<ul>
-<li>结构不支持无惨构造函数，不支持析构函数，并且不能有 protected 修饰；</li>
-<li>结构常用于数据存储，类 class 多用于行为；</li>
-<li>class 需要用 new 关键字实例化对象，struct 可以不适用 new 关键字；</li>
-<li>class 可以为抽象类，struct 不支持抽象；</li>
-</ul>
-<h3 id="3-delegate是引用类型还是值类型？enum、int-和string呢？"><a href="#3-delegate是引用类型还是值类型？enum、int-和string呢？" class="headerlink" title="3. delegate是引用类型还是值类型？enum、int[]和string呢？"></a>3. delegate是引用类型还是值类型？enum、int[]和string呢？</h3><p>enum 枚举是值类型，其他都是引用类型。</p>
-<h3 id="4-堆和栈的区别？"><a href="#4-堆和栈的区别？" class="headerlink" title="4. 堆和栈的区别？"></a>4. 堆和栈的区别？</h3><p>线程堆栈：简称栈 Stack<br>托管堆： 简称堆 Heap</p>
-<ul>
-<li>值类型大多分配在栈上，引用类型都分配在堆上；</li>
-<li>栈由操作系统管理，栈上的变量在其作用域完成后就被释放，效率较高，但空间有限。堆受 CLR 的 GC 控制；</li>
-<li>栈是基于线程的，每个线程都有自己的线程栈，初始大小为1M。堆是基于进程的，一个进程分配一个堆，堆的大小由 GC 根据运行情况动态控制；</li>
-</ul>
-<h3 id="5-“结构”对象可能分配在堆上吗？什么情况下会发生，有什么需要注意的吗？"><a href="#5-“结构”对象可能分配在堆上吗？什么情况下会发生，有什么需要注意的吗？" class="headerlink" title="5.“结构”对象可能分配在堆上吗？什么情况下会发生，有什么需要注意的吗？"></a>5.“结构”对象可能分配在堆上吗？什么情况下会发生，有什么需要注意的吗？</h3><p>结构是值类型，有两种情况会分配在对上面：</p>
-<ul>
-<li>结构作为class的一个字段或属性，会随class一起分配在堆上面；</li>
-<li>装箱后会在堆中存储，尽量避免值类型的装箱，值类型的拆箱和装箱都有性能损失；</li>
-</ul>
-<h3 id="6-理解参数按值传递？以及按引用传递？"><a href="#6-理解参数按值传递？以及按引用传递？" class="headerlink" title="6. 理解参数按值传递？以及按引用传递？"></a>6. 理解参数按值传递？以及按引用传递？</h3><ul>
-<li>按值传递：对于值类型传递的它的值拷贝副本，而引用类型传递的是引用变量的内存地址，他们还是指向的同一个对象。</li>
-<li>按引用传递：通过关键字 out 和 ref 传递参数的内存地址，值类型和引用类型的效果是相同的。</li>
-</ul>
-<h3 id="7-out-和-ref的区别与相同点？"><a href="#7-out-和-ref的区别与相同点？" class="headerlink" title="7. out 和 ref的区别与相同点？"></a>7. <code>out</code> 和 <code>ref</code>的区别与相同点？</h3><ul>
-<li><code>out</code> 和 <code>ref</code> 都指示编译器传递参数地址，在行为上是相同的；</li>
-<li>他们的使用机制稍有不同，ref 要求参数在使用之前要显式初始化，out 要在方法内部初始化；</li>
-<li><code>out</code> 和 <code>ref</code> 不可以重载，就是不能定义 Method(ref int a) 和 Method(out int a) 这样的重载，从编译角度看，二者的实质是相同的，只是使用时有区别；</li>
-</ul>
-<h3 id="8-C-支持哪几个预定义的值类型？C-支持哪些预定义的引用类型？"><a href="#8-C-支持哪几个预定义的值类型？C-支持哪些预定义的引用类型？" class="headerlink" title="8. C#支持哪几个预定义的值类型？C#支持哪些预定义的引用类型？"></a>8. C#支持哪几个预定义的值类型？C#支持哪些预定义的引用类型？</h3><p>值类型：整数、浮点数、字符、bool 和 decimal</p>
-<p>引用类型：Object，String</p>
-<h3 id="9-有几种方法可以判定值类型和引用类型？"><a href="#9-有几种方法可以判定值类型和引用类型？" class="headerlink" title="9. 有几种方法可以判定值类型和引用类型？"></a>9. 有几种方法可以判定值类型和引用类型？</h3><p>简单来说，继承自 System.ValueType 的是值类型，反之是引用类型。</p>
-<h3 id="10-说说值类型和引用类型的生命周期？"><a href="#10-说说值类型和引用类型的生命周期？" class="headerlink" title="10. 说说值类型和引用类型的生命周期？"></a>10. 说说值类型和引用类型的生命周期？</h3><p>值类型在作用域结束后释放。</p>
-<p>引用类型由 GC 垃圾回收期回收。</p>
-<h3 id="11-如果结构体中定义引用类型，对象在内存中是如何存储的？例如下面结构体中的class类-User对象是存储在栈上，还是堆上？"><a href="#11-如果结构体中定义引用类型，对象在内存中是如何存储的？例如下面结构体中的class类-User对象是存储在栈上，还是堆上？" class="headerlink" title="11. 如果结构体中定义引用类型，对象在内存中是如何存储的？例如下面结构体中的class类 User对象是存储在栈上，还是堆上？"></a>11. 如果结构体中定义引用类型，对象在内存中是如何存储的？例如下面结构体中的class类 User对象是存储在栈上，还是堆上？</h3><figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">struct</span> MyStruct</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">int</span> Index;</span><br><span class="line">    <span class="keyword">public</span> User User;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>MyStruct 存储在栈中，其字段 User 的实例存储在堆中，MyStruct.User 字段存储指向 User 对象的内存地址。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/anding/p/5229756.html">.NET面试题解析(01)-值类型与引用类型</a></p>
-<p><a target="_blank" rel="noopener" href="https://phodal.github.io/2md/">2md</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/gjahead/archive/2008/02/28/1084871.html">C#基础：ref和out的区别</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/11/14/CSharp%E4%B8%AD%E8%BF%AD%E4%BB%A3%E5%99%A8-yield-return%E7%94%A8%E6%B3%95/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/11/14/CSharp%E4%B8%AD%E8%BF%AD%E4%BB%A3%E5%99%A8-yield-return%E7%94%A8%E6%B3%95/" class="post-title-link" itemprop="url">CSharp中迭代器-yield-return用法</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-11-14 10:59:41" itemprop="dateCreated datePublished" datetime="2018-11-14T10:59:41+00:00">2018-11-14</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-02 09:54:16" itemprop="dateModified" datetime="2021-04-02T09:54:16+00:00">2021-04-02</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/CSharp%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index"><span itemprop="name">CSharp基础</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="CSharp中迭代器yield-return用法"><a href="#CSharp中迭代器yield-return用法" class="headerlink" title="CSharp中迭代器yield-return用法"></a>CSharp中迭代器yield-return用法</h1><h2 id="迭代器方法"><a href="#迭代器方法" class="headerlink" title="迭代器方法"></a>迭代器方法</h2><p>迭代器方法有一个重要限制：在同一方法中不能同时使用 return 语句和 yield return 语句。</p>
-<p>此限制通常不是问题。 可以选择在整个方法中使用 yield return，或选择将原始方法分成多个方法，一些使用 return，另一些使用 yield return。</p>
-<p>使用 yield return 上下文关键字定义迭代器方法。</p>
-<p>yield关键字用于遍历循环中，<code>yield return</code>用于返回<code>IEnumerable&lt;T&gt;</code>；<br><code>yield break</code>用于终止循环遍历。</p>
-<h2 id="简单理解"><a href="#简单理解" class="headerlink" title="简单理解"></a>简单理解</h2><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="built_in">bool</span> onOff = <span class="literal">false</span>;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> IEnumerable <span class="title">ForExample</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">yield</span> <span class="keyword">return</span> <span class="string">&quot;1&quot;</span>;  <span class="comment">// 第一次调用时执行  </span></span><br><span class="line">    <span class="keyword">yield</span> <span class="keyword">return</span> <span class="string">&quot;2&quot;</span>;  <span class="comment">// 第二次调用时执行  </span></span><br><span class="line">    <span class="keyword">if</span> (onOff)         <span class="comment">// 第三次调用时执行  </span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// 执行 yield break 之后不再执行下面语句  </span></span><br><span class="line">        <span class="keyword">yield</span> <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 否则,onOff为 false  </span></span><br><span class="line">    <span class="keyword">yield</span> <span class="keyword">return</span> <span class="string">&quot;3&quot;</span>;  <span class="comment">// 第四次调用时执行  </span></span><br><span class="line">    <span class="keyword">yield</span> <span class="keyword">return</span> <span class="string">&quot;4&quot;</span>;  <span class="comment">// 第五次调用时执行  </span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="实例"><a href="#实例" class="headerlink" title="实例"></a>实例</h2><p>以下int类型的集合，需要打印出所有值大于2的元素。</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> List&lt;<span class="built_in">int</span>&gt; <span class="title">GetInitialData</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">new</span> List&lt;<span class="built_in">int</span>&gt;()&#123;<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">4</span>&#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="不使用yield-return的实现"><a href="#不使用yield-return的实现" class="headerlink" title="不使用yield return的实现"></a>不使用yield return的实现</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> IEnumerable&lt;<span class="built_in">int</span>&gt; <span class="title">FilterWithoutYield</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    List&lt;<span class="built_in">int</span>&gt; result = <span class="keyword">new</span> List&lt;<span class="built_in">int</span>&gt;();</span><br><span class="line">    <span class="keyword">foreach</span> (<span class="function"><span class="built_in">int</span> i <span class="keyword">in</span> <span class="title">GetInitialData</span>(<span class="params"></span>))</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">if</span> (i &gt; <span class="number">2</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            result.Add(i);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>客户端调用：</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">foreach</span> (<span class="function"><span class="keyword">var</span> item <span class="keyword">in</span> <span class="title">FilterWithoutYield</span>(<span class="params"></span>))</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    Console.WriteLine(item);</span><br><span class="line">&#125;</span><br><span class="line">Console.ReadKey();</span><br></pre></td></tr></table></figure>
-
-<p>结果：3，4</p>
-<h3 id="使用yeild-return实现"><a href="#使用yeild-return实现" class="headerlink" title="使用yeild return实现"></a>使用yeild return实现</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> IEnumerable&lt;<span class="built_in">int</span>&gt; <span class="title">FilterWithYield</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">foreach</span> (<span class="function"><span class="built_in">int</span> i <span class="keyword">in</span> <span class="title">GetInitialData</span>(<span class="params"></span>))</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">if</span> (i &gt; <span class="number">2</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">yield</span> <span class="keyword">return</span> i;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">yield</span> <span class="keyword">break</span>; <span class="comment">// 执行 yield break 之后不再执行下面语句</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;这里的代码不执行&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">foreach</span> (<span class="function"><span class="keyword">var</span> item <span class="keyword">in</span> <span class="title">FilterWithYield</span>(<span class="params"></span>))</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    Console.WriteLine(item);</span><br><span class="line">&#125;</span><br><span class="line">Console.ReadKey();</span><br></pre></td></tr></table></figure>
-
-<p>结果：3，4</p>
-<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>第一种方法（不使用yield），是把结果集全部加载到内存中再遍历；</p>
-<p>第二种方法（使用yield），客户端每调用一次，yield return就返回一个值给客户端，是”按需供给”。</p>
-<p>使用yield return为什么能保证每次循环遍历的时候从前一次停止的地方开始执行呢？</p>
-<p>–因为，编译器会生成一个状态机来维护迭代器的状态。</p>
-<p>简单地说，当希望获取一个<code>IEnumerable&lt;T&gt;</code>类型的集合，而不想把数据一次性加载到内存，就可以考虑使用yield return实现”按需供给”。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/csharp/iterators">https://docs.microsoft.com/zh-cn/dotnet/csharp/iterators</a></p>
-<p><a target="_blank" rel="noopener" href="http://phpstudy.php.cn/b.php/97674.html">C#中yield return用法分析</a></p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/Golden_Shadow/article/details/7204226">C#中 yield return 与 yield break</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -3161,7 +3393,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">378</span>
+          <span class="site-state-item-count">381</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
