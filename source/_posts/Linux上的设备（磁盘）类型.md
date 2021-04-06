@@ -15,7 +15,7 @@ categories: Linux 磁盘
 Linux 操作系统中，各种设备驱动（`device driver`）通过设备控制器（`device controller`）来管理各种设备（`device`），其关系如下图所示：
 
 ![697113-20160802132422028-1983172341.jpg](/img/697113-20160802132422028-1983172341.jpg)
-
+<!--more-->
 这些设备之中，
 
 * 受同一个 `device driver` 管理的设备都有相同的 `major number`，这个数字可以看作设备的类别号码，被内核用于识别一类设备

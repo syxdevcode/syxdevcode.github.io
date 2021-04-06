@@ -21,7 +21,7 @@ du 展示的是磁盘空间占用量。ls 展示的是文件内容的大小。
 du [-abcDhHklmsSx][-L <符号连接>][-X <文件>][--block-size]
 [--exclude=<目录或文件>][--max-depth=<目录层数>][--help][--version][目录或文件]
 ```
-
+<!--more-->
 参数说明：
 
 * -a或-all 显示目录中个别文件的大小。
