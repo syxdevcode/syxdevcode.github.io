@@ -47,7 +47,7 @@ dd if=/dev/urandom of=/dev/sda
 ## 4. 快速制作系统盘
 
 ```sh
-dd if=ubuntu-server-amd64.iso if=/dev/sdb
+dd if=ubuntu-server-amd64.iso of=/dev/sdb
 ```
 
 ## 5. 查看某个进程的运行时间
@@ -147,7 +147,7 @@ curl ip.sb
 curl ifconfig.me
 ```
 
-## 如何批量下载网页资源
+## 12. 如何批量下载网页资源
 
 在 Linux 系统，通过 wget 命令可以轻松下载，而不用写脚本或爬虫
 
@@ -156,7 +156,7 @@ $ wget -r -nd -np --accept=pdf http://fast.dpdk.org/doc/pdf-guides/
 # --accept：选项指定资源类型格式 pdf
 ```
 
-## 历史命令使用技巧
+## 13. 历史命令使用技巧
 
 ```sh
 !!：重复执行上条命令；
@@ -165,14 +165,28 @@ $ wget -r -nd -np --accept=pdf http://fast.dpdk.org/doc/pdf-guides/
 !$：表示最近一次命令的最后一个参数；
 ```
 
+```sh
+$ vim /root/sniffer/src/main.c
+$ mv !$ !$.bak
+# 相当于
+$ mv /root/sniffer/src/main.c /root/sniffer/src/main.c.bak
+```
+
 当前工作目录是 root，想把 main.c 改为 main.c.bak。正常情况你可能需要敲 2 遍包含 main.c 的长参数，当然你也可能会选择直接复制粘贴。通过使用 `!$` 变量，可以很轻松优雅的实现改名。
 
 ## 14. 快速搜索历史命令
 
 通过执行 Ctrl + r，然后键入要所搜索的命令关键词，进行搜索，回车就可以执行，非常高效。
 
-## 15. 真正的黑客不能忽略技巧
+## 15. 设置环境变量，排除空格
+
+需要配置环境变量。
+
+```sh
+# 忽略记录空格开始的命令
+export HISTCONTROL=ignorespace
+```
 
 在所要执行的命令前，加一个空格，那这条命令就不会被 history 保存到历史记录。
 
-有时候，执行的命令中包含敏感信息，这个小技巧就显得非常实用了，你也不会再因为忘记执行 history -c 而烦恼了。
+有时候，执行的命令中包含敏感信息，这个小技巧就显得非常实用了，你也不会再因为忘记执行 `history -c` 而烦恼了。
