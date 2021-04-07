@@ -14,7 +14,7 @@ xargs（英文全拼： eXtended ARGuments）是给命令传递参数的一个�
 xargs 可以将管道或标准输入（stdin）数据转换成命令行参数，也能够从文件的输出中读取数据。xargs 一般是和管道一起使用。
 
 xargs 默认的命令是 echo，这意味着通过管道传递给 xargs 的输入将会包含换行和空白，不过通过 xargs 的处理，换行和空白将被空格取代。
-
+<!--more-->
 **命令格式:**
 
 `somecommand |xargs -item  command`

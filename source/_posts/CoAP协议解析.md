@@ -23,7 +23,7 @@ categories:
 &emsp;&emsp;The Constrained Application Protocol（CoAP,受限制的应用协议）是一种专用的Web传输协议，用于受约束的节点和受约束的(例如，低功率，有损)网络。
 
 &emsp;&emsp;CoAP是一种应用层协议，它运行于 UDP协议之上。该协议旨在用于机器对机器（M2M）应用，例如智能能源和楼宇自动化。
-
+<!--more-->
 ![coap-stack.png](/img/coap-stack.png)
 
 &emsp;&emsp;CoAP提供了应用程序端点之间的请求/响应交互模型，支持服务的资源发现，并包括Web的关键概念，例如URI和Internet媒体类型。CoAP旨在轻松与HTTP交互以与Web集成，同时满足诸如多播支持，非常低的开销以及在受限环境中的简单性等特殊要求。

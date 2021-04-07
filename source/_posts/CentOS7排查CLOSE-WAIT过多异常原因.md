@@ -21,7 +21,7 @@ netstat -n | awk '/^tcp/ {++S[$NF]} END {for(a in S) print a, S[a]}'
 cat /proc/sys/net/ipv4/ip_local_port_range
 1024	65000
 ```
-
+<!--more-->
 ## 查看文件打开数
 
 ```sh
