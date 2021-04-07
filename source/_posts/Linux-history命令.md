@@ -85,9 +85,14 @@ $ mv /root/sniffer/src/main.c /root/sniffer/src/main.c.bak
 ```sh
 history -c
 history -w
+
+# 或
+history -cw
 ```
 
 ## history的配置
+
+提示：以下命令行设置仅会临时生效，要设备永久生效需要配置到 `/etc/profile` 或 `~/.bash_profile`。
 
 1. 设置历史记录的时间：
 
