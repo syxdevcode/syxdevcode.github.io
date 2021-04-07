@@ -182,6 +182,88 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/01/13/CSharp%E5%9F%BA%E7%A1%80-%E8%AE%A4%E8%AF%86%E5%8F%8D%E5%B0%84-%E4%B8%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/01/13/CSharp%E5%9F%BA%E7%A1%80-%E8%AE%A4%E8%AF%86%E5%8F%8D%E5%B0%84-%E4%B8%8B/" class="post-title-link" itemprop="url">CSharp基础-认识反射-下</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-01-13 10:50:33" itemprop="dateCreated datePublished" datetime="2019-01-13T10:50:33+00:00">2019-01-13</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-07 07:00:06" itemprop="dateModified" datetime="2021-04-07T07:00:06+00:00">2021-04-07</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%8F%8D%E5%B0%84/" itemprop="url" rel="index"><span itemprop="name">反射</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="CSharp基础-认识反射-下"><a href="#CSharp基础-认识反射-下" class="headerlink" title="CSharp基础-认识反射-下"></a>CSharp基础-认识反射-下</h1><h2 id="访问自定义特性"><a href="#访问自定义特性" class="headerlink" title="访问自定义特性"></a>访问自定义特性</h2><p>参考：<a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/framework/reflection-and-codedom/accessing-custom-attributes">访问自定义特性</a></p>
+<h3 id="仅反射上下文"><a href="#仅反射上下文" class="headerlink" title="仅反射上下文"></a>仅反射上下文</h3><p>加载到仅反射上下文中的代码无法执行。在仅反射上下文中加载和检查自定义特性，使用 <code>CustomAttributeData</code> 类。通过使用静态 <code>CustomAttributeData.GetCustomAttributes</code> 方法的相应重载来获取此类的实例。</p>
+<h3 id="执行上下文"><a href="#执行上下文" class="headerlink" title="执行上下文"></a>执行上下文</h3><p>用于查询执行上下文中的特性的主要反射方法是 <code>MemberInfo.GetCustomAttributes</code> 和 <code>Attribute.GetCustomAttributes</code>。</p>
+<p>自定义特性的可访问性根据附加该特性的程序集来进行检查。</p>
+<p><code>Assembly.GetCustomAttributes(Boolean)</code> 等方法检查类型参数的可见性和可访问性。 只有包含用户定义类型的程序集中的代码才能使用 <code>GetCustomAttributes</code> 检索该类型的自定义特性。</p>
+<p>自定义特性反射模型可能会在定义类型的程序集外泄漏用户定义类型的实例。 为了防止客户端发现关于用户定义的自定义特性类型的信息，请将该类型的成员定义为非公共成员。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">ExampleAttribute</span> : <span class="title">Attribute</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="built_in">string</span> stringVal;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">ExampleAttribute</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        stringVal = <span class="string">&quot;This is the default string.&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">string</span> StringValue</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span> &#123; <span class="keyword">return</span> stringVal; &#125;</span><br><span class="line">        <span class="keyword">set</span> &#123; stringVal = <span class="keyword">value</span>; &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">[<span class="meta">Example(StringValue=<span class="meta-string">&quot;This is a string.&quot;</span>)</span>]</span><br><span class="line"><span class="keyword">class</span> <span class="title">Class1</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        System.Reflection.MemberInfo info = <span class="keyword">typeof</span>(Class1);</span><br><span class="line">        <span class="keyword">foreach</span> (<span class="built_in">object</span> attrib <span class="keyword">in</span> info.GetCustomAttributes(<span class="literal">true</span>))</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(attrib);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="指定完全限定的类型名称"><a href="#指定完全限定的类型名称" class="headerlink" title="指定完全限定的类型名称"></a>指定完全限定的类型名称</h2><p>参考：<a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/framework/reflection-and-codedom/specifying-fully-qualified-type-names">指定完全限定的类型名称</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/01/12/CSharp%E5%9F%BA%E7%A1%80-%E8%AE%A4%E8%AF%86%E5%8F%8D%E5%B0%84-%E4%B8%AD/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +295,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-06 07:19:08" itemprop="dateModified" datetime="2021-04-06T07:19:08+00:00">2021-04-06</time>
+                <time title="修改时间：2021-04-07 07:00:06" itemprop="dateModified" datetime="2021-04-07T07:00:06+00:00">2021-04-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -299,7 +381,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-06 07:19:08" itemprop="dateModified" datetime="2021-04-06T07:19:08+00:00">2021-04-06</time>
+                <time title="修改时间：2021-04-07 07:00:06" itemprop="dateModified" datetime="2021-04-07T07:00:06+00:00">2021-04-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -495,7 +577,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-06 07:19:08" itemprop="dateModified" datetime="2021-04-06T07:19:08+00:00">2021-04-06</time>
+                <time title="修改时间：2021-04-07 07:00:06" itemprop="dateModified" datetime="2021-04-07T07:00:06+00:00">2021-04-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -611,7 +693,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-06 07:19:08" itemprop="dateModified" datetime="2021-04-06T07:19:08+00:00">2021-04-06</time>
+                <time title="修改时间：2021-04-07 07:00:06" itemprop="dateModified" datetime="2021-04-07T07:00:06+00:00">2021-04-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -719,7 +801,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-06 07:19:08" itemprop="dateModified" datetime="2021-04-06T07:19:08+00:00">2021-04-06</time>
+                <time title="修改时间：2021-04-07 07:00:06" itemprop="dateModified" datetime="2021-04-07T07:00:06+00:00">2021-04-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -891,7 +973,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-06 07:19:08" itemprop="dateModified" datetime="2021-04-06T07:19:08+00:00">2021-04-06</time>
+                <time title="修改时间：2021-04-07 07:00:06" itemprop="dateModified" datetime="2021-04-07T07:00:06+00:00">2021-04-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1111,7 +1193,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-06 07:19:08" itemprop="dateModified" datetime="2021-04-06T07:19:08+00:00">2021-04-06</time>
+                <time title="修改时间：2021-04-07 07:00:06" itemprop="dateModified" datetime="2021-04-07T07:00:06+00:00">2021-04-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1431,7 +1513,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-06 07:19:08" itemprop="dateModified" datetime="2021-04-06T07:19:08+00:00">2021-04-06</time>
+                <time title="修改时间：2021-04-07 07:00:06" itemprop="dateModified" datetime="2021-04-07T07:00:06+00:00">2021-04-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1609,7 +1691,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-06 07:19:08" itemprop="dateModified" datetime="2021-04-06T07:19:08+00:00">2021-04-06</time>
+                <time title="修改时间：2021-04-07 07:00:06" itemprop="dateModified" datetime="2021-04-07T07:00:06+00:00">2021-04-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1724,7 +1806,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-06 07:19:08" itemprop="dateModified" datetime="2021-04-06T07:19:08+00:00">2021-04-06</time>
+                <time title="修改时间：2021-04-07 07:00:06" itemprop="dateModified" datetime="2021-04-07T07:00:06+00:00">2021-04-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1803,7 +1885,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-06 07:19:08" itemprop="dateModified" datetime="2021-04-06T07:19:08+00:00">2021-04-06</time>
+                <time title="修改时间：2021-04-07 07:00:06" itemprop="dateModified" datetime="2021-04-07T07:00:06+00:00">2021-04-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1931,7 +2013,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-06 07:19:08" itemprop="dateModified" datetime="2021-04-06T07:19:08+00:00">2021-04-06</time>
+                <time title="修改时间：2021-04-07 07:00:06" itemprop="dateModified" datetime="2021-04-07T07:00:06+00:00">2021-04-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2124,7 +2206,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-06 07:19:08" itemprop="dateModified" datetime="2021-04-06T07:19:08+00:00">2021-04-06</time>
+                <time title="修改时间：2021-04-07 07:00:06" itemprop="dateModified" datetime="2021-04-07T07:00:06+00:00">2021-04-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2247,7 +2329,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-06 07:19:08" itemprop="dateModified" datetime="2021-04-06T07:19:08+00:00">2021-04-06</time>
+                <time title="修改时间：2021-04-07 07:00:06" itemprop="dateModified" datetime="2021-04-07T07:00:06+00:00">2021-04-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2278,162 +2360,6 @@
 <p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.taskcompletionsource-1?view=netframework-4.7.2">TaskCompletionSource<TResult> Class</a></p>
 <p><a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/ask/72340">什么时候应该使用TaskCompletionSource<T></a></p>
 <p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/1zhk/p/5399538.html">TaskCompletionSource的使用场景</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/23/DotNet%E5%9F%BA%E7%A1%80-%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/12/23/DotNet%E5%9F%BA%E7%A1%80-%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B/" class="post-title-link" itemprop="url">DotNet基础-异步编程</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-12-23 11:00:37" itemprop="dateCreated datePublished" datetime="2018-12-23T11:00:37+00:00">2018-12-23</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-06 07:19:08" itemprop="dateModified" datetime="2021-04-06T07:19:08+00:00">2021-04-06</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/net%E5%BC%82%E6%AD%A5%E4%B8%8E%E5%B9%B6%E8%A1%8C/" itemprop="url" rel="index"><span itemprop="name">.net异步与并行</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>.NET Framework 1.0 引进了 IAsyncResult 模式，也称为 Asynchronous Programming Model (APM)或 Begin/End 模式。 .NET Framework 2.0 增加了 Event-based Asynchronous Pattern (EAP)。 从.NET Framework 4 开始， Task-based Asynchronous Pattern (TAP) 取代了 APM 和 EAP，但能够轻松构建从早期模式中迁移的例程。</p>
-<p><font color=#0099ff size=4 face="黑体">APM异步编程模式下，callback是执行在另一个线程中，不能随易的去更新UI。EAP这种异步编程模式下，事件绑定的方法也是在调用的那个线程中执行的。也就是说解决了异步编程的时候UI交互的问题，而且是在同一个线程中执行。</font></p>
-<p>APM,EAP模式请参考：<a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/standard/asynchronous-programming-patterns/asynchronous-programming-model-apm">https://docs.microsoft.com/zh-cn/dotnet/standard/asynchronous-programming-patterns/asynchronous-programming-model-apm</a></p>
-<h2 id="异步编程准则"><a href="#异步编程准则" class="headerlink" title="异步编程准则"></a>异步编程准则</h2><p>异步编程的准则是确定所需执行的操作是I/O-Bound还是 CPU-Bound。因为这会极大影响代码性能，并可能导致某些构造的误用。</p>
-<ul>
-<li>如果代码会“等待”某些内容，例如数据库中的数据或web资源等,则你的工作是 I/O-Bound。</li>
-<li>如果代码要执行开销巨大的计算，则你的工作是 CPU-Bound。</li>
-</ul>
-<p><font color=#0099ff size=4 face="黑体">如果你的工作为 I/O-Bound，请使用 async 和 await（而不使用 Task.Run）。 不应使用任务并行库。<br>如果你的工作为 CPU-Bound，并且你重视响应能力，请使用 async 和 await，并在另一个线程上使用 Task.Run 生成工作。 如果该工作同时适用于并发和并行，则应考虑使用任务并行库。</font></p>
-<h2 id="基于任务的异步模式-TAP"><a href="#基于任务的异步模式-TAP" class="headerlink" title="基于任务的异步模式 (TAP)"></a>基于任务的异步模式 (TAP)</h2><p>基于任务的异步模式 (TAP) 以 <code>System.Threading.Tasks.Task</code> 命名空间中的 <code>System.Threading.Tasks.Task&lt;TResult&gt;</code> 和 <code>System.Threading.Tasks</code> 类型为基础，这些类型用于表示任意异步操作。 对于新的开发项目，建议采用 TAP 作为异步设计模式。</p>
-<p>C# 5.0引入了2个新关键词：async和await。然而它大大简化了异步方法的编程。async和await关键字只是编译器功能。编译器会用Task类创建代码。</p>
-<h3 id="认识async和await"><a href="#认识async和await" class="headerlink" title="认识async和await"></a>认识async和await</h3><p>使用async和await关键词编写异步代码，具有与同步代码相当的结构和简单性，并且摒弃了异步编程的复杂结构。</p>
-<p>await 不会开启新的线程，当前线程会一直往下走直到遇到真正的Async方法（比如说HttpClient.GetStringAsync），这个方法的内部会用Task.Run或者Task.Factory.StartNew 去开启线程。如果方法不是.NET为我们提供的Async方法，我们需要自己创建Task，才会真正的去创建线程。</p>
-<p>如果另一个线程已经执行完毕（即name.IsCompleted=true），主线程仍然不用挂起，直接可以拿结果。<br>如果另一个线程还没有执行完毕（即name.IsCompleted=false），那么主线程会挂起等待，直到返回结果为止。</p>
-<h3 id="解析async和await"><a href="#解析async和await" class="headerlink" title="解析async和await"></a>解析async和await</h3><h4 id="异步（async）"><a href="#异步（async）" class="headerlink" title="异步（async）"></a>异步（async）</h4><p>使用async修饰符标记的方法称为异步方法，异步方法只可以具有以下返回类型：</p>
-<ul>
-<li>1.Task</li>
-<li>2.<code>Task&lt;TResult&gt;</code></li>
-<li>3.void</li>
-<li>4.从C# 7.0开始，任何具有可访问的GetAwaiter方法的类型。System.Threading.Tasks.ValueTask<TResult> 类型属于此类实现（需向项目添加System.Threading.Tasks.Extensions NuGet 包）。</li>
-</ul>
-<p>&emsp;&emsp;异步方法通常包含 await 运算符的一个或多个实例，但缺少 await 表达式也不会导致生成编译器错误。 如果异步方法未使用 await 运算符标记暂停点，那么异步方法会作为同步方法执行，即使有 async 修饰符也不例外，编译器将为此类方法发布一个警告。</p>
-<h4 id="等待（await）"><a href="#等待（await）" class="headerlink" title="等待（await）"></a>等待（await）</h4><p>await 表达式只能在由 async 修饰符标记的封闭方法体、lambda 表达式或异步方法中出现。在其他位置，它会解释为标识符。</p>
-<p>使用await运算符的任务只可用于返回 <code>Task</code>、<code>Task&lt;TResult&gt;</code> 和 <code>System.Threading.Tasks.ValueType&lt;TResult&gt;</code> 对象的方法。</p>
-<p><font color=#0099ff size=4 face="黑体">异步方法同步运行，直至到达其第一个 await 表达式，此时await在方法的执行中插入挂起点，会将方法挂起直到所等待的任务完成，然后继续执行await后面的代码区域。</font><br><font color=#ff0000 size=4 face="黑体">await 表达式并不阻止正在执行它的线程。 而是使编译器将剩下的异步方法注册为等待任务的延续任务。 控制权随后会返回给异步方法的调用方。 任务完成时，它会调用其延续任务，异步方法的执行会在暂停的位置处恢复。</font></p>
-<p>注意：</p>
-<ul>
-<li><p>1.无法等待具有 void 返回类型的异步方法，并且无效返回方法的调用方捕获不到异步方法抛出的任何异常。</p>
-</li>
-<li><p>2.异步方法无法声明 in、ref 或 out 参数，但可以调用包含此类参数的方法。 同样，异步方法无法通过引用返回值，但可以调用包含 ref 返回值的方法。</p>
-</li>
-</ul>
-<p><font color=#ff0000 size=4 face="黑体">await并不是针对于async的方法，而是针对async方法所返回给我们的Task。</font></p>
-<h5 id="不用await关键字，确认Task执行完毕"><a href="#不用await关键字，确认Task执行完毕" class="headerlink" title="不用await关键字，确认Task执行完毕"></a>不用await关键字，确认Task执行完毕</h5><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">    <span class="keyword">var</span> task = Task.Run(() =&gt;&#123;</span><br><span class="line">        <span class="keyword">return</span> GetName();</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    task.GetAwaiter().OnCompleted(() =&gt;&#123;</span><br><span class="line">        <span class="comment">// 2 秒之后才会执行这里</span></span><br><span class="line">        <span class="keyword">var</span> name = task.Result;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;My name is: &quot;</span> + name);</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;主线程执行完毕&quot;</span>);</span><br><span class="line">    Console.ReadLine();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="built_in">string</span> <span class="title">GetName</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;另外一个线程在获取名称&quot;</span>);</span><br><span class="line">    Thread.Sleep(<span class="number">2000</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;Hello World&quot;</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h5 id="Task-GetAwaiter-和await-Task-的区别"><a href="#Task-GetAwaiter-和await-Task-的区别" class="headerlink" title="Task.GetAwaiter()和await Task 的区别"></a>Task.GetAwaiter()和await Task 的区别</h5><ul>
-<li>加上await关键字之后，后面的代码会被挂起等待，直到task执行完毕有返回值的时候才会继续向下执行，这一段时间主线程会处于挂起状态。</li>
-<li>GetAwaiter方法会返回一个awaitable的对象（继承了<code>INotifyCompletion.OnCompleted</code>方法）我们只是传递了一个委托进去，等task完成了就会执行这个委托，但是并不会影响主线程，下面的代码会立即执行。这也是为什么我们结果里面第一句话会是 “主线程执行完毕”！</li>
-</ul>
-<h5 id="Task如何让主线程挂起等待"><a href="#Task如何让主线程挂起等待" class="headerlink" title="Task如何让主线程挂起等待"></a>Task如何让主线程挂起等待</h5><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">    <span class="keyword">var</span> task = Task.Run(() =&gt;&#123;</span><br><span class="line">        <span class="keyword">return</span> GetName();</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> name = task.GetAwaiter().GetResult();</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;My name is:&#123;0&#125;&quot;</span>,name);</span><br><span class="line"></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;主线程执行完毕&quot;</span>);</span><br><span class="line">    Console.ReadLine();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="built_in">string</span> <span class="title">GetName</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;另外一个线程在获取名称&quot;</span>);</span><br><span class="line">    Thread.Sleep(<span class="number">2000</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&quot;Hello World&quot;</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p><code>Task.GetAwait()</code>方法会给我们返回一个awaitable的对象，通过调用这个对象的<code>GetResult</code>方法就会挂起主线程，当然也不是所有的情况都会挂起。在一开始的时候就启动了另一个线程去执行这个Task，当我们调用它的结果的时候,如果这个Task已经执行完毕，主线程是不用等待可以直接拿其结果的，如果没有执行完毕那主线程就得挂起等待了。</p>
-<h5 id="await的实质"><a href="#await的实质" class="headerlink" title="await的实质"></a>await的实质</h5><p>await的实质是在调用<code>awaitable</code>对象的<code>GetResult</code>方法</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">async</span> Task <span class="title">Test</span>(<span class="params"></span>)</span>&#123;</span><br><span class="line">    Task&lt;<span class="built_in">string</span>&gt; task = Task.Run(() =&gt;&#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;另一个线程在运行！&quot;</span>);  <span class="comment">// 这句话只会被执行一次</span></span><br><span class="line">        Thread.Sleep(<span class="number">2000</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;Hello World&quot;</span>;</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 这里主线程会挂起等待，直到task执行完毕我们拿到返回结果</span></span><br><span class="line">    <span class="keyword">var</span> result = task.GetAwaiter().GetResult();</span><br><span class="line">    <span class="comment">// 这里不会挂起等待，因为task已经执行完了，我们可以直接拿到结果</span></span><br><span class="line">    <span class="keyword">var</span> result2 = <span class="keyword">await</span> task;</span><br><span class="line">    Console.WriteLine(str);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h4 id="async和await使用建议"><a href="#async和await使用建议" class="headerlink" title="async和await使用建议"></a>async和await使用建议</h4><ul>
-<li>async方法需在其主体中具有await 关键字，否则它们将永不暂停。同时C# 编译器将生成一个警告，此代码将会以类似普通方法的方式进行编译和运行。 请注意这会导致效率低下，因为由 C# 编译器为异步方法生成的状态机将不会完成任何任务。</li>
-<li>应将“Async”作为后缀添加到所编写的每个异步方法名称中。这是 .NET 中的惯例，以便更轻松区分同步和异步方法。</li>
-<li>async void 应仅用于事件处理程序。因为事件不具有返回类型（因此无法返回 Task 和 Task<T>）。 其他任何对 async void 的使用都不遵循 TAP 模型，且可能存在一定使用难度。</li>
-<li>避免上下文，调用ConfigureAwait并且传递false不要捕捉当前上下文。</li>
-</ul>
-<p>例如：async void 方法中引发的异常无法在该方法外部被捕获或十分难以测试 async void 方法。</p>
-<h4 id="async和await总结"><a href="#async和await总结" class="headerlink" title="async和await总结"></a>async和await总结</h4><p>async/await 本质上只是一个语法糖，它并不产生线程，只是在编译时把语句的执行逻辑改了，相当于过去我们用callback，这里编译器自动实现了。</p>
-<p>线程的转换是通过SynchronizationContext来实现，如果做了Task.ConfigureAwait(false)操作，运行MoveNext时就只是在线程池中拿个空闲线程出来执行；如果Task.ConfigureAwait(true)-(默认)，则会在异步操作前Capture当前线程的SynchronizationContext，异步操作之后运行MoveNext时通过SynchronizationContext转到目标之前的线程。</p>
-<p>一般是想更新UI则需要用到 SynchronizationContext，如果异步操作完成还需要做大量运算，则可以考虑Task.ConfigureAwait(false)把计算放到后台算，防止UI卡死。</p>
-<p>另外还有在异步操作前做的ExecutionContext.FastCapture，获取当前线程的执行上下文，注意，如果Task.ConfigureAwait(false)，会有个IgnoreSynctx的标记，表示在ExecutionContext.Capture里不做SynchronizationContext.Capture操作，Capture到的执行上下文用来在awaiter completed后给MoveNext用，使MoveNext可以有和前面线程同样的上下文。</p>
-<p>通过SynchronizationContext.Post操作，可以使异步异常在最开始的try..catch块中轻松捕获。</p>
-<h3 id="调用异步方法"><a href="#调用异步方法" class="headerlink" title="调用异步方法"></a>调用异步方法</h3><p>在一个异步方法里，可以调用一个或多个异步方法，如何编码取决于异步方法间结果是否相互依赖。</p>
-<h4 id="1-顺序调用异步方法"><a href="#1-顺序调用异步方法" class="headerlink" title="1.顺序调用异步方法"></a>1.顺序调用异步方法</h4><p>使用await关键词可以调用每个异步方法，如果一个异步方法需要使用另一个异步方法的结果，await关键词就非常必要。</p>
-<h4 id="2-使用组合器"><a href="#2-使用组合器" class="headerlink" title="2.使用组合器"></a>2.使用组合器</h4><p>如果异步方法间相互不依赖，则每个异步方法都不使用await，而是把每个异步方法的结果赋值给Task变量，就会运行得更快。</p>
-<ul>
-<li><p>WhenAll是在所有传入的任务都完成时才返回Task。</p>
-</li>
-<li><p>WhenAny是在传入的任务其中一个完成就会返回Task。</p>
-</li>
-</ul>
-<h3 id="异常处理"><a href="#异常处理" class="headerlink" title="异常处理"></a>异常处理</h3><h4 id="单个异步方法处理"><a href="#单个异步方法处理" class="headerlink" title="单个异步方法处理"></a>单个异步方法处理</h4><p>异步方法的一个较好异常处理方式，是使用await关键字，将其放在try/catch中。</p>
-<p>返回void的异步方法不会等待。这是因为从async void方法抛出的异常无法捕获。因此异步方法最好返回一个Task类型。</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//异步方法错误处理</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">async</span> <span class="keyword">void</span> <span class="title">HandleError</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">try</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">await</span> ThrowAfter(<span class="number">2000</span>, <span class="string">&quot;HandleError Error&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    catch (Exception ex)</span><br><span class="line">    &#123;</span><br><span class="line"></span><br><span class="line">        Console.WriteLine(ex.Message);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//在延迟后抛出异常</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">async</span> Task <span class="title">ThrowAfter</span>(<span class="params"><span class="built_in">int</span> ms, <span class="built_in">string</span> message</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">await</span> Task.Delay(ms);</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> Exception(message);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h4 id="多个异步方法"><a href="#多个异步方法" class="headerlink" title="多个异步方法"></a>多个异步方法</h4><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Task.WhenAll，在catch块内可以访问，再使用IsFaulted属性检查任务的状态，</span></span><br><span class="line"><span class="comment">// 以确认它们是否出现错误，然后再进行处理。</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">async</span> <span class="keyword">void</span> <span class="title">HandleError</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    Task t1 = <span class="literal">null</span>;</span><br><span class="line">    Task t2 = <span class="literal">null</span>;</span><br><span class="line">    <span class="keyword">try</span></span><br><span class="line">    &#123;</span><br><span class="line">        t1 = ThrowAfter(<span class="number">1000</span>, <span class="string">&quot;HandleError-One-Error&quot;</span>);</span><br><span class="line">        t2 = ThrowAfter(<span class="number">2000</span>, <span class="string">&quot;HandleError-Two-Error&quot;</span>);</span><br><span class="line">        <span class="keyword">await</span> Task.WhenAll(t1, t2);</span><br><span class="line">    &#125;</span><br><span class="line">    catch (Exception)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (t1.IsFaulted)</span><br><span class="line">            Console.WriteLine(t1.Exception.InnerException.Message);</span><br><span class="line">        <span class="keyword">if</span> (t2.IsFaulted)</span><br><span class="line">            Console.WriteLine(t2.Exception.InnerException.Message);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 使用AggregateException处理方式</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">async</span> <span class="keyword">void</span> <span class="title">HandleError</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    Task taskResult = <span class="literal">null</span>;</span><br><span class="line">    <span class="keyword">try</span></span><br><span class="line">    &#123;</span><br><span class="line">        Task t1 = ThrowAfter(<span class="number">1000</span>, <span class="string">&quot;HandleError-One-Error&quot;</span>);</span><br><span class="line">        Task t2 = ThrowAfter(<span class="number">2000</span>, <span class="string">&quot;HandleError-Two-Error&quot;</span>);</span><br><span class="line">        <span class="keyword">await</span> (taskResult = Task.WhenAll(t1, t2));</span><br><span class="line">    &#125;</span><br><span class="line">    catch (Exception)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">foreach</span> (<span class="keyword">var</span> ex <span class="keyword">in</span> taskResult.Exception.InnerExceptions)</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(ex.Message);</span><br><span class="line">        &#125;</span><br><span class="line">  </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//在延迟后抛出异常</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">async</span> Task <span class="title">ThrowAfter</span>(<span class="params"><span class="built_in">int</span> ms, <span class="built_in">string</span> message</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">await</span> Task.Delay(ms);</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> Exception(message);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/jesse2013/p/Asynchronous-Programming-In-DotNet.html">异步编程 In .NET</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/CrabMan/p/5436083.html">async/await IL翻译</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/jesse2013/p/async-and-await.html">async &amp; await 的前世今生（Updated）</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/jonins/p/9558275.html">异步编程（async&amp;await）</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.xyting.org/2017/02/28/understand-async-await-in-depth.html">深入理解Async/Await</a></p>
-<p><a target="_blank" rel="noopener" href="http://blog.51cto.com/cnn237111/1103029">async 和 await 关键字</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/1zhk/p/5269279.html">使用Nito.AsyncEx实现异步锁</a></p>
-<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/csharp/programming-guide/concepts/async/">使用 Async 和 Await 的异步编程 (C#)</a></p>
-<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/csharp/async">https://docs.microsoft.com/zh-cn/dotnet/csharp/async</a></p>
-<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/standard/asynchronous-programming-patterns/asynchronous-programming-model-apm">https://docs.microsoft.com/zh-cn/dotnet/standard/asynchronous-programming-patterns/asynchronous-programming-model-apm</a></p>
 
       
     </div>
@@ -2518,7 +2444,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">382</span>
+          <span class="site-state-item-count">383</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
