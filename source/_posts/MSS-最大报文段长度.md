@@ -16,7 +16,17 @@ categories:
 
 ## 开放式互联网模型
 
-开放式系统互联模型（OpenSystemInterconnection Model，简称为OSI模型）是一种互联网概念化模型，由国际标准化组织(InternationalOrganization forStandardization，简称为ISO)提出，定义于ISO/IEC 7498-1。OSI模型将互联网分为七层，由最高层（用户端）到最底层（物理层面）排列为：第7层 应用层（Application Layer）;第6层 表达层（Presentation Layer）；第5层 会话层（Session Layer）；第4层 传输层（Transport Layer）；第3层 网络层（Network Layer）；第2层 数据链接层（Data Link Layer）第1层 物理层（Physical Layer）；本词条MSS是第四层传输层中的一种协议（TCP）的选项之一。
+开放式系统互联模型（OpenSystemInterconnection Model，简称为OSI模型）是一种互联网概念化模型，由国际标准化组织(InternationalOrganization forStandardization，简称为ISO)提出，定义于ISO/IEC 7498-1。OSI模型将互联网分为七层，由最高层（用户端）到最底层（物理层面）排列为：
+
+* 第7层 应用层（Application Layer）;
+* 第6层 表达层（Presentation Layer）；
+* 第5层 会话层（Session Layer）；
+* 第4层 传输层（Transport Layer）；
+* 第3层 网络层（Network Layer）；
+* 第2层 数据链接层（Data Link Layer）；
+* 第1层 物理层（Physical Layer）；
+
+MSS是第四层传输层中的一种协议（TCP）的选项之一。
 
 ![503d269759ee3d6d55fbf8fa925e7a224f4a20a470e3.png](/img/503d269759ee3d6d55fbf8fa925e7a224f4a20a470e3.png)
 
