@@ -16,7 +16,7 @@ categories: Python3
 * 函数的第一行语句可以选择性地使用文档字符串—用于存放函数说明。
 * 函数内容以冒号 : 起始，并且缩进。
 * return [表达式] 结束函数，选择性地返回一个值给调用方，不带表达式的 return 相当于返回 None。
-
+<!--more-->
 ```py
 def 函数名(参数):
     函数体
@@ -152,6 +152,29 @@ f(1,2,3)   # 报错
 f(1,2,c=3) # 正常
 ```
 
+加了两个星号 `**` 的参数会以字典的形式导入。
+
+```py
+#!/usr/bin/python3
+  
+# 可写函数说明
+def printinfo( arg1, **vardict ):
+   "打印任何传入的参数"
+   print ("输出: ")
+   print (arg1)
+   print (vardict)
+ 
+# 调用printinfo 函数
+printinfo(1, a=2,b=3)
+```
+
+输出: 
+
+```py
+1
+{'a': 2, 'b': 3}
+```
+
 ### 匿名函数
 
 语法：
@@ -188,3 +211,7 @@ f(10, 20, 30, d=40, e=50, f=60)
 f(10, b=20, c=30, d=40, e=50, f=60)   # b 不能使用关键字参数的形式
 f(10, 20, 30, 40, 50, f=60)           # e 必须使用关键字参数的形式
 ```
+
+参考
+
+[Python3 函数](https://www.runoob.com/python3/python3-function.html)
