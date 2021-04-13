@@ -51,6 +51,33 @@ o
 n
 ```
 
+### 列表推导式
+
+```py
+x = [i for i in range(5) if i>2]
+>>x=[3, 4]
+
+# 生成器
+gen = (x*x for x in range(5))
+for g in gen:
+    print(g)
+```
+
+### enumerate使用
+
+```py
+list=['小明',‘小红’,'小蓝']
+for item in enumerate(list)
+```
+
+item输出一次为list中的每个值
+
+```py
+(0, '小明')
+(1, '小红')
+(2, '小蓝')
+```
+
 ###  while 循环
 
 ```py

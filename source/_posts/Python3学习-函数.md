@@ -19,16 +19,16 @@ categories: Python3
 
 ```py
 def 函数名(参数):
-	函数体
-	return 返回值
+    函数体
+    return 返回值
 
 # 空函数
 def 函数名():
-	pass
+    pass
 
 # 不确定参数的个数,使用不定长参数，在参数名前加 * 进行声明
 def 函数名(*参数名):
-	函数体
+    函数体
 
 # lambda 定义匿名函数
 lambda 参数 : 表达式
