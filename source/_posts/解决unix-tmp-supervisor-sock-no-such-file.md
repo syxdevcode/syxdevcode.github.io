@@ -1,5 +1,5 @@
 ---
-title: 解决unix tmp supervisor sock no such file
+title: 解决unix-tmp-supervisor-sock-no-such-file
 date: 2020-05-19 10:30:08
 tags:
 - Linux

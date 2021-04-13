@@ -78,6 +78,10 @@ vim /etc/supervisord.conf
 files = relative/directory/*.ini  /etc/supervisord.d/*.conf
 ```
 
+长时间运行会报错 `unix:///tmp/supervisor.sock no such file`，参考
+
+{% post_link 解决unix-tmp-supervisor-sock-no-such-file %}
+
 ## 测试supervisor
 
 ### 常用命令
