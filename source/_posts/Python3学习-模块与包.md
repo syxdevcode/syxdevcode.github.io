@@ -119,10 +119,33 @@ d
 Python 路径为： ['e:\\git\\pythontest', 'D:\\Users\\DELL\\AppData\\Local\\Programs\\Python\\Python39\\python39.zip', 'D:\\Users\\DELL\\AppData\\Local\\Programs\\Python\\Python39\\DLLs', 'D:\\Users\\DELL\\AppData\\Local\\Programs\\Python\\Python39\\lib', 'D:\\Users\\DELL\\AppData\\Local\\Programs\\Python\\Python39', 'C:\\Users\\DELL\\AppData\\Roaming\\Python\\Python39\\site-packages', 'D:\\Users\\DELL\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages']
 ```
 
+### dir() 函数
 
+内置的函数 dir() 可以找到模块内定义的所有名称。以一个字符串列表的形式返回，如果没有给定参数，那么 dir() 函数会罗列出当前定义的所有名称。
 
-
-
+```py
+>>> import fibo, sys
+>>> dir(fibo)
+['__name__', 'fib', 'fib2']
+>>> dir(sys)  
+['__displayhook__', '__doc__', '__excepthook__', '__loader__', '__name__',
+ '__package__', '__stderr__', '__stdin__', '__stdout__',
+ '_clear_type_cache', '_current_frames', '_debugmallocstats', '_getframe',
+ '_home', '_mercurial', '_xoptions', 'abiflags', 'api_version', 'argv',
+ 'base_exec_prefix', 'base_prefix', 'builtin_module_names', 'byteorder',
+ 'call_tracing', 'callstats', 'copyright', 'displayhook',
+ 'dont_write_bytecode', 'exc_info', 'excepthook', 'exec_prefix',
+ 'executable', 'exit', 'flags', 'float_info', 'float_repr_style',
+ 'getcheckinterval', 'getdefaultencoding', 'getdlopenflags',
+ 'getfilesystemencoding', 'getobjects', 'getprofile', 'getrecursionlimit',
+ 'getrefcount', 'getsizeof', 'getswitchinterval', 'gettotalrefcount',
+ 'gettrace', 'hash_info', 'hexversion', 'implementation', 'int_info',
+ 'intern', 'maxsize', 'maxunicode', 'meta_path', 'modules', 'path',
+ 'path_hooks', 'path_importer_cache', 'platform', 'prefix', 'ps1',
+ 'setcheckinterval', 'setdlopenflags', 'setprofile', 'setrecursionlimit',
+ 'setswitchinterval', 'settrace', 'stderr', 'stdin', 'stdout',
+ 'thread_info', 'version', 'version_info', 'warnoptions']
+```
 
 参考：
 
