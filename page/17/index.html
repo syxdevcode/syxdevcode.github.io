@@ -182,6 +182,104 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/04/22/IIS7-5%E4%B9%8BApplicationPoolIdentify%E8%AF%A6%E8%A7%A3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/04/22/IIS7-5%E4%B9%8BApplicationPoolIdentify%E8%AF%A6%E8%A7%A3/" class="post-title-link" itemprop="url">IIS7.5之ApplicationPoolIdentify详解</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-04-22 16:06:28" itemprop="dateCreated datePublished" datetime="2019-04-22T16:06:28+00:00">2019-04-22</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-19 09:58:18" itemprop="dateModified" datetime="2021-04-19T09:58:18+00:00">2021-04-19</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ApplicationPoolIdentify/" itemprop="url" rel="index"><span itemprop="name">ApplicationPoolIdentify</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="IIS7-5之ApplicationPoolIdentify详解"><a href="#IIS7-5之ApplicationPoolIdentify详解" class="headerlink" title="IIS7.5之ApplicationPoolIdentify详解"></a>IIS7.5之ApplicationPoolIdentify详解</h1><p><code>ApplicationPoolIdentify</code> 在 Windows Server 2008 和 Windows Vista 的 Service Pack 2（SP2）和更高版本的Windows引入的强大的新隔离功能，IIS7.5中首次引用。其它三种包括 <code>LocalService</code> , <code>LocalSystem</code>,<code>NetWorkService</code>。</p>
+<p><code>ApplicationPoolIdentify</code> 允许在唯一帐户下运行应用程序池，而无需创建和管理域或本地帐户。应用程序池帐户的名称对应于应用程序池的名称。</p>
+<p>下图显示了作为DefaultAppPool标识运行的IIS工作进程（W3wp.exe）。</p>
+<p><img src="/img/image3.jpg" alt="image3.jpg"></p>
+<p>Windows操作系统提供称为“虚拟帐户”的功能，允许IIS为其每个应用程序池创建唯一标识。</p>
+<h2 id="配置IIS-ApplicationPoolIdentify"><a href="#配置IIS-ApplicationPoolIdentify" class="headerlink" title="配置IIS ApplicationPoolIdentify"></a>配置IIS ApplicationPoolIdentify</h2><p>如果在Windows Server 2008 R2或更高版本的IIS上运行IIS 7.5，则无需执行任何操作即可使用新标识。创建的每个应用程序池，默认情况下，新应用程序池的Identity属性设置为ApplicationPoolIdentity。IIS管理进程（WAS）将创建一个具有新应用程序池名称的虚拟帐户，并默认在此帐户下运行应用程序池的工作进程。</p>
+<p>要在Windows Server 2008上运行IIS 7.0时使用此虚拟帐户，必须将创建的应用程序池的Identity属性更改为<code>ApplicationPoolIdentity</code>。</p>
+<p>方法:</p>
+<p>1，打开IIS管理控制台（INETMGR.MSC）<br>2，打开计算机节点下的“应用程序池”节点。选择要更改为在自动生成的应用程序池标识下运行的应用程序池。<br>3，右键单击应用程序池，然后选择高级设置。</p>
+<p><img src="/img/image6.jpg" alt="image6.jpg"></p>
+<p>4，选择标识列表项，然后单击省略号（带有三个点的按钮）。<br>5，出现以下对话框</p>
+<p><img src="/img/image8.jpg" alt="image8.jpg"></p>
+<p>6,选择内置帐户按钮，然后从组合框中选择标识类型ApplicationPoolIdentity。</p>
+<p>要使用命令行执行相同的步骤，可以通过以下方式调用appcmd命令行工具：</p>
+<figure class="highlight ps"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">%windir%\system32\inetsrv\appcmd.exe <span class="built_in">set</span> AppPool &lt;your AppPool&gt; <span class="literal">-processModel</span>.identityType:ApplicationPoolIdentity</span><br></pre></td></tr></table></figure>
+
+<h2 id="确保资源安全"><a href="#确保资源安全" class="headerlink" title="确保资源安全"></a>确保资源安全</h2><p>每当创建新的应用程序池时，IIS管理进程都会创建一个安全标识符（SID），该标识符表示应用程序池本身的名称。例如，如果创建名为“MyNewAppPool”的应用程序池，则会在Windows安全系统中创建名为“MyNewAppPool”的安全标识符。从现在开始，可以使用此标识来保护资源。但是，身份不是真实的用户帐户; 它不会在Windows用户管理控制台中显示为用户。</p>
+<p>我们可以通过在Windows资源管理器中选择一个文件并将“DefaultAppPool”标识添加到文件的访问控制列表（ACL）来尝试此操作。</p>
+<p>1，打开Windows资源管理器<br>2，选择文件或目录。<br>3，右键单击该文件并选择”属性”<br>4，选择”安全”选项卡<br>5，单击编辑按钮，然后单击添加按钮<br>6，单击”位置”按钮，确保选择计算机。</p>
+<p><img src="/img/image11.jpg" alt="image11.jpg"></p>
+<p>7，在输入要选择的对象名称：文本框中输入 <code>IIS AppPool\DefaultAppPool</code>。<br>8，单击”检查名称”按钮，然后单击“ 确定”。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/en-us/iis/manage/configuring-security/application-pool-identities">Application Pool Identities</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/jfzhu/p/4067297.html">IIS ApplicationPoolIdentity</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/yjmyzz/archive/2009/10/26/1590033.html">IIS7.5中神秘的ApplicationPoolIdentity </a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/04/16/Chrome%E6%8F%92%E4%BB%B6%E8%AE%B0%E5%BD%95/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +311,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-16 08:30:45" itemprop="dateModified" datetime="2021-04-16T08:30:45+00:00">2021-04-16</time>
+                <time title="修改时间：2021-04-19 09:58:18" itemprop="dateModified" datetime="2021-04-19T09:58:18+00:00">2021-04-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -333,7 +431,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-16 08:30:45" itemprop="dateModified" datetime="2021-04-16T08:30:45+00:00">2021-04-16</time>
+                <time title="修改时间：2021-04-19 09:58:18" itemprop="dateModified" datetime="2021-04-19T09:58:18+00:00">2021-04-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -413,7 +511,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-16 08:30:45" itemprop="dateModified" datetime="2021-04-16T08:30:45+00:00">2021-04-16</time>
+                <time title="修改时间：2021-04-19 09:58:18" itemprop="dateModified" datetime="2021-04-19T09:58:18+00:00">2021-04-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -494,7 +592,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-16 08:30:45" itemprop="dateModified" datetime="2021-04-16T08:30:45+00:00">2021-04-16</time>
+                <time title="修改时间：2021-04-19 09:58:18" itemprop="dateModified" datetime="2021-04-19T09:58:18+00:00">2021-04-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -625,7 +723,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-16 08:30:45" itemprop="dateModified" datetime="2021-04-16T08:30:45+00:00">2021-04-16</time>
+                <time title="修改时间：2021-04-19 09:58:18" itemprop="dateModified" datetime="2021-04-19T09:58:18+00:00">2021-04-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -769,7 +867,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-16 08:30:45" itemprop="dateModified" datetime="2021-04-16T08:30:45+00:00">2021-04-16</time>
+                <time title="修改时间：2021-04-19 09:58:18" itemprop="dateModified" datetime="2021-04-19T09:58:18+00:00">2021-04-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -850,7 +948,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-16 08:30:45" itemprop="dateModified" datetime="2021-04-16T08:30:45+00:00">2021-04-16</time>
+                <time title="修改时间：2021-04-19 09:58:18" itemprop="dateModified" datetime="2021-04-19T09:58:18+00:00">2021-04-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -959,7 +1057,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-16 08:30:45" itemprop="dateModified" datetime="2021-04-16T08:30:45+00:00">2021-04-16</time>
+                <time title="修改时间：2021-04-19 09:58:18" itemprop="dateModified" datetime="2021-04-19T09:58:18+00:00">2021-04-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1078,7 +1176,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-16 08:30:45" itemprop="dateModified" datetime="2021-04-16T08:30:45+00:00">2021-04-16</time>
+                <time title="修改时间：2021-04-19 09:58:18" itemprop="dateModified" datetime="2021-04-19T09:58:18+00:00">2021-04-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1239,7 +1337,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-16 08:30:45" itemprop="dateModified" datetime="2021-04-16T08:30:45+00:00">2021-04-16</time>
+                <time title="修改时间：2021-04-19 09:58:18" itemprop="dateModified" datetime="2021-04-19T09:58:18+00:00">2021-04-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1324,7 +1422,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-16 08:30:45" itemprop="dateModified" datetime="2021-04-16T08:30:45+00:00">2021-04-16</time>
+                <time title="修改时间：2021-04-19 09:58:18" itemprop="dateModified" datetime="2021-04-19T09:58:18+00:00">2021-04-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1539,7 +1637,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-16 08:30:45" itemprop="dateModified" datetime="2021-04-16T08:30:45+00:00">2021-04-16</time>
+                <time title="修改时间：2021-04-19 09:58:18" itemprop="dateModified" datetime="2021-04-19T09:58:18+00:00">2021-04-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1641,7 +1739,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-16 08:30:45" itemprop="dateModified" datetime="2021-04-16T08:30:45+00:00">2021-04-16</time>
+                <time title="修改时间：2021-04-19 09:58:18" itemprop="dateModified" datetime="2021-04-19T09:58:18+00:00">2021-04-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1722,7 +1820,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-16 08:30:45" itemprop="dateModified" datetime="2021-04-16T08:30:45+00:00">2021-04-16</time>
+                <time title="修改时间：2021-04-19 09:58:18" itemprop="dateModified" datetime="2021-04-19T09:58:18+00:00">2021-04-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1749,87 +1847,6 @@
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2019/03/14/Sql-Server%E5%9F%BA%E7%A1%80%E4%B9%8B%E5%B8%B8%E7%94%A8sql%E5%AE%9E%E4%BE%8B/">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/03/14/Sql-Server%E5%9F%BA%E7%A1%80%E4%B9%8B%E5%88%86%E9%A1%B5/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/03/14/Sql-Server%E5%9F%BA%E7%A1%80%E4%B9%8B%E5%88%86%E9%A1%B5/" class="post-title-link" itemprop="url">Sql-Server基础之分页</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-03-14 10:41:55" itemprop="dateCreated datePublished" datetime="2019-03-14T10:41:55+00:00">2019-03-14</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-16 08:30:45" itemprop="dateModified" datetime="2021-04-16T08:30:45+00:00">2021-04-16</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Sql/" itemprop="url" rel="index"><span itemprop="name">Sql</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>Sql-Server分页方法总结</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2019/03/14/Sql-Server%E5%9F%BA%E7%A1%80%E4%B9%8B%E5%88%86%E9%A1%B5/">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -1918,7 +1935,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">389</span>
+          <span class="site-state-item-count">390</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
