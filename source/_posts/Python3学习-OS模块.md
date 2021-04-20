@@ -27,6 +27,7 @@ import os
 print(os.listdir('D:/'))
 ```
 
+<!--more-->
 ### os.path.abspath(path)
 
 返回路径 path 的绝对路径。
