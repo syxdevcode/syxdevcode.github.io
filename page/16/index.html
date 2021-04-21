@@ -182,6 +182,97 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/05/31/%E4%BD%BF%E7%94%A8Json-Net%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8A%E4%BC%A0%E7%9A%84%E6%96%87%E4%BB%B6/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/05/31/%E4%BD%BF%E7%94%A8Json-Net%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8A%E4%BC%A0%E7%9A%84%E6%96%87%E4%BB%B6/" class="post-title-link" itemprop="url">使用Json.Net序列化上传的文件</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-05-31 13:47:09" itemprop="dateCreated datePublished" datetime="2019-05-31T13:47:09+00:00">2019-05-31</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-21 09:24:47" itemprop="dateModified" datetime="2021-04-21T09:24:47+00:00">2021-04-21</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Json-Net/" itemprop="url" rel="index"><span itemprop="name">Json.Net</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="使用Json-Net序列化上传的文件"><a href="#使用Json-Net序列化上传的文件" class="headerlink" title="使用Json.Net序列化上传的文件"></a>使用Json.Net序列化上传的文件</h1><p>基本知识：</p>
+<p>序列化： 将数据结构或对象转换成二进制串的过程。<br>反序列化：将在序列化过程中所生成的二进制串转换成数据结构或者对象的过程。</p>
+<p>本文提供一种针对目标文件，重写文件序列化，从而实现上传。</p>
+<p>客户端调用：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">Send</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">var</span> inFile1 =</span><br><span class="line">        <span class="string">@&quot;C:\Users\User1\source\repos\ConsoleApp1\Test.mp3&quot;</span>;</span><br><span class="line">    <span class="built_in">byte</span>[] data = File.ReadAllBytes(inFile1);</span><br><span class="line"></span><br><span class="line">    FileUpLoadDTO gdto = <span class="keyword">new</span> FileUpLoadDTO();</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 其它参数</span></span><br><span class="line">    gdto.DeviceId = <span class="string">&quot;1234321&quot;</span>;</span><br><span class="line">    gdto.DeviceMac = <span class="string">&quot;1343212&quot;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> filedto = <span class="keyword">new</span> FileDTO();</span><br><span class="line">    filedto.FileData = data;</span><br><span class="line">    filedto.FileName = GetFileName();</span><br><span class="line">    filedto.FileSize = data.Length;</span><br><span class="line">    gdto.FileDto = filedto;</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 序列化文件</span></span><br><span class="line">    <span class="keyword">var</span> jsonData = JsonHelper.Serialize(<span class="keyword">new</span> &#123; dto = gdto &#125;);</span><br><span class="line">    <span class="keyword">var</span> url = <span class="string">&quot;http://temp.uri/UpLoadFile&quot;</span>;</span><br><span class="line">    <span class="keyword">var</span> response = HttpHelper.SendRequest(url, <span class="string">&quot;POST&quot;</span>, jsonData);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="built_in">string</span> <span class="title">GetFileName</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    Random rd = <span class="keyword">new</span> Random();</span><br><span class="line">    StringBuilder serial = <span class="keyword">new</span> StringBuilder();</span><br><span class="line">    serial.Append(DateTime.Now.ToString(<span class="string">&quot;yyyyMMddHHmmssff&quot;</span>));</span><br><span class="line">    serial.Append(rd.Next(<span class="number">0</span>, <span class="number">999999</span>).ToString());</span><br><span class="line">    <span class="keyword">return</span> serial.ToString();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>服务端实现：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> ReturnInfoDTO <span class="title">ReceiveFile</span>(<span class="params">FileUpLoadDTO dto</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    ReturnInfoDTO rdto = <span class="keyword">new</span> ReturnInfoDTO() &#123; StatusCode = <span class="string">&quot;200&quot;</span>, IsSuccess = <span class="literal">true</span>, Message = <span class="string">&quot;调用成功&quot;</span> &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> outputFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, <span class="string">&quot;NAudio&quot;</span>);</span><br><span class="line">    Directory.CreateDirectory(outputFolder);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> filename = dto.FileDto.FileName;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">using</span> (FileStream stream = File.Open(filename, FileMode.OpenOrCreate))</span><br><span class="line">        &#123;</span><br><span class="line">            stream.Seek(<span class="number">0</span>, SeekOrigin.End);</span><br><span class="line">            stream.Write(dto.FileDto.FileData, <span class="number">0</span>, dto.FileDto.FileData.Length);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    catch (Exception e)</span><br><span class="line">    &#123;</span><br><span class="line">        rdto.IsSuccess = <span class="literal">false</span>;</span><br><span class="line">        rdto.StatusCode = <span class="string">&quot;500&quot;</span>;</span><br><span class="line">        rdto.Message = <span class="string">&quot;调用失败&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> rdto;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>测试：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">button9_Click</span>(<span class="params"><span class="built_in">object</span> sender, EventArgs e</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">var</span> inFile1 =</span><br><span class="line">        <span class="string">@&quot;C:\Users\User1\Desktop\Test.mp3&quot;</span>;</span><br><span class="line">    <span class="built_in">byte</span>[] data = File.ReadAllBytes(inFile1);</span><br><span class="line"></span><br><span class="line">    FileUpLoadDTO gdto = <span class="keyword">new</span> FileUpLoadDTO();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 其它参数</span></span><br><span class="line">    gdto.DeviceId = <span class="string">&quot;1234321&quot;</span>;</span><br><span class="line">    gdto.DeviceMac = <span class="string">&quot;1343212&quot;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> filedto = <span class="keyword">new</span> FileDto();</span><br><span class="line">    filedto.FileData = data;</span><br><span class="line">    filedto.FileName = GetFileName() + System.IO.Path.GetExtension(inFile1);</span><br><span class="line">    filedto.FileSize = data.Length;</span><br><span class="line">    gdto.FileDto = filedto;</span><br><span class="line"></span><br><span class="line">    ReceiveFile(gdto);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>JsonHelper帮助类：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">JsonHelper</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> T <span class="title">Deserialize</span>&lt;<span class="title">T</span>&gt;(<span class="params"><span class="built_in">string</span> json</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">return</span> JsonConvert.DeserializeObject&lt;T&gt;(json, <span class="keyword">new</span> JsonSerializerSettings()</span><br><span class="line">        &#123;</span><br><span class="line">            ReferenceLoopHandling = ReferenceLoopHandling.Ignore</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="built_in">string</span> <span class="title">Serialize</span>&lt;<span class="title">T</span>&gt;(<span class="params">T data</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        JsonSerializerSettings settings = <span class="keyword">new</span> JsonSerializerSettings();</span><br><span class="line">        ByteJsonConverter byteJsonConverter = <span class="keyword">new</span> ByteJsonConverter();</span><br><span class="line">        settings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;</span><br><span class="line">        DateTimeConverter dateTimeConverter = <span class="keyword">new</span> DateTimeConverter();</span><br><span class="line">        settings.Converters.Add(dateTimeConverter);</span><br><span class="line">        settings.Converters.Add(byteJsonConverter);</span><br><span class="line">        <span class="keyword">return</span> JsonConvert.SerializeObject((<span class="built_in">object</span>)data, settings);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">internal</span> <span class="keyword">static</span> <span class="built_in">string</span> <span class="title">ObjectToJson</span>&lt;<span class="title">T</span>&gt;(<span class="params">T obj</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">using</span> (MemoryStream memoryStream = <span class="keyword">new</span> MemoryStream())</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">new</span> DataContractJsonSerializer(<span class="keyword">typeof</span>(T)).WriteObject(memoryStream, obj);</span><br><span class="line">            memoryStream.Position = <span class="number">0L</span>;</span><br><span class="line">            <span class="keyword">using</span> (StreamReader streamReader = <span class="keyword">new</span> StreamReader(memoryStream, Encoding.UTF8))</span><br><span class="line">                <span class="keyword">return</span> streamReader.ReadToEnd();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">internal</span> <span class="keyword">class</span> <span class="title">DateTimeConverter</span> : <span class="title">JsonConverter</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">override</span> <span class="built_in">bool</span> CanRead</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span> &#123; <span class="keyword">return</span> <span class="literal">false</span>; &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">override</span> <span class="built_in">bool</span> CanWrite</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span> &#123; <span class="keyword">return</span> <span class="literal">true</span>; &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> <span class="built_in">bool</span> <span class="title">CanConvert</span>(<span class="params">Type objectType</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">typeof</span>(DateTime) == objectType || <span class="keyword">typeof</span>(DateTime?) == objectType;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> <span class="built_in">object</span> <span class="title">ReadJson</span>(<span class="params"></span></span></span><br><span class="line"><span class="function"><span class="params">        JsonReader reader,</span></span></span><br><span class="line"><span class="function"><span class="params">        Type objectType,</span></span></span><br><span class="line"><span class="function"><span class="params">        <span class="built_in">object</span> existingValue,</span></span></span><br><span class="line"><span class="function"><span class="params">        JsonSerializer serializer</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> NotImplementedException();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> <span class="keyword">void</span> <span class="title">WriteJson</span>(<span class="params">JsonWriter writer, <span class="built_in">object</span> <span class="keyword">value</span>, JsonSerializer serializer</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="built_in">string</span> json = JsonHelper.ObjectToJson&lt;DateTime&gt;(Convert.ToDateTime(<span class="keyword">value</span>));</span><br><span class="line">        writer.WriteRawValue(json);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">internal</span> <span class="keyword">class</span> <span class="title">ByteJsonConverter</span> : <span class="title">JsonConverter</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">override</span> <span class="built_in">bool</span> CanRead</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span> &#123; <span class="keyword">return</span> <span class="literal">false</span>; &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">override</span> <span class="built_in">bool</span> CanWrite</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span> &#123; <span class="keyword">return</span> <span class="literal">true</span>; &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> <span class="built_in">bool</span> <span class="title">CanConvert</span>(<span class="params">Type objectType</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">typeof</span>(<span class="built_in">byte</span>[]) == objectType;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> <span class="built_in">object</span> <span class="title">ReadJson</span>(<span class="params"></span></span></span><br><span class="line"><span class="function"><span class="params">        JsonReader reader,</span></span></span><br><span class="line"><span class="function"><span class="params">        Type objectType,</span></span></span><br><span class="line"><span class="function"><span class="params">        <span class="built_in">object</span> existingValue,</span></span></span><br><span class="line"><span class="function"><span class="params">        JsonSerializer serializer</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> NotImplementedException();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> <span class="keyword">void</span> <span class="title">WriteJson</span>(<span class="params">JsonWriter writer, <span class="built_in">object</span> <span class="keyword">value</span>, JsonSerializer serializer</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        <span class="built_in">string</span> json = JsonHelper.ObjectToJson&lt;<span class="built_in">byte</span>[]&gt;(<span class="keyword">value</span> <span class="keyword">as</span> <span class="built_in">byte</span>[]);</span><br><span class="line">        writer.WriteRawValue(json);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/en-us/dotnet/api/system.io.filestream?view=netframework-4.8">system.io.filestream</a></p>
+<p><a target="_blank" rel="noopener" href="https://github.com/JamesNK/Newtonsoft.Json">Newtonsoft.Json</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/05/30/%E4%BD%BF%E7%94%A8NAudio%E5%B0%86MP3%E7%BC%96%E7%A0%81%E8%BD%ACG711/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +304,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-20 08:27:10" itemprop="dateModified" datetime="2021-04-20T08:27:10+00:00">2021-04-20</time>
+                <time title="修改时间：2021-04-21 09:24:47" itemprop="dateModified" datetime="2021-04-21T09:24:47+00:00">2021-04-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -289,7 +380,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-20 08:27:10" itemprop="dateModified" datetime="2021-04-20T08:27:10+00:00">2021-04-20</time>
+                <time title="修改时间：2021-04-21 09:24:47" itemprop="dateModified" datetime="2021-04-21T09:24:47+00:00">2021-04-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -369,7 +460,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-20 08:27:10" itemprop="dateModified" datetime="2021-04-20T08:27:10+00:00">2021-04-20</time>
+                <time title="修改时间：2021-04-21 09:24:47" itemprop="dateModified" datetime="2021-04-21T09:24:47+00:00">2021-04-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -467,7 +558,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-20 08:27:10" itemprop="dateModified" datetime="2021-04-20T08:27:10+00:00">2021-04-20</time>
+                <time title="修改时间：2021-04-21 09:24:47" itemprop="dateModified" datetime="2021-04-21T09:24:47+00:00">2021-04-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -576,7 +667,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-20 08:27:10" itemprop="dateModified" datetime="2021-04-20T08:27:10+00:00">2021-04-20</time>
+                <time title="修改时间：2021-04-21 09:24:47" itemprop="dateModified" datetime="2021-04-21T09:24:47+00:00">2021-04-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -723,7 +814,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-20 08:27:10" itemprop="dateModified" datetime="2021-04-20T08:27:10+00:00">2021-04-20</time>
+                <time title="修改时间：2021-04-21 09:24:47" itemprop="dateModified" datetime="2021-04-21T09:24:47+00:00">2021-04-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -838,7 +929,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-20 08:27:10" itemprop="dateModified" datetime="2021-04-20T08:27:10+00:00">2021-04-20</time>
+                <time title="修改时间：2021-04-21 09:24:47" itemprop="dateModified" datetime="2021-04-21T09:24:47+00:00">2021-04-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -924,7 +1015,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-20 08:27:10" itemprop="dateModified" datetime="2021-04-20T08:27:10+00:00">2021-04-20</time>
+                <time title="修改时间：2021-04-21 09:24:47" itemprop="dateModified" datetime="2021-04-21T09:24:47+00:00">2021-04-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1032,7 +1123,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-20 08:27:10" itemprop="dateModified" datetime="2021-04-20T08:27:10+00:00">2021-04-20</time>
+                <time title="修改时间：2021-04-21 09:24:47" itemprop="dateModified" datetime="2021-04-21T09:24:47+00:00">2021-04-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1144,7 +1235,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-20 08:27:10" itemprop="dateModified" datetime="2021-04-20T08:27:10+00:00">2021-04-20</time>
+                <time title="修改时间：2021-04-21 09:24:47" itemprop="dateModified" datetime="2021-04-21T09:24:47+00:00">2021-04-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1249,7 +1340,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-20 08:27:10" itemprop="dateModified" datetime="2021-04-20T08:27:10+00:00">2021-04-20</time>
+                <time title="修改时间：2021-04-21 09:24:47" itemprop="dateModified" datetime="2021-04-21T09:24:47+00:00">2021-04-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1355,7 +1446,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-20 08:27:10" itemprop="dateModified" datetime="2021-04-20T08:27:10+00:00">2021-04-20</time>
+                <time title="修改时间：2021-04-21 09:24:47" itemprop="dateModified" datetime="2021-04-21T09:24:47+00:00">2021-04-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1447,7 +1538,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-20 08:27:10" itemprop="dateModified" datetime="2021-04-20T08:27:10+00:00">2021-04-20</time>
+                <time title="修改时间：2021-04-21 09:24:47" itemprop="dateModified" datetime="2021-04-21T09:24:47+00:00">2021-04-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1529,7 +1620,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-20 08:27:10" itemprop="dateModified" datetime="2021-04-20T08:27:10+00:00">2021-04-20</time>
+                <time title="修改时间：2021-04-21 09:24:47" itemprop="dateModified" datetime="2021-04-21T09:24:47+00:00">2021-04-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1558,84 +1649,6 @@
 <p><a target="_blank" rel="noopener" href="https://aspnetboilerplate.com/Pages/Documents">https://aspnetboilerplate.com/Pages/Documents</a></p>
 <p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/1zhk/p/5268054.html">ABP源码分析一：整体项目结构及目录 </a></p>
 
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/04/25/WCF%E6%8E%A5%E5%8F%A3%E6%97%B6%E9%97%B4%E7%B1%BB%E5%9E%8B%E5%BA%8F%E5%88%97%E5%8C%96%E9%97%AE%E9%A2%98/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/04/25/WCF%E6%8E%A5%E5%8F%A3%E6%97%B6%E9%97%B4%E7%B1%BB%E5%9E%8B%E5%BA%8F%E5%88%97%E5%8C%96%E9%97%AE%E9%A2%98/" class="post-title-link" itemprop="url">WCF接口时间类型序列化问题</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-04-25 13:30:37" itemprop="dateCreated datePublished" datetime="2019-04-25T13:30:37+00:00">2019-04-25</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-20 08:27:10" itemprop="dateModified" datetime="2021-04-20T08:27:10+00:00">2021-04-20</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/WCF%E6%97%B6%E9%97%B4%E7%B1%BB%E5%9E%8B%E5%BA%8F%E5%88%97%E5%8C%96/" itemprop="url" rel="index"><span itemprop="name">WCF时间类型序列化</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="WCF接口时间类型序列化问题"><a href="#WCF接口时间类型序列化问题" class="headerlink" title="WCF接口时间类型序列化问题"></a>WCF接口时间类型序列化问题</h1><p>使用 <code>Json.Net</code> 序列化或者反序列化 <code>DateTime</code> 类型时，通过设置 <code>JsonSerializerSettings</code> 对象，即可支持 WCF 时间类型，示例如下：</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">WCFModel</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> DateTime CreatedDate &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">WCFDateTimeConvert</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    WCFModel p = <span class="keyword">new</span> WCFModel &#123; CreatedDate = TimeZone.CurrentTimeZone.ToLocalTime(DateTime.UtcNow) &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> settings = <span class="keyword">new</span> JsonSerializerSettings</span><br><span class="line">    &#123;</span><br><span class="line">        DateFormatHandling = DateFormatHandling.MicrosoftDateFormat</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">string</span> json = JsonConvert.SerializeObject(p, settings);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> dObj = JsonConvert.DeserializeObject&lt;WCFModel&gt;(json, settings);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>具体实现源码路径 <code>Newtonsoft.Json\Utilities</code> 第635行：</p>
-<p>Json.Net 源码地址：<a target="_blank" rel="noopener" href="https://github.com/JamesNK/Newtonsoft.Json/blob/master/Src/Newtonsoft.Json/Utilities/DateTimeUtils.cs">https://github.com/JamesNK/Newtonsoft.Json/blob/master/Src/Newtonsoft.Json/Utilities/DateTimeUtils.cs</a></p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">internal</span> <span class="keyword">static</span> <span class="built_in">int</span> <span class="title">WriteDateTimeString</span>(<span class="params"><span class="built_in">char</span>[] chars, <span class="built_in">int</span> start, DateTime <span class="keyword">value</span>, TimeSpan? offset, DateTimeKind kind, DateFormatHandling format</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">int</span> pos = start;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (format == DateFormatHandling.MicrosoftDateFormat)</span><br><span class="line">    &#123;</span><br><span class="line">        TimeSpan o = offset ?? <span class="keyword">value</span>.GetUtcOffset();</span><br><span class="line"></span><br><span class="line">        <span class="built_in">long</span> javaScriptTicks = ConvertDateTimeToJavaScriptTicks(<span class="keyword">value</span>, o);</span><br><span class="line"></span><br><span class="line">        <span class="string">@&quot;\/Date(&quot;</span>.CopyTo(<span class="number">0</span>, chars, pos, <span class="number">7</span>);</span><br><span class="line">        pos += <span class="number">7</span>;</span><br><span class="line"></span><br><span class="line">        <span class="built_in">string</span> ticksText = javaScriptTicks.ToString(CultureInfo.InvariantCulture);</span><br><span class="line">        ticksText.CopyTo(<span class="number">0</span>, chars, pos, ticksText.Length);</span><br><span class="line">        pos += ticksText.Length;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">switch</span> (kind)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">case</span> DateTimeKind.Unspecified:</span><br><span class="line">                <span class="keyword">if</span> (<span class="keyword">value</span> != DateTime.MaxValue &amp;&amp; <span class="keyword">value</span> != DateTime.MinValue)</span><br><span class="line">                &#123;</span><br><span class="line">                    pos = WriteDateTimeOffset(chars, pos, o, format);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            <span class="keyword">case</span> DateTimeKind.Local:</span><br><span class="line">                pos = WriteDateTimeOffset(chars, pos, o, format);</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="string">@&quot;)\/&quot;</span>.CopyTo(<span class="number">0</span>, chars, pos, <span class="number">3</span>);</span><br><span class="line">        pos += <span class="number">3</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">    &#123;</span><br><span class="line">        pos = WriteDefaultIsoDate(chars, pos, <span class="keyword">value</span>);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">switch</span> (kind)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">case</span> DateTimeKind.Local:</span><br><span class="line">                pos = WriteDateTimeOffset(chars, pos, offset ?? <span class="keyword">value</span>.GetUtcOffset(), format);</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            <span class="keyword">case</span> DateTimeKind.Utc:</span><br><span class="line">                chars[pos++] = <span class="string">&#x27;Z&#x27;</span>;</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> pos;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
       
     </div>
 
@@ -1719,7 +1732,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">391</span>
+          <span class="site-state-item-count">392</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
