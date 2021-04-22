@@ -182,6 +182,137 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2017/06/02/CentOS7%20&%20Docker%20Jenkins%E5%AE%89%E8%A3%85/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2017/06/02/CentOS7%20&%20Docker%20Jenkins%E5%AE%89%E8%A3%85/" class="post-title-link" itemprop="url">CentOS7 & Docker Jenkins安装</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2017-06-02 10:20:16" itemprop="dateCreated datePublished" datetime="2017-06-02T10:20:16+00:00">2017-06-02</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-22 10:01:00" itemprop="dateModified" datetime="2021-04-22T10:01:00+00:00">2021-04-22</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Jenkins/" itemprop="url" rel="index"><span itemprop="name">Jenkins</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="CentOS7-jenkins配置-Net-Core持续部署"><a href="#CentOS7-jenkins配置-Net-Core持续部署" class="headerlink" title="CentOS7 jenkins配置.Net Core持续部署"></a>CentOS7 jenkins配置.Net Core持续部署</h1><h2 id="jenkins安装"><a href="#jenkins安装" class="headerlink" title="jenkins安装"></a>jenkins安装</h2><p><a target="_blank" rel="noopener" href="https://jenkins.io/download/" title="jenkins官网">Jenkins官网</a></p>
+<h3 id="1-创建Dockerfile"><a href="#1-创建Dockerfile" class="headerlink" title="1.创建Dockerfile"></a>1.创建Dockerfile</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 使用touch创建空文件</span></span><br><span class="line">sudo touch Dockerfile</span><br><span class="line">sudo vim Dockerfile</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-填充一下内容"><a href="#2-填充一下内容" class="headerlink" title="2.填充一下内容"></a>2.填充一下内容</h3><p>注：提前更新Docker镜像源</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">FROM</span> jenkins</span><br><span class="line"></span><br><span class="line"><span class="keyword">USER</span> root</span><br><span class="line"><span class="comment">#更新源并安装缺少的包</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> apt-get update &amp;&amp; apt-get install -y libltdl7 &amp;&amp; apt-get update</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 使 jenkins 运行 docker 不需要 sudo</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> groupadd -o -g 999 docker &amp;&amp; usermod -aG docker jenkins</span></span><br><span class="line"><span class="keyword">ARG</span> dockerGid=<span class="number">999</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> <span class="built_in">echo</span> <span class="string">&quot;docker:x:<span class="variable">$&#123;dockerGid&#125;</span>:jenkins&quot;</span> &gt;&gt; /etc/group</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 解决Docker时区问题</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> /bin/cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime &amp;&amp; <span class="built_in">echo</span> <span class="string">&#x27;Asia/Shanghai&#x27;</span> &gt;/etc/timezone</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">USER</span> jenkins</span><br><span class="line"><span class="comment"># 解决时区问题</span></span><br><span class="line"><span class="keyword">ENV</span> JAVA_OPTS -Duser.timezone=Asia/Shanghai</span><br><span class="line"></span><br><span class="line"><span class="keyword">USER</span> root</span><br><span class="line"><span class="comment"># 安装 docker-compose 因为等下构建环境的需要</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> curl -L https://github.com/docker/compose/releases/download/1.21.1/docker-compose-`uname -s`-`uname -m` -o /usr/<span class="built_in">local</span>/bin/docker-compose</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> chmod +x /usr/<span class="built_in">local</span>/bin/docker-compose</span></span><br></pre></td></tr></table></figure>
+
+<p>注：可能出现</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost Desktop]<span class="comment"># curl -L https://github.com/docker/compose/releases/download/1.16.1/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose</span></span><br><span class="line">  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current</span><br><span class="line">                                 Dload  Upload   Total   Spent    Left  Speed</span><br><span class="line">  <span class="number">0</span>     <span class="number">0</span>    <span class="number">0</span>     <span class="number">0</span>    <span class="number">0</span>     <span class="number">0</span>      <span class="number">0</span>      <span class="number">0</span> --:--:-- --:--:-- --:--:--     <span class="number">0</span></span><br><span class="line">curl: (<span class="number">35</span>) Peer reports incompatible or unsupported protocol version.</span><br></pre></td></tr></table></figure>
+
+<p>需要运行以下命令更新：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum update nss curl nss-util nspr</span><br></pre></td></tr></table></figure>
+
+<p>等待时间可能有点长，请耐心等待</p>
+<p>运行结果：</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost Desktop]<span class="comment"># docker build . -t auto-jenkins</span></span><br><span class="line">Sending build context to Docker daemon   <span class="number">2.56</span>kB</span><br><span class="line">Step <span class="number">1</span>/<span class="number">8</span> : <span class="keyword">FROM</span> jenkins</span><br><span class="line"> ---&gt; <span class="number">7</span>b210b6c238a</span><br><span class="line">Step <span class="number">2</span>/<span class="number">8</span> : <span class="keyword">USER</span> root</span><br><span class="line"> ---&gt; Using cache</span><br><span class="line"> ---&gt; <span class="number">9</span>ce15bde1415</span><br><span class="line">Step <span class="number">3</span>/<span class="number">8</span> : <span class="keyword">RUN</span><span class="bash"> apt-get update &amp;&amp; apt-get install -y libltdl7 &amp;&amp; apt-get update</span></span><br><span class="line"> ---&gt; Using cache</span><br><span class="line"> ---&gt; <span class="number">3</span>d428282a736</span><br><span class="line">Step <span class="number">4</span>/<span class="number">8</span> : <span class="keyword">RUN</span><span class="bash"> groupadd -o -g 999 docker &amp;&amp; usermod -aG docker jenkins</span></span><br><span class="line"> ---&gt; Using cache</span><br><span class="line"> ---&gt; <span class="number">94</span>f6440d5fae</span><br><span class="line">Step <span class="number">5</span>/<span class="number">8</span> : <span class="keyword">ARG</span> dockerGid=<span class="number">999</span></span><br><span class="line"> ---&gt; Using cache</span><br><span class="line"> ---&gt; <span class="number">3</span>cce8ba121fe</span><br><span class="line">Step <span class="number">6</span>/<span class="number">8</span> : <span class="keyword">RUN</span><span class="bash"> <span class="built_in">echo</span> <span class="string">&quot;docker:x:<span class="variable">$&#123;dockerGid&#125;</span>:jenkins&quot;</span> &gt;&gt; /etc/group</span></span><br><span class="line"> ---&gt; Using cache</span><br><span class="line"> ---&gt; a0f4fdd6cf3f</span><br><span class="line">Step <span class="number">7</span>/<span class="number">8</span> : <span class="keyword">RUN</span><span class="bash"> curl -L https://github.com/docker/compose/releases/download/1.21.1/docker-compose-`uname -s`-`uname -m` -o /usr/<span class="built_in">local</span>/bin/docker-compose</span></span><br><span class="line"> ---&gt; Running in fcdb1deaf0bf</span><br><span class="line">  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current</span><br><span class="line">                                 Dload  Upload   Total   Spent    Left  Speed</span><br><span class="line"><span class="number">100</span>   <span class="number">617</span>    <span class="number">0</span>   <span class="number">617</span>    <span class="number">0</span>     <span class="number">0</span>    <span class="number">226</span>      <span class="number">0</span> --:--:--  <span class="number">0</span>:<span class="number">00</span>:<span class="number">02</span> --:--:--   <span class="number">226</span></span><br><span class="line"><span class="number">100</span> <span class="number">10.3</span>M  <span class="number">100</span> <span class="number">10.3</span>M    <span class="number">0</span>     <span class="number">0</span>   <span class="number">591</span>k      <span class="number">0</span>  <span class="number">0</span>:<span class="number">00</span>:<span class="number">17</span>  <span class="number">0</span>:<span class="number">00</span>:<span class="number">17</span> --:--:-- <span class="number">1622</span>k</span><br><span class="line">Removing intermediate container fcdb1deaf0bf</span><br><span class="line"> ---&gt; <span class="number">1909</span>e02c39da</span><br><span class="line">Step <span class="number">8</span>/<span class="number">8</span> : <span class="keyword">RUN</span><span class="bash"> chmod +x /usr/<span class="built_in">local</span>/bin/docker-compose</span></span><br><span class="line"> ---&gt; Running in <span class="number">409184886</span>de5</span><br><span class="line">Removing intermediate container <span class="number">409184886</span>de5</span><br><span class="line"> ---&gt; b0f1c2c53301</span><br><span class="line">Successfully built b0f1c2c53301</span><br><span class="line">Successfully tagged auto-jenkins:latest</span><br></pre></td></tr></table></figure>
+
+<p>出现以上 Successfully 内容代表安装Jenkins成功</p>
+<h2 id="启动Jenkins"><a href="#启动Jenkins" class="headerlink" title="启动Jenkins"></a>启动Jenkins</h2><p>需要先创建一个Jenkins的配置目录，并且挂载到docker 里的Jenkins目录下</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mkdir -p &#x2F;var&#x2F;jenkins_home</span><br></pre></td></tr></table></figure>
+
+<p>运行</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">docker <span class="keyword">run</span><span class="bash"> --name jenkins -p 8080:8080 -p 50000:50000 \</span></span><br><span class="line"><span class="bash">    -v /var/run/docker.sock:/var/run/docker.sock \</span></span><br><span class="line"><span class="bash">    -v $(<span class="built_in">which</span> docker):/bin/docker \</span></span><br><span class="line"><span class="bash">    -v /var/jenkins_home:/var/jenkins_home \</span></span><br><span class="line"><span class="bash">    -d auto-jenkins</span></span><br></pre></td></tr></table></figure>
+
+<p>第一行构建一个名称为jenkins的容器,需要使用的 8080 跟 50000 端口,-p 是容器运行开放端口</p>
+<p>第二行将宿主机上的 docker.sock 挂载到容器中的相应位置，使得容器中的 docker cli 能跟宿主机的 docker 通信</p>
+<p>第三行将宿主机上面的 docker 命令行工具挂载到容器中，使 jenkins 用户能够执行 docker 命令</p>
+<p>第四行挂载我们之前创建的配置文件存放目录到 jenkins 用户的 home（对的，jenkins 用户的 home 目录在 /var 下面）,建立宿主机的配置目录，挂载进docker容器里，这样容器里的Jenkins配置目录文件就会映射出来</p>
+<p>第五行：使用auto-jenkins Image 并且后台启动</p>
+<p>运行完这条指令后，出现一串很长的字符串以后，我们的jenkins已经成功启动，可以访问本机的 8080 端口来登录 Jenkins</p>
+<p>通过命令<code>docker ps</code>查看运行的镜像</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost Desktop]<span class="comment"># docker ps</span></span><br><span class="line">CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                                              NAMES</span><br><span class="line"><span class="number">0</span>c63f3ce79b5        auto-jenkins        <span class="string">&quot;/bin/tini -- /usr/l…&quot;</span>   <span class="number">12</span> seconds ago      Up <span class="number">5</span> seconds        <span class="number">0.0</span>.<span class="number">0.0</span>:<span class="number">8080</span>-&gt;<span class="number">8080</span>/tcp, <span class="number">0.0</span>.<span class="number">0.0</span>:<span class="number">50000</span>-&gt;<span class="number">50000</span>/tcp   jenkins</span><br></pre></td></tr></table></figure>
+
+<p>删除docker</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker rm -f jenkins</span><br></pre></td></tr></table></figure>
+
+<h2 id="配置jenkins"><a href="#配置jenkins" class="headerlink" title="配置jenkins"></a>配置jenkins</h2><p>进入容器内</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker exec -it jenkins /bin/bash</span><br></pre></td></tr></table></figure>
+
+<p>查看密码：</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /var/jenkins_home/secrets/initialAdminPassword</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">oot@localhost Desktop]# docker exec -it jenkins &#x2F;bin&#x2F;bash</span><br><span class="line">root@0c63f3ce79b5:&#x2F;# cat &#x2F;var&#x2F;jenkins_home&#x2F;secrets&#x2F;initialAdminPassword</span><br><span class="line">fc648ef222a54ac690bec031834885f2</span><br><span class="line">root@0c63f3ce79b5:&#x2F;# exit</span><br><span class="line">exit</span><br></pre></td></tr></table></figure>
+
+<p>复制输出的内容，粘贴到Administrator password，输入 exit 退出容器，此时进行下一步你会看到此界面，点击 Install suggested plugins</p>
+<p>重启：</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker restart jenkins</span><br></pre></td></tr></table></figure>
+
+<p>最后，安装推荐插件</p>
+<p>忘记管理员密码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost Desktop]# cd &#x2F;var&#x2F;jenkins_home&#x2F;users&#x2F;admin&#x2F;</span><br><span class="line">[root@localhost admin]# ls</span><br><span class="line">config.xml</span><br><span class="line">[root@localhost admin]# vim config.xml</span><br><span class="line">[root@localhost admin]# docker restart jenkins</span><br><span class="line">jenkins</span><br><span class="line">[root@localhost admin]#</span><br></pre></td></tr></table></figure>
+
+<p>把<code>&lt;passwordHash&gt;</code>节点的内容（图中黑色的那一串）换成</p>
+<p><code>#jbcrypt:$2a$10$DdaWzN64JgUtLdvxWIflcuQu2fgrrMSAMabF5TSrGK5nXitqK9ZMS</code></p>
+<p>重启，默认密码为：111111</p>
+<p>参考网址：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/LongJiangXie/p/7517909.html">http://www.cnblogs.com/LongJiangXie/p/7517909.html</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/stulzq/p/8627360.html">http://www.cnblogs.com/stulzq/p/8627360.html</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/JacZhu/p/6814848.html">http://www.cnblogs.com/JacZhu/p/6814848.html</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2017/05/31/zookeeper%E7%9A%84%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE%EF%BC%88%E5%8D%95%E6%9C%BA%E5%92%8C%E9%9B%86%E7%BE%A4%EF%BC%89/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +344,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-22 05:59:52" itemprop="dateModified" datetime="2021-04-22T05:59:52+00:00">2021-04-22</time>
+                <time title="修改时间：2021-04-22 10:01:00" itemprop="dateModified" datetime="2021-04-22T10:01:00+00:00">2021-04-22</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -376,7 +507,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-22 05:59:52" itemprop="dateModified" datetime="2021-04-22T05:59:52+00:00">2021-04-22</time>
+                <time title="修改时间：2021-04-22 10:01:00" itemprop="dateModified" datetime="2021-04-22T10:01:00+00:00">2021-04-22</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -496,7 +627,7 @@ ab -n 100 -H “Cookie: Key1=Value1; Key2=Value2” http://baidu.com/
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-22 05:59:52" itemprop="dateModified" datetime="2021-04-22T05:59:52+00:00">2021-04-22</time>
+                <time title="修改时间：2021-04-22 10:01:00" itemprop="dateModified" datetime="2021-04-22T10:01:00+00:00">2021-04-22</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -578,7 +709,7 @@ ab -n 100 -H “Cookie: Key1=Value1; Key2=Value2” http://baidu.com/
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-22 05:59:52" itemprop="dateModified" datetime="2021-04-22T05:59:52+00:00">2021-04-22</time>
+                <time title="修改时间：2021-04-22 10:01:00" itemprop="dateModified" datetime="2021-04-22T10:01:00+00:00">2021-04-22</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -659,7 +790,7 @@ ab -n 100 -H “Cookie: Key1=Value1; Key2=Value2” http://baidu.com/
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-22 05:59:52" itemprop="dateModified" datetime="2021-04-22T05:59:52+00:00">2021-04-22</time>
+                <time title="修改时间：2021-04-22 10:01:00" itemprop="dateModified" datetime="2021-04-22T10:01:00+00:00">2021-04-22</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -766,7 +897,7 @@ ab -n 100 -H “Cookie: Key1=Value1; Key2=Value2” http://baidu.com/
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-22 05:59:52" itemprop="dateModified" datetime="2021-04-22T05:59:52+00:00">2021-04-22</time>
+                <time title="修改时间：2021-04-22 10:01:00" itemprop="dateModified" datetime="2021-04-22T10:01:00+00:00">2021-04-22</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -870,7 +1001,7 @@ ab -n 100 -H “Cookie: Key1=Value1; Key2=Value2” http://baidu.com/
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-22 05:59:52" itemprop="dateModified" datetime="2021-04-22T05:59:52+00:00">2021-04-22</time>
+                <time title="修改时间：2021-04-22 10:01:00" itemprop="dateModified" datetime="2021-04-22T10:01:00+00:00">2021-04-22</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1044,7 +1175,7 @@ ab -n 100 -H “Cookie: Key1=Value1; Key2=Value2” http://baidu.com/
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-22 05:59:52" itemprop="dateModified" datetime="2021-04-22T05:59:52+00:00">2021-04-22</time>
+                <time title="修改时间：2021-04-22 10:01:00" itemprop="dateModified" datetime="2021-04-22T10:01:00+00:00">2021-04-22</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1124,7 +1255,7 @@ ab -n 100 -H “Cookie: Key1=Value1; Key2=Value2” http://baidu.com/
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-22 05:59:52" itemprop="dateModified" datetime="2021-04-22T05:59:52+00:00">2021-04-22</time>
+                <time title="修改时间：2021-04-22 10:01:00" itemprop="dateModified" datetime="2021-04-22T10:01:00+00:00">2021-04-22</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1261,7 +1392,7 @@ ab -n 100 -H “Cookie: Key1=Value1; Key2=Value2” http://baidu.com/
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-22 05:59:52" itemprop="dateModified" datetime="2021-04-22T05:59:52+00:00">2021-04-22</time>
+                <time title="修改时间：2021-04-22 10:01:00" itemprop="dateModified" datetime="2021-04-22T10:01:00+00:00">2021-04-22</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1375,7 +1506,7 @@ ab -n 100 -H “Cookie: Key1=Value1; Key2=Value2” http://baidu.com/
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-22 05:59:52" itemprop="dateModified" datetime="2021-04-22T05:59:52+00:00">2021-04-22</time>
+                <time title="修改时间：2021-04-22 10:01:00" itemprop="dateModified" datetime="2021-04-22T10:01:00+00:00">2021-04-22</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1470,7 +1601,7 @@ ab -n 100 -H “Cookie: Key1=Value1; Key2=Value2” http://baidu.com/
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-22 05:59:52" itemprop="dateModified" datetime="2021-04-22T05:59:52+00:00">2021-04-22</time>
+                <time title="修改时间：2021-04-22 10:01:00" itemprop="dateModified" datetime="2021-04-22T10:01:00+00:00">2021-04-22</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1570,7 +1701,7 @@ ab -n 100 -H “Cookie: Key1=Value1; Key2=Value2” http://baidu.com/
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-22 05:59:52" itemprop="dateModified" datetime="2021-04-22T05:59:52+00:00">2021-04-22</time>
+                <time title="修改时间：2021-04-22 10:01:00" itemprop="dateModified" datetime="2021-04-22T10:01:00+00:00">2021-04-22</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1719,7 +1850,7 @@ ab -n 100 -H “Cookie: Key1=Value1; Key2=Value2” http://baidu.com/
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-22 05:59:52" itemprop="dateModified" datetime="2021-04-22T05:59:52+00:00">2021-04-22</time>
+                <time title="修改时间：2021-04-22 10:01:00" itemprop="dateModified" datetime="2021-04-22T10:01:00+00:00">2021-04-22</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1803,88 +1934,6 @@ ab -n 100 -H “Cookie: Key1=Value1; Key2=Value2” http://baidu.com/
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2017/02/17/Host%20'xx.xx.xx.xx'%20is%20not%20allowed%20to%20connect%20to%20this%20MySQL%20server/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/02/17/Host%20'xx.xx.xx.xx'%20is%20not%20allowed%20to%20connect%20to%20this%20MySQL%20server/" class="post-title-link" itemprop="url">Host  'xx.xx.xx.xx' is not allowed to connect to this MySQL server</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2017-02-17 14:33:37" itemprop="dateCreated datePublished" datetime="2017-02-17T14:33:37+00:00">2017-02-17</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-22 05:59:52" itemprop="dateModified" datetime="2021-04-22T05:59:52+00:00">2021-04-22</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/MySql/" itemprop="url" rel="index"><span itemprop="name">MySql</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="Host-‘xx-xx-xx-xx’-is-not-allowed-to-connect-to-this-MySQL-server"><a href="#Host-‘xx-xx-xx-xx’-is-not-allowed-to-connect-to-this-MySQL-server" class="headerlink" title="Host  ‘xx.xx.xx.xx’ is not allowed to connect to this MySQL server"></a>Host  ‘xx.xx.xx.xx’ is not allowed to connect to this MySQL server</h1><p>注：需要在服务器登录mysql终端</p>
-<h3 id="改表法"><a href="#改表法" class="headerlink" title="改表法"></a>改表法</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; use mysql;</span><br><span class="line">Reading table information for completion of table and column names</span><br><span class="line">You can turn off this feature to get a quicker startup with -A</span><br><span class="line"></span><br><span class="line">Database changed</span><br><span class="line">mysql&gt; update user set host &#x3D; &#39;%&#39; where user &#x3D; &#39;root&#39;;&#x2F;&#x2F;需要远程连接的用户</span><br><span class="line">mysql&gt; select host,user from user;</span><br><span class="line">+-----------+-----------+</span><br><span class="line">| host      | user      |</span><br><span class="line">+-----------+-----------+</span><br><span class="line">| %         | root      |</span><br><span class="line">| localhost | mysql     |</span><br><span class="line">| localhost | mysql.sys |</span><br><span class="line">+-----------+-----------+</span><br><span class="line">3 rows in set (0.00 sec)</span><br></pre></td></tr></table></figure>
-
-<h3 id="授权法"><a href="#授权法" class="headerlink" title="授权法"></a>授权法</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; GRANT ALL PRIVILEGES ON *.* TO &#39;mysql&#39;@&#39;%&#39; IDENTIFIED BY &#39;mypassword&#39; WITH GRANT OPTION; &#x2F;&#x2F;mysql 密码强度有验证；mypassword：密码</span><br><span class="line">Query OK, 0 rows affected, 1 warning (0.00 sec)</span><br><span class="line"></span><br><span class="line">mysql&gt; FLUSH   PRIVILEGES; &#x2F;&#x2F; 刷新</span><br><span class="line">Query OK, 0 rows affected (0.01 sec)</span><br></pre></td></tr></table></figure>
-
-<p>如果你想允许用户myuser从ip为192.168.1.6的主机连接到mysql服务器，并使用mypassword作为密码</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GRANT ALL PRIVILEGES ON *.* TO &#39;myuser&#39;@&#39;192.168.1.3&#39; IDENTIFIED BY &#39;mypassword&#39; WITH GRANT OPTION;</span><br><span class="line">FLUSH   PRIVILEGES;</span><br></pre></td></tr></table></figure>
-
-<p>如果你想允许用户myuser从ip为192.168.1.6的主机连接到mysql服务器的dk数据库，并使用mypassword作为密码</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GRANT ALL PRIVILEGES ON dk.* TO &#39;myuser&#39;@&#39;192.168.1.3&#39; IDENTIFIED BY &#39;mypassword&#39; WITH GRANT OPTION;</span><br><span class="line">FLUSH   PRIVILEGES;</span><br></pre></td></tr></table></figure>
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1954,7 +2003,7 @@ ab -n 100 -H “Cookie: Key1=Value1; Key2=Value2” http://baidu.com/
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">393</span>
+          <span class="site-state-item-count">394</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
