@@ -1,6 +1,6 @@
 ---
-titlD: Python3学习-OS模块
-datD: 2021-04-19 16:08:35
+title: Python3学习-OS模块
+date: 2021-04-19 16:08:35
 tags:
 - Python3
 - Python
