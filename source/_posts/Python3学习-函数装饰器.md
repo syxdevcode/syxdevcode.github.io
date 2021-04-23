@@ -35,7 +35,7 @@ print(hi())
 print(greet())
 #outputs: 'hi Python'
 ```
-
+<!--more-->
 ## 在函数中定义函数
 
 在函数中定义另外的函数。
