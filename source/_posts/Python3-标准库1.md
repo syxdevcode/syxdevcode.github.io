@@ -141,6 +141,8 @@ print(random.random())
 
 ## 日期和时间
 
+具体参考：{% post_link Python3-时间模块 %}
+
 ```py
 from datetime import date
 import datetime
