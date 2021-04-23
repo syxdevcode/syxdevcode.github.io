@@ -11,7 +11,7 @@ categories: Python3
 
 `*`  该位置接受任意多个非关键字（non-keyword）参数，在函数中将其转化为元组（1,2,3,4）
 
-`**` 该位置接受任意多个关键字（keyword）参数，在函数 `**` 位置上转化为词典  `[key:value, key:value]`
+`**` 该位置接受任意多个关键字（keyword）参数，在函数 `**` 位置上转化为字典  `[key:value, key:value]`
 <!--more-->
 ## 单星号变量
 
