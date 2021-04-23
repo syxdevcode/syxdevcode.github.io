@@ -376,26 +376,6 @@ result = addition_func(4)
 # Output: addition_func was called
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 参考：
 
 [Python 函数装饰器](https://www.runoob.com/w3cnote/python-func-decorators.html)
