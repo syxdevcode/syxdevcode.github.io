@@ -15,6 +15,7 @@ categories: Python3
 
 `epoch` 是时间开始的点，其值取决于平台。对于 Unix， `epoch` 是1970年1月1日00:00:00（UTC）。`time.gmtime(0)` 获取给定平台上的 `epoch` 。
 
+<!--more-->
 ### time.struct_time
 
 | 索引	|   属性   |	 值    |
