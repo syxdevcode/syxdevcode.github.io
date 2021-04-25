@@ -114,18 +114,261 @@ print(time.tzname)
 
 [datetime --- 基本的日期和时间类型](https://docs.python.org/zh-cn/3.10/library/datetime.html?highlight=datetime#module-datetime)
 
-datatime 模块重新封装了 time 模块，提供了更多接口，变得更加直观和易于调用。
+`datetime` 对象是包含来自 `date` 对象和 `time` 对象的所有信息的单一对象。
 
-date 类表示一个由年、月、日组成的日期，格式为：`datetime.date(year, month, day)`。
+`date` 类表示一个由年、月、日组成的日期，格式为：`datetime.date(year, month, day)`。
 
 * year 范围为：[1, 9999]
 * month 范围为：[1, 12]
 * day 范围为 [1, 给定年月对应的天数]。
 
+### date 对象
 
+**类方法**
 
-## calendar
+* **date.today()** 返回当前的本地日期。等价于 date.fromtimestamp(time.time())。
+* **date.fromtimestamp(timestamp)** 返回对应于 POSIX 时间戳的当地时间，例如 time.time() 返回的就是时间戳。
+* 
+
+```py
+import datetime
+import time
+
+print(datetime.date.today())
+print(datetime.date.fromtimestamp(time.time()))
+print(datetime.date.min)
+print(datetime.date.max)
+```
+
+**实例方法**
+
+* **date.replace(year=self.year, month=self.month, day=self.day)** 返回一个具有同样值的日期，除非通过任何关键字参数给出了某些形参的新值。
+* **date.timetuple()** 返回一个 time.struct_time，即 time.localtime() 所返回的类型。
+* **date.weekday()** 返回一个整数代表星期几，星期一为 0，星期天为 6
+* **isoweekday()**	返回一个整数代表星期几，星期一为 1，星期天为 7
+* **isocalendar()**	返回格式为 (year，month，day) 的元组
+* **isoformat()**	返回格式如 YYYY-MM-DD 的字符串
+* **date.ctime()** 返回一个表示日期的字符串:
+* **strftime(format)**	返回自定义格式的字符串
+
+实例1：
+
+```py
+>>> import time
+>>> from datetime import date
+>>> today = date.today()
+>>> today
+datetime.date(2007, 12, 5)
+>>> today == date.fromtimestamp(time.time())
+True
+>>> my_birthday = date(today.year, 6, 24)
+>>> if my_birthday < today:
+...     my_birthday = my_birthday.replace(year=today.year + 1)
+>>> my_birthday
+datetime.date(2008, 6, 24)
+>>> time_to_birthday = abs(my_birthday - today)
+>>> time_to_birthday.days
+202
+```
+
+实例2：
+
+```py
+import datetime
+
+td = datetime.date.today()
+print(td.replace(year=1993, month=1, day=24))
+print(td.timetuple())
+print(td.weekday())
+print(td.isoweekday())
+print(td.isocalendar())
+print(td.isoformat())
+print(td.strftime('%Y %m %d %H:%M:%S %f'))
+print(td.year)
+print(td.month)
+print(td.day)
+```
+
+### time 对象
+
+一个 time 对象代表某日的（本地）时间，它独立于任何特定日期，并可通过 tzinfo 对象来调整。
+
+class datetime.time(hour=0, minute=0, second=0, microsecond=0, tzinfo=None, *, fold=0)
+
+所有参数都是可选的。 tzinfo 可以是 None，或者是一个 tzinfo 子类的实例。 其余的参数必须是在下面范围内的整数：
+
+0 <= hour < 24,
+0 <= minute < 60,
+0 <= second < 60,
+0 <= microsecond < 1000000,
+fold in [0, 1].
+
+实例方法:
+
+* **isoformat()**	返回 HH:MM:SS 格式的字符串
+* **replace(hour, minute, second, microsecond, tzinfo, * fold=0)**	创建一个新的时间对象，用参数指定的时、分、秒、微秒代替原有对象中的属性
+* **strftime(format)**	返回自定义格式的字符串 
+
+实例
+
+```py
+import datetime
+
+t = datetime.time(10, 10, 10)
+print(t.isoformat())
+print(t.replace(hour=9, minute=9))
+print(t.strftime('%I:%M:%S %p'))
+print(t.hour)
+print(t.minute)
+print(t.second)
+print(t.microsecond)
+print(t.tzinfo)
+```
+
+### datetime 类
+
+datetime 包括了 date 与 time 的所有信息，格式为：datetime(year, month, day, hour=0, minute=0, second=0, microsecond=0, tzinfo=None, *, fold=0)，参数范围值参考 date 类与 time 类。
+
+类方法：
+
+* **today()**	返回当地的当前时间
+* **now(tz=None)**	类似于 today()，可选参数 tz 可指定时区
+* **utcnow()**	返回当前 UTC 时间
+* **fromtimestamp(timestamp, tz=None)**	根据时间戳返回对应时间
+* **utcfromtimestamp(timestamp)**	根据时间戳返回对应 UTC 时间
+* **combine(date, time)**	根据 date 和 time 返回对应时间
+
+实例：
+
+```py
+import datetime
+import time
+
+print(datetime.datetime.today())
+print(datetime.datetime.now())
+print(datetime.datetime.utcnow())
+print(datetime.datetime.fromtimestamp(time.time()))
+print(datetime.datetime.utcfromtimestamp(time.time()))
+print(datetime.datetime.combine(datetime.date(
+    2019, 12, 1), datetime.time(10, 10, 10)))
+print(datetime.datetime.min)
+print(datetime.datetime.max)
+```
+
+实例方法：
+
+* **date()**	返回具有同样 year,month,day 值的 date 对象
+* **time()**	返回具有同样 hour, minute, second, microsecond 和 fold 值的 time 对象
+replace(year, month, day=self.day, hour, minute, second, microsecond, tzinfo, * fold=0)	生成一个新的日期对象，用参数指定的年，月，日，时，分，秒…代替原有对象中的属性
+* **weekday()**	返回一个整数代表星期几，星期一为 0，星期天为 6
+* **isoweekday()**	返回一个整数代表星期几，星期一为 1，星期天为 7
+* **isocalendar()**	返回格式为 (year，month，day) 的元组
+* **isoformat()**	返回一个以 ISO 8601 格式表示日期和时间的字符串 YYYY-MM-DDTHH:MM:SS.ffffff
+* **strftime(format)**	返回自定义格式的字符串
+
+```py
+import datetime
+
+td = datetime.datetime.today()
+print(td.date())
+print(td.time())
+print(td.replace(day=11, second=10))
+print(td.weekday())
+print(td.isoweekday())
+print(td.isocalendar())
+print(td.isoformat())
+print(td.strftime('%Y-%m-%d %H:%M:%S .%f'))
+print(td.year)
+print(td.month)
+print(td.month)
+print(td.hour)
+print(td.minute)
+print(td.second)
+print(td.microsecond)
+print(td.tzinfo)
+```
+
+## calendar 模块
 
 参考：
 
 [calendar --- 日历相关函数](https://docs.python.org/zh-cn/3.10/library/calendar.html?highlight=calendar#module-calendar)
+
+### calendar类
+
+常用函数
+
+* **setfirstweekday(weekday)**	设置每一周的开始(0 表示星期一，6 表示星期天)
+* **firstweekday()**	返回当前设置的每星期的第一天的数值
+* **isleap(year)**	如果 year 是闰年则返回 True ,否则返回 False
+* **leapdays(y1, y2)**	返回 y1 至 y2 （包含 y1 和 y2 ）之间的闰年的数量
+* **weekday(year, month, day)**	返回指定日期的星期值
+* **monthrange(year, month)**	返回指定年份的指定月份第一天是星期几和这个月的天数
+* **month(theyear, themonth, w=0, l=0)**	返回月份日历
+* **prcal(year, w=0, l=0, c=6, m=3)**	返回年份日历
+* **iterweekdays()**	返回一个迭代器，迭代器的内容为一星期的数字
+* **itermonthdates(year, month)**	返回一个迭代器，迭代器的内容为年、月的日期
+* **itermonthdays(year, month)** 返回一个迭代器，迭代器的内容与 itermonthdates() 类似，为 year 年 month 月的日期，但不受 datetime.date 范围限制。
+
+实例：
+
+```py
+import calendar
+
+calendar.setfirstweekday(1)
+print(calendar.firstweekday())
+print(calendar.isleap(2021))
+print(calendar.leapdays(1993, 2021))
+print(calendar.weekday(2021, 11, 11))
+print(calendar.monthrange(2021, 5))
+print(calendar.month(2021, 5))
+print(calendar.prcal(2021))
+```
+
+实例2：
+
+```py
+from calendar import Calendar
+
+c = Calendar()
+print(list(c.iterweekdays()))
+for i in c.itermonthdates(2021, 4):
+    print(i)
+```
+
+### TextCalendar 类
+
+TextCalendar 为 Calendar子类，用来生成纯文本日历。
+
+实例方法：
+* **formatmonth(theyear, themonth, w=0, l=0)**	返回一个多行字符串来表示指定年、月的日历
+* **formatyear(theyear, w=2, l=1, c=6, m=3)**	返回一个 m 列日历，可选参数 w, l, 和 c 分别表示日期列数， 周的行数，和月之间的间隔
+* **prmonth(theyear, themonth, w=0, l=0)** 与 formatmonth() 方法一样，返回一个月的日历。
+* **pryear(theyear, w=2, l=1, c=6, m=3)** 与 formatyear() 方法一样，返回一整年的日历。
+
+```py
+from calendar import TextCalendar
+
+tc = TextCalendar()
+print(tc.formatmonth(2021, 5))
+print(tc.formatyear(2021))
+```
+
+### HTMLCalendar类
+
+`HTMLCalendar` 类可以生成 HTML 日历。
+
+实例方法：
+
+* **formatmonth(theyear, themonth, withyear=True)**	返回一个 HTML 表格作为指定年、月的日历
+* **formatyear(theyear, width=3)**	返回一个 HTML 表格作为指定年份的日历
+* **formatyearpage(theyear, width=3, css=‘calendar.css’, encoding=None)**	返回一个完整的 HTML 页面作为指定年份的日历 
+
+```py
+from calendar import HTMLCalendar
+
+hc = HTMLCalendar()
+print(hc.formatmonth(2021, 5))
+print(hc.formatyear(2021))
+print(hc.formatyearpage(2021))
+```
