@@ -182,6 +182,170 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/07/24/DotNet%E5%BC%82%E6%AD%A5APM%E6%A8%A1%E5%BC%8F%E4%B9%8BIAsyncResult%E5%92%8CAsyncCallback/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/07/24/DotNet%E5%BC%82%E6%AD%A5APM%E6%A8%A1%E5%BC%8F%E4%B9%8BIAsyncResult%E5%92%8CAsyncCallback/" class="post-title-link" itemprop="url">DotNet异步APM模式之IAsyncResult和AsyncCallback</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-07-24 14:21:17" itemprop="dateCreated datePublished" datetime="2018-07-24T14:21:17+00:00">2018-07-24</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/net%E5%BC%82%E6%AD%A5%E4%B8%8E%E5%B9%B6%E8%A1%8C/" itemprop="url" rel="index"><span itemprop="name">.net异步与并行</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>IAsyncResult 异步设计模式通过名为 BeginOperationName 和 EndOperationName 的两个方法来实现原同步方法的异步调用，如 FileStream 类提供了 BeginRead 和 EndRead 方法来从文件异步读取字节，它们是 Read 方法的异步版本。</p>
+<p>** Begin方法包含同步方法签名中的任何参数<strong>，此外还包含另外</strong> 两个参数<strong>：<br>** 一个AsyncCallback 委托 **<br>** 一个用户定义的状态对象</strong>。<br>委托用来调用回调方法，状态对象是用来向回调方法传递状态信息。该方法返回一个实现 IAsyncResult 接口的对象。</p>
+<p>End 方法用于结束异步操作并返回结果，因此包含同步方法签名中的 ref 和 out 参数，** 返回值类型也与同步方法相同<strong>。该方法还包括一个</strong> IAsyncResult** 参数，用于获取异步操作是否完成的信息，当然在使用时就必须传入对应的 Begin 方法返回的对象实例。</p>
+<p>开始异步操作后如果要阻止应用程序，可以直接调用 End 方法，这会阻止应用程序直到异步操作完成后再继续执行。也可以使用 IAsyncResult 的 AsyncWaitHandle 属性，调用其中的WaitOne等方法来阻塞线程。这两种方法的区别不大，只是前者必须一直等待而后者可以设置等待超时</p>
+<p>如果不阻止应用程序，则可以通过轮循 IAsyncResult 的 IsCompleted 状态来判断操作是否完成，或使用 AsyncCallback 委托来结束异步操作。<br>AsyncCallback 委托包含一个 IAsyncResult 的签名，回调方法内部再调用 End 方法来获取操作执行结果。</p>
+<p>代码：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">namespace</span> <span class="title">ConsoleApplication1</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">static</span> AsyncDemo demo = <span class="keyword">new</span> AsyncDemo();</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            <span class="comment">//bool state = false;</span></span><br><span class="line"></span><br><span class="line">            <span class="comment">//IAsyncResult ar = demo.BeginRun(&quot;zhangshan&quot;, new AsyncCallback(outPut), state);</span></span><br><span class="line"></span><br><span class="line">            <span class="comment">//ar.AsyncWaitHandle.WaitOne(1000, false);</span></span><br><span class="line"></span><br><span class="line">            IAsyncResult ar = demo.BeginRun(<span class="string">&quot;zhangshan&quot;</span>, <span class="literal">null</span>, <span class="literal">null</span>);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (ar.IsCompleted)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="built_in">string</span> demoName = demo.EndRun(ar);</span><br><span class="line">                Console.WriteLine(demoName);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">else</span></span><br><span class="line">            &#123;</span><br><span class="line">                Console.WriteLine(<span class="string">&quot;Sorry,can&#x27;t get demoName, the time is over&quot;</span>);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            System.Threading.Thread.Sleep(<span class="number">1000</span>);</span><br><span class="line"></span><br><span class="line">            Console.ReadKey();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">outPut</span>(<span class="params">IAsyncResult ar</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            <span class="built_in">bool</span> state = (<span class="built_in">bool</span>)ar.AsyncState;</span><br><span class="line">            <span class="built_in">string</span> demoName = demo.EndRun(ar);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (state)</span><br><span class="line">            &#123;</span><br><span class="line">                Console.WriteLine(demoName);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">else</span></span><br><span class="line">            &#123;</span><br><span class="line">                Console.WriteLine(demoName);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">class</span> <span class="title">AsyncDemo</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="built_in">delegate</span> <span class="built_in">string</span> <span class="title">runDelegate</span>(<span class="params"><span class="built_in">string</span> name</span>)</span>;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">private</span> runDelegate m_Delegate;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="title">AsyncDemo</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            m_Delegate = <span class="keyword">new</span> runDelegate(Run);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment"><span class="doctag">///</span> ﹤summary﹥  </span></span><br><span class="line">        <span class="comment"><span class="doctag">///</span> Synchronous method  </span></span><br><span class="line">        <span class="comment"><span class="doctag">///</span> ﹤/summary﹥  </span></span><br><span class="line">        <span class="comment"><span class="doctag">///</span> ﹤returns﹥﹤/returns﹥  </span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="built_in">string</span> <span class="title">Run</span>(<span class="params"><span class="built_in">string</span> name</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="string">&quot;My name is &quot;</span> + name;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">public</span> IAsyncResult <span class="title">BeginRun</span>(<span class="params"><span class="built_in">string</span> name, AsyncCallback callBack, Object stateObject</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            <span class="keyword">try</span></span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">return</span> m_Delegate.BeginInvoke(name, callBack, stateObject);</span><br><span class="line">            &#125;</span><br><span class="line">            catch (Exception e)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">throw</span> e;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="built_in">string</span> <span class="title">EndRun</span>(<span class="params">IAsyncResult ar</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            <span class="keyword">if</span> (ar == <span class="literal">null</span>)</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> NullReferenceException(<span class="string">&quot;Arggument ar can&#x27;t be null&quot;</span>);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">try</span></span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">return</span> m_Delegate.EndInvoke(ar);</span><br><span class="line">            &#125;</span><br><span class="line">            catch (Exception e)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">throw</span> e;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://developer.51cto.com/art/200908/145362.htm">C#异步编程模式IAsyncResult浅析</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/powertoolsteam/article/details/6284035">使用 IAsyncResult 进行 .NET 异步编程</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/panjun-Donet/archive/2009/03/03/1284700.html">异步编程(AsyncCallback委托,IAsyncResult接口,BeginInvoke方法,EndInvoke方法的使用小总结)</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/07/20/RabbitMQ%E7%BB%84%E4%BB%B6EasyNetQ%E4%BD%BF%E7%94%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/07/20/RabbitMQ%E7%BB%84%E4%BB%B6EasyNetQ%E4%BD%BF%E7%94%A8/" class="post-title-link" itemprop="url">RabbitMQ组件EasyNetQ使用</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-07-20 09:43:06" itemprop="dateCreated datePublished" datetime="2018-07-20T09:43:06+00:00">2018-07-20</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/EasyNetQ/" itemprop="url" rel="index"><span itemprop="name">EasyNetQ</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="RabbitMQ组件EasyNetQ使用"><a href="#RabbitMQ组件EasyNetQ使用" class="headerlink" title="RabbitMQ组件EasyNetQ使用"></a>RabbitMQ组件EasyNetQ使用</h1><p>代码：<a target="_blank" rel="noopener" href="https://github.com/syxdevcode/RabbitMqDemo.git">https://github.com/syxdevcode/RabbitMqDemo.git</a></p>
+<p>官方文档：<a target="_blank" rel="noopener" href="https://github.com/EasyNetQ/EasyNetQ/wiki/Quick-Start">https://github.com/EasyNetQ/EasyNetQ/wiki/Quick-Start</a></p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/panzi/p/6337568.html">.NET操作RabbitMQ组件EasyNetQ使用中文简版文档</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/edisonchou/p/aspnetcore_easynetq_basicdemo_foundation.html">.NET Core微服务之基于EasyNetQ使用RabbitMQ消息队列</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/focus-lei/p/9121095.html">.net core使用EasyNetQ做EventBus</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/07/17/Moq%E6%B5%8B%E8%AF%95-Net-Core%E5%BA%94%E7%94%A8/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +377,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -294,7 +458,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -485,7 +649,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -570,7 +734,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -694,7 +858,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -926,7 +1090,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1127,7 +1291,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1227,7 +1391,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1310,7 +1474,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1470,7 +1634,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1623,7 +1787,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1793,7 +1957,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2048,7 +2212,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2087,210 +2251,6 @@
 <p><a target="_blank" rel="noopener" href="https://www.consul.io/docs/guides/leader-election.html">https://www.consul.io/docs/guides/leader-election.html</a></p>
 <p><a target="_blank" rel="noopener" href="https://www.consul.io/api/kv.html">https://www.consul.io/api/kv.html</a></p>
 <p><a target="_blank" rel="noopener" href="http://blog.didispace.com/spring-cloud-consul-lock-and-semphore/">基于Consul的分布式锁实现</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/06/13/%E4%B8%80%E8%87%B4%E6%80%A7%E5%93%88%E5%B8%8C%E7%AE%97%E6%B3%95-consistent-hashing/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/06/13/%E4%B8%80%E8%87%B4%E6%80%A7%E5%93%88%E5%B8%8C%E7%AE%97%E6%B3%95-consistent-hashing/" class="post-title-link" itemprop="url">一致性哈希算法 consistent hashing</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-06-13 10:19:39" itemprop="dateCreated datePublished" datetime="2018-06-13T10:19:39+00:00">2018-06-13</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F/" itemprop="url" rel="index"><span itemprop="name">分布式</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="一致性哈希算法-consistent-hashing"><a href="#一致性哈希算法-consistent-hashing" class="headerlink" title="一致性哈希算法 consistent hashing"></a>一致性哈希算法 consistent hashing</h1><p>参考：<a target="_blank" rel="noopener" href="http://www.zsythink.net/archives/1182">白话解析：一致性哈希算法 consistent hashing</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/06/12/%E7%BC%93%E5%AD%98%E5%87%BB%E7%A9%BF%EF%BC%8C%E5%A4%B1%E6%95%88%E4%BB%A5%E5%8F%8A%E7%83%AD%E7%82%B9key/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/06/12/%E7%BC%93%E5%AD%98%E5%87%BB%E7%A9%BF%EF%BC%8C%E5%A4%B1%E6%95%88%E4%BB%A5%E5%8F%8A%E7%83%AD%E7%82%B9key/" class="post-title-link" itemprop="url">缓存击穿，失效以及热点key</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-06-12 14:41:31" itemprop="dateCreated datePublished" datetime="2018-06-12T14:41:31+00:00">2018-06-12</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E7%BC%93%E5%AD%98/" itemprop="url" rel="index"><span itemprop="name">缓存</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="缓存击穿"><a href="#缓存击穿" class="headerlink" title="缓存击穿"></a>缓存击穿</h2><p>缓存一般是Key，value方式存在，当某一个Key不存在时会查询数据库，假如这个Key，一直不存在，则会频繁的请求数据库，对数据库造成访问压力。</p>
-<h3 id="1、使用互斥锁"><a href="#1、使用互斥锁" class="headerlink" title="1、使用互斥锁"></a>1、使用互斥锁</h3><p>在根据key获得的value值为空时，先锁上，再从数据库加载，加载完毕，释放锁。若其他线程发现获取锁失败，则睡眠50ms后重试。</p>
-<p>当通过某一个key去查询数据的时候，如果对应在数据库中的数据都不存在（不管是数据不存在，还是系统故障），我们将此key对应的value设置为一个默认的值，比如“NULL”，并设置一个缓存的失效时间，它的过期时间会很短，最长不超过五分钟。这时在缓存失效之前，所有通过此key的访问都被缓存挡住了。后面如果此key对应的数据在DB中存在时，缓存失效之后，通过此key再去访问数据，就能拿到新的value了。</p>
-<p>至于锁的类型，单机环境用并发包的Lock类型就行，集群环境则使用分布式锁( redis的setnx)</p>
-<p>** 优点**</p>
-<p>思路简单<br>保证一致性</p>
-<p>** 缺点**</p>
-<p>代码复杂度增大<br>存在死锁的风险</p>
-<p>** SETNX语法**</p>
-<p>SETNX key value</p>
-<p>将 key 的值设为 value ，当且仅当 key 不存在。</p>
-<p>若给定的 key 已经存在，则 SETNX 不做任何动作。</p>
-<p>SETNX 是『SET if Not eXists』(如果不存在，则 SET)的简写。</p>
-<p>可用版本：&gt;= 1.0.0</p>
-<p>时间复杂度： O(1)</p>
-<p>返回值： 设置成功，返回 1。设置失败，返回 0 。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">172.19.0.2:6380&gt; EXISTS job</span><br><span class="line">(integer) 0</span><br><span class="line">172.19.0.2:6380&gt; setnx job &quot;programmer&quot;</span><br><span class="line">(integer) 1</span><br><span class="line">172.19.0.2:6380&gt; setnx job &quot;code-farmer&quot;</span><br><span class="line">(integer) 0</span><br><span class="line">172.19.0.2:6380&gt; get job</span><br><span class="line">&quot;programmer&quot;</span><br></pre></td></tr></table></figure>
-
-<p>.net 代码</p>
-<p>参考：<a target="_blank" rel="noopener" href="http://www.cnblogs.com/yaoshangjin/p/7456378.html">http://www.cnblogs.com/yaoshangjin/p/7456378.html</a></p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;summary&gt;</span></span></span><br><span class="line"><span class="comment"><span class="doctag">///</span> 分布式锁</span></span><br><span class="line"><span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;/summary&gt;</span></span></span><br><span class="line"><span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;param name=&quot;resource&quot;&gt;</span>The thing we are locking on<span class="doctag">&lt;/param&gt;</span></span></span><br><span class="line"><span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;param name=&quot;expirationTime&quot;&gt;</span>The time after which the lock will automatically be expired by Redis<span class="doctag">&lt;/param&gt;</span></span></span><br><span class="line"><span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;param name=&quot;action&quot;&gt;</span>Action to be performed with locking<span class="doctag">&lt;/param&gt;</span></span></span><br><span class="line"><span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;returns&gt;</span>True if lock was acquired and action was performed; otherwise false<span class="doctag">&lt;/returns&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="built_in">bool</span> <span class="title">PerformActionWithLock</span>(<span class="params"><span class="built_in">string</span> resource, TimeSpan expirationTime, Action action</span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    RedisValue lockToken = Guid.NewGuid().ToString(); <span class="comment">//Environment.MachineName;</span></span><br><span class="line">    RedisKey locKey = resource;</span><br><span class="line">    <span class="keyword">var</span> db = GetDatabase();</span><br><span class="line">    <span class="keyword">if</span> (db.LockTake(locKey, lockToken, expirationTime))</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">try</span></span><br><span class="line">        &#123;</span><br><span class="line">            action();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">finally</span></span><br><span class="line">        &#123;</span><br><span class="line">            db.LockRelease(locKey, lockToken);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>测试代码：</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">[<span class="meta">Test</span>]</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">TestLock</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    RedisKey _lockKey = <span class="string">&quot;lock_key&quot;</span>;</span><br><span class="line">    <span class="keyword">var</span> _lockDuration = TimeSpan.FromSeconds(<span class="number">30</span>);</span><br><span class="line">    <span class="keyword">var</span> mainTask = <span class="keyword">new</span> Task(() =&gt; _redisMSConnectionWrapper.PerformActionWithLock(_lockKey, _lockDuration, () =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;1.执行锁内任务-开始&quot;</span>);</span><br><span class="line">        Thread.Sleep(<span class="number">10000</span>);</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;1.执行锁内任务-结束&quot;</span>);</span><br><span class="line">    &#125;));</span><br><span class="line">    mainTask.Start();</span><br><span class="line">    Thread.Sleep(<span class="number">1000</span>);</span><br><span class="line">    <span class="keyword">var</span> subOk = <span class="literal">true</span>;</span><br><span class="line">    <span class="keyword">while</span> (subOk)</span><br><span class="line">    &#123;</span><br><span class="line">        _redisMSConnectionWrapper.PerformActionWithLock(_lockKey, _lockDuration, () =&gt;</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;2.执行锁内任务-开始&quot;</span>);</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;2.执行锁内任务-结束&quot;</span>);</span><br><span class="line">            subOk = <span class="literal">false</span>;</span><br><span class="line">        &#125;);</span><br><span class="line">        Thread.Sleep(<span class="number">1000</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;结束&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="2、异步构建缓存"><a href="#2、异步构建缓存" class="headerlink" title="2、异步构建缓存"></a>2、异步构建缓存</h3><p>或者叫”提前”使用互斥锁</p>
-<p>在value内部设置1个超时值(timeout1), timeout1比实际的memcache timeout(timeout2)小。当从cache读取到timeout1发现它已经过期时候，马上延长timeout1并重新设置到cache。然后再从数据库加载数据并设置到cache中。</p>
-<p>** 优点**</p>
-<p>性价最佳，用户无需等待</p>
-<p>** 缺点**</p>
-<p>无法保证缓存一致性</p>
-<h3 id="3、布隆过滤器"><a href="#3、布隆过滤器" class="headerlink" title="3、布隆过滤器"></a>3、布隆过滤器</h3><p>布隆过滤器的巨大用处就是，能够迅速判断一个元素是否在一个集合中。因此他有如下三个使用场景:</p>
-<p>1.网页爬虫对URL的去重，避免爬取相同的URL地址<br>2.反垃圾邮件，从数十亿个垃圾邮件列表中判断某邮箱是否垃圾邮箱（同理，垃圾短信）<br>3.缓存击穿，将已存在的缓存放到布隆过滤器中，当黑客访问不存在的缓存时迅速返回避免缓存及DB挂掉。</p>
-<p>** 布隆过滤器的原理**</p>
-<p>其内部维护一个全为0的bit数组，需要说明的是，布隆过滤器有一个误判率的概念，误判率越低，则数组越长，所占空间越大。误判率越高则数组越小，所占的空间越小。</p>
-<p>** 优点**</p>
-<p>思路简单<br>保证一致性<br>性能强</p>
-<p>** 缺点**</p>
-<p>代码复杂度增大<br>需要另外维护一个集合来存放缓存的Key<br>布隆过滤器不支持删值操作</p>
-<h2 id="缓存雪崩（缓存失效）"><a href="#缓存雪崩（缓存失效）" class="headerlink" title="缓存雪崩（缓存失效）"></a>缓存雪崩（缓存失效）</h2><p>在高并发的环境下，缓存集中在一段时间内大量失效（例如设置缓存时采用了相同的过期时间，导致缓存在某一时刻同时失效），此时有多个进程就会去同时去查询DB，然后再去同时设置缓存。DB访问量会瞬间增大，造成了缓存雪崩。</p>
-<p>解决方法：</p>
-<p>1, 在缓存失效后，通过加锁或者队列来控制读数据库写缓存的线程数量。比如对某个key只允许一个线程查询数据和写缓存，其他线程等待，参考上文：1、使用互斥锁。<br>2, 可以通过缓存reload机制，预先去更新缓存，再即将发生大并发访问前手动触发加载缓存。<br>3, 不同的key，设置不同的过期时间，让缓存失效的时间点尽量均匀,例如在原有的失效时间基础上增加一个随机值，比如1-5分钟随机，这样每一个缓存的过期时间的重复率就会降低，就很难引发集体失效的事件。<br>4, 做二级缓存，或者双缓存策略。A1为原始缓存，A2为拷贝缓存，A1失效时，可以访问A2，A1缓存失效时间设置为短期，A2设置为长期。</p>
-<h2 id="热点key问题"><a href="#热点key问题" class="headerlink" title="热点key问题"></a>热点key问题</h2><p>(1) 这个key是一个热点key（例如一个重要的新闻，一个热门的八卦新闻等等），所以这种key访问量可能非常大。</p>
-<p>(2) 缓存的构建是需要一定时间的。（可能是一个复杂计算，例如复杂的sql、多次IO、多个依赖(各种接口)等等）</p>
-<p>于是就会出现一个致命问题：在缓存失效的瞬间，有大量线程来构建缓存，或者由于设计问题，造成缓存击穿，造成后端负载加大，甚至可能会让系统崩溃。</p>
-<p>解决方法：</p>
-<p>1，使用互斥锁(mutex key):这种解决方案思路比较简单，就是只让一个线程构建缓存，其他线程等待构建缓存的线程执行完，重新从缓存获取数据就可以了，参考上文：1、使用互斥锁。</p>
-<p>2，”提前”使用互斥锁(mutex key)：在value内部设置1个超时值(timeout1), timeout1比实际的memcache timeout(timeout2)小。当从cache读取到timeout1发现它已经过期时候，马上延长timeout1并重新设置到cache。然后再从数据库加载数据并设置到cache中。参考上文：2、异步构建缓存</p>
-<p>3，”永远不过期”：</p>
-<p>这里的“永远不过期”包含两层意思：</p>
-<p>(1) 从redis上看，确实没有设置过期时间，这就保证了，不会出现热点key过期问题，也就是“物理”不过期。</p>
-<p>(2) 从功能上看，如果不过期，那不就成静态的了吗？所以我们把过期时间存在key对应的value里，如果发现要过期了，通过一个后台的异步线程进行缓存的构建，也就是“逻辑”过期</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/rjzheng/p/8908073.html">分布式之缓存击穿</a></p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/wang0112233/article/details/79558612">缓存雪崩、缓存穿透、热点Key解决方案和分析</a></p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/zeb_perfect/article/details/54135506">缓存穿透，缓存击穿，缓存雪崩解决方案分析</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/d5a3668d4dad">缓存击穿、失效以及热点key问题</a></p>
 
       
     </div>
@@ -2375,7 +2335,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">397</span>
+          <span class="site-state-item-count">399</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>

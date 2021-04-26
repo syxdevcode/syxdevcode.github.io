@@ -182,6 +182,391 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/10/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9005-%E5%B8%B8%E9%87%8F%E3%80%81%E5%AD%97%E6%AE%B5%E3%80%81%E5%B1%9E%E6%80%A7%E3%80%81%E7%89%B9%E6%80%A7%E4%B8%8E%E5%A7%94%E6%89%98/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/12/10/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9005-%E5%B8%B8%E9%87%8F%E3%80%81%E5%AD%97%E6%AE%B5%E3%80%81%E5%B1%9E%E6%80%A7%E3%80%81%E7%89%B9%E6%80%A7%E4%B8%8E%E5%A7%94%E6%89%98/" class="post-title-link" itemprop="url">DotNet面试题解析05-常量、字段、属性、特性与委托</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-12-10 11:18:34" itemprop="dateCreated datePublished" datetime="2018-12-10T11:18:34+00:00">2018-12-10</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%90/" itemprop="url" rel="index"><span itemprop="name">DotNet面试题解析</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="字段与属性"><a href="#字段与属性" class="headerlink" title="字段与属性"></a>字段与属性</h2><h3 id="常量"><a href="#常量" class="headerlink" title="常量"></a>常量</h3><p>常量的几个特点：</p>
+<ul>
+<li>常量的值必须在编译时确定，简单说就是在定义是设置值，以后都不会被改变了，她是编译常量。</li>
+<li>常量只能用于简单的类型，因为常量值是要被编译然后保存到程序集的元数据中，只支持基元类型，如 int、char、string、bool、double 等。</li>
+<li>常量在使用时，是把常量的值内联到 IL 代码中的，常量类似一个占位符，在编译时被替换掉了。正是这个特点导致常量的一个风险，就是 <strong>不支持跨程序集版本更新</strong>；</li>
+</ul>
+<p>关于常量不支持跨程序集版本更新，举个简单的例子来说明：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">A</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">const</span> <span class="built_in">int</span> PORT = <span class="number">10086</span>;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">Print</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        Console.WriteLine(A.PORT);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上面一段非常简单代码，其生产的 IL 代码如下，在使用常量变量的地方，把她的值拷过来了（把常量的值内联到使用的地方），与常量变量 A.PORT 没有关系了。假如 A 引用了 B 程序集（ B.dll 文件）中的一个常量，如果后面单独修改B程序集中的常量值，只是重新编译了 B，而没有编译程序集 A，就会出问题了，就是上面所说的不支持跨程序集版本更新。常量值更新后，所有使用该常量的代码都必须重新编译，这是我们在使用常量时必须要注意的一个问题。</p>
+<ul>
+<li>不要随意使用常量，特别是有可能变化的数据；</li>
+<li>不要随便修改已定义好的常量值；</li>
+</ul>
+<p><img src="/img/151257-20160308203229116-399744142.png" alt="151257-20160308203229116-399744142.png"></p>
+<h3 id="枚举"><a href="#枚举" class="headerlink" title="枚举"></a>枚举</h3><p>枚举 enum 也有类似的问题，其根源和const一样.</p>
+<p>下面的是一个简单的枚举定义，她的 IL 代码定义和 const 定义是一样一样的！枚举的成员定义和常量定义一样，因此枚举其实本质上就相当是一个常量集合。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="built_in">enum</span> EnumType : <span class="built_in">int</span></span><br><span class="line">&#123;</span><br><span class="line">    None=<span class="number">0</span>,</span><br><span class="line">    Int=<span class="number">1</span>,</span><br><span class="line">    String=<span class="number">2</span>,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/img/151257-20160308203230647-581894993.png" alt="151257-20160308203230647-581894993.png"></p>
+<h3 id="字段"><a href="#字段" class="headerlink" title="字段"></a>字段</h3><p>字段的内联初始化问题</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">SomeType</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="built_in">int</span> Age = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">private</span> DateTime StartTime = DateTime.Now;</span><br><span class="line">    <span class="keyword">private</span> <span class="built_in">string</span> Name = <span class="string">&quot;三体&quot;</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>定义字段并初始化值，是一种很常见的代码编写习惯。但注意了，看看 IL 代码结构，一行代码（定义字段+赋值）被拆成了两块，最终的赋值都在构造函数里执行的。</p>
+<p><img src="/img/151257-20160308203231741-1268662687.png" alt="151257-20160308203231741-1268662687.png"></p>
+<p>如果有多个构造函数，就像下面这样，有多个构造函数，会造成在两个构造函数 .ctor 中重复产生对字段赋值的 IL 代码，这就造成了不必要的代码膨胀。这个其实也很好解决，在非默认构造函数后加一个 “:this()” 就OK了，或者显示的在构造函数里初始化字段。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">SomeType</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">private</span> DateTime _startTime = DateTime.Now;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SomeType</span>(<span class="params"></span>)</span> &#123; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SomeType</span>(<span class="params"><span class="built_in">string</span> name</span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>改进之后：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">SomeType</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">//改进</span></span><br><span class="line">    <span class="keyword">private</span> DateTime _startTime;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SomeType</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">        _startTime = DateTime.Now;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SomeType</span>(<span class="params"><span class="built_in">string</span> name</span>):<span class="title">base</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>    &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="属性"><a href="#属性" class="headerlink" title="属性"></a>属性</h3><p>属性是面向对象编程的基本概念，提供了对私有字段的访问封装，在 C# 中以 get 和 set 访问器方法实现对可读可写属性的操作，提供了安全和灵活的数据访问封装。我们看看属性的本质，主要手段还是 IL 代码：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">SomeType</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">int</span> Index &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SomeType</span>(<span class="params"></span>)</span> &#123; &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/img/151257-20160308203232913-500597794.png" alt="151257-20160308203232913-500597794.png"></p>
+<p>上面定义的属性Index被分成了三个部分：</p>
+<ul>
+<li>自动生成的私有字段 <code>“&lt;Index&gt;k__BackingField”</code></li>
+<li>方法：get_Index()，获取字段值；</li>
+<li>方法：set_Index(int32 ‘value’)，设置字段值；</li>
+</ul>
+<p><font color=#0099ff size=4 face="黑体">因此可以说属性的本质还是方法，使用面向对象的思想把字段封装了一下。在定义属性时，我们可以自定义一个私有字段，也可以使用 自动属性 “{ get; set; }”的简化语法形式。</font></p>
+<p>使用自动属性时需要注意一点的是，私有字段是由编译器自动命名的，是不受开发人员控制的。</p>
+<h2 id="委托与事件"><a href="#委托与事件" class="headerlink" title="委托与事件"></a>委托与事件</h2><h3 id="委托"><a href="#委托" class="headerlink" title="委托"></a>委托</h3><p>将方法作为参数进行传递。</p>
+<ul>
+<li>C# 中的委托都继承自 System.Delegate 类型；</li>
+<li>委托类型的声明与方法签名类似，有返回值和参数；</li>
+<li>委托是一种可以封装命名（或匿名）方法的引用类型，把方法当做指针传递，但委托是面向对象、类型安全的；</li>
+</ul>
+<p>委托的本质——是一个类。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="built_in">delegate</span> <span class="keyword">void</span> <span class="title">ShowMessageHandler</span>(<span class="params"><span class="built_in">string</span> mes</span>)</span>;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/img/151257-20160308203234335-1390533361.png" alt="151257-20160308203234335-1390533361.png"></p>
+<ul>
+<li>编译器自动帮我们创建了一个类 ShowMessageHandler，继承自 System.MulticastDelegate（她又继承自 System.Delegate ），这是一个多播委托；</li>
+<li>委托类 ShowMessageHandler 中包含几个方法，其中最重要的就是 Invoke 方法，签名和定义的方法签名一致；</li>
+<li>其他两个版本 BeginInvoke 和 EndInvoke 是异步执行版本；</li>
+</ul>
+<p>当我们调用委托的时候，其实就是调用委托对象的 Invoke 方法，可以验证一下，下面的调用代码会被编译为对委托对象的 Invoke 方法调用：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> ShowMessageHandler ShowMessage;</span><br><span class="line"></span><br><span class="line"><span class="comment">//调用</span></span><br><span class="line"><span class="keyword">this</span>.ShowMessage(<span class="string">&quot;123&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<h3 id="事件"><a href="#事件" class="headerlink" title="事件"></a>事件</h3><p>Event 封装了委托类型的变量，使得：在类的内部，不管你声明它是 public 还是 protected ，它总是 private 的。在类的外部，注册 “+=” 和 注销“-=” 的访问限定符与你在声明事件时使用的访问符相同。</p>
+<p>声明一个事件不过类似于声明一个进行了封装的委托类型的变量而已。</p>
+<h2 id="NET的闭包"><a href="#NET的闭包" class="headerlink" title=".NET的闭包"></a>.NET的闭包</h2><p>闭包提供了一种类似脚本语言函数式编程的便捷、可以共享数据，但也存在一些隐患。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">List&lt;Action&gt; acs = <span class="keyword">new</span> List&lt;Action&gt;(<span class="number">5</span>);</span><br><span class="line"><span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; <span class="number">5</span>; i++)</span><br><span class="line">&#123;</span><br><span class="line">    acs.Add(() =&gt; &#123; Console.WriteLine(i); &#125;);</span><br><span class="line">&#125;</span><br><span class="line">acs.ForEach(ac =&gt; ac()); <span class="comment">// 输出了 5 5 5 5 5，全是5</span></span><br></pre></td></tr></table></figure>
+
+<p>上面的代码中的 Action 就是 .NET 为我们定义好的一个无参数无返回值的委托，从上一节我们知道委托实质是一个类，理解这一点是解决本题的关键。在这个地方委托方法共享使用了一个局部变量i，那生成的类会是什么样的呢？看看IL代码：</p>
+<p><img src="/img/151257-20160308203236460-853216066.png" alt="151257-20160308203236460-853216066.png"></p>
+<p>共享的局部变量被提升为委托类的一个字段了：</p>
+<ul>
+<li>变量 i 的生命周期延长了；</li>
+<li>for 循环结束后字段 i 的值是 5 了；</li>
+<li>后面再次调用委托方法，肯定就是输出 5 了；</li>
+</ul>
+<p>修改以后：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">List&lt;Action&gt; acss = <span class="keyword">new</span> List&lt;Action&gt;(<span class="number">5</span>);</span><br><span class="line"><span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; <span class="number">5</span>; i++)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">int</span> m = i;</span><br><span class="line">    acss.Add(() =&gt; &#123; Console.WriteLine(m); &#125;);</span><br><span class="line">&#125;</span><br><span class="line">acss.ForEach(ac =&gt; ac()); <span class="comment">// 输出了 0 1 2 3 4</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="题目答案解析"><a href="#题目答案解析" class="headerlink" title="题目答案解析"></a>题目答案解析</h2><h3 id="1-const和readonly有什么区别？"><a href="#1-const和readonly有什么区别？" class="headerlink" title="1. const和readonly有什么区别？"></a>1. const和readonly有什么区别？</h3><p>const 关键字用来声明编译时常量，readonly 用来声明运行时常量。都可以标识一个常量，主要有以下区别：<br>1、初始化位置不同。const 必须在声明的同时赋值；readonly 即可以在声明处赋值，也可以在构造方法里赋值。<br>2、修饰对象不同。const 即可以修饰类的字段，也可以修饰局部变量；readonly 只能修饰类的字段 。<br>3、const是编译时常量，在编译时确定该值，且值在编译时被内联到代码中；readonly 是运行时常量，在运行时确定该值。<br>4、const 默认是静态的；而 readonly 如果设置成静态需要显示声明 。<br>5、支持的类型时不同，const 只能修饰基元类型或值为 null 的其他引用类型；readonly 可以是任何类型。</p>
+<h3 id="2-哪些类型可以定义为常量？常量const有什么风险？"><a href="#2-哪些类型可以定义为常量？常量const有什么风险？" class="headerlink" title="2. 哪些类型可以定义为常量？常量const有什么风险？"></a>2. 哪些类型可以定义为常量？常量const有什么风险？</h3><p>基元类型或值为 null 的其他引用类型，常量的风险就是不支持跨程序集版本更新，常量值更新后，所有使用该常量的代码都必须重新编译。</p>
+<h3 id="3-字段与属性有什么异同？"><a href="#3-字段与属性有什么异同？" class="headerlink" title="3. 字段与属性有什么异同？"></a>3. 字段与属性有什么异同？</h3><ul>
+<li>属性提供了更为强大的，灵活的功能来操作字段</li>
+<li>出于面向对象的封装性，字段一般不设计为 Public</li>
+<li>属性允许在 set 和 get 中编写代码</li>
+<li>属性允许控制 set 和 get 的可访问性，从而提供只读或者可读写的功能 （逻辑上只写是没有意义的）</li>
+<li>属性可以使用 override 和 new</li>
+</ul>
+<h3 id="4-静态成员和非静态成员的区别？"><a href="#4-静态成员和非静态成员的区别？" class="headerlink" title="4. 静态成员和非静态成员的区别？"></a>4. 静态成员和非静态成员的区别？</h3><ul>
+<li>静态变量使用 static 修饰符进行声明，静态成员在加类的时候就被加载（静态字段是随类型对象存放在 <code>Load Heap</code> 上），通过类进行访问。</li>
+<li>不带有 static 修饰符声明的变量称做非静态变量，在对象被实例化时创建，通过对象进行访问 。</li>
+<li>一个类的所有实例的同一静态变量都是同一个值，同一个类的不同实例的同一非静态变量可以是不同的值 。</li>
+<li>静态函数的实现里不能使用非静态成员，如非静态变量、非静态函数等。</li>
+</ul>
+<h3 id="5-自动属性有什么风险？"><a href="#5-自动属性有什么风险？" class="headerlink" title="5. 自动属性有什么风险？"></a>5. 自动属性有什么风险？</h3><p>因为自动属性的私有字段是由编译器命名的，后期不宜随意修改，比如在序列化中会导致字段值丢失。</p>
+<h3 id="6-特性是什么？如何使用？"><a href="#6-特性是什么？如何使用？" class="headerlink" title="6. 特性是什么？如何使用？"></a>6. 特性是什么？如何使用？</h3><p>特性与属性是完全不相同的两个概念，只是在名称上比较相近。Attribute 特性就是关联了一个目标对象的一段配置信息，本质上是一个类，其为目标元素提供关联附加信息，这段附加信息存储在 dll 内的元数据，它本身没什么意义。运行期以反射的方式来获取附加信息。</p>
+<h3 id="7-下面的代码输出什么结果？为什么？"><a href="#7-下面的代码输出什么结果？为什么？" class="headerlink" title="7. 下面的代码输出什么结果？为什么？"></a>7. 下面的代码输出什么结果？为什么？</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">List&lt;Action&gt; acs = <span class="keyword">new</span> List&lt;Action&gt;(<span class="number">5</span>);</span><br><span class="line"><span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; <span class="number">5</span>; i++)</span><br><span class="line">&#123;</span><br><span class="line">    acs.Add(() =&gt; &#123; Console.WriteLine(i); &#125;);</span><br><span class="line">&#125;</span><br><span class="line">acs.ForEach(ac =&gt; ac());</span><br></pre></td></tr></table></figure>
+
+<p>输出了 5 5 5 5 5，全是5！因为闭包中的共享变量i会被提升为委托对象的公共字段，生命周期延长了。</p>
+<h3 id="8-C-中的委托是什么？事件是不是一种委托？"><a href="#8-C-中的委托是什么？事件是不是一种委托？" class="headerlink" title="8. C#中的委托是什么？事件是不是一种委托？"></a>8. C#中的委托是什么？事件是不是一种委托？</h3><p>什么是委托？简单来说，委托类似于 C 或 C++ 中的函数指针，允许将方法作为参数进行传递。</p>
+<ul>
+<li>C# 中的委托都继承自 System.Delegate 类型；</li>
+<li>委托类型的声明与方法签名类似，有返回值和参数；</li>
+<li>委托是一种可以封装命名（或匿名）方法的引用类型，把方法当做指针传递，但委托是面向对象、类型安全的；</li>
+</ul>
+<p>事件可以理解为一种特殊的委托，事件内部是基于委托来实现的。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/anding/p/5255492.html">.NET面试题解析(05)-常量、字段、属性、特性与委托</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/jimmyzhang/archive/2007/09/23/903360.html">C# 中的委托和事件</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/06/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9004-%E7%B1%BB%E5%9E%8B%E3%80%81%E6%96%B9%E6%B3%95%E4%B8%8E%E7%BB%A7%E6%89%BF/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/12/06/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9004-%E7%B1%BB%E5%9E%8B%E3%80%81%E6%96%B9%E6%B3%95%E4%B8%8E%E7%BB%A7%E6%89%BF/" class="post-title-link" itemprop="url">DotNet面试题解析04-类型、方法与继承</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-12-06 16:00:53" itemprop="dateCreated datePublished" datetime="2018-12-06T16:00:53+00:00">2018-12-06</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%90/" itemprop="url" rel="index"><span itemprop="name">DotNet面试题解析</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="类型基础"><a href="#类型基础" class="headerlink" title="类型基础"></a>类型基础</h2><h3 id="类型Type简述"><a href="#类型Type简述" class="headerlink" title="类型Type简述"></a>类型Type简述</h3><p>.NET 中主要的类型就是值类型和引用类型，所有类型的基类就是 System.Object ，也就是说我们使用 FCL 提供的各种类型的、自定义的所有类型都最终派生自 System.Object ，因此他们也都继承了 System.Object 提供的基本方法。</p>
+<p><img src="/img/typesystem.gif" alt="typesystem.gif"></p>
+<p>在 .NET 代码中，我们可以很方便的创建各种类型，一个简单的数据模型、复杂的聚合对象类型、或是对客观世界实体的抽象。类 (class) 是最基础的 C# 类型，支持继承与多态。<br>一个 c# 类 Class 主要包含两种基本成员：</p>
+<ul>
+<li>状态（字段、常量、属性等）</li>
+<li>操作（方法、事件、索引器、构造函数等）</li>
+</ul>
+<p>利用创建的类型（或者系统提供的），可以很容易的创建对象的实例。使用 new 运算符创建，该运算符为新的实例分配内存，调用构造函数初始化该实例，并返回对该实例的引用，如下面的语法形式：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;类名&gt;  &lt;实例名&gt; &#x3D; new &lt;类名&gt;([构造函数的参数])</span><br></pre></td></tr></table></figure>
+
+<p>创建后的实例对象，是一个存储在内存上（在线程栈或托管堆上）的一个对象，那可以创造实例的类型在内存中又是一个什么样的存在呢？她就是 <strong>类型对象（Type Object）</strong>。</p>
+<h3 id="类型对象（Type-Object）"><a href="#类型对象（Type-Object）" class="headerlink" title="类型对象（Type Object）"></a>类型对象（Type Object）</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">int</span> a = <span class="number">123</span>;                                                           <span class="comment">// 创建int类型实例a</span></span><br><span class="line"><span class="built_in">int</span> b = <span class="number">20</span>;                                                            <span class="comment">// 创建int类型实例b</span></span><br><span class="line"><span class="keyword">var</span> atype = a.GetType();                                               <span class="comment">// 获取对象实例a的类型Type</span></span><br><span class="line"><span class="keyword">var</span> btype = b.GetType();                                               <span class="comment">// 获取对象实例b的类型Type</span></span><br><span class="line">Console.WriteLine(System.Object.Equals(atype,btype));                  <span class="comment">//输出：True</span></span><br><span class="line">Console.WriteLine(System.Object.ReferenceEquals(atype, btype));        <span class="comment">//输出：True</span></span><br></pre></td></tr></table></figure>
+
+<p>任何对象都有一个 GetType() 方法（基类 System.Object 提供的），该方法返回一个对象的类型，类型上面包含了对象内部的详细信息，如字段、属性、方法、基类、事件等等（通过反射可以获取）。在上面的代码中两个不同的 int 变量的类型（ int.GetType() ）是同一个 Type ，说明 int 在内存中有唯一一个（类似静态的） Systen.Int32 类型。</p>
+<p>上面获取到的 Type 对象（ Systen.Int32 ）就是一个类型对象，她同其他引用类型一样，也是一个引用对象，这个对象中存储了 int32 类型的所有信息（类型的所有元数据信息）。</p>
+<p><strong>关于类型对象（Object Type）：</strong></p>
+<ul>
+<li>每一个类型（如 System.Int32 ）在内存中都会有一个唯一的类型对象，通过（int）a.GetType() 可以获取该对象；</li>
+<li>类型对象（ Object Type ）存储在内存中一个独立的区域，叫 加载堆（Load Heap），加载堆是在进程创建的时候创建的，不受 GC 垃圾回收管制，因此类型对象一经创建就不会被释放的，他的生命周期从 AppDomain 创建到结束；</li>
+<li>每个引用对象都包含两个附加成员：TypeHandle 和 同步块索引，其中 TypeHandle 就指向该对象对应的类型对象；</li>
+<li>类型对象的加载由 class loader 负责，在第一次使用前加载；</li>
+<li>类型中的静态字段就是存储在这里的（加载堆上的类型对象），所以说静态字段是全局的，而且不会释放；</li>
+</ul>
+<p>可以参考下面的图，第一幅图描述了对象在内存中的一个关系， 第二幅图更复杂，更准确、全面的描述了内存的结构分布。</p>
+<p><img src="/img/Anytao_15_3.jpg" alt="Anytao_15_3.jpg"></p>
+<p><img src="/img/image_thumb_1.png" alt="image_thumb_1.png"></p>
+<h3 id="方法表"><a href="#方法表" class="headerlink" title="方法表"></a>方法表</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">DoTest</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    B1 b1 = <span class="keyword">new</span> B1(); B2 b2 = <span class="keyword">new</span> B2();</span><br><span class="line">    b1.Print(); b2.Print();      <span class="comment">//按预期应该输出 B1、B2</span></span><br><span class="line"></span><br><span class="line">    A ab1 = <span class="keyword">new</span> B1(); A ab2 = <span class="keyword">new</span> B2();</span><br><span class="line">    ab1.Print(); ab2.Print();   <span class="comment">//这里应该B1,A</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">A</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">Print</span>(<span class="params"></span>)</span> &#123; Console.WriteLine(<span class="string">&quot;A&quot;</span>); &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">B1</span> : <span class="title">A</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> <span class="keyword">void</span> <span class="title">Print</span>(<span class="params"></span>)</span> &#123; Console.WriteLine(<span class="string">&quot;B1&quot;</span>); &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">B2</span> : <span class="title">A</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">new</span> <span class="keyword">void</span> <span class="title">Print</span>(<span class="params"></span>)</span> &#123; Console.WriteLine(<span class="string">&quot;B2&quot;</span>); &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>方法表的加载：</strong></p>
+<ul>
+<li>方法表的加载时 父类在前，子类在后，首先加载的是固定的4个来自 System.Object 的虚方法：ToString, Equals, GetHashCode, Finalize；</li>
+<li>然后加载父类 A 的虚方法；</li>
+<li>加载自己的方法；</li>
+<li>最后是构造方法：静态构造函数 .cctor() ，对象构造函数 .ctor() ；</li>
+</ul>
+<p><strong>方法的调用：</strong><br>当执行代码 b1.Print() 时（此处只关注方法调用，忽略方法的继承等因素），通过 b1 的 TypeHandel 找到对应类型对象，然后找到 方法表槽，然后是对应的 IL 代码，第一次执行的时候，JIT 编译器需要把 IL 代码编译为本地机器码，第一次执行完成后机器码会保留，下一次执行就不需要 JIT 编译了。这也是为什么说 .NET 程序启动需要预热的原因。</p>
+<h3 id="NET中的继承本质"><a href="#NET中的继承本质" class="headerlink" title=".NET中的继承本质"></a>.NET中的继承本质</h3><p>方法表的创建过程是从父类到子类自上而下的，这是 .NET 中继承的很好体现，当发现有覆写父类虚方法会覆盖同名的父方法，所有类型的加载都会递归到 System.Object 类。</p>
+<ul>
+<li>继承是可传递的，子类是对父类的扩展，必须继承父类方法，同时可以添加新方法。</li>
+<li>子类可以调用父类方法和字段，而父类不能调用子类方法和字段。</li>
+<li>子类不光继承父类的公有成员，也继承了私有成员，只是不可直接访问。</li>
+<li>new 关键字在虚方法继承中的阻断作用，中断某一虚方法的继承传递。</li>
+</ul>
+<p><strong>用基类（A）和用本身B1声明到底有什么区别呢？</strong></p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">B1 b1 = <span class="keyword">new</span> B1();</span><br><span class="line">A ab1 = <span class="keyword">new</span> B1();</span><br></pre></td></tr></table></figure>
+
+<p>无论用什么做引用声明，哪怕是 object，等号右边的[ = new 类型()]都是没有区别的，也就说说对象的创建不受影响的，b1 和 ab1 对象在内存结构上是一致的；<br>他们的的差别就在引用指针的类型不同，这种不同在编码中智能提示就直观的反应出来了，在实际方法调用上也与引用指针类型有直接关系；<br>综合来说，不同引用指针类型对于对象的创建（new操作）不影响；但对于对象的使用（如方法调用）有影响，这一点在上面代码的执行结果中体现出来了！</p>
+<p>上面调用的IL代码：</p>
+<p><img src="/img/151257-20160306225941018-923782671.png" alt="151257-20160306225941018-923782671.png"></p>
+<p>对于虚方法的调用，在 IL 中都是使用指令 <code>callvirt</code>，该指令主要意思就是具体的方法在运行时动态确定的：</p>
+<blockquote>
+<p><code>callvirt</code> 使用虚拟调度，也就是根据引用类型的动态类型来调度方法，<br><code>callvirt</code> 指令根据引用变量指向的对象类型来调用方法，在运行时动态绑定，主要用于调用虚方法。</p>
+</blockquote>
+<p>不同的类型指针在虚拟方法表中有不同的附加信息作为标志，来区别其访问的地址区域，称为 <strong>offset</strong>。不同类型的指针只能在其特定地址区域内执行。</p>
+<p>编译器在方法调用时还有一个原则：</p>
+<blockquote>
+<p>执行就近原则：对于同名字段或者方法，编译器是按照其顺序查找来引用的，也就是首先访问离它创建最近的字段或者方法。</p>
+</blockquote>
+<p><img src="/img/151257-20160306225942315-1520940493.png" alt="151257-20160306225942315-1520940493.png"></p>
+<p>在 C# 中，new 关键字可用作运算符、修饰符或约束。</p>
+<ul>
+<li>1，new 运算符：用于创建对象和调用构造函数。</li>
+<li>2，new 修饰符：在用作修饰符时，new 关键字可以显式隐藏从基类继承的成员。</li>
+<li>3，new 约束：用于在泛型声明中约束可能用作类型参数的参数的类型。</li>
+</ul>
+<h2 id="NET中的继承"><a href="#NET中的继承" class="headerlink" title=".NET中的继承"></a>.NET中的继承</h2><h3 id="抽象类"><a href="#抽象类" class="headerlink" title="抽象类"></a>抽象类</h3><p>抽象类提供多个派生类共享基类的公共定义，它既可以提供抽象方法，也可以提供非抽象方法。抽象类不能实例化，必须通过继承由派生类实现其抽象方法，因此对抽象类不能使用 <code>new</code> 关键字，也不能被密封。</p>
+<p>基本特点：</p>
+<ul>
+<li>抽象类使用 Abstract 声明，抽象方法也是用 Abstract 标示；</li>
+<li>抽象类不能被实例化；</li>
+<li>抽象方法必须定义在抽象类中；</li>
+<li>抽象类可以继承一个抽象类；</li>
+<li>抽象类不能被密封（不能使用 sealed）；</li>
+<li>同类 Class 一样，只支持单继承；</li>
+</ul>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title">AbstractUser</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">int</span> Age &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">void</span> <span class="title">SetName</span>(<span class="params"><span class="built_in">string</span> name</span>)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/img/151257-20160306225944377-748332278.png" alt="151257-20160306225944377-748332278.png"></p>
+<h3 id="接口"><a href="#接口" class="headerlink" title="接口"></a>接口</h3><p>接口简单理解就是一种规范、契约，使得实现接口的类或结构在形式上保持一致。实现接口的类或结构必须实现接口定义中所有接口成员，以及该接口从其他接口中继承的所有接口成员。</p>
+<p>基本特点：</p>
+<ul>
+<li>接口使用 interface 声明；</li>
+<li>接口类似于抽象基类，不能直接实例化接口；</li>
+<li>接口中的方法都是抽象方法，不能有实现代码，实现接口的任何非抽象类型都必须实现接口的所有成员：</li>
+<li>接口成员是自动公开的，且不能包含任何访问修饰符。</li>
+<li>接口自身可从多个接口继承，类和结构可继承多个接口，但接口不能继承类。</li>
+</ul>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title">IUser</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">int</span> Age &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">SetName</span>(<span class="params"><span class="built_in">string</span> name</span>)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>下面是 IUser 接口定义的 IL 代码，看上去是不是和上面的抽象类 AbstractUser 的 IL 代码差不多！接口也是使用.Class ~ abstract 标记，方法定义同抽象类中的方法一样使用 abstract virtual 标记。<font color=#0099ff size=4 face="黑体">因此可以把接口看做是一种特殊的抽象类，该类只提供定义，没有实现。</font></p>
+<p><img src="/img/151257-20160306225945627-434523504.png" alt="151257-20160306225945627-434523504.png"></p>
+<p>另外一个小细节，上面说到接口是一个特殊的类型，不继承 System.Object，通过 IL 代码其实可以证实这一点。无论是自定义的任何类型还是抽象类，都会隐式继承 System.Object，AbstractUser 的 IL 代码中就有 “extends [mscorlib]System.Object”，而接口的 IL 代码并没有这一段代码。</p>
+<h3 id="继承"><a href="#继承" class="headerlink" title="继承"></a>继承</h3><p>在.NET中继承的主要两种方式就是类继承和接口继承，两者的主要思想是不一样的：</p>
+<ul>
+<li>类继承强调父子关系，是一个“IS A”的关系，因此只能单继承（就像一个人只能有一个Father）；</li>
+<li>接口继承强调的是一种规范、约束，是一个“CAN DO”的关系，支持多继承，是实现多态一种重要方式。</li>
+</ul>
+<h2 id="题目答案解析"><a href="#题目答案解析" class="headerlink" title="题目答案解析"></a>题目答案解析</h2><h3 id="1-所有类型都继承System-Object吗？"><a href="#1-所有类型都继承System-Object吗？" class="headerlink" title="1. 所有类型都继承System.Object吗？"></a>1. 所有类型都继承System.Object吗？</h3><p>基本上是的，所有值类型和引用类型都继承自 System.Object，接口是一个特殊的类型，不继承自 System.Object。</p>
+<h3 id="2-解释virtual、sealed、override和abstract的区别"><a href="#2-解释virtual、sealed、override和abstract的区别" class="headerlink" title="2. 解释virtual、sealed、override和abstract的区别"></a>2. 解释virtual、sealed、override和abstract的区别</h3><ul>
+<li>virtual 申明虚方法的关键字，说明该方法可以被重写</li>
+<li>sealed 说明该类不可被继承</li>
+<li>override 重写基类的方法</li>
+<li>abstract 申明抽象类和抽象方法的关键字，抽象方法不提供实现，由子类实现，抽象类不可实例化。</li>
+</ul>
+<h3 id="3-接口和类有什么异同？"><a href="#3-接口和类有什么异同？" class="headerlink" title="3. 接口和类有什么异同？"></a>3. 接口和类有什么异同？</h3><p><strong>不同点：</strong></p>
+<p>1、接口不能直接实例化。</p>
+<p>2、接口只包含方法或属性的<strong>声明</strong>，不包含方法的实现。</p>
+<p>3、接口可以<strong>多继承</strong>，类只能单继承。</p>
+<p>4、表达的含义不同，接口主要定义一种<strong>规范</strong>，统一调用方法，也就是规范类，约束类，类是方法功能的实现和集合</p>
+<p><strong>相同点：</strong></p>
+<p>1、接口、类和结构都可以从多个接口继承。</p>
+<p>2、接口类似于抽象基类：继承接口的任何非抽象类型都必须实现接口的所有成员。</p>
+<p>3、接口和类都可以包含事件、索引器、方法和属性。</p>
+<h3 id="4-抽象类和接口有什么区别？"><a href="#4-抽象类和接口有什么区别？" class="headerlink" title="4. 抽象类和接口有什么区别？"></a>4. 抽象类和接口有什么区别？</h3><p>1、继承：接口支持多继承；抽象类不能实现多继承。</p>
+<p>2、表达的概念：接口用于规范，更强调契约，抽象类用于共性，强调父子。抽象类是一类事物的高度聚合，那么对于继承抽象类的子类来说，对于抽象类来说，属于”Is A”的关系；而接口是定义行为规范，强调“Can Do”的关系，因此对于实现接口的子类来说，相对于接口来说，是”行为需要按照接口来完成”。</p>
+<p>3、方法实现：对抽象类中的方法，即可以给出实现部分，也可以不给出；而接口的方法（抽象规则）都不能给出实现部分，接口中方法不能加修饰符。</p>
+<p>4、子类重写：继承类对于两者所涉及方法的实现是不同的。继承类对于抽象类所定义的抽象方法，可以不用重写，也就是说，可以延用抽象类的方法；而对于接口类所定义的方法或者属性来说，在继承类中必须重写，给出相应的方法和属性实现。</p>
+<p>5、新增方法的影响：在抽象类中，新增一个方法的话，继承类中可以不用作任何处理；而对于接口来说，则需要修改继承类，提供新定义的方法。</p>
+<p>6、接口可以作用于值类型（枚举可以实现接口）和引用类型；抽象类只能作用于引用类型。</p>
+<p>7、接口不能包含字段和已实现的方法，接口只包含方法、属性、索引器、事件的签名；抽象类可以定义字段、属性、包含有实现的方法。</p>
+<h3 id="5-重载与覆盖的区别？"><a href="#5-重载与覆盖的区别？" class="headerlink" title="5. 重载与覆盖的区别？"></a>5. 重载与覆盖的区别？</h3><p>重载：当类包含两个名称相同但签名不同(方法名相同,参数列表不相同)的方法时发生方法重载。用方法重载来提供在语义上完成相同而功能不同的方法。</p>
+<p>覆写：在类的继承中使用，通过覆写子类方法可以改变父类虚方法的实现。</p>
+<p><strong>主要区别</strong>：</p>
+<p>1、方法的覆盖是子类和父类之间的关系，是垂直关系；方法的重载是同一个类中方法之间的关系，是水平关系。<br>2、覆盖只能由一个方法，或只能由一对方法产生关系；方法的重载是多个方法之间的关系。<br>3、覆盖要求参数列表相同；重载要求参数列表不同。<br>4、覆盖关系中，调用那个方法体，是根据对象的类型来决定；重载关系，是根据调用时的实参表与形参表来选择方法体的。</p>
+<h3 id="6-在继承中new和override相同点和区别？看下面的代码，有一个基类A，B1和B2都继承自A，并且使用不同的方式改变了父类方法Print（）的行为。测试代码输出什么？为什么？"><a href="#6-在继承中new和override相同点和区别？看下面的代码，有一个基类A，B1和B2都继承自A，并且使用不同的方式改变了父类方法Print（）的行为。测试代码输出什么？为什么？" class="headerlink" title="6. 在继承中new和override相同点和区别？看下面的代码，有一个基类A，B1和B2都继承自A，并且使用不同的方式改变了父类方法Print（）的行为。测试代码输出什么？为什么？"></a>6. 在继承中new和override相同点和区别？看下面的代码，有一个基类A，B1和B2都继承自A，并且使用不同的方式改变了父类方法Print（）的行为。测试代码输出什么？为什么？</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">DoTest</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    B1 b1 = <span class="keyword">new</span> B1(); B2 b2 = <span class="keyword">new</span> B2();</span><br><span class="line">    b1.Print(); b2.Print();      <span class="comment">//按预期应该输出 B1、B2</span></span><br><span class="line"></span><br><span class="line">    A ab1 = <span class="keyword">new</span> B1(); A ab2 = <span class="keyword">new</span> B2();</span><br><span class="line">    ab1.Print(); ab2.Print();   <span class="comment">//这里应该输出什么呢？输出B1、A</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">A</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">Print</span>(<span class="params"></span>)</span> &#123; Console.WriteLine(<span class="string">&quot;A&quot;</span>); &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">B1</span> : <span class="title">A</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> <span class="keyword">void</span> <span class="title">Print</span>(<span class="params"></span>)</span> &#123; Console.WriteLine(<span class="string">&quot;B1&quot;</span>); &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">B2</span> : <span class="title">A</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 显式隐藏从基类继承的成员,也就是说此方法被隐藏，被调用ab2.Print()时，输出基类中的方法</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">new</span> <span class="keyword">void</span> <span class="title">Print</span>(<span class="params"></span>)</span> &#123; Console.WriteLine(<span class="string">&quot;B2&quot;</span>); &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="7-下面代码中，变量a、b都是int类型，代码输出结果是什么？"><a href="#7-下面代码中，变量a、b都是int类型，代码输出结果是什么？" class="headerlink" title="7. 下面代码中，变量a、b都是int类型，代码输出结果是什么？"></a>7. 下面代码中，变量a、b都是int类型，代码输出结果是什么？</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">int</span> a = <span class="number">123</span>;</span><br><span class="line"><span class="built_in">int</span> b = <span class="number">20</span>;</span><br><span class="line"><span class="keyword">var</span> atype = a.GetType();</span><br><span class="line"><span class="keyword">var</span> btype = b.GetType();</span><br><span class="line">Console.WriteLine(System.Object.Equals(atype,btype));          <span class="comment">//输出True</span></span><br><span class="line">Console.WriteLine(System.Object.ReferenceEquals(atype,btype)); <span class="comment">//输出True</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="8-class中定义的静态字段是存储在内存中的哪个地方？为什么会说她不会被GC回收？"><a href="#8-class中定义的静态字段是存储在内存中的哪个地方？为什么会说她不会被GC回收？" class="headerlink" title="8.class中定义的静态字段是存储在内存中的哪个地方？为什么会说她不会被GC回收？"></a>8.class中定义的静态字段是存储在内存中的哪个地方？为什么会说她不会被GC回收？</h3><p>随类型对象存储在内存的加载堆上，因为加载堆不受GC管理，其生命周期随 AppDomain，不会被 GC 回收。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/anding/p/5248973.html">.NET面试题解析(04)-类型、方法与继承</a></p>
+<p><a target="_blank" rel="noopener" href="https://phodal.github.io/2md/">2md</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/06/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9003-string%E4%B8%8E%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%93%8D%E4%BD%9C/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +598,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -399,7 +784,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -528,7 +913,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -732,7 +1117,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -834,7 +1219,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -938,7 +1323,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1078,7 +1463,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1179,7 +1564,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1281,7 +1666,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1415,7 +1800,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1496,7 +1881,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1581,7 +1966,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1691,7 +2076,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
+                <time title="修改时间：2021-04-26 08:46:12" itemprop="dateModified" datetime="2021-04-26T08:46:12+00:00">2021-04-26</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1805,170 +2190,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/07/24/DotNet%E5%BC%82%E6%AD%A5APM%E6%A8%A1%E5%BC%8F%E4%B9%8BIAsyncResult%E5%92%8CAsyncCallback/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/07/24/DotNet%E5%BC%82%E6%AD%A5APM%E6%A8%A1%E5%BC%8F%E4%B9%8BIAsyncResult%E5%92%8CAsyncCallback/" class="post-title-link" itemprop="url">DotNet异步APM模式之IAsyncResult和AsyncCallback</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-07-24 14:21:17" itemprop="dateCreated datePublished" datetime="2018-07-24T14:21:17+00:00">2018-07-24</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/net%E5%BC%82%E6%AD%A5%E4%B8%8E%E5%B9%B6%E8%A1%8C/" itemprop="url" rel="index"><span itemprop="name">.net异步与并行</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>IAsyncResult 异步设计模式通过名为 BeginOperationName 和 EndOperationName 的两个方法来实现原同步方法的异步调用，如 FileStream 类提供了 BeginRead 和 EndRead 方法来从文件异步读取字节，它们是 Read 方法的异步版本。</p>
-<p>** Begin方法包含同步方法签名中的任何参数<strong>，此外还包含另外</strong> 两个参数<strong>：<br>** 一个AsyncCallback 委托 **<br>** 一个用户定义的状态对象</strong>。<br>委托用来调用回调方法，状态对象是用来向回调方法传递状态信息。该方法返回一个实现 IAsyncResult 接口的对象。</p>
-<p>End 方法用于结束异步操作并返回结果，因此包含同步方法签名中的 ref 和 out 参数，** 返回值类型也与同步方法相同<strong>。该方法还包括一个</strong> IAsyncResult** 参数，用于获取异步操作是否完成的信息，当然在使用时就必须传入对应的 Begin 方法返回的对象实例。</p>
-<p>开始异步操作后如果要阻止应用程序，可以直接调用 End 方法，这会阻止应用程序直到异步操作完成后再继续执行。也可以使用 IAsyncResult 的 AsyncWaitHandle 属性，调用其中的WaitOne等方法来阻塞线程。这两种方法的区别不大，只是前者必须一直等待而后者可以设置等待超时</p>
-<p>如果不阻止应用程序，则可以通过轮循 IAsyncResult 的 IsCompleted 状态来判断操作是否完成，或使用 AsyncCallback 委托来结束异步操作。<br>AsyncCallback 委托包含一个 IAsyncResult 的签名，回调方法内部再调用 End 方法来获取操作执行结果。</p>
-<p>代码：</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">namespace</span> <span class="title">ConsoleApplication1</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">static</span> AsyncDemo demo = <span class="keyword">new</span> AsyncDemo();</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            <span class="comment">//bool state = false;</span></span><br><span class="line"></span><br><span class="line">            <span class="comment">//IAsyncResult ar = demo.BeginRun(&quot;zhangshan&quot;, new AsyncCallback(outPut), state);</span></span><br><span class="line"></span><br><span class="line">            <span class="comment">//ar.AsyncWaitHandle.WaitOne(1000, false);</span></span><br><span class="line"></span><br><span class="line">            IAsyncResult ar = demo.BeginRun(<span class="string">&quot;zhangshan&quot;</span>, <span class="literal">null</span>, <span class="literal">null</span>);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (ar.IsCompleted)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="built_in">string</span> demoName = demo.EndRun(ar);</span><br><span class="line">                Console.WriteLine(demoName);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">else</span></span><br><span class="line">            &#123;</span><br><span class="line">                Console.WriteLine(<span class="string">&quot;Sorry,can&#x27;t get demoName, the time is over&quot;</span>);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            System.Threading.Thread.Sleep(<span class="number">1000</span>);</span><br><span class="line"></span><br><span class="line">            Console.ReadKey();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">outPut</span>(<span class="params">IAsyncResult ar</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            <span class="built_in">bool</span> state = (<span class="built_in">bool</span>)ar.AsyncState;</span><br><span class="line">            <span class="built_in">string</span> demoName = demo.EndRun(ar);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (state)</span><br><span class="line">            &#123;</span><br><span class="line">                Console.WriteLine(demoName);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">else</span></span><br><span class="line">            &#123;</span><br><span class="line">                Console.WriteLine(demoName);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">class</span> <span class="title">AsyncDemo</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="built_in">delegate</span> <span class="built_in">string</span> <span class="title">runDelegate</span>(<span class="params"><span class="built_in">string</span> name</span>)</span>;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">private</span> runDelegate m_Delegate;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="title">AsyncDemo</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            m_Delegate = <span class="keyword">new</span> runDelegate(Run);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment"><span class="doctag">///</span> ﹤summary﹥  </span></span><br><span class="line">        <span class="comment"><span class="doctag">///</span> Synchronous method  </span></span><br><span class="line">        <span class="comment"><span class="doctag">///</span> ﹤/summary﹥  </span></span><br><span class="line">        <span class="comment"><span class="doctag">///</span> ﹤returns﹥﹤/returns﹥  </span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="built_in">string</span> <span class="title">Run</span>(<span class="params"><span class="built_in">string</span> name</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="string">&quot;My name is &quot;</span> + name;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">public</span> IAsyncResult <span class="title">BeginRun</span>(<span class="params"><span class="built_in">string</span> name, AsyncCallback callBack, Object stateObject</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            <span class="keyword">try</span></span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">return</span> m_Delegate.BeginInvoke(name, callBack, stateObject);</span><br><span class="line">            &#125;</span><br><span class="line">            catch (Exception e)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">throw</span> e;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="built_in">string</span> <span class="title">EndRun</span>(<span class="params">IAsyncResult ar</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            <span class="keyword">if</span> (ar == <span class="literal">null</span>)</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> NullReferenceException(<span class="string">&quot;Arggument ar can&#x27;t be null&quot;</span>);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">try</span></span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">return</span> m_Delegate.EndInvoke(ar);</span><br><span class="line">            &#125;</span><br><span class="line">            catch (Exception e)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">throw</span> e;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://developer.51cto.com/art/200908/145362.htm">C#异步编程模式IAsyncResult浅析</a></p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/powertoolsteam/article/details/6284035">使用 IAsyncResult 进行 .NET 异步编程</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/panjun-Donet/archive/2009/03/03/1284700.html">异步编程(AsyncCallback委托,IAsyncResult接口,BeginInvoke方法,EndInvoke方法的使用小总结)</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/07/20/RabbitMQ%E7%BB%84%E4%BB%B6EasyNetQ%E4%BD%BF%E7%94%A8/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/07/20/RabbitMQ%E7%BB%84%E4%BB%B6EasyNetQ%E4%BD%BF%E7%94%A8/" class="post-title-link" itemprop="url">RabbitMQ组件EasyNetQ使用</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-07-20 09:43:06" itemprop="dateCreated datePublished" datetime="2018-07-20T09:43:06+00:00">2018-07-20</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-25 06:33:35" itemprop="dateModified" datetime="2021-04-25T06:33:35+00:00">2021-04-25</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/EasyNetQ/" itemprop="url" rel="index"><span itemprop="name">EasyNetQ</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="RabbitMQ组件EasyNetQ使用"><a href="#RabbitMQ组件EasyNetQ使用" class="headerlink" title="RabbitMQ组件EasyNetQ使用"></a>RabbitMQ组件EasyNetQ使用</h1><p>代码：<a target="_blank" rel="noopener" href="https://github.com/syxdevcode/RabbitMqDemo.git">https://github.com/syxdevcode/RabbitMqDemo.git</a></p>
-<p>官方文档：<a target="_blank" rel="noopener" href="https://github.com/EasyNetQ/EasyNetQ/wiki/Quick-Start">https://github.com/EasyNetQ/EasyNetQ/wiki/Quick-Start</a></p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/panzi/p/6337568.html">.NET操作RabbitMQ组件EasyNetQ使用中文简版文档</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/edisonchou/p/aspnetcore_easynetq_basicdemo_foundation.html">.NET Core微服务之基于EasyNetQ使用RabbitMQ消息队列</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/focus-lei/p/9121095.html">.net core使用EasyNetQ做EventBus</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -2038,7 +2259,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">397</span>
+          <span class="site-state-item-count">399</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
