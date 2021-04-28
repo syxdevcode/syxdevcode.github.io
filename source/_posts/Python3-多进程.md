@@ -25,7 +25,7 @@ args=(), kwargs={}, *, daemon=None)
 * **args**：目标调用的参数元组。
 * **kwargs**：目标调用的关键字参数字典。
 * **daemon**：设置进程是否为守护进程，如果是默认值 None，则该标志将从创建的进程继承。
-
+<!--more-->
 multiprocessing.Process 对象具有如下方法和属性。
 
 * **run()**：进程具体执行的方法。
