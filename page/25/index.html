@@ -182,6 +182,125 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/05/15/Nginx&Docker%E9%83%A8%E7%BD%B2NetCore%E9%A1%B9%E7%9B%AE/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/05/15/Nginx&Docker%E9%83%A8%E7%BD%B2NetCore%E9%A1%B9%E7%9B%AE/" class="post-title-link" itemprop="url">Nginx&Docker部署NetCore项目</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-05-15 13:48:24" itemprop="dateCreated datePublished" datetime="2018-05-15T13:48:24+00:00">2018-05-15</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-29 05:45:54" itemprop="dateModified" datetime="2021-04-29T05:45:54+00:00">2021-04-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/DotNetCore/" itemprop="url" rel="index"><span itemprop="name">DotNetCore</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="Nginx-amp-Docker部署NetCore项目"><a href="#Nginx-amp-Docker部署NetCore项目" class="headerlink" title="Nginx&amp;Docker部署NetCore项目"></a>Nginx&amp;Docker部署NetCore项目</h1><h2 id="Nginx运行在Docker"><a href="#Nginx运行在Docker" class="headerlink" title="Nginx运行在Docker"></a>Nginx运行在Docker</h2><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">sudo docker container <span class="keyword">run</span><span class="bash"> \</span></span><br><span class="line"><span class="bash">  -d \</span></span><br><span class="line"><span class="bash">  -p 127.0.0.2:8080:80 \</span></span><br><span class="line"><span class="bash">  --rm \</span></span><br><span class="line"><span class="bash">  --name mynginx \</span></span><br><span class="line"><span class="bash">  nginx</span></span><br></pre></td></tr></table></figure>
+
+<p>上面命令下载并运行官方的 Nginx image，默认是最新版本（latest）。如果本机安装过以前的版本，请删掉重新安装，因为只有 1.13.9 才开始支持 server push。</p>
+<p>上面命令的各个参数含义如下:</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">-d：在后台运行</span><br><span class="line">-p ：容器的<span class="number">80</span>端口映射到<span class="number">127.0</span>.<span class="number">0.2</span>:<span class="number">8080</span></span><br><span class="line">--rm：容器停止运行后，自动删除容器文件</span><br><span class="line">--name：容器的名字为mynginx</span><br></pre></td></tr></table></figure>
+
+<p>如果没有报错，就可以打开浏览器访问 127.0.0.2:8080 了。正常情况下，显示 Nginx 的欢迎页。</p>
+<p>或者用curl显示：</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">ubuntu@ip-<span class="number">172</span>-<span class="number">31</span>-<span class="number">16</span>-<span class="number">20</span>:~/dotnet/conf$ curl http://<span class="number">127.0</span>.<span class="number">0.1</span>:<span class="number">8080</span></span><br><span class="line">&lt;!DOCTYPE html&gt;</span><br><span class="line">&lt;html&gt;</span><br><span class="line">&lt;head&gt;</span><br><span class="line">&lt;title&gt;Welcome to nginx!&lt;/title&gt;</span><br><span class="line">&lt;style&gt;</span><br><span class="line">    body &#123;</span><br><span class="line">        width: <span class="number">35</span>em;</span><br><span class="line">        margin: <span class="number">0</span> auto;</span><br><span class="line">        font-family: Tahoma, Verdana, Arial, sans-serif;</span><br><span class="line">    &#125;</span><br><span class="line">&lt;/style&gt;</span><br><span class="line">&lt;/head&gt;</span><br><span class="line">&lt;body&gt;</span><br><span class="line">&lt;h1&gt;Welcome to nginx!&lt;/h1&gt;</span><br><span class="line">&lt;p&gt;If you see this page, the nginx web server is successfully installed and</span><br><span class="line">working. Further configuration is required.&lt;/p&gt;</span><br><span class="line"></span><br><span class="line">&lt;p&gt;For online documentation and support please refer to</span><br><span class="line">&lt;a href=&quot;http://nginx.org/&quot;&gt;nginx.org&lt;/a&gt;.&lt;br/&gt;</span><br><span class="line">Commercial support is available at</span><br><span class="line">&lt;a href=&quot;http://nginx.com/&quot;&gt;nginx.com&lt;/a&gt;.&lt;/p&gt;</span><br><span class="line"></span><br><span class="line">&lt;p&gt;&lt;em&gt;Thank you for using nginx.&lt;/em&gt;&lt;/p&gt;</span><br><span class="line">&lt;/body&gt;</span><br><span class="line">&lt;/html&gt;</span><br><span class="line">ubuntu@ip-<span class="number">172</span>-<span class="number">31</span>-<span class="number">16</span>-<span class="number">20</span>:~/dotnet/conf$</span><br></pre></td></tr></table></figure>
+
+<p>然后，把这个容器终止，由于–rm参数的作用，容器文件会自动删除。</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo docker container stop mynginx</span><br></pre></td></tr></table></figure>
+
+<h2 id="拷贝配置"><a href="#拷贝配置" class="headerlink" title="拷贝配置"></a>拷贝配置</h2><p>首先，把容器里面的 Nginx 配置文件拷贝到本地。</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo docker container cp mynginx:/etc/nginx .</span><br></pre></td></tr></table></figure>
+
+<p>上面命令的含义是，把mynginx容器的/etc/nginx拷贝到当前目录。不要漏掉最后那个点。</p>
+<p>执行完成后，当前目录应该多出一个nginx子目录。然后，把这个子目录改名为conf。</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo mv nginx conf</span><br></pre></td></tr></table></figure>
+
+<p>容器终止:</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo docker container stop mynginx</span><br></pre></td></tr></table></figure>
+
+<h2 id="映射配置目录"><a href="#映射配置目录" class="headerlink" title="映射配置目录"></a>映射配置目录</h2><figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="attribute">sudo</span> docker container run \</span><br><span class="line">  --name mynginx \</span><br><span class="line">  --rm \</span><br><span class="line">  --volume <span class="string">&quot;$PWD/conf&quot;</span>:/etc/nginx \</span><br><span class="line">  -p <span class="number">80</span>:<span class="number">80</span> \</span><br><span class="line">  -d \</span><br><span class="line">  nginx</span><br></pre></td></tr></table></figure>
+
+<p>–volume “$PWD/conf”:/etc/nginx表示把容器的配置目录/etc/nginx，映射到本地的conf子目录。</p>
+<p>查看docker 容器日志：</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo docker logs mynginx</span><br></pre></td></tr></table></figure>
+
+<h2 id="映射证书"><a href="#映射证书" class="headerlink" title="映射证书"></a>映射证书</h2><p>使用Let’s Encrypt生成的证书文件</p>
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="attribute">sudo</span> docker container run \</span><br><span class="line">  --name mynginx \</span><br><span class="line">  --rm \</span><br><span class="line">  --volume <span class="string">&quot;$PWD/conf&quot;</span>:/etc/nginx \</span><br><span class="line">  -v /etc/letsencrypt:/etc/letsencrypt/ \</span><br><span class="line">  -d \</span><br><span class="line">  nginx</span><br></pre></td></tr></table></figure>
+
+<p>-v : 映射本地/etc/letsencrypt到容器/etc/letsencrypt目录。</p>
+<h2 id="HTTPS-配置"><a href="#HTTPS-配置" class="headerlink" title="HTTPS 配置"></a>HTTPS 配置</h2><p>配置<code>conf/conf.d/default.conf</code>文件，具体配置如下：</p>
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line"><span class="section">server</span> &#123;</span><br><span class="line">        <span class="attribute">listen</span> <span class="number">80</span>;</span><br><span class="line">        <span class="attribute">server_name</span> www.shiyx.top;</span><br><span class="line">        <span class="attribute">return</span> <span class="number">301</span> https://www.shiyx.top$request_uri;</span><br><span class="line">        <span class="attribute">server_tokens</span> <span class="literal">off</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="section">server</span> &#123;</span><br><span class="line">        <span class="attribute">listen</span> <span class="number">443</span> ssl http2;</span><br><span class="line">        <span class="attribute">ssl</span> <span class="literal">on</span>;</span><br><span class="line">        <span class="attribute">server_name</span> www.shiyx.top;</span><br><span class="line">        <span class="comment">#$host该变量的值等于请求头中Host的值。如果Host无效时，那么就是处理该请求的server的名称。</span></span><br><span class="line">        <span class="comment">#permanent: 永久性重定向。请求日志中的状态码为301</span></span><br><span class="line">        <span class="comment">#nginx 对文档检测比较严格，所以if ( $host != &#x27;www.csdn.com&#x27; ) 这些代码之间需要有空格隔开，不然会</span></span><br><span class="line">        <span class="comment">#报错：unknown directive “if($host!=”</span></span><br><span class="line">        <span class="attribute">if</span> ($host != <span class="string">&#x27;www.shiyx.top&#x27;</span> )&#123;</span><br><span class="line">                <span class="attribute">rewrite</span><span class="regexp"> ^/(.*)$</span> https://www.shiyx.top/<span class="variable">$1</span> <span class="literal">permanent</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="attribute">ssl_certificate</span> /etc/letsencrypt/live/shiyx.top/fullchain.pem;</span><br><span class="line"></span><br><span class="line">        <span class="attribute">ssl_certificate_key</span> /etc/letsencrypt/live/shiyx.top/privkey.pem;</span><br><span class="line"></span><br><span class="line">        <span class="comment">#禁止在header中出现服务器版本，防止黑客利用版本漏洞攻击</span></span><br><span class="line">        <span class="attribute">server_tokens</span> <span class="literal">off</span>;</span><br><span class="line">        <span class="comment"># 设置ssl/tls会话缓存的类型和大小。如果设置了这个参数一般是shared，buildin可能会参数内存碎片，默认是none，</span></span><br><span class="line">        <span class="comment">#和off差不多，停用缓存。如shared:SSL:10m表示我&gt;所有的nginx工作进程共享ssl会话缓存，</span></span><br><span class="line">        <span class="comment">#网介绍说1M可以存放约4000个sessions。</span></span><br><span class="line">        <span class="attribute">ssl_session_cache</span>    shared:SSL:<span class="number">1m</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 客户端可以重用会话缓存中ssl参数的过期时间，内网系统默认5分钟太短了，可以设成30m即30分钟甚至4h。</span></span><br><span class="line">        <span class="attribute">ssl_session_timeout</span>  <span class="number">5m</span>;</span><br><span class="line"></span><br><span class="line">        <span class="attribute">ssl_protocols</span> SSLv3 TLSv1 TLSv1.<span class="number">1</span> TLSv1.<span class="number">2</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 选择加密套件，不同的浏览器所支持的套件（和顺序）可能会不同。</span></span><br><span class="line">        <span class="comment"># 这里指定的是OpenSSL库能够识别的写法，你可以通过 openssl -v cipher &#x27;RC4:HIGH:!aNULL:!MD5&#x27;</span></span><br><span class="line">        <span class="comment">#（后面是你所指定的套件加密算法） 来看所支持算法。</span></span><br><span class="line">        <span class="attribute">ssl_ciphers</span>  HIGH:!aNULL:!MD5;</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 设置协商加密算法时，优先使用我们服务端的加密套件，而不是客户端浏览器的加密套件。</span></span><br><span class="line">        <span class="attribute">ssl_prefer_server_ciphers</span>  <span class="literal">on</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 查看代理程序的ip</span></span><br><span class="line">        <span class="comment"># sudo docker inspect --format &#x27;&#123;&#123; .NetworkSettings.IPAddress &#125;&#125;&#x27; &lt;container-ID&gt;</span></span><br><span class="line">        <span class="attribute">location</span> / &#123;</span><br><span class="line">            <span class="attribute">proxy_pass</span> http://172.17.0.3:5000;</span><br><span class="line">            <span class="attribute">proxy_http_version</span> <span class="number">1</span>.<span class="number">1</span>;</span><br><span class="line">            <span class="attribute">proxy_set_header</span>   Upgrade $http_upgrade;</span><br><span class="line">            <span class="attribute">proxy_set_header</span>   Connection keep-alive;</span><br><span class="line">            <span class="attribute">proxy_set_header</span>   Host $http_host;</span><br><span class="line">            <span class="attribute">proxy_cache_bypass</span> $http_upgrade;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="attribute">location</span> <span class="regexp">~ /.well-known</span>&#123;</span><br><span class="line">                <span class="attribute">allow</span> all;</span><br><span class="line">        &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>查看docker ip地址</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo docker inspect --format <span class="string">&#x27;&#123;&#123; .NetworkSettings.IPAddress &#125;&#125;&#x27;</span> &lt;container-ID&gt;</span><br></pre></td></tr></table></figure>
+
+<p>最后，启动一个新的Nginx容器。</p>
+<p>** 注意运行目录**</p>
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="attribute">sudo</span> docker container run \</span><br><span class="line">  --name mynginx \</span><br><span class="line">  --rm \</span><br><span class="line">  --volume <span class="string">&quot;$PWD/conf&quot;</span>:/etc/nginx \</span><br><span class="line">  -v /etc/letsencrypt:/etc/letsencrypt/ \</span><br><span class="line">  -p <span class="number">80</span>:<span class="number">80</span> \</span><br><span class="line">  -p <span class="number">443</span>:<span class="number">443</span> \</span><br><span class="line">  -d \</span><br><span class="line">  nginx</span><br></pre></td></tr></table></figure>
+
+<p>参考：<br><a target="_blank" rel="noopener" href="http://www.ruanyifeng.com/blog/2018/02/nginx-docker.html">http://www.ruanyifeng.com/blog/2018/02/nginx-docker.html</a></p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/en-us/aspnet/core/host-and-deploy/linux-nginx?view=aspnetcore-2.0&tabs=aspnetcore2x">https://docs.microsoft.com/en-us/aspnet/core/host-and-deploy/linux-nginx?view=aspnetcore-2.0&amp;tabs=aspnetcore2x</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/savorboard/p/dotnet-core-publish-nginx.html">http://www.cnblogs.com/savorboard/p/dotnet-core-publish-nginx.html</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/05/14/DotNetCore%E4%BD%BF%E7%94%A8Docker%E9%83%A8%E7%BD%B2/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +332,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-29 03:21:28" itemprop="dateModified" datetime="2021-04-29T03:21:28+00:00">2021-04-29</time>
+                <time title="修改时间：2021-04-29 05:45:54" itemprop="dateModified" datetime="2021-04-29T05:45:54+00:00">2021-04-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -335,7 +454,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-29 03:21:28" itemprop="dateModified" datetime="2021-04-29T03:21:28+00:00">2021-04-29</time>
+                <time title="修改时间：2021-04-29 05:45:54" itemprop="dateModified" datetime="2021-04-29T05:45:54+00:00">2021-04-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -745,7 +864,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-29 03:21:28" itemprop="dateModified" datetime="2021-04-29T03:21:28+00:00">2021-04-29</time>
+                <time title="修改时间：2021-04-29 05:45:54" itemprop="dateModified" datetime="2021-04-29T05:45:54+00:00">2021-04-29</time>
               </span>
 
           
@@ -809,7 +928,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-29 03:21:28" itemprop="dateModified" datetime="2021-04-29T03:21:28+00:00">2021-04-29</time>
+                <time title="修改时间：2021-04-29 05:45:54" itemprop="dateModified" datetime="2021-04-29T05:45:54+00:00">2021-04-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -973,7 +1092,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-29 03:21:28" itemprop="dateModified" datetime="2021-04-29T03:21:28+00:00">2021-04-29</time>
+                <time title="修改时间：2021-04-29 05:45:54" itemprop="dateModified" datetime="2021-04-29T05:45:54+00:00">2021-04-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1050,7 +1169,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-29 03:21:28" itemprop="dateModified" datetime="2021-04-29T03:21:28+00:00">2021-04-29</time>
+                <time title="修改时间：2021-04-29 05:45:54" itemprop="dateModified" datetime="2021-04-29T05:45:54+00:00">2021-04-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1175,7 +1294,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-29 03:21:28" itemprop="dateModified" datetime="2021-04-29T03:21:28+00:00">2021-04-29</time>
+                <time title="修改时间：2021-04-29 05:45:54" itemprop="dateModified" datetime="2021-04-29T05:45:54+00:00">2021-04-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1265,7 +1384,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-29 03:21:28" itemprop="dateModified" datetime="2021-04-29T03:21:28+00:00">2021-04-29</time>
+                <time title="修改时间：2021-04-29 05:45:54" itemprop="dateModified" datetime="2021-04-29T05:45:54+00:00">2021-04-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1353,7 +1472,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-29 03:21:28" itemprop="dateModified" datetime="2021-04-29T03:21:28+00:00">2021-04-29</time>
+                <time title="修改时间：2021-04-29 05:45:54" itemprop="dateModified" datetime="2021-04-29T05:45:54+00:00">2021-04-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1520,7 +1639,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-29 03:21:28" itemprop="dateModified" datetime="2021-04-29T03:21:28+00:00">2021-04-29</time>
+                <time title="修改时间：2021-04-29 05:45:54" itemprop="dateModified" datetime="2021-04-29T05:45:54+00:00">2021-04-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1633,7 +1752,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-29 03:21:28" itemprop="dateModified" datetime="2021-04-29T03:21:28+00:00">2021-04-29</time>
+                <time title="修改时间：2021-04-29 05:45:54" itemprop="dateModified" datetime="2021-04-29T05:45:54+00:00">2021-04-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1713,7 +1832,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-29 03:21:28" itemprop="dateModified" datetime="2021-04-29T03:21:28+00:00">2021-04-29</time>
+                <time title="修改时间：2021-04-29 05:45:54" itemprop="dateModified" datetime="2021-04-29T05:45:54+00:00">2021-04-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1795,7 +1914,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-29 03:21:28" itemprop="dateModified" datetime="2021-04-29T03:21:28+00:00">2021-04-29</time>
+                <time title="修改时间：2021-04-29 05:45:54" itemprop="dateModified" datetime="2021-04-29T05:45:54+00:00">2021-04-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1903,7 +2022,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-29 03:21:28" itemprop="dateModified" datetime="2021-04-29T03:21:28+00:00">2021-04-29</time>
+                <time title="修改时间：2021-04-29 05:45:54" itemprop="dateModified" datetime="2021-04-29T05:45:54+00:00">2021-04-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2046,99 +2165,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/04/27/Docker%E5%AE%89%E8%A3%85/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/04/27/Docker%E5%AE%89%E8%A3%85/" class="post-title-link" itemprop="url">Docker安装</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-04-27 14:40:52" itemprop="dateCreated datePublished" datetime="2018-04-27T14:40:52+00:00">2018-04-27</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-29 03:21:28" itemprop="dateModified" datetime="2021-04-29T03:21:28+00:00">2021-04-29</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Docker/" itemprop="url" rel="index"><span itemprop="name">Docker</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="Docker安装"><a href="#Docker安装" class="headerlink" title="Docker安装"></a>Docker安装</h1><p><a target="_blank" rel="noopener" href="https://docs.docker.com/install/linux/docker-ce/centos/#uninstall-old-versions" title="官网">官网</a></p>
-<h2 id="安装Docker-CE"><a href="#安装Docker-CE" class="headerlink" title="安装Docker CE"></a>安装Docker CE</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">$ sudo yum install -y yum-utils \</span><br><span class="line">  device-mapper-persistent-data \</span><br><span class="line">  lvm2</span><br><span class="line"></span><br><span class="line">$ sudo yum-config-manager \</span><br><span class="line">    --add-repo \</span><br><span class="line">    https:&#x2F;&#x2F;download.docker.com&#x2F;linux&#x2F;centos&#x2F;docker-ce.repo</span><br><span class="line"></span><br><span class="line">$ sudo yum install docker-ce</span><br></pre></td></tr></table></figure>
-
-<p>启动</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl start docker</span><br></pre></td></tr></table></figure>
-
-<p>验证是否成功</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo docker run hello-world</span><br></pre></td></tr></table></figure>
-
-<h2 id="配置镜像加速"><a href="#配置镜像加速" class="headerlink" title="配置镜像加速"></a>配置镜像加速</h2><h3 id="安装／升级你的Docker客户端"><a href="#安装／升级你的Docker客户端" class="headerlink" title="安装／升级你的Docker客户端"></a>安装／升级你的Docker客户端</h3><p>推荐安装1.10.0以上版本的Docker客户端</p>
-<h3 id="如何配置镜像加速器"><a href="#如何配置镜像加速器" class="headerlink" title="如何配置镜像加速器"></a>如何配置镜像加速器</h3><p>针对Docker客户端版本大于1.10.0的用户</p>
-<p>您可以通过修改daemon配置文件<code>/etc/docker/daemon.json</code>来使用加速器：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">sudo mkdir -p &#x2F;etc&#x2F;docker</span><br><span class="line">sudo tee &#x2F;etc&#x2F;docker&#x2F;daemon.json &lt;&lt;-&#39;EOF&#39;</span><br><span class="line">&#123;</span><br><span class="line">  &quot;registry-mirrors&quot;: [&quot;https:&#x2F;&#x2F;lhao27k5.mirror.aliyuncs.com&quot;]</span><br><span class="line">&#125;</span><br><span class="line">EOF</span><br><span class="line">sudo systemctl daemon-reload</span><br><span class="line">sudo systemctl restart docker</span><br></pre></td></tr></table></figure>
-
-<p>或者使用<code>ttps://registry.docker-cn.com</code></p>
-<h2 id="卸载"><a href="#卸载" class="headerlink" title="卸载"></a>卸载</h2><h3 id="1-卸载Docker包"><a href="#1-卸载Docker包" class="headerlink" title="1.卸载Docker包"></a>1.卸载Docker包</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo yum remove docker-ce</span><br></pre></td></tr></table></figure>
-
-<h3 id="2-主机上的mages-containers-volumes或自定义配置文件不会自动删除。-删除所有mages-containers-volumes："><a href="#2-主机上的mages-containers-volumes或自定义配置文件不会自动删除。-删除所有mages-containers-volumes：" class="headerlink" title="2.主机上的mages, containers, volumes或自定义配置文件不会自动删除。 删除所有mages, containers, volumes："></a>2.主机上的mages, containers, volumes或自定义配置文件不会自动删除。 删除所有mages, containers, volumes：</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo rm -rf &#x2F;var&#x2F;lib&#x2F;docker</span><br></pre></td></tr></table></figure>
-
-<p>您必须手动删除任何定义配置文件。</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -2208,7 +2234,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">402</span>
+          <span class="site-state-item-count">403</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
