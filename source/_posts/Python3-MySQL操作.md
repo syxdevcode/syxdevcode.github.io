@@ -7,7 +7,6 @@ tags:
 categories: Python3
 ---
 
-
 5 种方式操作 MySQL。
 
 **MySQL-python**
