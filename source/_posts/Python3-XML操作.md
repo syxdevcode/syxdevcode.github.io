@@ -20,6 +20,7 @@ SAX 方式逐行扫描 XML 文档，边扫描边解析，占用内存较小，�
 * ElementTree
 ElementTree 方式几乎兼具了 DOM 方式与 SAX 方式的优点，占用内存较小、速度较快、使用也较为简单。
 
+<!--more-->
 ## 写入
 
 ```py
