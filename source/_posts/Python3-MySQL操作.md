@@ -135,6 +135,49 @@ cursor.close()
 connect.close()
 ```
 
+### with用法
+
+Python 对 with 的处理基本思想是with所求值的对象必须有一个 `__enter__()` 方法，一个 `__exit__()` 方法。
+
+紧跟 `with` 后面的语句被求值后，返回对象的 `__enter__()` 方法被调用，这个方法的返回值将被赋值给as后面的变量。
+
+当 `with` 后面的代码块全部被执行完之后，将调用前面返回对象的 `__exit__()` 方法。
+
+db为游标，使不使用 `fetchall()` 方法查询结果都一样。
+
+```py
+import pymysql
+
+class DB():
+    def __init__(self, host='localhost', port=3306, db='', user='root', passwd='root', charset='utf8'):
+        # 建立连接 
+        self.conn = pymysql.connect(host=host, port=port, db=db, user=user, passwd=passwd, charset=charset)
+        # 创建游标，操作设置为字典类型        
+        self.cur = self.conn.cursor(cursor = pymysql.cursors.DictCursor)
+
+    def __enter__(self):
+        # 返回游标        
+        return self.cur
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # 提交数据库并执行        
+        self.conn.commit()
+        # 关闭游标        
+        self.cur.close()
+        # 关闭数据库连接        
+        self.conn.close()
+
+
+if __name__ == '__main__':
+    with DB(host='192.168.68.129',user='root',passwd='zhumoran',db='text3') as db:
+        db.execute('select * from course')
+        print(db)
+        for i in db:
+            print(i)
+```
+
+
+
 ## peewee
 
 安装 `pip install peewee`
