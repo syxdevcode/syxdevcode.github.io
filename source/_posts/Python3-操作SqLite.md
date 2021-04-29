@@ -27,6 +27,7 @@ cs.close()
 conn.close()
 ```
 
+<!--more-->
 **创建表**
 
 ```py
