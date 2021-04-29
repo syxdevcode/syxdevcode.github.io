@@ -25,6 +25,7 @@ from docx.shared import Length  # 设置宽度
 from docx.oxml.ns import qn
 ```
 
+<!--more-->
 ## 页眉
 
 ```py
@@ -274,6 +275,26 @@ document.add_picture('a4.png', width=Inches(1.0), height=Inches(1.0))
 
 ```py
 document.save('test.docx')
+```
+
+## 读取
+
+```py
+from docx import Document
+
+# 打开文档
+document = Document('test.docx')
+# 读取标题、段落、列表内容
+ps = [ paragraph.text for paragraph in document.paragraphs]
+for p in ps:
+    print(p)
+# 读取表格内容
+ts = [table for table in document.tables]
+for t in ts:
+    for row in t.rows:
+        for cell in row.cells:
+            print(cell.text, end=' ')
+        print()
 ```
 
 ## 实例代码

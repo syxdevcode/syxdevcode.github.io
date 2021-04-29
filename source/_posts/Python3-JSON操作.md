@@ -14,7 +14,6 @@ json 模块主要提供了 `dump`、`dumps`、`load`、`loads` 方法对 JSON �
 <!--more-->
 ## JSON操作
 
-
 ### dumps
 
 json 模块的 dumps 方法可以将 Python 对象转为 JSON 格式字符串。
@@ -49,7 +48,7 @@ with open('test.json', 'w', encoding='utf-8') as f:
     f.write(j)
 ```
 
-## dump
+### dump
 
 json 模块的 dump 方法可以将 Python 对象序列化为 JSON 格式化流形式的文件类对象。
 
@@ -61,7 +60,7 @@ with open('test.json', 'w', encoding='utf-8') as f:
     json.dump(d, f, indent=4, ensure_ascii=False)
 ```
 
-## loads
+### loads
 
 JSON 格式数据转为 Python 对象:
 
@@ -83,7 +82,7 @@ with open('test.json', encoding='utf-8') as f:
     print(json.loads(data))
 ```
 
-## load
+### load
 
 json 模块的 load 方法将文件类对象转为 Python 对象:
 
