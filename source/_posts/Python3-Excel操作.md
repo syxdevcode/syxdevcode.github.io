@@ -14,6 +14,7 @@ Python 中常用 Excel 操作库如下：
 * XlsxWriter：拥有丰富的特性，支持图片/表格/图表/筛选/格式/公式等，功能与openpyxl相似，优点是相比 openpyxl 还支持 VBA 文件导入，迷你图等功能，缺点是不能打开/修改已有文件，意味着使用 xlsxwriter 需要从零开始。[https://xlsxwriter.readthedocs.io/](https://xlsxwriter.readthedocs.io/)
 * openpyxl：简单易用，功能广泛，单元格格式/图片/表格/公式/筛选/批注/文件保护等等功能应有尽有，图表功能是其一大亮点，缺点是对 VBA 支持的不够好。[https://openpyxl.readthedocs.io/en/latest/tutorial.html](https://openpyxl.readthedocs.io/en/latest/tutorial.html)
 * xlwings：可结合 VBA 实现对 Excel 编程，强大的数据输入分析能力，同时拥有丰富的接口，结合 pandas/numpy/matplotlib 轻松应对 Excel 数据处理工作。[https://docs.xlwings.org/en/stable/](https://docs.xlwings.org/en/stable/)
+
 <!--more-->
 
 ## 写入
