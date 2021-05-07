@@ -21,6 +21,7 @@ printf("Hello, World! \n");
 return 0;
 ```
 
+<!--more-->
 ## 注释
 
 C 语言有两种注释方式：
