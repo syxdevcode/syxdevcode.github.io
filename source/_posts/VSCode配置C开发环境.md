@@ -64,7 +64,7 @@ int main()
 }
 ```
 
-如果生成的 .exe 文件打开时会一闪而过，`return 0;` 前加入 `system("pause"); 语句。
+如果生成的 `.exe` 文件打开时会一闪而过，`return 0;` 前加入 `system("pause"); 语句。
 
 ```c
 system("pause");  //暂停函数，请按任意键继续...
