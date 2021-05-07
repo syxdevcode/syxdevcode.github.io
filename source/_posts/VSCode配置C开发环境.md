@@ -64,6 +64,32 @@ int main()
 }
 ```
 
+gcc 进行 c 语言编译分为四个步骤：
+
+1.预处理，生成预编译文件（.i 文件）：
+
+```c
+gcc –E hello.c –o hello.i
+```
+
+2.编译，生成汇编代码（.s 文件）：
+
+```c
+gcc –S hello.i –o hello.s
+```
+
+3.汇编，生成目标文件（.o 文件）：
+
+```c
+gcc –c hello.s –o hello.o
+```
+
+4.链接，生成可执行文件：
+
+```c
+gcc hello.o –o hello
+```
+
 参考：
 
 [VS Code C语言开发环境配置（保姆教程，详细到安装过程的每一步）](https://blog.csdn.net/incredibleimpact/article/details/109733494)
