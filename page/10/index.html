@@ -182,6 +182,231 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/26/Linux%E8%BD%AF%E7%A1%AC%E9%93%BE%E6%8E%A5%E4%B9%8B-ln%E5%91%BD%E4%BB%A4/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/26/Linux%E8%BD%AF%E7%A1%AC%E9%93%BE%E6%8E%A5%E4%B9%8B-ln%E5%91%BD%E4%BB%A4/" class="post-title-link" itemprop="url">Linux软硬链接之-ln命令</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-08-26 09:37:02" itemprop="dateCreated datePublished" datetime="2020-08-26T09:37:02+00:00">2020-08-26</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-05-08 09:28:32" itemprop="dateModified" datetime="2021-05-08T09:28:32+00:00">2021-05-08</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux%E5%9F%BA%E7%A1%80%E5%91%BD%E4%BB%A4/" itemprop="url" rel="index"><span itemprop="name">Linux基础命令</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>Linux具有为一个文件起多个名字的功能，称为链接。被链接的文件可以存放在相同的目录下，但是必须有不同的文件名，而不用在硬盘上为同样的数据重复备份。另外，被链接的文件也可以有相同的文件名，但是存放在不同的目录下，这样只要对一个目录下的该文件进行修改，就可以完成对所有目录下同名链接文件的修改。对于某个文件的各链接文件，我们可以给它们指定不同的存取权限，以控制对信息的共享和增强安全性。</p>
+<p>Linux链接分两种，</p>
+<ul>
+<li>硬链接（Hard Link）；</li>
+<li>软链接，即符号链接（Symbolic Link）。默认情况下，ln命令产生硬链接。</li>
+</ul>
+<p>硬链接的意思是一个档案可以有多个名称，而软链接的方式则是产生一个特殊的档案，该档案的内容是指向另一个档案的位置信息。<strong>硬链接是存在同一个文件系统中，而软链接却可以跨越不同的文件系统。</strong></p>
+<p><strong>不论是硬链接或软链接都不会将原本的档案复制一份，只会占用非常少量的磁碟空间。</strong></p>
+<h3 id="软连接"><a href="#软连接" class="headerlink" title="软连接"></a>软连接</h3><ul>
+<li>软链接，以路径的形式存在。类似于Windows操作系统中的快捷方式</li>
+<li>软链接可以 跨文件系统 ，硬链接不可以</li>
+<li>软链接可以对一个不存在的文件名进行链接</li>
+<li>软链接可以对目录进行链接</li>
+</ul>
+<h3 id="硬链接"><a href="#硬链接" class="headerlink" title="硬链接"></a>硬链接</h3><ul>
+<li>硬链接，以文件副本的形式存在。但不占用实际空间。</li>
+<li>不允许给目录创建硬链接</li>
+<li>硬链接只有在同一个文件系统中才能创建</li>
+<li>硬链接只能在同一个分区内建立。</li>
+</ul>
+<p>硬连接指通过索引节点来进行连接。在Linux的文件系统中，保存在磁盘分区中的文件不管是什么类型都给它分配一个编号，称为 <code>索引节点号(Inode Index)</code>。多个文件名指向同一索引节点是存在的。一般这种连接就是硬连接。硬连接的作用是允许一个文件拥有多个有效路径名，这样用户就可以建立硬连接到重要文件，以防止<code>误删</code> 的功能。 </p>
+<p>硬连接 inode 会指向文件内容所在的数据块。与此同时，该文件内容所在的数据块的引用计数会加 1。当此数据块的引用计数大于等于 2 时，则表示有多个文件同时指向了这一数据块。一个文件修改，多个文件都会生效。当删除其中某个文件时，对另一个文件不会有影响，仅仅是数据块的引用计数减 1。当引用计数为 0 时，则系统才会清除此数据块。</p>
+<p>因为对应该目录的索引节点有一个以上的连接。只删除一个连接并不影响索引节点本身和其它的连接，只有当最后一个连接被删除后，文件的数据块及目录的连接才会被释放。</p>
+<p>硬连接 inode 会指向文件内容所在的数据块。与此同时，该文件内容所在的数据块的引用计数会加 1。当此数据块的引用计数大于等于 2 时，则表示有多个文件同时指向了这一数据块。一个文件修改，多个文件都会生效。当删除其中某个文件时，对另一个文件不会有影响，仅仅是数据块的引用计数减 1。当引用计数为 0 时，则系统才会清除此数据块。</p>
+<p><strong>所以，文件真正删除的条件是与之相关的所有硬连接文件均被删除。</strong></p>
+<h2 id="ln命令"><a href="#ln命令" class="headerlink" title="ln命令"></a>ln命令</h2><p>ln命令为某一个文件在另外一个位置建立一个同步的链接。</p>
+<p>语法：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ln [参数] [源文件或目录] [目标文件或目录]</span><br><span class="line"></span><br><span class="line"><span class="comment"># 其中参数的格式为</span></span><br><span class="line">ln [-bdfinsvF] [-S backup-suffix] [-V &#123;numbered,existing,simple&#125;] [--<span class="built_in">help</span>] [--version] [--]</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 删除，覆盖目标文件之前的备份；</span></span><br><span class="line">-b 或 --backup</span><br><span class="line"></span><br><span class="line"><span class="comment"># 建立目录的硬连接；</span></span><br><span class="line">-d 或 -F 或 --directory</span><br><span class="line"></span><br><span class="line"><span class="comment"># 强行建立文件或目录的连接，不论文件或目录是否存在；</span></span><br><span class="line">-f 或 --force</span><br><span class="line"></span><br><span class="line"><span class="comment"># 覆盖既有文件之前先询问用户；</span></span><br><span class="line">-i 或 --interactive</span><br><span class="line"></span><br><span class="line"><span class="comment"># 把符号连接的目的目录视为一般文件；</span></span><br><span class="line">-n 或 --no-dereference</span><br><span class="line"></span><br><span class="line"><span class="comment"># 对源文件建立软链接（符号连接），而非硬连接；</span></span><br><span class="line">-s 或 --symbolic</span><br><span class="line"></span><br><span class="line"><span class="comment"># 用 -b 参数备份目标文件后，备份文件的字尾会被加上一个备份字符串，</span></span><br><span class="line"><span class="comment"># 预设的备份字符串是符号 ~，用户可通过 -S 参数来改变它；</span></span><br><span class="line">-S&lt;字尾备份字符串&gt; 或 --suffix=&lt;字尾备份字符串&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 显示指令执行过程；</span></span><br><span class="line">-v 或 --verbose</span><br><span class="line"></span><br><span class="line"><span class="comment"># 用 -b 参数备份目标文件后，备份文件的字尾会被加上一个备份字符串，</span></span><br><span class="line"><span class="comment"># 这个字符串不仅可用 -S 参数变更，当使用 -V 参数&lt;备份方式&gt; </span></span><br><span class="line"><span class="comment"># 指定不同备份方式时，也会产生不同字尾的备份字符串；</span></span><br><span class="line">-V&lt;备份方式&gt; 或 --version-control=&lt;备份方式&gt;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 在线帮助；</span></span><br><span class="line">--<span class="built_in">help</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 显示版本信息。</span></span><br><span class="line">--version</span><br></pre></td></tr></table></figure>
+
+<h3 id="实例"><a href="#实例" class="headerlink" title="实例"></a>实例</h3><p><strong>建立硬链接</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建文件</span></span><br><span class="line">touch source.txt</span><br><span class="line"></span><br><span class="line"><span class="comment"># 创建硬链接</span></span><br><span class="line">ln source.txt hardsource.txt</span><br><span class="line"></span><br><span class="line"><span class="comment"># -i 选项表示列出每个文件的 inode 节点 ID</span></span><br><span class="line"><span class="comment"># 可以发现 source.txt 和 hardsource.txt 的 inode 号完全一致，</span></span><br><span class="line"><span class="comment"># 说明它们都指向了同一个数据块。</span></span><br><span class="line">ls -il</span><br><span class="line">总用量 0</span><br><span class="line">1042588 -rw-r--r-- 2 root root 0 8月  26 10:55 hardsource.txt</span><br><span class="line">1042588 -rw-r--r-- 2 root root 0 8月  26 10:55 source.txt</span><br></pre></td></tr></table></figure>
+
+<p><strong>软连接</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建软链接</span></span><br><span class="line">ln -s source.txt softsource.txt</span><br><span class="line"></span><br><span class="line"><span class="comment"># 列出 文件列表</span></span><br><span class="line"><span class="comment"># 注意：软链接文件的权限栏首字符为 l（L的小写字母），这也是软链接文件区别于普通文件的地方之一。</span></span><br><span class="line">ls -il</span><br><span class="line">总用量 0</span><br><span class="line">1042588 -rw-r--r-- 2 root root  0 8月  26 10:55 hardsource.txt</span><br><span class="line">1042589 lrwxrwxrwx 1 root root 10 8月  26 10:59 softsource.txt -&gt; source.txt</span><br><span class="line">1042588 -rw-r--r-- 2 root root  0 8月  26 10:55 source.txt</span><br></pre></td></tr></table></figure>
+
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/25/Linux%E7%8B%AC%E7%AB%8B%E6%9C%8D%E5%8A%A1%E7%AE%A1%E7%90%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/25/Linux%E7%8B%AC%E7%AB%8B%E6%9C%8D%E5%8A%A1%E7%AE%A1%E7%90%86/" class="post-title-link" itemprop="url">Linux独立服务管理</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-08-25 13:54:29" itemprop="dateCreated datePublished" datetime="2020-08-25T13:54:29+00:00">2020-08-25</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-05-08 09:28:32" itemprop="dateModified" datetime="2021-05-08T09:28:32+00:00">2021-05-08</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux%E6%9C%8D%E5%8A%A1/" itemprop="url" rel="index"><span itemprop="name">Linux服务</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="独立服务启动管理"><a href="#独立服务启动管理" class="headerlink" title="独立服务启动管理"></a>独立服务启动管理</h2><h3 id="使用-etc-init-d-目录中的启动脚本来启动独立的服务"><a href="#使用-etc-init-d-目录中的启动脚本来启动独立的服务" class="headerlink" title="使用/etc/init.d/目录中的启动脚本来启动独立的服务"></a>使用/etc/init.d/目录中的启动脚本来启动独立的服务</h3><p>所有独立服务的启动脚本都存放在 <code>/etc/init.d/</code> 目录中，调用这些脚本就可以启动独立的服务（推荐启动方式）。</p>
+<p>命令格式如下：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/etc/init.d 独立服务名 start | stop |status | restart |...</span><br></pre></td></tr></table></figure>
+
+<p>参数：</p>
+<ul>
+<li>start：启动服务；</li>
+<li>stop：停止服务；</li>
+<li>status：查看服务状态；</li>
+<li>restart：重启动服务；</li>
+</ul>
+<h3 id="使用service命令来启动独立的服务"><a href="#使用service命令来启动独立的服务" class="headerlink" title="使用service命令来启动独立的服务"></a>使用service命令来启动独立的服务</h3><p>CentOS 可以依赖 <code>service</code> 命令来启动独立的服务。<code>service</code> 命令实际上只是一个脚本，这个脚本仍然需要调用 <code>/etc/init.d/</code> 中的启动脚本来启动独立的服务。</p>
+<p><strong>注意：</strong>service 命令是红帽系列 Linux 的专有命令，其他的 Linux 发行版本不一定拥有这条命令。</p>
+<p>命令格式：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">service 独立服务名 start | stop | restart |...</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看所有独立服务的启动状态</span></span><br><span class="line">service --status -all</span><br></pre></td></tr></table></figure>
+
+<h2 id="独立服务的自启动管理"><a href="#独立服务的自启动管理" class="headerlink" title="独立服务的自启动管理"></a>独立服务的自启动管理</h2><h3 id="chkconfig-服务自启动管理命令"><a href="#chkconfig-服务自启动管理命令" class="headerlink" title="chkconfig 服务自启动管理命令"></a>chkconfig 服务自启动管理命令</h3><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">chkconfig [--level 运行级别] [独立服务名] [on|off]</span><br></pre></td></tr></table></figure>
+
+<p>如果在 0~6 这 7 个运行级别中服务都显示”关闭”，则该服务不自启动。如果在某个运行级别中显示”启用”，则代表在进入这个运行级别时，该服务开机自启动。</p>
+<h3 id="修改-etc-rc-d-rc-local-文件，设置服务自启动"><a href="#修改-etc-rc-d-rc-local-文件，设置服务自启动" class="headerlink" title="修改 /etc/rc.d/rc.local 文件，设置服务自启动"></a>修改 /etc/rc.d/rc.local 文件，设置服务自启动</h3><p>在文件 <code>/etc/rc.d/rc.local</code> 中加入服务的启动命令。这个文件是在系统启动时，在输入用户名和密码之前最后读取的文件（注意：<code>/etc/rc.d/rc.local</code> 和 <code>/etc/rc.local</code> 文件是软链接，修改哪个文件都可以）。这个文件中有什么命令，都会在系统启动时调用。</p>
+<p>推荐使用这种方法管理服务的自启动，有两点好处：</p>
+<ul>
+<li>第一，如果都采用这种方法管理服务的自启动，当我们碰到一台陌生的服务器时，只要查看这个文件就知道这台服务器到底自启动了哪些服务，便于集中管理。</li>
+<li>第二，chkconfig 命令只能识别 RPM 包默认安装的服务，而不能识别源码包安装的服务。 源码包安装的服务的自启动也是通过 <code>/etc/rc.d/rc.local</code> 文件实现的，所以不会出现同一台服务器自启动了两种安装方法的同一个服务。</li>
+</ul>
+<p><strong>注意</strong> 修改 <code>/etc/rc.d/rc.local</code> 配置文件的自启动方法和 <code>chkconfig</code> 命令的自启动方法是两种不同的自启动方法。所以，就算通过修改 <code>/etc/rc.d/rc.local</code> 配置文件的方法让某个独立的服务自启动了，执行 <code>chkconfig --list</code> 命令并不到有什么变化。</p>
+<h3 id="使用-ntsysv-命令管理自启动"><a href="#使用-ntsysv-命令管理自启动" class="headerlink" title="使用 ntsysv 命令管理自启动"></a>使用 ntsysv 命令管理自启动</h3><p>ntsysv 命令调用窗口模式来管理服务的自启动</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 命令格式</span></span><br><span class="line">ntsysv [--level 运行级别]</span><br><span class="line"></span><br><span class="line"><span class="comment"># 只设定2、3、5级别的服务自启动</span></span><br><span class="line">ntsysv --level 235</span><br><span class="line"></span><br><span class="line"><span class="comment"># 按默认的运行级别设置服务自启动</span></span><br><span class="line">ntsysv</span><br></pre></td></tr></table></figure>
+
+<p>执行命令后，会和 setup 命令类似，出现命令界面</p>
+<p><img src="/img/2-1Q02415591C13.jpg" alt="2-1Q02415591C13.jpg"></p>
+<ul>
+<li>上下键：在不同服务之间移动；</li>
+<li>空格键：选定或取消服务的自启动。也就是在服务之前是否输入”*”；</li>
+<li>Tab键：在不同项目之间切换；</li>
+<li>F1键：显示服务的说明；</li>
+</ul>
+<p><strong>总结：</strong>只要是 RPM 包默认安装的服务都能被 <code>ntsysv</code> 命令管理,包括 <code>独立服务的自启动</code>，<code>基于 xinetd 服务的自启动</code>。</p>
+<p><strong>注意：</strong> <code>ntsysv</code> 命令是红帽系列 Linux 的专有命令，其他的 Linux 发行版本不一定拥有这条命令，而且条命令也不能管理源码包安装的服务。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://c.biancheng.net/view/1053.html">Linux独立服务管理</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/25/Linux-chkconfig%E5%91%BD%E4%BB%A4%E8%AF%A6%E8%A7%A3/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +438,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-07 08:28:34" itemprop="dateModified" datetime="2021-05-07T08:28:34+00:00">2021-05-07</time>
+                <time title="修改时间：2021-05-08 09:28:32" itemprop="dateModified" datetime="2021-05-08T09:28:32+00:00">2021-05-08</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -303,7 +528,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-07 08:28:34" itemprop="dateModified" datetime="2021-05-07T08:28:34+00:00">2021-05-07</time>
+                <time title="修改时间：2021-05-08 09:28:32" itemprop="dateModified" datetime="2021-05-08T09:28:32+00:00">2021-05-08</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -435,7 +660,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-07 08:28:34" itemprop="dateModified" datetime="2021-05-07T08:28:34+00:00">2021-05-07</time>
+                <time title="修改时间：2021-05-08 09:28:32" itemprop="dateModified" datetime="2021-05-08T09:28:32+00:00">2021-05-08</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -639,7 +864,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-07 08:28:34" itemprop="dateModified" datetime="2021-05-07T08:28:34+00:00">2021-05-07</time>
+                <time title="修改时间：2021-05-08 09:28:32" itemprop="dateModified" datetime="2021-05-08T09:28:32+00:00">2021-05-08</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -724,7 +949,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-07 08:28:34" itemprop="dateModified" datetime="2021-05-07T08:28:34+00:00">2021-05-07</time>
+                <time title="修改时间：2021-05-08 09:28:32" itemprop="dateModified" datetime="2021-05-08T09:28:32+00:00">2021-05-08</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -829,7 +1054,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-07 08:28:34" itemprop="dateModified" datetime="2021-05-07T08:28:34+00:00">2021-05-07</time>
+                <time title="修改时间：2021-05-08 09:28:32" itemprop="dateModified" datetime="2021-05-08T09:28:32+00:00">2021-05-08</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -917,7 +1142,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-07 08:28:34" itemprop="dateModified" datetime="2021-05-07T08:28:34+00:00">2021-05-07</time>
+                <time title="修改时间：2021-05-08 09:28:32" itemprop="dateModified" datetime="2021-05-08T09:28:32+00:00">2021-05-08</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1033,7 +1258,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-07 08:28:34" itemprop="dateModified" datetime="2021-05-07T08:28:34+00:00">2021-05-07</time>
+                <time title="修改时间：2021-05-08 09:28:32" itemprop="dateModified" datetime="2021-05-08T09:28:32+00:00">2021-05-08</time>
               </span>
 
           
@@ -1106,7 +1331,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-07 08:28:34" itemprop="dateModified" datetime="2021-05-07T08:28:34+00:00">2021-05-07</time>
+                <time title="修改时间：2021-05-08 09:28:32" itemprop="dateModified" datetime="2021-05-08T09:28:32+00:00">2021-05-08</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1308,7 +1533,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-07 08:28:34" itemprop="dateModified" datetime="2021-05-07T08:28:34+00:00">2021-05-07</time>
+                <time title="修改时间：2021-05-08 09:28:32" itemprop="dateModified" datetime="2021-05-08T09:28:32+00:00">2021-05-08</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1420,7 +1645,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-07 08:28:34" itemprop="dateModified" datetime="2021-05-07T08:28:34+00:00">2021-05-07</time>
+                <time title="修改时间：2021-05-08 09:28:32" itemprop="dateModified" datetime="2021-05-08T09:28:32+00:00">2021-05-08</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1542,7 +1767,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-07 08:28:34" itemprop="dateModified" datetime="2021-05-07T08:28:34+00:00">2021-05-07</time>
+                <time title="修改时间：2021-05-08 09:28:32" itemprop="dateModified" datetime="2021-05-08T09:28:32+00:00">2021-05-08</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1636,7 +1861,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-07 08:28:34" itemprop="dateModified" datetime="2021-05-07T08:28:34+00:00">2021-05-07</time>
+                <time title="修改时间：2021-05-08 09:28:32" itemprop="dateModified" datetime="2021-05-08T09:28:32+00:00">2021-05-08</time>
               </span>
 
           
@@ -1755,237 +1980,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/06/Linux%20Crontab%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E8%AF%A6%E8%A7%A3/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/08/06/Linux%20Crontab%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E8%AF%A6%E8%A7%A3/" class="post-title-link" itemprop="url">Linux Crontab定时任务详解</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-08-06 17:38:28" itemprop="dateCreated datePublished" datetime="2020-08-06T17:38:28+00:00">2020-08-06</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-07 08:28:34" itemprop="dateModified" datetime="2021-05-07T08:28:34+00:00">2021-05-07</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Crontab/" itemprop="url" rel="index"><span itemprop="name">Crontab</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="Linux-crontab简介"><a href="#Linux-crontab简介" class="headerlink" title="Linux crontab简介"></a>Linux crontab简介</h2><p>Linux crontab是用来定期执行程序的命令。<br>当安装完成操作系统之后，默认便会启动此任务调度命令。</p>
-<p>注意：新创建的 cron 任务，不会马上执行，至少要过 2 分钟后才可以，当然你可以重启 cron 来马上执行。</p>
-<p>crontab命令用于设置周期性被执行的指令。该命令从标准输入设备读取指令，并将其存放于 <code>/etc/crontab</code> 文件中，以供之后读取和执行。</p>
-<p>cron 系统调度进程。 可以使用它在每天的非高峰负荷时间段运行作业，或在一周或一月中的不同时段运行。cron是系统主要的调度进程，可以在无需人工干预的情况下运行作业。crontab命令允许用户提交、编辑或删除相应的作业。每一个用户都可以有一个crontab文件来保存调度信息。</p>
-<p>linux 任务调度的工作主要分为以下两类：</p>
-<p>1、系统执行的工作：系统周期性所要执行的工作，如备份系统数据、清理缓存<br>2、个人执行的工作：某个用户定期要做的工作，例如每隔10分钟检查邮件服务器是否有新信，这些工作可由每个用户自行设置</p>
-<h2 id="crontab-命令"><a href="#crontab-命令" class="headerlink" title="crontab 命令"></a>crontab 命令</h2><p>crontab命令是 <code>cron table</code> 的简写，它是 cron 的配置文件，也可以叫它作业列表，我们可以在以下文件夹内找到相关配置文件。</p>
-<p><code>/var/spool/cron/</code> 目录下存放的是每个用户包括root的crontab任务，每个任务以创建者的名字命名<br><code>/etc/crontab</code> 这个文件负责调度各种管理和维护任务。<br><code>/etc/cron.d/</code> 这个目录用来存放任何要执行的crontab文件或脚本。</p>
-<p><strong><code>/etc/crontab</code></strong></p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">more /etc/crontab</span><br><span class="line">SHELL=/bin/bash</span><br><span class="line">PATH=/sbin:/bin:/usr/sbin:/usr/bin</span><br><span class="line">MAILTO=root</span><br><span class="line"></span><br><span class="line"><span class="comment"># For details see man 4 crontabs</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Example of job definition:</span></span><br><span class="line"><span class="comment"># .---------------- minute (0 - 59)</span></span><br><span class="line"><span class="comment"># |  .------------- hour (0 - 23)</span></span><br><span class="line"><span class="comment"># |  |  .---------- day of month (1 - 31)</span></span><br><span class="line"><span class="comment"># |  |  |  .------- month (1 - 12) OR jan,feb,mar,apr ...</span></span><br><span class="line"><span class="comment"># |  |  |  |  .---- day of week (0 - 6) (Sunday=0 or 7) OR sun,mon,tue,wed,thu,fri,sat</span></span><br><span class="line"><span class="comment"># |  |  |  |  |</span></span><br><span class="line"><span class="comment"># *  *  *  *  * user-name  command to be executed</span></span><br></pre></td></tr></table></figure>
-
-<p><strong><code>/var/spool/cron</code></strong></p>
-<p>每个用户都会生成一个自动生成一个自己的 <code>crontab</code> 文件，一般位于 <code>/var/spool/cron</code> 目录下</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /var/spool/cron</span><br></pre></td></tr></table></figure>
-
-<p>如果你用命令 <code>crontab -r</code> 就会删除当前用户的crontab文件，例如你切换到oracle账号下，执行了该命令，那么 <code>/var/spool/cron/oracle</code> 文件就会删除，如果要创建该文件只需要用 <code>crontab -e</code> 命令即可。注意，普通用户一般没有权限访问 <code>/var/spool/cron</code></p>
-<p>我们还可以把脚本放在 <code>/etc/cron.hourly</code>、<code>/etc/cron.daily</code>、<code>/etc/cron.weekly</code>、<code>/etc/cron.monthly</code> 目录中，让它每小时/天/星期、月执行一次。</p>
-<p>系统管理员可以通过 cron.deny 和 cron.allow 这两个文件来禁止或允许用户拥有自己的crontab文件。</p>
-<p><code>/etc/cron.deny</code> 表示不能使用 <code>crontab</code> 命令的用户</p>
-<p><code>/etc/cron.allow</code> 表示能使用 <code>crontab</code> 的用户。</p>
-<p>默认情况下，<code>cron.allow</code> 文件不存在。如果两个文件同时存在，那么 <code>/etc/cron.allow</code> 优先。如果两个文件都不存在，那么只有超级用户可以安排作业。</p>
-<p><strong><code>ls -lrt cron*</code></strong></p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">ls -lrt cron*</span><br><span class="line">-rw-r--r--. 1 root root 451 6月  10 2014 crontab</span><br><span class="line">-rw-------. 1 root root   0 11月 20 2018 cron.deny</span><br><span class="line"></span><br><span class="line">cron.weekly:</span><br><span class="line">总用量 0</span><br><span class="line"></span><br><span class="line">cron.monthly:</span><br><span class="line">总用量 0</span><br><span class="line"></span><br><span class="line">cron.hourly:</span><br><span class="line">总用量 4</span><br><span class="line">-rwxr-xr-x. 1 root root 392 11月 20 2018 0anacron</span><br><span class="line"></span><br><span class="line">cron.daily:</span><br><span class="line">总用量 8</span><br><span class="line">-rwxr-xr-x. 1 root root 618 10月 30 2018 man-db.cron</span><br><span class="line">-rwx------. 1 root root 219 10月 31 2018 logrotate</span><br><span class="line"></span><br><span class="line">cron.d:</span><br><span class="line">总用量 4</span><br><span class="line">-rw-r--r--. 1 root root 128 11月 20 2018 0hourl</span><br></pre></td></tr></table></figure>
-
-<h2 id="CRONTAB在线手册"><a href="#CRONTAB在线手册" class="headerlink" title="CRONTAB在线手册"></a>CRONTAB在线手册</h2><p>注意：不同版本的Linux系统，可能crontab手册内容有所出入，请以实际版本为准。</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">man crontab | more</span><br></pre></td></tr></table></figure>
-
-<h2 id="注意事项"><a href="#注意事项" class="headerlink" title="注意事项"></a>注意事项</h2><p>配置定时任务时，需要注意两个问题：</p>
-<p>1: 在SHELL中设置了必要的环境变量；例如一个shell脚本手工执行OK，但是配置成后台作业执行时，获取不到ORACLE的环境变量，这是因为crontab环境变量问题，Crontab的环境默认情况下并不包含系统中当前用户的环境。所以，你需要在shell脚本中添加必要的环境变量的设置</p>
-<p>2: 尽量所有的文件都采用完全路径方式，避免使用相对路径。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://www.jb51.net/article/98640.htm">Linux crontab定时任务配置方法(详解)</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.runoob.com/w3cnote/linux-crontab-tasks.html">Linux Crontab 定时任务</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.runoob.com/linux/linux-comm-crontab.html">Linux crontab 命令</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.linuxidc.com/Linux/2019-03/157851.htm">CentOS安装配置Crontab定时任务</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/06/%E4%BD%BF%E7%94%A8Linux%E8%87%AA%E5%B8%A6%E6%97%A5%E5%BF%97%E6%BB%9A%E5%8A%A8%E5%B7%A5%E5%85%B7logrotate%E6%BB%9A%E5%8A%A8redis%E6%97%A5%E5%BF%97%E7%A4%BA%E4%BE%8B/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/08/06/%E4%BD%BF%E7%94%A8Linux%E8%87%AA%E5%B8%A6%E6%97%A5%E5%BF%97%E6%BB%9A%E5%8A%A8%E5%B7%A5%E5%85%B7logrotate%E6%BB%9A%E5%8A%A8redis%E6%97%A5%E5%BF%97%E7%A4%BA%E4%BE%8B/" class="post-title-link" itemprop="url">使用Linux自带日志滚动工具logrotate滚动redis日志示例</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-08-06 15:51:36" itemprop="dateCreated datePublished" datetime="2020-08-06T15:51:36+00:00">2020-08-06</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-07 08:28:34" itemprop="dateModified" datetime="2021-05-07T08:28:34+00:00">2021-05-07</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="Linux-logrotate简介"><a href="#Linux-logrotate简介" class="headerlink" title="Linux logrotate简介"></a>Linux logrotate简介</h2><p><code>Linux logrotate</code> 命令用于管理记录文件。</p>
-<p>使用 <code>logrotate</code> 指令，可让你轻松管理系统所产生的记录文件。它提供自动替换，压缩，删除和邮寄记录文件，每个记录文件都可被设置成每日，每周或每月处理，也能在文件太大时立即处理。例如，你可以设置 <code>logrotate</code>，让 <code>/var/log/foo</code> 日志文件每30天轮循，并删除超过6个月的日志。配置完后，<code>logrotate</code> 的运作完全自动化，不必进行任何进一步的人为干预。</p>
-<p><code>logrotate</code> 需要的 <code>cron</code> 任务应该在安装时就自动创建好了，下面代码以centos7.4为例：</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">cat /etc/cron.daily/logrotate</span><br><span class="line"><span class="meta">#!/bin/sh</span></span><br><span class="line"></span><br><span class="line">/usr/sbin/logrotate -s /var/lib/logrotate/logrotate.status /etc/logrotate.conf</span><br><span class="line">EXITVALUE=$?</span><br><span class="line"><span class="keyword">if</span> [ <span class="variable">$EXITVALUE</span> != 0 ]; <span class="keyword">then</span></span><br><span class="line">    /usr/bin/logger -t logrotate <span class="string">&quot;ALERT exited abnormally with [<span class="variable">$EXITVALUE</span>]&quot;</span></span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"><span class="built_in">exit</span> 0</span><br></pre></td></tr></table></figure>
-
-<p>Linux系统自带的日志滚动工具 <code>logrotate</code> 由两部分组成：</p>
-<p>一是命令行工具 <code>logrotate</code>;<br>二是后台服务 <code>rsyslogd</code>。</p>
-<p>使用 <code>rsyslogd</code> ，只需简单的配置即可实现日志滚动。<br><code>rsyslogd</code> 的配置文件为 <code>/etc/logrotate.conf</code>，但一般不建议直接修改 <code>logrotate.conf</code> ，而是在目录 <code>/etc/logrotate.d</code> 下新增文件的方式。<br><code>logrotate.conf</code> 会 <code>include</code> 所有 <code>logrotate.d</code> 目录下的文件，<br>语法是一致的，区别是 <code>logrotate.conf</code> 定义了默认的配置，而 <code>logrotate.d</code> 目录下为专有配置。</p>
-<h2 id="Redis日志设置"><a href="#Redis日志设置" class="headerlink" title="Redis日志设置"></a>Redis日志设置</h2><p>截至到 <code>redis-5.0</code> 版本，redis 仍然不会自动滚动日志文件，如果不处理则日志文件日积月累越来越大，最终将导致磁盘满告警，</p>
-<p>使用命令查看磁盘使用情况：</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ls -lh</span><br></pre></td></tr></table></figure>
-
-<p>下列为redis的配置示例：</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># cat /etc/logrotate.d/redis</span></span><br><span class="line"><span class="comment"># 以下为 redis 文件的内容：</span></span><br><span class="line">/usr/<span class="built_in">local</span>/redis-cluster/<span class="built_in">log</span>/redis-6379.log</span><br><span class="line">/usr/<span class="built_in">local</span>/redis-cluster/<span class="built_in">log</span>/redis-6380.log</span><br><span class="line">/usr/<span class="built_in">local</span>/redis-cluster/<span class="built_in">log</span>/redis-6381.log</span><br><span class="line">&#123;</span><br><span class="line">    monthly</span><br><span class="line">    rotate 5</span><br><span class="line">    minsize 100M</span><br><span class="line">    nocompress</span><br><span class="line">    dateext</span><br><span class="line">    missingok</span><br><span class="line">    notifempty</span><br><span class="line">    create 0664 root root</span><br><span class="line">    postrotate</span><br><span class="line">        /usr/bin/killall -HUP rsyslogd</span><br><span class="line">    endscript</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>注：<code>postrotate/endscript</code> 可以去掉，即：</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># cat /etc/logrotate.d/redis</span></span><br><span class="line"><span class="comment"># 以下为 redis 文件的内容：</span></span><br><span class="line">/usr/<span class="built_in">local</span>/redis-cluster/<span class="built_in">log</span>/redis-6379.log</span><br><span class="line">/usr/<span class="built_in">local</span>/redis-cluster/<span class="built_in">log</span>/redis-6380.log</span><br><span class="line">/usr/<span class="built_in">local</span>/redis-cluster/<span class="built_in">log</span>/redis-6381.log</span><br><span class="line">&#123;</span><br><span class="line">    monthly</span><br><span class="line">    rotate 5</span><br><span class="line">    minsize 100M</span><br><span class="line">    nocompress</span><br><span class="line">    dateext</span><br><span class="line">    missingok</span><br><span class="line">    notifempty</span><br><span class="line">    create 0664 root root</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>配置项说明：</p>
-<p>可以使用 <code>man logrotate</code> 命令查看详情。</p>
-<ul>
-<li><code>monthly</code>: 日志文件将按月轮循。其它可用值为 <code>daily</code>，<code>weekly</code> 或者 <code>yearly</code>。</li>
-<li><code>rotate</code> 指定日志文件备份数，一次将存储5个归档日志。对于第六个归档，时间最久的归档将被删除，如果值为0表示不备份</li>
-<li><code>minsize</code> 表示日志文件达到多大才滚动</li>
-<li><code>nocompress</code> 表示是否压缩备份的日志文件，取值：<code>compress</code>，<code>nocompress</code></li>
-<li><code>delaycompress</code>: 总是与 <code>compress</code> 选项一起用，<code>delaycompress</code> 选项指示 <code>logrotate</code> 不要将最近的归档压缩，压缩将在下一次轮循周期进行。这在你或任何软件仍然需要读取最新归档时很有用。</li>
-<li><code>missingok</code> 在日志轮循期间，任何错误将被忽略</li>
-<li><code>notifempty</code> 日志文件为空时，不进行轮转，默认值为 <code>ifempty</code></li>
-<li><code>create</code> 以指定的权限创建全新的日志文件，同时logrotate也会重命名原始日志文件。<code>logrotate</code> 是以 root 运行的，如果目标日志文件非root运行，则这个一定要指定好。</li>
-<li><code>postrotate/endscript</code>: 在所有其它指令完成后，<code>postrotate</code> 和 <code>endscript</code> 里面指定的命令将被执行。在这种情况下，<code>rsyslogd</code> 进程将立即再次读取其配置并继续运行。</li>
-<li><code>dateext</code>：就是切割后的日志文件以当前日期为格式结尾，如 xxx.log-20201016 这样,如果注释掉,切割出来是按数字递增,即前面说的 xxx.log-1这种格式。</li>
-</ul>
-<p>注意，修改后需要重启下 <code>rsyslogd</code>。如果是 <code>CentOS</code> 可使用下列任意一种方式重启<br>（实际上 <code>systemctl</code> 新方式，而 <code>service</code> 实际也是使用 <code>systemctl</code> ）：</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">service rsyslog restart </span><br><span class="line">systemctl restart rsyslog.service</span><br></pre></td></tr></table></figure>
-
-<h2 id="实例"><a href="#实例" class="headerlink" title="实例"></a>实例</h2><p><strong>创建测试日志文件</strong></p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建文件</span></span><br><span class="line">touch /var/<span class="built_in">log</span>/log-file</span><br><span class="line">head -c 50M &lt; /dev/urandom &gt; /var/<span class="built_in">log</span>/log-file</span><br><span class="line"></span><br><span class="line"><span class="comment"># 编辑配置</span></span><br><span class="line">vim /etc/logrotate.d/log-file</span><br><span class="line"></span><br><span class="line"><span class="comment"># 以下为内容</span></span><br><span class="line">/var/<span class="built_in">log</span>/log-file &#123;</span><br><span class="line">    minsize 50M</span><br><span class="line">    rotate 5</span><br><span class="line">    create 644 root root</span><br><span class="line">    postrotate</span><br><span class="line">        /usr/bin/killall -HUP rsyslogd</span><br><span class="line">    endscript</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="手动运行"><a href="#手动运行" class="headerlink" title="手动运行"></a>手动运行</h2><p>logrotate 可以在任何时候从命令行手动调用。</p>
-<p>要调用为 <code>/etc/lograte.d/</code> 下配置的所有日志调用 <code>logrotate</code> ：</p>
-<p><code>logrotate /etc/logrotate.conf</code> </p>
-<p>要为某个特定的配置调用 <code>logrotate</code> ：</p>
-<p><code>logrotate /etc/logrotate.d/log-file</code> </p>
-<p><strong>logrotate参数说明</strong></p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># -d 选项以预演方式运行logrotate</span></span><br><span class="line">logrotate -d /etc/logrotate.d/log-file </span><br><span class="line"></span><br><span class="line"><span class="comment"># -f 强制logrotate轮循日志文件</span></span><br><span class="line"><span class="comment"># -v 参数提供了详细的输出。</span></span><br><span class="line">logrotate -vf /etc/logrotate.d/log-file</span><br><span class="line"></span><br><span class="line"><span class="comment"># 输出到指定的文件</span></span><br><span class="line"><span class="comment"># 注：logrotate自身的日志通常存放于/var/lib/logrotate/status目录。</span></span><br><span class="line">logrotate -vf –s /var/<span class="built_in">log</span>/logrotate-status /etc/logrotate.d/log-file</span><br></pre></td></tr></table></figure>
-
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://blog.chinaunix.net/uid-20682147-id-5818053.html">使用Linux自带日志滚动工具logrotate滚动redis日志示例</a></p>
-<p><a target="_blank" rel="noopener" href="https://linux.cn/article-4126-1.html">Linux日志文件总管——logrotate</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.runoob.com/linux/linux-comm-logrotate.html">Linux logrotate命令</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -2055,20 +2049,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">411</span>
+          <span class="site-state-item-count">413</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">121</span>
+        <span class="site-state-item-count">122</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">176</span>
+        <span class="site-state-item-count">178</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
