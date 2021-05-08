@@ -185,9 +185,9 @@ int main( )
 {  
     static int m1=2, m2;
     int i=1;
-    char*p;
+    char *p;
     char str[10] = "hello";
-    char*q = "hello";
+    char *q = "hello";
     p= (char *)malloc( 100 );
     free(p);
     printf("栈区-变量地址  i：%p\n", &i);
