@@ -115,21 +115,3 @@ inline    restrict    _Bool   _Complex    _Imaginary
 ```c
 _Alignas  _Alignof  _Atomic  _Static_assert  _Noreturn  _Thread_local  _Generic  
 ```
-
-## C中的空格
-
-只包含空格的行，被称为空白行，可能带有注释，C 编译器会完全忽略它。
-
-在 C 中，空格用于描述空白符、制表符、换行符和注释。空格分隔语句的各个部分，让编译器能识别语句中的某个元素（比如 int）在哪里结束，下一个元素在哪里开始。因此，在下面的语句中：
-
-```c
-int age;
-```
-
-在这里，int 和 age 之间必须至少有一个空格字符（通常是一个空白符），这样编译器才能够区分它们。另一方面，在下面的语句中：
-
-```c
-fruit = apples + oranges;   // 获取水果的总数
-```
-
-fruit 和 =，或者 = 和 apples 之间的空格字符不是必需的，但是为了增强可读性，您可以根据需要适当增加一些空格。
