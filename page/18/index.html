@@ -182,6 +182,114 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/05/06/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%885%EF%BC%89-%20Setting%E8%A7%A3%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/05/06/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%885%EF%BC%89-%20Setting%E8%A7%A3%E6%9E%90/" class="post-title-link" itemprop="url">ABP框架学习记录（5）- Setting解析</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-05-06 13:30:09" itemprop="dateCreated datePublished" datetime="2019-05-06T13:30:09+00:00">2019-05-06</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-05-14 09:14:58" itemprop="dateModified" datetime="2021-05-14T09:14:58+00:00">2021-05-14</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ABP/" itemprop="url" rel="index"><span itemprop="name">ABP</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="ABP框架学习记录（5）-Setting解析"><a href="#ABP框架学习记录（5）-Setting解析" class="headerlink" title="ABP框架学习记录（5）- Setting解析"></a>ABP框架学习记录（5）- Setting解析</h1><p>ABP中的 <code>Setting</code> 和 <code>Configuration</code>：</p>
+<p>Setting一般用于需要通过外部配置文件（或数据库）设置的简单类型数据（一般就是字符串）。</p>
+<p>Configuration一般只需要通过内部代码完成的配置，一般用于设置复杂类型的数据。</p>
+<h2 id="Setting的实现"><a href="#Setting的实现" class="headerlink" title="Setting的实现"></a>Setting的实现</h2><p><code>SettingDefinition</code>：用于定义Setting。</p>
+<p><code>SettingDefinitionGroup</code>：用于给<code>SettingDefinition</code>分组。</p>
+<p><code>SettingsConfiguration</code> / <code>ISettingsConfiguration</code>：用于集中化设置和管理 <code>SettingProvider</code> 的对象。其封装了一个<code>ITypeList&lt;SettingProvider&gt; Providers</code>的集合类。可以通过<code>Configuration.Setting</code>来获取<code>ISettingsConfiguration</code>实例，然后将自定义的 <code>SettingProvider</code> 添加到 <code>SettingsConfiguration</code> 对象中，下图：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506162020.png" alt="QQ截图20190506162020.png"></p>
+<p><code>SettingDefinitionManager</code>：主要完成注册到ABP中的 <code>SettingDefinition</code> 初始化，通过 <code>ISettingsConfiguration</code> 实例获取 <code>setting providers</code> 集合，然后在 <code>Initialize</code> 方法中通过 <code>setting providers</code> 获取 <code>SettingDefinition</code> 的数组。并将其保存在 <code>Dictionary</code> 中，其key就是 <code>SettingDefinition</code> 的Name，下图：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506162528.png" alt="QQ截图20190506162528.png"></p>
+<p><code>SettingDefinitionManager</code> 继承 <code>ISingletonDependency</code>接口，将在<code>BasicConventionalRegistrar</code>类中实现约定规则的注入：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506163107.png" alt="QQ截图20190506163107.png"></p>
+<p><code>AbpKernelModule</code> 中 <code>PostInitialize</code> 调用 <code>SettingDefinitionManager</code>的 <code>Initialize</code>方法：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506173110.png" alt="QQ截图20190506173110.png"></p>
+<p><code>SettingDefinitionProviderContext</code>：用于对 <code>ISettingDefinitionManager</code> 的封装：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506162348.png" alt="QQ截图20190506162348.png"></p>
+<p><code>SettingScopes</code>：标注了Flags特性的枚举类型，表示setting的应用范围：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506162316.png" alt="QQ截图20190506162316.png"></p>
+<p><code>SettingProvider</code>：为具体的功能模块所需的设置定义 <code>SettingDefinition</code>，并且以数组的形式返回：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506170342.png" alt="QQ截图20190506170342.png"></p>
+<p><code>SettingManager</code> / <code>ISettingManager</code> ：用户获取配置详情。</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506172935.png" alt="QQ截图20190506172935.png"></p>
+<p>公共方法：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506173541.png" alt="QQ截图20190506173541.png"></p>
+<h2 id="以mail的实现来使用Setting"><a href="#以mail的实现来使用Setting" class="headerlink" title="以mail的实现来使用Setting"></a>以mail的实现来使用Setting</h2><p>目录结构：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506173847.png" alt="QQ截图20190506173847.png"></p>
+<p><code>IEmailSenderConfiguration</code>/<code>EmailSenderConfiguration</code> 和 <code>ISmtpEmailSenderConfiguration</code>/<code>SmtpEmailSenderConfiguration</code>：定义配置。</p>
+<p><code>EmailSenderConfiguration</code>：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190509145449.png" alt="QQ截图20190509145449.png"></p>
+<p><code>SmtpEmailSenderConfiguration</code>：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190509145529.png" alt="QQ截图20190509145529.png"></p>
+<p><code>EmailSettingProvider</code>：继承自 <code>SettingProvider</code>, 将SMTP的各项设置封装成<code>SettingDefinition</code>，并以数组形式返回。</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190509145337.png" alt="QQ截图20190509145337.png"></p>
+<p><code>EmailSenderBase</code>/<code>IEmailSender</code> 和 <code>ISmtpEmailSender</code>/<code>SmtpEmailSender</code>：用户发送邮件。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/1zhk/p/5299469.html">ABP源码分析七：Setting 以及 Mail</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/05/05/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%884%EF%BC%89-%20Configuration%E8%A7%A3%E6%9E%90/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +321,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-08 09:48:39" itemprop="dateModified" datetime="2021-05-08T09:48:39+00:00">2021-05-08</time>
+                <time title="修改时间：2021-05-14 09:14:58" itemprop="dateModified" datetime="2021-05-14T09:14:58+00:00">2021-05-14</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -325,7 +433,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-08 09:48:39" itemprop="dateModified" datetime="2021-05-08T09:48:39+00:00">2021-05-08</time>
+                <time title="修改时间：2021-05-14 09:14:58" itemprop="dateModified" datetime="2021-05-14T09:14:58+00:00">2021-05-14</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -430,7 +538,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-08 09:48:39" itemprop="dateModified" datetime="2021-05-08T09:48:39+00:00">2021-05-08</time>
+                <time title="修改时间：2021-05-14 09:14:58" itemprop="dateModified" datetime="2021-05-14T09:14:58+00:00">2021-05-14</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -536,7 +644,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-08 09:48:39" itemprop="dateModified" datetime="2021-05-08T09:48:39+00:00">2021-05-08</time>
+                <time title="修改时间：2021-05-14 09:14:58" itemprop="dateModified" datetime="2021-05-14T09:14:58+00:00">2021-05-14</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -628,7 +736,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-08 09:48:39" itemprop="dateModified" datetime="2021-05-08T09:48:39+00:00">2021-05-08</time>
+                <time title="修改时间：2021-05-14 09:14:58" itemprop="dateModified" datetime="2021-05-14T09:14:58+00:00">2021-05-14</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -710,7 +818,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-08 09:48:39" itemprop="dateModified" datetime="2021-05-08T09:48:39+00:00">2021-05-08</time>
+                <time title="修改时间：2021-05-14 09:14:58" itemprop="dateModified" datetime="2021-05-14T09:14:58+00:00">2021-05-14</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -788,7 +896,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-08 09:48:39" itemprop="dateModified" datetime="2021-05-08T09:48:39+00:00">2021-05-08</time>
+                <time title="修改时间：2021-05-14 09:14:58" itemprop="dateModified" datetime="2021-05-14T09:14:58+00:00">2021-05-14</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -866,7 +974,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-08 09:48:39" itemprop="dateModified" datetime="2021-05-08T09:48:39+00:00">2021-05-08</time>
+                <time title="修改时间：2021-05-14 09:14:58" itemprop="dateModified" datetime="2021-05-14T09:14:58+00:00">2021-05-14</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -955,7 +1063,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-08 09:48:39" itemprop="dateModified" datetime="2021-05-08T09:48:39+00:00">2021-05-08</time>
+                <time title="修改时间：2021-05-14 09:14:58" itemprop="dateModified" datetime="2021-05-14T09:14:58+00:00">2021-05-14</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1053,7 +1161,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-08 09:48:39" itemprop="dateModified" datetime="2021-05-08T09:48:39+00:00">2021-05-08</time>
+                <time title="修改时间：2021-05-14 09:14:58" itemprop="dateModified" datetime="2021-05-14T09:14:58+00:00">2021-05-14</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1173,7 +1281,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-08 09:48:39" itemprop="dateModified" datetime="2021-05-08T09:48:39+00:00">2021-05-08</time>
+                <time title="修改时间：2021-05-14 09:14:58" itemprop="dateModified" datetime="2021-05-14T09:14:58+00:00">2021-05-14</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1253,7 +1361,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-08 09:48:39" itemprop="dateModified" datetime="2021-05-08T09:48:39+00:00">2021-05-08</time>
+                <time title="修改时间：2021-05-14 09:14:58" itemprop="dateModified" datetime="2021-05-14T09:14:58+00:00">2021-05-14</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1334,7 +1442,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-08 09:48:39" itemprop="dateModified" datetime="2021-05-08T09:48:39+00:00">2021-05-08</time>
+                <time title="修改时间：2021-05-14 09:14:58" itemprop="dateModified" datetime="2021-05-14T09:14:58+00:00">2021-05-14</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1465,7 +1573,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-08 09:48:39" itemprop="dateModified" datetime="2021-05-08T09:48:39+00:00">2021-05-08</time>
+                <time title="修改时间：2021-05-14 09:14:58" itemprop="dateModified" datetime="2021-05-14T09:14:58+00:00">2021-05-14</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1574,87 +1682,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/03/21/CSharp%E7%AE%97%E6%B3%95%E5%AE%9E%E7%8E%B0-%E5%86%92%E6%B3%A1%E7%AE%97%E6%B3%95/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/03/21/CSharp%E7%AE%97%E6%B3%95%E5%AE%9E%E7%8E%B0-%E5%86%92%E6%B3%A1%E7%AE%97%E6%B3%95/" class="post-title-link" itemprop="url">CSharp算法实现-冒泡算法</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-03-21 14:01:03" itemprop="dateCreated datePublished" datetime="2019-03-21T14:01:03+00:00">2019-03-21</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-08 09:48:39" itemprop="dateModified" datetime="2021-05-08T09:48:39+00:00">2021-05-08</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E7%AE%97%E6%B3%95/" itemprop="url" rel="index"><span itemprop="name">算法</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>CSharp算法实现-冒泡算法的实现</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2019/03/21/CSharp%E7%AE%97%E6%B3%95%E5%AE%9E%E7%8E%B0-%E5%86%92%E6%B3%A1%E7%AE%97%E6%B3%95/">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1724,7 +1751,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">413</span>
+          <span class="site-state-item-count">414</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
