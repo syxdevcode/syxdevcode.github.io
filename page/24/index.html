@@ -182,6 +182,265 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/07/26/Polly%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8%E8%8C%83%E4%BE%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/07/26/Polly%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8%E8%8C%83%E4%BE%8B/" class="post-title-link" itemprop="url">Polly基本使用范例</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-07-26 16:11:28" itemprop="dateCreated datePublished" datetime="2018-07-26T16:11:28+00:00">2018-07-26</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-05-19 09:54:23" itemprop="dateModified" datetime="2021-05-19T09:54:23+00:00">2021-05-19</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Polly/" itemprop="url" rel="index"><span itemprop="name">Polly</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h1><p>Polly是一个被.NET基金会认可的弹性和瞬态故障处理库，允许我们以非常顺畅和线程安全的方式来执诸如行重试</p>
+<p>官网：<a target="_blank" rel="noopener" href="http://www.thepollyproject.org/">http://www.thepollyproject.org/</a></p>
+<p>源码：<a target="_blank" rel="noopener" href="https://github.com/App-vNext/Polly">https://github.com/App-vNext/Polly</a></p>
+<p>其主要功能如下：</p>
+<ul>
+<li>重试（Retry）</li>
+<li>断路器（Circuit-Breaker）</li>
+<li>超时检测（Timeout）</li>
+<li>隔板隔离 (Bulkhead Isolation)</li>
+<li>缓存（Cache）</li>
+<li>降级（Fallback）</li>
+</ul>
+<p>在Polly中，对这些服务容错模式分为两类：</p>
+<ul>
+<li>错误处理(fault handling)：重试、熔断、回退（降级）</li>
+<li>弹性应变(resilience)：超时、舱壁、缓存</li>
+</ul>
+<p>可以说错误处理是当错误已经发生时，防止由于该错误对整个系统造成更坏的影响而设置。而弹性应变，则在是错误发生前，针对有可能发生错误的地方进行预先处理，从而达到保护整个系统的目地。</p>
+<h1 id="错误处理-fault-handling"><a href="#错误处理-fault-handling" class="headerlink" title="错误处理(fault handling)"></a>错误处理(fault handling)</h1><h2 id="重试"><a href="#重试" class="headerlink" title="重试"></a>重试</h2><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Test1</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">try</span></span><br><span class="line">    &#123;</span><br><span class="line">        ISyncPolicy policy = Policy.Handle&lt;ArgumentException&gt;()</span><br><span class="line">        .Retry(<span class="number">2</span>, (ex, retryCount, context) =&gt;</span><br><span class="line">         &#123;</span><br><span class="line">             Console.WriteLine(<span class="string">$&quot;Error occured,runing fallback,exception :<span class="subst">&#123;ex.Message&#125;</span>,retryCount:<span class="subst">&#123;retryCount&#125;</span>&quot;</span>);</span><br><span class="line">         &#125;);</span><br><span class="line"></span><br><span class="line">        policy.Execute(() =&gt;</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;Job Start&quot;</span>);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentException(<span class="string">&quot;Hello Polly!&quot;</span>);</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">    catch (Exception ex)</span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;There&#x27;s one unhandled exception : &quot;</span> + ex.Message);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>.Retry(3) ：按次数重试</li>
+<li>.RetryForever() ：不断重试(直到成功)</li>
+<li>.WaitAndRetry() ：等待之后重试</li>
+<li>.WaitAndRetryForever ：等待并永远重试（直到成功</li>
+</ul>
+<h2 id="熔断-Circuit-Breaker"><a href="#熔断-Circuit-Breaker" class="headerlink" title="熔断 Circuit Breaker"></a>熔断 Circuit Breaker</h2><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">CircuitBreaker</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    Action&lt;Exception, TimeSpan, Context&gt; onBreak = (exception, timespan, context) =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;onBreak Running : &quot;</span> + exception.Message);</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    Action&lt;Context&gt; onReset = context =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;Job Back to normal&quot;</span>);</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    CircuitBreakerPolicy breaker = Policy</span><br><span class="line">        .Handle&lt;AggregateException&gt;()</span><br><span class="line">        .CircuitBreaker(<span class="number">3</span>, TimeSpan.FromSeconds(<span class="number">10</span>), onBreak, onReset);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Monitor the circuit state, for example for health reporting.</span></span><br><span class="line">    CircuitState state = breaker.CircuitState;</span><br><span class="line"></span><br><span class="line">    ISyncPolicy policy = Policy.Handle&lt;ArgumentException&gt;()</span><br><span class="line">        .Retry(<span class="number">3</span>, (ex, retryCount, context) =&gt;</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(<span class="string">$&quot;Runing fallback,Exception :<span class="subst">&#123;ex.Message&#125;</span>,RetryCount:<span class="subst">&#123;retryCount&#125;</span>&quot;</span>);</span><br><span class="line">        &#125;);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> (<span class="literal">true</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">try</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">var</span> policyWrap = Policy.Wrap(policy, breaker);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// (wraps the policies around any executed delegate: fallback outermost ... bulkhead innermost)</span></span><br><span class="line">            policyWrap.Execute(() =&gt;</span><br><span class="line">            &#123;</span><br><span class="line">                Console.WriteLine(<span class="string">&quot;Job Start&quot;</span>);</span><br><span class="line"></span><br><span class="line">                <span class="keyword">if</span> (DateTime.Now.Second % <span class="number">3</span> == <span class="number">0</span>)</span><br><span class="line">                    <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentException(<span class="string">&quot;Hello Polly!&quot;</span>);</span><br><span class="line">            &#125;);</span><br><span class="line">        &#125;</span><br><span class="line">        catch (Exception ex)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="comment">// 手动打开熔断器，阻止执行</span></span><br><span class="line">            breaker.Isolate();</span><br><span class="line">        &#125;</span><br><span class="line">        Thread.Sleep(<span class="number">1000</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 恢复操作，启动执行</span></span><br><span class="line">        breaker.Reset();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="降级-Fallback"><a href="#降级-Fallback" class="headerlink" title="降级 Fallback"></a>降级 Fallback</h2><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">FallbackTest</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    ISyncPolicy policy = Policy.Handle&lt;ArgumentException&gt;()</span><br><span class="line">    .Fallback(() =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;Error occured,runing fallback&quot;</span>);</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    policy.Execute(() =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;Job Start&quot;</span>);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentException(<span class="string">&quot;Hello Polly!&quot;</span>);</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="弹性应变处理-Resilience"><a href="#弹性应变处理-Resilience" class="headerlink" title="弹性应变处理 (Resilience)"></a>弹性应变处理 (Resilience)</h1><h2 id="超时"><a href="#超时" class="headerlink" title="超时"></a>超时</h2><p>Timeout则是指超时处理，但是超时策略一般不能直接使用，而是其其他策略封装到一起使用。<br>常用悲观超时。</p>
+<h3 id="乐观超时-Optimistic-timeout"><a href="#乐观超时-Optimistic-timeout" class="headerlink" title="乐观超时 (Optimistic timeout)"></a>乐观超时 (Optimistic timeout)</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">Should_be_able_to_cancel_with_user_cancellation_token_before_timeout__optimistic</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">int</span> timeout = <span class="number">10</span>;</span><br><span class="line">    <span class="keyword">var</span> policy = Policy.TimeoutAsync(timeout, TimeoutStrategy.Optimistic);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">using</span> (CancellationTokenSource userTokenSource = <span class="keyword">new</span> CancellationTokenSource())</span><br><span class="line">    &#123;</span><br><span class="line">        policy.Awaiting(<span class="keyword">async</span> p =&gt; <span class="keyword">await</span> p.ExecuteAsync(</span><br><span class="line">            ct =&gt; &#123;</span><br><span class="line">                userTokenSource.Cancel(); ct.ThrowIfCancellationRequested();   <span class="comment">// Simulate cancel in the middle of execution</span></span><br><span class="line">                <span class="keyword">return</span> TaskHelper.EmptyTask;</span><br><span class="line">            &#125;, userTokenSource.Token) <span class="comment">// ... with user token.</span></span><br><span class="line">           ).ShouldThrow&lt;OperationCanceledException&gt;();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="悲观超时"><a href="#悲观超时" class="headerlink" title="悲观超时"></a>悲观超时</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">PessimisticTimeOutTest</span>(<span class="params"></span>)</span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    CancellationTokenSource userCancellationSource = <span class="keyword">new</span> CancellationTokenSource();</span><br><span class="line"></span><br><span class="line">    ISyncPolicy fallback = Policy.Handle&lt;Polly.Timeout.TimeoutRejectedException&gt;()</span><br><span class="line">         .Or&lt;ArgumentException&gt;()</span><br><span class="line">         .Fallback(() =&gt;</span><br><span class="line">         &#123;</span><br><span class="line">             Console.WriteLine(<span class="string">&quot;Error occured,runing fallback&quot;</span>);</span><br><span class="line">         &#125;,</span><br><span class="line">         (ex) =&gt; &#123; Console.WriteLine(<span class="string">$&quot;Fallback exception:<span class="subst">&#123;ex.GetType().ToString()&#125;</span>,Message:<span class="subst">&#123;ex.Message&#125;</span>&quot;</span>); &#125;);</span><br><span class="line"></span><br><span class="line">    ISyncPolicy policyTimeout = Policy.Timeout(<span class="number">3</span>, Polly.Timeout.TimeoutStrategy.Pessimistic);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> (<span class="literal">true</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">var</span> policyWrap = Policy.Wrap(fallback, policyTimeout);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// (wraps the policies around any executed delegate: fallback outermost ... bulkhead innermost)</span></span><br><span class="line">        policyWrap.Execute(() =&gt;</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;Job Start&quot;</span>);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (DateTime.Now.Second % <span class="number">2</span> == <span class="number">0</span>)</span><br><span class="line">            &#123;</span><br><span class="line">                Thread.Sleep(<span class="number">3000</span>);</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentException(<span class="string">&quot;Hello Polly!&quot;</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        Thread.Sleep(<span class="number">300</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="舱壁-Bulkhead"><a href="#舱壁-Bulkhead" class="headerlink" title="舱壁 Bulkhead"></a>舱壁 Bulkhead</h2><p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/App-vNext/Polly">https://github.com/App-vNext/Polly</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/07/25/%E5%AE%B9%E9%94%99%E5%A4%84%E7%90%86%E5%BA%93Polly%E4%BD%BF%E7%94%A8%E6%96%87%E6%A1%A3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/07/25/%E5%AE%B9%E9%94%99%E5%A4%84%E7%90%86%E5%BA%93Polly%E4%BD%BF%E7%94%A8%E6%96%87%E6%A1%A3/" class="post-title-link" itemprop="url">容错处理库Polly使用文档</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-07-25 09:23:20" itemprop="dateCreated datePublished" datetime="2018-07-25T09:23:20+00:00">2018-07-25</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-05-19 09:54:23" itemprop="dateModified" datetime="2021-05-19T09:54:23+00:00">2021-05-19</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Polly/" itemprop="url" rel="index"><span itemprop="name">Polly</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h1><p>Polly是一个被.NET基金会认可的弹性和瞬态故障处理库，允许我们以非常顺畅和线程安全的方式来执诸如行重试</p>
+<p>官网：<a target="_blank" rel="noopener" href="http://www.thepollyproject.org/">http://www.thepollyproject.org/</a></p>
+<p>源码：<a target="_blank" rel="noopener" href="https://github.com/App-vNext/Polly">https://github.com/App-vNext/Polly</a></p>
+<p>其主要功能如下：</p>
+<ul>
+<li>重试（Retry）</li>
+<li>断路器（Circuit-Breaker）</li>
+<li>超时检测（Timeout）</li>
+<li>隔板隔离 (Bulkhead Isolation)</li>
+<li>缓存（Cache）</li>
+<li>降级（Fallback）</li>
+</ul>
+<p>在Polly中，对这些服务容错模式分为两类：</p>
+<ul>
+<li>错误处理(fault handling)：重试、熔断、回退(降级)</li>
+<li>弹性应变(resilience)：超时、舱壁、缓存</li>
+</ul>
+<p>可以说错误处理是当错误已经发生时，防止由于该错误对整个系统造成更坏的影响而设置。而弹性应变，则在是错误发生前，<br>针对有可能发生错误的地方进行预先处理，从而达到保护整个系统的目地。</p>
+<h1 id="Polly-错误处理使用三步曲"><a href="#Polly-错误处理使用三步曲" class="headerlink" title="Polly 错误处理使用三步曲"></a>Polly 错误处理使用三步曲</h1><ul>
+<li>定义条件： 定义你要处理的 错误异常/返回结果</li>
+<li>定义处理方式 ： 重试，熔断，回退</li>
+<li>执行</li>
+</ul>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> policy = Policy</span><br><span class="line">              .Handle&lt;SomeExceptionType&gt;()   <span class="comment">// 定义条件</span></span><br><span class="line">              .Retry(); <span class="comment">// 定义处理方式</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 执行</span></span><br><span class="line">policy.Execute(() =&gt; DoSomething());</span><br></pre></td></tr></table></figure>
+
+<h1 id="错误处理-fault-handling"><a href="#错误处理-fault-handling" class="headerlink" title="错误处理(fault handling)"></a>错误处理(fault handling)</h1><h2 id="定义条件"><a href="#定义条件" class="headerlink" title="定义条件"></a>定义条件</h2><h3 id="定义异常策略"><a href="#定义异常策略" class="headerlink" title="定义异常策略"></a>定义异常策略</h3><p>针对两种情况：错误异常和返回结果</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Single exception type</span></span><br><span class="line">Policy</span><br><span class="line">  .Handle&lt;HttpRequestException&gt;()</span><br><span class="line"></span><br><span class="line"><span class="comment">// Single exception type with condition</span></span><br><span class="line">Policy</span><br><span class="line">  .Handle&lt;SqlException&gt;(ex =&gt; ex.Number == <span class="number">1205</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Multiple exception types</span></span><br><span class="line">Policy</span><br><span class="line">  .Handle&lt;HttpRequestException&gt;()</span><br><span class="line">  .Or&lt;OperationCanceledException&gt;()</span><br><span class="line"></span><br><span class="line"><span class="comment">// Multiple exception types with condition</span></span><br><span class="line">Policy</span><br><span class="line">  .Handle&lt;SqlException&gt;(ex =&gt; ex.Number == <span class="number">1205</span>)</span><br><span class="line">  .Or&lt;ArgumentException&gt;(ex =&gt; ex.ParamName == <span class="string">&quot;example&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Inner exceptions of ordinary exceptions or AggregateException, with or without conditions</span></span><br><span class="line">Policy</span><br><span class="line">  .HandleInner&lt;HttpRequestException&gt;()</span><br><span class="line">  .OrInner&lt;OperationCanceledException&gt;(ex =&gt; ex.CancellationToken != myToken)</span><br></pre></td></tr></table></figure>
+
+<h3 id="定义返回结果策略"><a href="#定义返回结果策略" class="headerlink" title="定义返回结果策略"></a>定义返回结果策略</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Handle return value with condition </span></span><br><span class="line">Policy</span><br><span class="line">  .HandleResult&lt;HttpResponseMessage&gt;(r =&gt; r.StatusCode == HttpStatusCode.NotFound)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Handle multiple return values </span></span><br><span class="line">Policy</span><br><span class="line">  .HandleResult&lt;HttpResponseMessage&gt;(r =&gt; r.StatusCode == HttpStatusCode.InternalServerError)</span><br><span class="line">  .OrResult&lt;HttpResponseMessage&gt;(r =&gt; r.StatusCode == HttpStatusCode.BadGateway)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Handle primitive return values (implied use of .Equals())</span></span><br><span class="line">Policy</span><br><span class="line">  .HandleResult&lt;HttpStatusCode&gt;(HttpStatusCode.InternalServerError)</span><br><span class="line">  .OrResult&lt;HttpStatusCode&gt;(HttpStatusCode.BadGateway)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Handle both exceptions and return values in one policy</span></span><br><span class="line">HttpStatusCode[] httpStatusCodesWorthRetrying = &#123;</span><br><span class="line">   HttpStatusCode.RequestTimeout, <span class="comment">// 408</span></span><br><span class="line">   HttpStatusCode.InternalServerError, <span class="comment">// 500</span></span><br><span class="line">   HttpStatusCode.BadGateway, <span class="comment">// 502</span></span><br><span class="line">   HttpStatusCode.ServiceUnavailable, <span class="comment">// 503</span></span><br><span class="line">   HttpStatusCode.GatewayTimeout <span class="comment">// 504</span></span><br><span class="line">&#125;;</span><br><span class="line">HttpResponseMessage result = Policy</span><br><span class="line">  .Handle&lt;HttpRequestException&gt;()</span><br><span class="line">  .OrResult&lt;HttpResponseMessage&gt;(r =&gt; httpStatusCodesWorthRetrying.Contains(r.StatusCode))</span><br><span class="line">  .RetryAsync(...)</span><br><span class="line">  .ExecuteAsync( <span class="comment">/* some Func&lt;Task&lt;HttpResponseMessage&gt;&gt; */</span> )</span><br></pre></td></tr></table></figure>
+
+<h2 id="定义处理方式"><a href="#定义处理方式" class="headerlink" title="定义处理方式"></a>定义处理方式</h2><h3 id="重试-Retry"><a href="#重试-Retry" class="headerlink" title="重试 Retry"></a>重试 Retry</h3><p>当发生某种错误或者返回某种结果的时候进行重试。<br>Polly里面提供了以下几种重试机制</p>
+<ul>
+<li>按次数重试</li>
+<li>不断重试（直到成功）</li>
+<li>等待之后按次数重试</li>
+<li>等待之后不断重试（直到成功）</li>
+</ul>
+<h4 id="按次数重试"><a href="#按次数重试" class="headerlink" title="按次数重试"></a>按次数重试</h4><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Retry once</span></span><br><span class="line">Policy</span><br><span class="line">  .Handle&lt;SomeExceptionType&gt;()</span><br><span class="line">  .Retry()</span><br><span class="line"></span><br><span class="line"><span class="comment">// Retry multiple times</span></span><br><span class="line">Policy</span><br><span class="line">  .Handle&lt;SomeExceptionType&gt;()</span><br><span class="line">  .Retry(<span class="number">3</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Retry multiple times, calling an action on each retry</span></span><br><span class="line"><span class="comment">// with the current exception and retry count</span></span><br><span class="line">Policy</span><br><span class="line">    .Handle&lt;SomeExceptionType&gt;()</span><br><span class="line">    .Retry(<span class="number">3</span>, (exception, retryCount) =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// do something</span></span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Retry multiple times, calling an action on each retry</span></span><br><span class="line"><span class="comment">// with the current exception, retry count and context</span></span><br><span class="line"><span class="comment">// provided to Execute()</span></span><br><span class="line">Policy</span><br><span class="line">    .Handle&lt;SomeExceptionType&gt;()</span><br><span class="line">    .Retry(<span class="number">3</span>, (exception, retryCount, context) =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// do something</span></span><br><span class="line">    &#125;);</span><br></pre></td></tr></table></figure>
+
+<h4 id="不断重试-直到成功"><a href="#不断重试-直到成功" class="headerlink" title="不断重试(直到成功)"></a>不断重试(直到成功)</h4><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Retry forever</span></span><br><span class="line">Policy</span><br><span class="line">  .Handle&lt;SomeExceptionType&gt;()</span><br><span class="line">  .RetryForever()</span><br><span class="line"></span><br><span class="line"><span class="comment">// Retry forever, calling an action on each retry with the</span></span><br><span class="line"><span class="comment">// current exception</span></span><br><span class="line">Policy</span><br><span class="line">  .Handle&lt;SomeExceptionType&gt;()</span><br><span class="line">  .RetryForever(exception =&gt;</span><br><span class="line">  &#123;</span><br><span class="line">        <span class="comment">// do something</span></span><br><span class="line">  &#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Retry forever, calling an action on each retry with the</span></span><br><span class="line"><span class="comment">// current exception and context provided to Execute()</span></span><br><span class="line">Policy</span><br><span class="line">  .Handle&lt;SomeExceptionType&gt;()</span><br><span class="line">  .RetryForever((exception, context) =&gt;</span><br><span class="line">  &#123;</span><br><span class="line">        <span class="comment">// do something</span></span><br><span class="line">  &#125;);</span><br></pre></td></tr></table></figure>
+
+<h4 id="等待之后重试"><a href="#等待之后重试" class="headerlink" title="等待之后重试"></a>等待之后重试</h4><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Retry, waiting a specified duration between each retry</span></span><br><span class="line">Policy</span><br><span class="line">  .Handle&lt;SomeExceptionType&gt;()</span><br><span class="line">  .WaitAndRetry(<span class="keyword">new</span>[]</span><br><span class="line">  &#123;</span><br><span class="line">    TimeSpan.FromSeconds(<span class="number">1</span>),</span><br><span class="line">    TimeSpan.FromSeconds(<span class="number">2</span>),</span><br><span class="line">    TimeSpan.FromSeconds(<span class="number">3</span>)</span><br><span class="line">  &#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Retry, waiting a specified duration between each retry,</span></span><br><span class="line"><span class="comment">// calling an action on each retry with the current exception</span></span><br><span class="line"><span class="comment">// and duration</span></span><br><span class="line">Policy</span><br><span class="line">  .Handle&lt;SomeExceptionType&gt;()</span><br><span class="line">  .WaitAndRetry(<span class="keyword">new</span>[]</span><br><span class="line">  &#123;</span><br><span class="line">    TimeSpan.FromSeconds(<span class="number">1</span>),</span><br><span class="line">    TimeSpan.FromSeconds(<span class="number">2</span>),</span><br><span class="line">    TimeSpan.FromSeconds(<span class="number">3</span>)</span><br><span class="line">  &#125;, (exception, timeSpan) =&gt; &#123;</span><br><span class="line">    <span class="comment">// do something</span></span><br><span class="line">  &#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Retry, waiting a specified duration between each retry,</span></span><br><span class="line"><span class="comment">// calling an action on each retry with the current exception,</span></span><br><span class="line"><span class="comment">// duration and context provided to Execute()</span></span><br><span class="line">Policy</span><br><span class="line">  .Handle&lt;SomeExceptionType&gt;()</span><br><span class="line">  .WaitAndRetry(<span class="keyword">new</span>[]</span><br><span class="line">  &#123;</span><br><span class="line">    TimeSpan.FromSeconds(<span class="number">1</span>),</span><br><span class="line">    TimeSpan.FromSeconds(<span class="number">2</span>),</span><br><span class="line">    TimeSpan.FromSeconds(<span class="number">3</span>)</span><br><span class="line">  &#125;, (exception, timeSpan, context) =&gt; &#123;</span><br><span class="line">    <span class="comment">// do something</span></span><br><span class="line">  &#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Retry, waiting a specified duration between each retry,</span></span><br><span class="line"><span class="comment">// calling an action on each retry with the current exception,</span></span><br><span class="line"><span class="comment">// duration, retry count, and context provided to Execute()</span></span><br><span class="line">Policy</span><br><span class="line">  .Handle&lt;SomeExceptionType&gt;()</span><br><span class="line">  .WaitAndRetry(<span class="keyword">new</span>[]</span><br><span class="line">  &#123;</span><br><span class="line">    TimeSpan.FromSeconds(<span class="number">1</span>),</span><br><span class="line">    TimeSpan.FromSeconds(<span class="number">2</span>),</span><br><span class="line">    TimeSpan.FromSeconds(<span class="number">3</span>)</span><br><span class="line">  &#125;, (exception, timeSpan, retryCount, context) =&gt; &#123;</span><br><span class="line">    <span class="comment">// do something</span></span><br><span class="line">  &#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Retry a specified number of times, using a function to </span></span><br><span class="line"><span class="comment">// calculate the duration to wait between retries based on </span></span><br><span class="line"><span class="comment">// the current retry attempt (allows for exponential backoff)</span></span><br><span class="line"><span class="comment">// In this case will wait for</span></span><br><span class="line"><span class="comment">//  2 ^ 1 = 2 seconds then</span></span><br><span class="line"><span class="comment">//  2 ^ 2 = 4 seconds then</span></span><br><span class="line"><span class="comment">//  2 ^ 3 = 8 seconds then</span></span><br><span class="line"><span class="comment">//  2 ^ 4 = 16 seconds then</span></span><br><span class="line"><span class="comment">//  2 ^ 5 = 32 seconds</span></span><br><span class="line">Policy</span><br><span class="line">  .Handle&lt;SomeExceptionType&gt;()</span><br><span class="line">  .WaitAndRetry(<span class="number">5</span>, retryAttempt =&gt;</span><br><span class="line">    TimeSpan.FromSeconds(Math.Pow(<span class="number">2</span>, retryAttempt))</span><br><span class="line">  );</span><br><span class="line"></span><br><span class="line"><span class="comment">// Retry a specified number of times, using a function to</span></span><br><span class="line"><span class="comment">// calculate the duration to wait between retries based on</span></span><br><span class="line"><span class="comment">// the current retry attempt, calling an action on each retry</span></span><br><span class="line"><span class="comment">// with the current exception, duration and context provided</span></span><br><span class="line"><span class="comment">// to Execute()</span></span><br><span class="line">Policy</span><br><span class="line">  .Handle&lt;SomeExceptionType&gt;()</span><br><span class="line">  .WaitAndRetry(</span><br><span class="line">    <span class="number">5</span>,</span><br><span class="line">    retryAttempt =&gt; TimeSpan.FromSeconds(Math.Pow(<span class="number">2</span>, retryAttempt)),</span><br><span class="line">    (exception, timeSpan, context) =&gt; &#123;</span><br><span class="line">      <span class="comment">// do something</span></span><br><span class="line">    &#125;</span><br><span class="line">  );</span><br><span class="line"></span><br><span class="line"><span class="comment">// Retry a specified number of times, using a function to</span></span><br><span class="line"><span class="comment">// calculate the duration to wait between retries based on</span></span><br><span class="line"><span class="comment">// the current retry attempt, calling an action on each retry</span></span><br><span class="line"><span class="comment">// with the current exception, duration, retry count, and context</span></span><br><span class="line"><span class="comment">// provided to Execute()</span></span><br><span class="line">Policy</span><br><span class="line">  .Handle&lt;SomeExceptionType&gt;()</span><br><span class="line">  .WaitAndRetry(</span><br><span class="line">    <span class="number">5</span>,</span><br><span class="line">    retryAttempt =&gt; TimeSpan.FromSeconds(Math.Pow(<span class="number">2</span>, retryAttempt)),</span><br><span class="line">    (exception, timeSpan, retryCount, context) =&gt; &#123;</span><br><span class="line">      <span class="comment">// do something</span></span><br><span class="line">    &#125;</span><br><span class="line">  );</span><br></pre></td></tr></table></figure>
+
+<h4 id="等待并永远重试（直到成功）"><a href="#等待并永远重试（直到成功）" class="headerlink" title="等待并永远重试（直到成功）"></a>等待并永远重试（直到成功）</h4><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Wait and retry forever</span></span><br><span class="line">Policy</span><br><span class="line">  .Handle&lt;SomeExceptionType&gt;()</span><br><span class="line">  .WaitAndRetryForever(retryAttempt =&gt;</span><br><span class="line">    TimeSpan.FromSeconds(Math.Pow(<span class="number">2</span>, retryAttempt))</span><br><span class="line">    );</span><br><span class="line"></span><br><span class="line"><span class="comment">// Wait and retry forever, calling an action on each retry with the</span></span><br><span class="line"><span class="comment">// current exception and the time to wait</span></span><br><span class="line">Policy</span><br><span class="line">  .Handle&lt;SomeExceptionType&gt;()</span><br><span class="line">  .WaitAndRetryForever(</span><br><span class="line">    retryAttempt =&gt; TimeSpan.FromSeconds(Math.Pow(<span class="number">2</span>, retryAttempt)),</span><br><span class="line">    (exception, timespan) =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// do something</span></span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Wait and retry forever, calling an action on each retry with the</span></span><br><span class="line"><span class="comment">// current exception, time to wait, and context provided to Execute()</span></span><br><span class="line">Policy</span><br><span class="line">  .Handle&lt;SomeExceptionType&gt;()</span><br><span class="line">  .WaitAndRetryForever(</span><br><span class="line">    retryAttempt =&gt; TimeSpan.FromSeconds(Math.Pow(<span class="number">2</span>, retryAttempt)),</span><br><span class="line">    (exception, timespan, context) =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// do something</span></span><br><span class="line">    &#125;);</span><br></pre></td></tr></table></figure>
+
+<p>如果所有重试都失败，则重试策略会将最终异常重新返回到调用代码。</p>
+<h3 id="熔断-Circuit-Breaker"><a href="#熔断-Circuit-Breaker" class="headerlink" title="熔断 Circuit Breaker"></a>熔断 Circuit Breaker</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 当发生2次SomeExceptionType的异常的时候则会熔断1分钟，</span></span><br><span class="line"><span class="comment">// 该操作后续如果继续尝试执行则会直接返回错误 。</span></span><br><span class="line">Policy</span><br><span class="line">    .Handle&lt;SomeExceptionType&gt;()</span><br><span class="line">    .CircuitBreaker(<span class="number">2</span>, TimeSpan.FromMinutes(<span class="number">1</span>));</span><br><span class="line"></span><br><span class="line"><span class="comment">// 可以在熔断和恢复的时候定义委托来做一些额外的处理。</span></span><br><span class="line"><span class="comment">// onBreak会在被熔断时执行，而onReset则会在恢复时执行。</span></span><br><span class="line">Action&lt;Exception, TimeSpan&gt; onBreak = (exception, timespan) =&gt; &#123; ... &#125;;</span><br><span class="line">Action onReset = () =&gt; &#123; ... &#125;;</span><br><span class="line">CircuitBreakerPolicy breaker = Policy</span><br><span class="line">    .Handle&lt;SomeExceptionType&gt;()</span><br><span class="line">    .CircuitBreaker(<span class="number">2</span>, TimeSpan.FromMinutes(<span class="number">1</span>), onBreak, onReset);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Break the circuit after the specified number of consecutive exceptions</span></span><br><span class="line"><span class="comment">// and keep circuit broken for the specified duration,</span></span><br><span class="line"><span class="comment">// calling an action on change of circuit state,</span></span><br><span class="line"><span class="comment">// passing a context provided to Execute().</span></span><br><span class="line">Action&lt;Exception, TimeSpan, Context&gt; onBreak = (exception, timespan, context) =&gt; &#123; ... &#125;;</span><br><span class="line">Action&lt;Context&gt; onReset = context =&gt; &#123; ... &#125;;</span><br><span class="line">CircuitBreakerPolicy breaker = Policy</span><br><span class="line">    .Handle&lt;SomeExceptionType&gt;()</span><br><span class="line">    .CircuitBreaker(<span class="number">2</span>, TimeSpan.FromMinutes(<span class="number">1</span>), onBreak, onReset);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Monitor the circuit state, for example for health reporting.</span></span><br><span class="line">CircuitState state = breaker.CircuitState;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">Closed 关闭状态，允许执行</span></span><br><span class="line"><span class="comment">Open 自动打开，执行会被阻断</span></span><br><span class="line"><span class="comment">Isolate 手动打开，执行会被阻断</span></span><br><span class="line"><span class="comment">HalfOpen  从自动打开状态恢复中，在熔断时间到了之后从Open状态切换到Closed</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 手动打开熔断器，阻止执行</span></span><br><span class="line">breaker.Isolate();</span><br><span class="line"></span><br><span class="line"><span class="comment">// 恢复操作，启动执行</span></span><br><span class="line">breaker.Reset();</span><br></pre></td></tr></table></figure>
+
+<p>请注意，断路器策略会重新抛出所有异常，甚至是已处理的异常。断路器用于测量故障并在发生太多故障时断开电路，<br>但不会重新编排重试。根据需要将断路器与重试策略相结合。</p>
+<h3 id="回退（Fallback"><a href="#回退（Fallback" class="headerlink" title="回退（Fallback)"></a>回退（Fallback)</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 如果执行失败则返回UserAvatar.Blank</span></span><br><span class="line">Policy</span><br><span class="line">   .Handle&lt;Whatever&gt;()</span><br><span class="line">   .Fallback&lt;UserAvatar&gt;(UserAvatar.Blank)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 发起另外一个请求去获取值</span></span><br><span class="line">Policy</span><br><span class="line">   .Handle&lt;Whatever&gt;()</span><br><span class="line">   .Fallback&lt;UserAvatar&gt;(() =&gt; UserAvatar.GetRandomAvatar())</span><br><span class="line">   <span class="comment">// where: public UserAvatar GetRandomAvatar() &#123; ... &#125;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 返回一个指定的值，添加额外的处理操作。onFallback</span></span><br><span class="line">Policy</span><br><span class="line">   .Handle&lt;Whatever&gt;()</span><br><span class="line">   .Fallback&lt;UserAvatar&gt;(UserAvatar.Blank, onFallback: (exception, context) =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// do something</span></span><br><span class="line">    &#125;);</span><br></pre></td></tr></table></figure>
+
+<h2 id="执行-Execute-the-policy"><a href="#执行-Execute-the-policy" class="headerlink" title="执行(Execute the policy)"></a>执行(Execute the policy)</h2><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Execute an action</span></span><br><span class="line"><span class="keyword">var</span> policy = Policy</span><br><span class="line">              .Handle&lt;SomeExceptionType&gt;()</span><br><span class="line">              .Retry();</span><br><span class="line"></span><br><span class="line">policy.Execute(() =&gt; DoSomething());</span><br><span class="line"></span><br><span class="line"><span class="comment">// Execute an action passing arbitrary context data</span></span><br><span class="line"><span class="keyword">var</span> policy = Policy</span><br><span class="line">    .Handle&lt;SomeExceptionType&gt;()</span><br><span class="line">    .Retry(<span class="number">3</span>, (exception, retryCount, context) =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">var</span> methodThatRaisedException = context[<span class="string">&quot;methodName&quot;</span>];</span><br><span class="line">        Log(exception, methodThatRaisedException);</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">policy.Execute(</span><br><span class="line">    (o) =&gt; DoSomething(),</span><br><span class="line">    <span class="keyword">new</span> Dictionary&lt;<span class="built_in">string</span>, <span class="built_in">object</span>&gt;() &#123;&#123; <span class="string">&quot;methodName&quot;</span>, <span class="string">&quot;some method&quot;</span> &#125;&#125;</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Execute a function returning a result</span></span><br><span class="line"><span class="keyword">var</span> policy = Policy</span><br><span class="line">              .Handle&lt;SomeExceptionType&gt;()</span><br><span class="line">              .Retry();</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> result = policy.Execute(() =&gt; DoSomething());</span><br><span class="line"></span><br><span class="line"><span class="comment">// Execute a function returning a result passing arbitrary context data</span></span><br><span class="line"><span class="keyword">var</span> policy = Policy</span><br><span class="line">    .Handle&lt;SomeExceptionType&gt;()</span><br><span class="line">    .Retry(<span class="number">3</span>, (exception, retryCount, context) =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">object</span> methodThatRaisedException = context[<span class="string">&quot;methodName&quot;</span>];</span><br><span class="line">        Log(exception, methodThatRaisedException)</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> result = policy.Execute(</span><br><span class="line">    () =&gt; DoSomething(),</span><br><span class="line">    <span class="keyword">new</span> Dictionary&lt;<span class="built_in">string</span>, <span class="built_in">object</span>&gt;() &#123;&#123; <span class="string">&quot;methodName&quot;</span>, <span class="string">&quot;some method&quot;</span> &#125;&#125;</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 我们也可以将Handle，Retry, Execute 这三个阶段都串起来写。</span></span><br><span class="line">Policy</span><br><span class="line">  .Handle&lt;SqlException&gt;(ex =&gt; ex.Number == <span class="number">1205</span>)</span><br><span class="line">  .Or&lt;ArgumentException&gt;(ex =&gt; ex.ParamName == <span class="string">&quot;example&quot;</span>)</span><br><span class="line">  .Retry()</span><br><span class="line">  .Execute(() =&gt; DoSomething());</span><br></pre></td></tr></table></figure>
+
+<h1 id="Polly-弹性应变处理-Resilience"><a href="#Polly-弹性应变处理-Resilience" class="headerlink" title="Polly 弹性应变处理 (Resilience)"></a>Polly 弹性应变处理 (Resilience)</h1><p>一般弹性策略添加了弹性策略，这些策略没有明确地以处理委托可能抛出或返回的故障为中心。</p>
+<h2 id="超时"><a href="#超时" class="headerlink" title="超时"></a>超时</h2><h3 id="乐观超时-Optimistic-timeout"><a href="#乐观超时-Optimistic-timeout" class="headerlink" title="乐观超时 (Optimistic timeout)"></a>乐观超时 (Optimistic timeout)</h3><p>超时分为乐观超时与悲观超时，乐观超时依赖于CancellationToken ，它假设我们的具体执行的任务都支持CancellationToken。<br>那么在进行timeout的时候，它会通知执行线程取消并终止执行线程，避免额外的开销。下面的乐观超时的具体用法 。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Timeout and return to the caller after 30 seconds, if the executed delegate has not completed.  </span></span><br><span class="line"><span class="comment">// Optimistic timeout: Delegates should take and honour a CancellationToken.</span></span><br><span class="line">Policy</span><br><span class="line">  .Timeout(<span class="number">30</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Configure timeout as timespan.</span></span><br><span class="line">Policy</span><br><span class="line">  .Timeout(TimeSpan.FromMilliseconds(<span class="number">2500</span>))</span><br><span class="line"></span><br><span class="line"><span class="comment">// Configure variable timeout via a func provider.</span></span><br><span class="line">Policy</span><br><span class="line">  .Timeout(() =&gt; myTimeoutProvider)) <span class="comment">// Func&lt;TimeSpan&gt; myTimeoutProvider</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Timeout, calling an action if the action times out</span></span><br><span class="line">Policy</span><br><span class="line">  .Timeout(<span class="number">30</span>, onTimeout: (context, timespan, task) =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// do something</span></span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Eg timeout, logging that the execution timed out:</span></span><br><span class="line">Policy</span><br><span class="line">  .Timeout(<span class="number">30</span>, onTimeout: (context, timespan, task) =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        logger.Warn(<span class="string">$&quot;<span class="subst">&#123;context.PolicyKey&#125;</span> at <span class="subst">&#123;context.ExecutionKey&#125;</span>: execution timed out after <span class="subst">&#123;timespan.TotalSeconds&#125;</span> seconds.&quot;</span>);</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Eg timeout, capturing any exception from the timed-out task when it completes:</span></span><br><span class="line">Policy</span><br><span class="line">  .Timeout(<span class="number">30</span>, onTimeout: (context, timespan, task) =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        task.ContinueWith(t =&gt; &#123;</span><br><span class="line">            <span class="keyword">if</span> (t.IsFaulted)</span><br><span class="line">               logger.Error(<span class="string">$&quot;<span class="subst">&#123;context.PolicyKey&#125;</span> at <span class="subst">&#123;context.ExecutionKey&#125;</span>: execution timed out after <span class="subst">&#123;timespan.TotalSeconds&#125;</span> seconds, with: <span class="subst">&#123;t.Exception&#125;</span>.&quot;</span>);</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">Policy timeoutPolicy = Policy.TimeoutAsync(<span class="number">30</span>);</span><br><span class="line">HttpResponseMessage httpResponse = <span class="keyword">await</span> timeoutPolicy</span><br><span class="line">    .ExecuteAsync(</span><br><span class="line">      <span class="keyword">async</span> ct =&gt; <span class="keyword">await</span> httpClient.GetAsync(endpoint, ct), <span class="comment">// Execute a delegate which responds to a CancellationToken input parameter.</span></span><br><span class="line">      CancellationToken.None</span><br><span class="line">       <span class="comment">// In this case, CancellationToken.None is passed into the execution, indicating you have no independent cancellation</span></span><br><span class="line">       <span class="comment">// control you wish to add to the cancellation provided by TimeoutPolicy.  Your own indepdent CancellationToken can also</span></span><br><span class="line">       <span class="comment">// be passed - see wiki for examples.</span></span><br><span class="line">      );</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">CancellationTokenSource userCancellationSource = <span class="keyword">new</span> CancellationTokenSource();</span><br><span class="line"><span class="comment">// userCancellationSource perhaps hooked up to the user clicking a &#x27;cancel&#x27; button, or other independent cancellation</span></span><br><span class="line"></span><br><span class="line">Policy timeoutPolicy = Policy.TimeoutAsync(<span class="number">30</span>, TimeoutStrategy.Optimistic);</span><br><span class="line"></span><br><span class="line">HttpResponseMessage httpResponse = <span class="keyword">await</span> _timeoutPolicy</span><br><span class="line">    .ExecuteAsync(</span><br><span class="line">        <span class="keyword">async</span> ct =&gt; <span class="keyword">await</span> httpClient.GetAsync(requestEndpoint, ct),</span><br><span class="line">        userCancellationSource.Token</span><br><span class="line">        ); <span class="comment">// GetAsync(...) will be cancelled when either the timeout occurs, or userCancellationSource is signalled.</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="悲观超时"><a href="#悲观超时" class="headerlink" title="悲观超时"></a>悲观超时</h3><p>悲观超时与乐观超时的区别在于，如果执行的代码不支持取消CancellationToken，它还会继续执行，这会是一个比较大的开销。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Policy timeoutPolicy = Policy.TimeoutAsync(<span class="number">30</span>, TimeoutStrategy.Pessimistic);</span><br><span class="line"><span class="keyword">var</span> response = <span class="keyword">await</span> timeoutPolicy</span><br><span class="line">    .ExecuteAsync(</span><br><span class="line">      <span class="keyword">async</span> () =&gt; <span class="keyword">await</span> FooNotHonoringCancellationAsync(),</span><br><span class="line">      );<span class="comment">// 在这里我们没有 任何与CancllationToken相关的处理</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="舱壁-Bulkhead"><a href="#舱壁-Bulkhead" class="headerlink" title="舱壁 Bulkhead"></a>舱壁 Bulkhead</h2><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 它用来限制某一个操作的最大并发执行数量 。比如限制为12</span></span><br><span class="line">Policy</span><br><span class="line">  .Bulkhead(<span class="number">12</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 控制一个等待处理的队列长度</span></span><br><span class="line">Policy</span><br><span class="line">  .Bulkhead(<span class="number">12</span>, <span class="number">2</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// 当请求执行操作被拒绝的时候，执行回调</span></span><br><span class="line">Policy</span><br><span class="line">  .Bulkhead(<span class="number">12</span>, context =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// do something</span></span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Monitor the bulkhead available capacity, for example for health/load reporting.</span></span><br><span class="line"><span class="keyword">var</span> bulkhead = Policy.Bulkhead(<span class="number">12</span>, <span class="number">2</span>);</span><br><span class="line"><span class="comment">// ...</span></span><br><span class="line"><span class="built_in">int</span> freeExecutionSlots = bulkhead.BulkheadAvailableCount;</span><br><span class="line"><span class="built_in">int</span> freeQueueSlots     = bulkhead.QueueAvailableCount;</span><br></pre></td></tr></table></figure>
+
+<h2 id="缓存-Cache"><a href="#缓存-Cache" class="headerlink" title="缓存 Cache"></a>缓存 Cache</h2><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Microsoft.Extensions.Caching.Memory.IMemoryCache memoryCache</span><br><span class="line">   = <span class="keyword">new</span> Microsoft.Extensions.Caching.Memory.MemoryCache(<span class="keyword">new</span> Microsoft.Extensions.Caching.Memory.MemoryCacheOptions());</span><br><span class="line">Polly.Caching.Memory.MemoryCacheProvider memoryCacheProvider</span><br><span class="line">   = <span class="keyword">new</span> Polly.Caching.Memory.MemoryCacheProvider(memoryCache);</span><br><span class="line"></span><br><span class="line"><span class="comment">// (2) Create a Polly cache policy using that Polly.Caching.Memory.MemoryCacheProvider instance.</span></span><br><span class="line"><span class="keyword">var</span> cachePolicy = Policy.Cache(memoryCacheProvider, TimeSpan.FromMinutes(<span class="number">5</span>));</span><br></pre></td></tr></table></figure>
+
+<p>参考代码：</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/App-vNext/Polly.Caching.MemoryCache">https://github.com/App-vNext/Polly.Caching.MemoryCache</a><br><a target="_blank" rel="noopener" href="https://github.com/App-vNext/Polly.Caching.IDistributedCache">https://github.com/App-vNext/Polly.Caching.IDistributedCache</a></p>
+<h2 id="组合Policy"><a href="#组合Policy" class="headerlink" title="组合Policy"></a>组合Policy</h2><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Define a combined policy strategy, built of previously-defined policies.</span></span><br><span class="line"><span class="keyword">var</span> policyWrap = Policy</span><br><span class="line">  .Wrap(fallback, cache, retry, breaker, timeout, bulkhead);</span><br><span class="line"><span class="comment">// (wraps the policies around any executed delegate: fallback outermost ... bulkhead innermost)</span></span><br><span class="line">policyWrap.Execute(...)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Define a standard resilience strategy ...</span></span><br><span class="line">PolicyWrap commonResilience = Policy.Wrap(retry, breaker, timeout);</span><br><span class="line"></span><br><span class="line"><span class="comment">// ... then wrap in extra policies specific to a call site, at that call site:</span></span><br><span class="line">Avatar avatar = Policy</span><br><span class="line">   .Handle&lt;Whatever&gt;()</span><br><span class="line">   .Fallback&lt;Avatar&gt;(Avatar.Blank)</span><br><span class="line">   .Wrap(commonResilience)</span><br><span class="line">   .Execute(() =&gt; &#123; <span class="comment">/* get avatar */</span> &#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// Share commonResilience, but wrap different policies in at another call site:</span></span><br><span class="line">Reputation reps = Policy</span><br><span class="line">   .Handle&lt;Whatever&gt;()</span><br><span class="line">   .Fallback&lt;Reputation&gt;(Reputation.NotAvailable)</span><br><span class="line">   .Wrap(commonResilience)</span><br><span class="line">   .Execute(() =&gt; &#123; <span class="comment">/* get reputation */</span> &#125;);  </span><br></pre></td></tr></table></figure>
+
+<p>参考代码：<a target="_blank" rel="noopener" href="https://github.com/App-vNext/Polly/wiki/PolicyWrap">https://github.com/App-vNext/Polly/wiki/PolicyWrap</a></p>
+<h1 id="执行后：捕获结果或任何最终异常"><a href="#执行后：捕获结果或任何最终异常" class="headerlink" title="执行后：捕获结果或任何最终异常"></a>执行后：捕获结果或任何最终异常</h1><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> policyResult = Policy</span><br><span class="line">              .Handle&lt;HttpRequestException&gt;()</span><br><span class="line">              .RetryAsync()</span><br><span class="line">              .ExecuteAndCaptureAsync(() =&gt; DoSomethingAsync());</span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">policyResult.Outcome - whether the call succeeded or failed</span></span><br><span class="line"><span class="comment">policyResult.FinalException - the final exception captured, will be null if the call succeeded</span></span><br><span class="line"><span class="comment">policyResult.ExceptionType - was the final exception an exception the policy was defined to handle</span></span><br><span class="line"><span class="comment"> (like HttpRequestException above) or an unhandled one (say Exception). Will be null if the call succeeded.</span></span><br><span class="line"><span class="comment">policyResult.Result - if executing a func, the result if the call succeeded or the type&#x27;s default value</span></span><br><span class="line"><span class="comment">*/</span></span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/App-vNext/Polly">https://github.com/App-vNext/Polly</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/jesse2013/p/polly-docs.html">ASP VNext 开源服务容错处理库Polly使用文档</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/CreateMyself/p/7589397.html">已被.NET基金会认可的弹性和瞬态故障处理库Polly介绍</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/edisonchou/p/9159644.html">.NET Core微服务之基于Polly+AspectCore实现熔断与降级机制</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/07/24/DotNet%E5%BC%82%E6%AD%A5APM%E6%A8%A1%E5%BC%8F%E4%B9%8BIAsyncResult%E5%92%8CAsyncCallback/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +472,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-18 14:38:57" itemprop="dateModified" datetime="2021-05-18T14:38:57+00:00">2021-05-18</time>
+                <time title="修改时间：2021-05-19 09:54:23" itemprop="dateModified" datetime="2021-05-19T09:54:23+00:00">2021-05-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -298,7 +557,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-18 14:38:57" itemprop="dateModified" datetime="2021-05-18T14:38:57+00:00">2021-05-18</time>
+                <time title="修改时间：2021-05-19 09:54:23" itemprop="dateModified" datetime="2021-05-19T09:54:23+00:00">2021-05-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -377,7 +636,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-18 14:38:57" itemprop="dateModified" datetime="2021-05-18T14:38:57+00:00">2021-05-18</time>
+                <time title="修改时间：2021-05-19 09:54:23" itemprop="dateModified" datetime="2021-05-19T09:54:23+00:00">2021-05-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -458,7 +717,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-18 14:38:57" itemprop="dateModified" datetime="2021-05-18T14:38:57+00:00">2021-05-18</time>
+                <time title="修改时间：2021-05-19 09:54:23" itemprop="dateModified" datetime="2021-05-19T09:54:23+00:00">2021-05-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -649,7 +908,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-18 14:38:57" itemprop="dateModified" datetime="2021-05-18T14:38:57+00:00">2021-05-18</time>
+                <time title="修改时间：2021-05-19 09:54:23" itemprop="dateModified" datetime="2021-05-19T09:54:23+00:00">2021-05-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -734,7 +993,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-18 14:38:57" itemprop="dateModified" datetime="2021-05-18T14:38:57+00:00">2021-05-18</time>
+                <time title="修改时间：2021-05-19 09:54:23" itemprop="dateModified" datetime="2021-05-19T09:54:23+00:00">2021-05-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -858,7 +1117,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-18 14:38:57" itemprop="dateModified" datetime="2021-05-18T14:38:57+00:00">2021-05-18</time>
+                <time title="修改时间：2021-05-19 09:54:23" itemprop="dateModified" datetime="2021-05-19T09:54:23+00:00">2021-05-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1090,7 +1349,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-18 14:38:57" itemprop="dateModified" datetime="2021-05-18T14:38:57+00:00">2021-05-18</time>
+                <time title="修改时间：2021-05-19 09:54:23" itemprop="dateModified" datetime="2021-05-19T09:54:23+00:00">2021-05-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1291,7 +1550,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-18 14:38:57" itemprop="dateModified" datetime="2021-05-18T14:38:57+00:00">2021-05-18</time>
+                <time title="修改时间：2021-05-19 09:54:23" itemprop="dateModified" datetime="2021-05-19T09:54:23+00:00">2021-05-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1391,7 +1650,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-18 14:38:57" itemprop="dateModified" datetime="2021-05-18T14:38:57+00:00">2021-05-18</time>
+                <time title="修改时间：2021-05-19 09:54:23" itemprop="dateModified" datetime="2021-05-19T09:54:23+00:00">2021-05-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1474,7 +1733,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-18 14:38:57" itemprop="dateModified" datetime="2021-05-18T14:38:57+00:00">2021-05-18</time>
+                <time title="修改时间：2021-05-19 09:54:23" itemprop="dateModified" datetime="2021-05-19T09:54:23+00:00">2021-05-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1634,7 +1893,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-18 14:38:57" itemprop="dateModified" datetime="2021-05-18T14:38:57+00:00">2021-05-18</time>
+                <time title="修改时间：2021-05-19 09:54:23" itemprop="dateModified" datetime="2021-05-19T09:54:23+00:00">2021-05-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1787,7 +2046,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-18 14:38:57" itemprop="dateModified" datetime="2021-05-18T14:38:57+00:00">2021-05-18</time>
+                <time title="修改时间：2021-05-19 09:54:23" itemprop="dateModified" datetime="2021-05-19T09:54:23+00:00">2021-05-19</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1922,350 +2181,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/06/13/Docker-Fabio-Consul-%E7%BE%A4%E9%9B%86-ASP.NET%20Core%202.0%E5%AE%9E%E8%B7%B5/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/06/13/Docker-Fabio-Consul-%E7%BE%A4%E9%9B%86-ASP.NET%20Core%202.0%E5%AE%9E%E8%B7%B5/" class="post-title-link" itemprop="url">Docker & Fabio & Consul群集 & ASP.NET Core 2.0实践</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-06-13 11:36:36" itemprop="dateCreated datePublished" datetime="2018-06-13T11:36:36+00:00">2018-06-13</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-18 14:38:57" itemprop="dateModified" datetime="2021-05-18T14:38:57+00:00">2021-05-18</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Consul/" itemprop="url" rel="index"><span itemprop="name">Consul</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="Docker-amp-Fabio-amp-Consul群集-amp-ASP-NET-Core-2-0实践"><a href="#Docker-amp-Fabio-amp-Consul群集-amp-ASP-NET-Core-2-0实践" class="headerlink" title="Docker &amp; Fabio &amp; Consul群集 &amp; ASP.NET Core 2.0实践"></a>Docker &amp; Fabio &amp; Consul群集 &amp; ASP.NET Core 2.0实践</h1><h2 id="1，Docker运行consul环境"><a href="#1，Docker运行consul环境" class="headerlink" title="1，Docker运行consul环境"></a>1，Docker运行consul环境</h2><h3 id="1、Consul基础介绍"><a href="#1、Consul基础介绍" class="headerlink" title="1、Consul基础介绍"></a>1、Consul基础介绍</h3><p><a target="_blank" rel="noopener" href="https://www.consul.io/">https://www.consul.io/</a></p>
-<p>Consul 是 HashiCorp 公司推出的开源工具，用于实现分布式系统的服务发现与配置。与其他分布式服务注册与发现的方案，比如 Airbnb 的 SmartStack 等相比，Consul 的方案更“一站式”，一致性协议采用 Raft 算法,用来保证服务的高可用. 使用 GOSSIP 协议管理成员和广播消息, 并且支持 ACL 访问控制，内置了服务注册与发现框架、分布一致性协议实现、健康检查,并允许 HTTP 和 DNS 协议调用 API 存储键值对、Key/Value 存储、多数据中心方案，不再需要依赖其他工具（比如 ZooKeeper 等）。使用起来也较为简单。<br>Consul 用 Golang 实现，因此具有天然可移植性(支持 Linux、windows 和 Mac OS X)；安装包仅包含一个可执行文件，方便部署，与 Docker 等轻量级容器可无缝配合。</p>
-<p>要想利用Consul提供的服务实现服务的注册与发现，我们需要建立Consul Cluster。在Consul方案中，每个提供服务的节点上都要部署和运行Consul的agent，所有运行Consul Agent节点的集合构成Consul Cluster。Consul Agent有两种运行模式：Server和Client。这里的Server和Client只是Consul集群层面的区分，与搭建在Cluster之上的应用服务无关。以Server模式运行的Consul Agent节点用于维护Consul集群的状态，官方建议每个Consul Cluster至少有3个或以上的运行在Server Mode的Agent，Client节点不限。</p>
-<p>　　Consul支持多数据中心，每个数据中心的Consul Cluster都会在运行于Server模式下的Agent节点中选出一个Leader节点，这个选举过程通过Consul实现的raft协议保证，多个Server节点上的Consul数据信息是强一致的。处于Client Mode的Consul Agent节点比较简单，无状态，仅仅负责将请求转发给Server Agent节点。</p>
-<p>** Consul 功能：**</p>
-<ul>
-<li><p>服务发现（Service Discovery）：客户端通过 Consul 提供服务，其他客户端可以通过 Consul 利用 dns 或者 http 发现依赖服务</p>
-</li>
-<li><p>健康检查（Health Checking）: Consul 提供任务的健康检查，可以用来操作或者监控集群的健康，也可以在服务发现时去除失效的服务</p>
-</li>
-<li><p>键值对存储（Key/Value Store）: 存储层级键值对</p>
-</li>
-<li><p>多数据中心（Multi Datacenter）: Consul 支持开箱即用的多数据中心</p>
-</li>
-</ul>
-<p>** Consul的优势**</p>
-<ul>
-<li><p>使用 Raft 算法来保证一致性, 比复杂的 Paxos 算法更直接. 相比较而言, zookeeper 采用的是 Paxos, 而 etcd 使用的则是 Raft.</p>
-</li>
-<li><p>支持多数据中心，内外网的服务采用不同的端口进行监听。 多数据中心集群可以避免单数据中心的单点故障,而其部署则需要考虑网络延迟, 分片等情况等. zookeeper 和 etcd 均不提供多数据中心功能的支持.</p>
-</li>
-<li><p>支持健康检查. etcd 不提供此功能.</p>
-</li>
-<li><p>支持 http 和 dns 协议接口. zookeeper 的集成较为复杂, etcd 只支持 http 协议,官方提供web管理界面, etcd 无此功能.</p>
-</li>
-</ul>
-<p>** Consul 的使用场景**</p>
-<ul>
-<li><p>docker 实例的注册与配置共享</p>
-</li>
-<li><p>coreos 实例的注册与配置共享</p>
-</li>
-<li><p>vitess 集群</p>
-</li>
-<li><p>SaaS 应用的配置共享</p>
-</li>
-<li><p>与 confd 服务集成，动态生成 nginx 和 haproxy 配置文件</p>
-</li>
-</ul>
-<p>** Consul 的模式**</p>
-<ul>
-<li><p>client: 客户端, 无状态, 将 HTTP 和 DNS 接口请求转发给局域网内的服务端集群。一个 Client 是一个转发所有 RPC 到 Server 的代理。这个 Client 是相对无状态的；Client 唯一执行的后台活动是加入 LAN gossip 池，这有一个最低的资源开销并且仅消耗少量的网络带宽。</p>
-</li>
-<li><p>server: 服务端, 保存配置信息, 高可用集群, 在局域网内与本地客户端通讯, 通过广域网与其他数据中心通讯. 每个数据中心的 server 数量推荐为 3 个或是 5 个。参与 Raft 选举，维护集群状态，响应 RPC 查询，与其他数据中心交互 WAN gossip 和转发查询给 leader 或者远程数据中心。</p>
-</li>
-</ul>
-<p>群集架构图如下：</p>
-<p><img src="/img/n4mdw.jpg" alt="n4mdw.jpg"></p>
-<p><img src="/img/435188-20161228110501664-588566717.png" alt="435188-20161228110501664-588566717.png"></p>
-<p>Consul和其他类似软件的对比：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180613135320.png" alt="QQ截图20180613135320.png"></p>
-<h3 id="2、Consul群集搭建"><a href="#2、Consul群集搭建" class="headerlink" title="2、Consul群集搭建"></a>2、Consul群集搭建</h3><p>Consul 集群搭建时一般提供两种模式:</p>
-<p>** 手动模式<strong>: 启动第一个节点后，此时此节点处于 bootstrap 模式，其节点手动执行加入，使用： -join命令<br>** 自动模式</strong>: 启动第一个节点后，在其他节点配置好尝试加入的目标节点，然后等待其自动加入(不需要人为命令加入)，配置：retry_join</p>
-<p>以自动模式为例：</p>
-<p>目录结构：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">document</span><br><span class="line">|--consul</span><br><span class="line">   |--server1.json</span><br><span class="line">   |--server2.json</span><br><span class="line">   |--server3.json</span><br><span class="line">   |--client1.json</span><br><span class="line">   |--data</span><br></pre></td></tr></table></figure>
-
-<p>server1.json配置文件：</p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">&quot;data_dir&quot;</span>: <span class="string">&quot;/data&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;datacenter&quot;</span>: <span class="string">&quot;consul-test&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;log_level&quot;</span>: <span class="string">&quot;INFO&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;node_name&quot;</span>: <span class="string">&quot;server1&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;server&quot;</span>: <span class="literal">true</span>,</span><br><span class="line">  <span class="attr">&quot;bind_addr&quot;</span>: <span class="string">&quot;172.17.0.2&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;bootstrap&quot;</span>: <span class="literal">true</span>,</span><br><span class="line">  <span class="attr">&quot;retry_join&quot;</span>: [<span class="string">&quot;172.17.0.2&quot;</span>, <span class="string">&quot;172.17.0.3&quot;</span>, <span class="string">&quot;172.17.0.4&quot;</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>server2.json配置文件：</p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">&quot;data_dir&quot;</span>: <span class="string">&quot;/data&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;datacenter&quot;</span>: <span class="string">&quot;consul-test&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;log_level&quot;</span>: <span class="string">&quot;INFO&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;node_name&quot;</span>: <span class="string">&quot;server2&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;server&quot;</span>: <span class="literal">true</span>,</span><br><span class="line">  <span class="attr">&quot;bind_addr&quot;</span>: <span class="string">&quot;172.17.0.3&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;retry_join&quot;</span>: [<span class="string">&quot;172.17.0.2&quot;</span>, <span class="string">&quot;172.17.0.3&quot;</span>, <span class="string">&quot;172.17.0.4&quot;</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>server3.json配置文件：</p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">&quot;data_dir&quot;</span>: <span class="string">&quot;/data&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;datacenter&quot;</span>: <span class="string">&quot;consul-test&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;log_level&quot;</span>: <span class="string">&quot;INFO&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;node_name&quot;</span>: <span class="string">&quot;server3&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;server&quot;</span>: <span class="literal">true</span>,</span><br><span class="line">  <span class="attr">&quot;bind_addr&quot;</span>: <span class="string">&quot;172.17.0.4&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;retry_join&quot;</span>: [<span class="string">&quot;172.17.0.2&quot;</span>, <span class="string">&quot;172.17.0.3&quot;</span>, <span class="string">&quot;172.17.0.4&quot;</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>client1.json配置文件：</p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="attr">&quot;data_dir&quot;</span>: <span class="string">&quot;/data&quot;</span>,</span><br><span class="line">    <span class="attr">&quot;datacenter&quot;</span>: <span class="string">&quot;consul-test&quot;</span>,</span><br><span class="line">    <span class="attr">&quot;log_level&quot;</span>: <span class="string">&quot;INFO&quot;</span>,</span><br><span class="line">    <span class="attr">&quot;node_name&quot;</span>: <span class="string">&quot;client1&quot;</span>,</span><br><span class="line">    <span class="attr">&quot;server&quot;</span>: <span class="literal">false</span>,</span><br><span class="line">    <span class="attr">&quot;ui&quot;</span>: <span class="literal">true</span>,                         <span class="comment">// 是否开启 UI 访问</span></span><br><span class="line">    <span class="attr">&quot;http_config&quot;</span>: &#123;</span><br><span class="line">        <span class="attr">&quot;response_headers&quot;</span>: &#123;</span><br><span class="line">          <span class="attr">&quot;Access-Control-Allow-Origin&quot;</span>: <span class="string">&quot;*&quot;</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="attr">&quot;addresses&quot;</span>: &#123;</span><br><span class="line">        <span class="attr">&quot;http&quot;</span>: <span class="string">&quot;0.0.0.0&quot;</span></span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="attr">&quot;start_join&quot;</span>: [<span class="string">&quot;172.17.0.2&quot;</span>, <span class="string">&quot;172.17.0.3&quot;</span>, <span class="string">&quot;172.17.0.4&quot;</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>运行docker容器：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">docker run --name=server1 -it -d -v <span class="variable">$PWD</span>/consul:/consul consul agent -config-file=/consul/server1.json</span><br><span class="line"></span><br><span class="line">docker run --name=server2 -it -d -v <span class="variable">$PWD</span>/consul:/consul consul agent -config-file=/consul/server2.json</span><br><span class="line"></span><br><span class="line">docker run --name=server3 -it -d -v <span class="variable">$PWD</span>/consul:/consul consul agent -config-file=/consul/server3.json</span><br><span class="line"></span><br><span class="line">docker run --name=client1 -it -d -v <span class="variable">$PWD</span>/consul:/consul consul agent -config-file=/consul/client1.json</span><br></pre></td></tr></table></figure>
-
-<p>查看容器运行日志(选择其中一个即可)，可以看出选举server1作为Leader：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker logs server1</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">2018/06/14 08:12:06 [INFO] consul: New leader elected: server1</span><br></pre></td></tr></table></figure>
-
-<p>可以查看容器的ip:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">docker inspect -f <span class="string">&#x27;&#123;&#123;.NetworkSettings.IPAddress&#125;&#125;&#x27;</span> server1</span><br><span class="line">docker inspect -f <span class="string">&#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27;</span> server1</span><br></pre></td></tr></table></figure>
-
-<p>查看下集群的状态</p>
-<p>注：server1为Leader;</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker <span class="built_in">exec</span> -t server1 consul members</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost document]<span class="comment"># docker exec -t server1 consul members</span></span><br><span class="line">Node     Address          Status  Type    Build  Protocol  DC           Segment</span><br><span class="line">server1  172.17.0.2:8301  alive   server  1.1.0  2         consul-test  &lt;all&gt;</span><br><span class="line">server2  172.17.0.3:8301  alive   server  1.1.0  2         consul-test  &lt;all&gt;</span><br><span class="line">server3  172.17.0.4:8301  alive   server  1.1.0  2         consul-test  &lt;all&gt;</span><br><span class="line">client1  172.17.0.5:8301  alive   client  1.1.0  2         consul-test  &lt;default&gt;</span><br></pre></td></tr></table></figure>
-
-<p>访问：<a target="_blank" rel="noopener" href="http://172.17.0.5:8500">http://172.17.0.5:8500</a>,打开 Consul UI 界面，就可以看到我们配置的 Consul Client:</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180615092803.png" alt="QQ截图20180615092803.png"></p>
-<p>可以使用以下命令查询其它信息：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl -L http://172.17.0.5:8500/v1/catalog/datacenters</span><br><span class="line">curl -L http://172.17.0.5:8500/v1/agent/members | python -m json.tool</span><br><span class="line">curl http://172.17.0.5:8500/v1/agent/self | python -m json.tool</span><br></pre></td></tr></table></figure>
-
-<h3 id="3、节点异常处理"><a href="#3、节点异常处理" class="headerlink" title="3、节点异常处理"></a>3、节点异常处理</h3><h4 id="LEADER-挂了"><a href="#LEADER-挂了" class="headerlink" title="LEADER 挂了"></a>LEADER 挂了</h4><p>leader挂了，consul会重新选取出新的leader，只要超过一半的SERVER还活着，集群是可以正常工作的。</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker stop server1</span><br></pre></td></tr></table></figure>
-
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180615095815.png" alt="QQ截图20180615095815.png"></p>
-<p>运行以下命令查看现在的Leader：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl http://172.17.0.5:8500/v1/status/leader</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost document]<span class="comment"># curl http://172.17.0.5:8500/v1/status/leader</span></span><br><span class="line"><span class="string">&quot;172.17.0.3:8300&quot;</span></span><br></pre></td></tr></table></figure>
-
-<p>注：172.17.0.3为server2 IP。</p>
-<h2 id="2，Docker-运行-Fabio-环境"><a href="#2，Docker-运行-Fabio-环境" class="headerlink" title="2，Docker 运行 Fabio 环境"></a>2，Docker 运行 Fabio 环境</h2><h3 id="Fabio简介"><a href="#Fabio简介" class="headerlink" title="Fabio简介"></a>Fabio简介</h3><p><a target="_blank" rel="noopener" href="https://github.com/fabiolb/fabio">Fabio</a> 是 ebay 团队用 golang 开发的一个快速、现代、zero-conf 负载均衡 HTTP(S) 路由器，用于部署 Consul 管理的微服务。</p>
-<p>因为 consul 支持服务注册与健康检查所以 fabio 能够零配置提供负载。</p>
-<p>根据项目的介绍fabio 能提供每秒15000次请求。</p>
-<p>** 服务发现的特点**</p>
-<p>服务与服务之间的调用需要在配置文件中填写好主机和端口,不易于维护且分布式环境中不易于部署与扩容。</p>
-<p>那么此时就需要考虑服务启动的时候自己把主机和端口以及一些其他信息注册到注册中心，这样其他服务可以从中找到它。</p>
-<p>甚至更为简单的注册完毕后通过 DNS 的方式来『寻址』。比如 Zookeepr 可以很好的完成这个工作，但是其中还有一个弊端就是服务的健康检查服务注册到注册中心之后如何保证这个服务一定可用？此时就需要自己来写逻辑当服务不可用的时候自动从注册中心下线掉。 然后Consul 可以很轻易的解决这个问题。</p>
-<p>** 工作原理**</p>
-<p>Consul 提供了一套健康检测机制简单的说针对 http 类型的服务(consul 也支持 其他类型例如tcp)在注册的时候可以顺便注册下健康检测的信息，提供一个健康检测的地址(url)以及一个频率超时时间这样的话 consul 会定期的来请求当状态码是200的时候设置次服务是健康的状态否则是故障状态。</p>
-<p>既然注册到consul的服务能够自己维护健康状态此时 fabio 的工作就很简单了！ 就是直接从consul 注册表里面取出健康的服务根据服务注册时候的 tags 配置自动创建自己的路由表，然后当一个 http 请求过来的时候自动去做负载均衡</p>
-<p>简单流程图：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;    服务注册     &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;       &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;</span><br><span class="line">A服务   &lt;------&gt;      consul集群  ----&gt;  健康的 A&#x2F;不健康的 A 集群</span><br><span class="line">&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;    健康检查     &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;       &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;</span><br><span class="line">                                     ^</span><br><span class="line">                                     | 加入&#x2F;移出路由表</span><br><span class="line">                                     |</span><br><span class="line">                                  &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;</span><br><span class="line">                                   fabio 集群</span><br><span class="line">                                  &#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;</span><br><span class="line">                                     ^</span><br><span class="line">                                     |</span><br><span class="line">                                     | A服务   如果找到则成功路由否则返回错误</span><br><span class="line">                                     V</span><br><span class="line">                                    http 请求</span><br></pre></td></tr></table></figure>
-
-<h3 id="Docker-运行-Fabio"><a href="#Docker-运行-Fabio" class="headerlink" title="Docker 运行 Fabio"></a>Docker 运行 Fabio</h3><p>Fabio Docker 镜像地址：<a target="_blank" rel="noopener" href="https://hub.docker.com/r/magiconair/fabio/">https://hub.docker.com/r/magiconair/fabio/</a></p>
-<p>** 目录结构**</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">fabio</span><br><span class="line">|--fabio.properties</span><br></pre></td></tr></table></figure>
-
-<p>首先，在/fabio/目录下创建一个fabio.properties文件（<a target="_blank" rel="noopener" href="https://raw.githubusercontent.com/eBay/fabio/master/fabio.properties">示例配置</a>），然后vim fabio.properties增加下面配置：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">registry.consul.register.addr &#x3D; 172.17.0.6:9998</span><br><span class="line">registry.consul.addr &#x3D; 172.17.0.5:8500</span><br></pre></td></tr></table></figure>
-
-<p>在fabio文件夹下运行命令：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run -d -p 9999:9999 -p 9998:9998 --name=fabio -v <span class="variable">$PWD</span>/fabio.properties:/etc/fabio/fabio.properties magiconair/fabio</span><br></pre></td></tr></table></figure>
-
-<p>注：默认是bridge网络模式，也就是我们常用的桥接模式，Docker 会分配给容器一个独立的 IP 地址（端口也是独立的），并且容器和主机之间可以相互访问。或者添加参数：–net=host：host网络模式，容器的网络接口和主机一样，也就是共享一个 IP 地址。</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180615172806.png" alt="QQ截图20180615172806.png"></p>
-<h2 id="3，Docker-运行-ASP-NET-Core-2-0-服务"><a href="#3，Docker-运行-ASP-NET-Core-2-0-服务" class="headerlink" title="3，Docker 运行 ASP.NET Core 2.0 服务"></a>3，Docker 运行 ASP.NET Core 2.0 服务</h2><h3 id="3-1-准备asp-net-Core应用程序"><a href="#3-1-准备asp-net-Core应用程序" class="headerlink" title="3.1 准备asp.net Core应用程序"></a>3.1 准备asp.net Core应用程序</h3><p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180620090937.png" alt="QQ截图20180620090937.png"></p>
-<h3 id="3-2-添加HealthController用于Consul健康检查"><a href="#3-2-添加HealthController用于Consul健康检查" class="headerlink" title="3.2 添加HealthController用于Consul健康检查"></a>3.2 添加HealthController用于Consul健康检查</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[<span class="meta">Produces(<span class="meta-string">&quot;application/json&quot;</span>)</span>]</span><br><span class="line">[<span class="meta">Route(<span class="meta-string">&quot;api/Health&quot;</span>)</span>]</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">HealthController</span> : <span class="title">Controller</span></span><br><span class="line">&#123;</span><br><span class="line">    [<span class="meta">HttpGet</span>]</span><br><span class="line">    <span class="function"><span class="keyword">public</span> IActionResult <span class="title">Get</span>(<span class="params"></span>)</span> =&gt; Ok(<span class="string">&quot;ok&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="3-3-调用Consul-API注册服务"><a href="#3-3-调用Consul-API注册服务" class="headerlink" title="3.3 调用Consul API注册服务"></a>3.3 调用Consul API注册服务</h3><p>组件地址：<a target="_blank" rel="noopener" href="https://github.com/PlayFab/consuldotnet">https://github.com/PlayFab/consuldotnet</a></p>
-<p>（1） 首先安装 Consul包：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">install-package Conusl</span><br></pre></td></tr></table></figure>
-
-<p>（2） 添加扩展方法，用于调用Consul API</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title">AppBuilderExtensions</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> IApplicationBuilder <span class="title">RegisterWithConsul</span>(<span class="params"><span class="keyword">this</span> IApplicationBuilder app, IApplicationLifetime lifetime, ServiceEntity serviceEntity</span>)</span></span><br><span class="line"><span class="function"></span>        &#123;</span><br><span class="line">            <span class="keyword">var</span> consulClient = <span class="keyword">new</span> ConsulClient(x =&gt; x.Address = <span class="keyword">new</span> Uri(<span class="string">$&quot;http://<span class="subst">&#123;serviceEntity.ConsulIP&#125;</span>:<span class="subst">&#123;serviceEntity.ConsulPort&#125;</span>&quot;</span>));<span class="comment">//请求注册的 Consul 地址</span></span><br><span class="line">            <span class="keyword">var</span> httpCheck = <span class="keyword">new</span> AgentServiceCheck()</span><br><span class="line">            &#123;</span><br><span class="line">                DeregisterCriticalServiceAfter = TimeSpan.FromSeconds(<span class="number">5</span>),<span class="comment">//服务启动多久后注册</span></span><br><span class="line">                Interval = TimeSpan.FromSeconds(<span class="number">10</span>),<span class="comment">//健康检查时间间隔，或者称为心跳间隔</span></span><br><span class="line"></span><br><span class="line">                <span class="comment">// 即本程序运行后的IP地址。需要使用命令：</span></span><br><span class="line">                <span class="comment">// docker inspect -f &#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27; consultest_consultest_1</span></span><br><span class="line">                HTTP = <span class="string">$&quot;http://<span class="subst">&#123;serviceEntity.IP&#125;</span>:<span class="subst">&#123;serviceEntity.Port&#125;</span>/api/health&quot;</span>,<span class="comment">//健康检查地址</span></span><br><span class="line">                Timeout = TimeSpan.FromSeconds(<span class="number">5</span>)</span><br><span class="line">            &#125;;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// Register service with consul</span></span><br><span class="line">            <span class="keyword">var</span> registration = <span class="keyword">new</span> AgentServiceRegistration()</span><br><span class="line">            &#123;</span><br><span class="line">                Checks = <span class="keyword">new</span>[] &#123; httpCheck &#125;,</span><br><span class="line">                ID = Guid.NewGuid().ToString(),</span><br><span class="line">                Name = serviceEntity.ServiceName,</span><br><span class="line">                Address = serviceEntity.IP,</span><br><span class="line">                Port = serviceEntity.Port,</span><br><span class="line">                Tags = <span class="keyword">new</span>[] &#123; <span class="string">$&quot;urlprefix-/<span class="subst">&#123;serviceEntity.ServiceName&#125;</span>&quot;</span> &#125;<span class="comment">//添加 urlprefix-/servicename 格式的 tag 标签，以便 Fabio 识别</span></span><br><span class="line">            &#125;;</span><br><span class="line"></span><br><span class="line">            consulClient.Agent.ServiceRegister(registration).Wait();<span class="comment">//服务启动时注册，内部实现其实就是使用 Consul API 进行注册（HttpClient发起）</span></span><br><span class="line">            lifetime.ApplicationStopping.Register(() =&gt;</span><br><span class="line">            &#123;</span><br><span class="line">                consulClient.Agent.ServiceDeregister(registration.ID).Wait();<span class="comment">//服务停止时取消注册</span></span><br><span class="line">            &#125;);</span><br><span class="line">            <span class="keyword">return</span> app;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-
-<p>（3）Starup类的Configure方法中，调用此扩展方法</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.</span></span><br><span class="line">       <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">Configure</span>(<span class="params">IApplicationBuilder app, IHostingEnvironment env, IApplicationLifetime lifetime</span>)</span></span><br><span class="line"><span class="function"></span>       &#123;</span><br><span class="line">           <span class="keyword">if</span> (env.IsDevelopment())</span><br><span class="line">           &#123;</span><br><span class="line">               app.UseBrowserLink();</span><br><span class="line">               app.UseDeveloperExceptionPage();</span><br><span class="line">           &#125;</span><br><span class="line">           <span class="keyword">else</span></span><br><span class="line">           &#123;</span><br><span class="line">               app.UseExceptionHandler(<span class="string">&quot;/Home/Error&quot;</span>);</span><br><span class="line">           &#125;</span><br><span class="line"></span><br><span class="line">           app.UseStaticFiles();</span><br><span class="line"></span><br><span class="line">           app.UseMvc(routes =&gt;</span><br><span class="line">           &#123;</span><br><span class="line">               routes.MapRoute(</span><br><span class="line">                   name: <span class="string">&quot;default&quot;</span>,</span><br><span class="line">                   template: <span class="string">&quot;&#123;controller=Home&#125;/&#123;action=Index&#125;/&#123;id?&#125;&quot;</span>);</span><br><span class="line">           &#125;);</span><br><span class="line"></span><br><span class="line">           <span class="comment">// register this service</span></span><br><span class="line">           ServiceEntity serviceEntity = <span class="keyword">new</span> ServiceEntity</span><br><span class="line">           &#123;</span><br><span class="line">               IP = Configuration[<span class="string">&quot;Service:IP&quot;</span>],<span class="comment">// NetworkHelper.LocalIPAddress,</span></span><br><span class="line">               Port = Convert.ToInt32(Configuration[<span class="string">&quot;Service:Port&quot;</span>]),</span><br><span class="line">               ServiceName = Configuration[<span class="string">&quot;Service:Name&quot;</span>],</span><br><span class="line">               ConsulIP = Configuration[<span class="string">&quot;Consul:IP&quot;</span>],</span><br><span class="line">               ConsulPort = Convert.ToInt32(Configuration[<span class="string">&quot;Consul:Port&quot;</span>])</span><br><span class="line">           &#125;;</span><br><span class="line">           app.RegisterWithConsul(lifetime, serviceEntity);</span><br><span class="line">       &#125;</span><br></pre></td></tr></table></figure>
-
-<p>ServiceEntity类定义:</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">ServiceEntity</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="built_in">string</span> IP &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">        <span class="keyword">public</span> <span class="built_in">int</span> Port &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">        <span class="keyword">public</span> <span class="built_in">string</span> ServiceName &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">        <span class="keyword">public</span> <span class="built_in">string</span> ConsulIP &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">        <span class="keyword">public</span> <span class="built_in">int</span> ConsulPort &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-
-<p>appSettings.json配置文件:</p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">&quot;Service&quot;</span>: &#123;</span><br><span class="line">    <span class="attr">&quot;IP&quot;</span>: <span class="string">&quot;172.21.0.2&quot;</span>,</span><br><span class="line">    <span class="attr">&quot;Name&quot;</span>: <span class="string">&quot;ConsulDemo&quot;</span>,</span><br><span class="line">    <span class="attr">&quot;Port&quot;</span>: <span class="string">&quot;80&quot;</span></span><br><span class="line">  &#125;,</span><br><span class="line">  <span class="attr">&quot;Consul&quot;</span>: &#123;</span><br><span class="line">    <span class="attr">&quot;IP&quot;</span>: <span class="string">&quot;172.17.0.5&quot;</span>,</span><br><span class="line">    <span class="attr">&quot;Port&quot;</span>: <span class="string">&quot;8500&quot;</span></span><br><span class="line">  &#125;,</span><br><span class="line">  <span class="attr">&quot;Logging&quot;</span>: &#123;</span><br><span class="line">    <span class="attr">&quot;IncludeScopes&quot;</span>: <span class="literal">false</span>,</span><br><span class="line">    <span class="attr">&quot;LogLevel&quot;</span>: &#123;</span><br><span class="line">      <span class="attr">&quot;Default&quot;</span>: <span class="string">&quot;Warning&quot;</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="3-4-运行ASP-NET-Core程序"><a href="#3-4-运行ASP-NET-Core程序" class="headerlink" title="3.4 运行ASP.NET Core程序"></a>3.4 运行ASP.NET Core程序</h3><p>在Linux服务器下，建立程序文件夹，使用git clone命令下载代码，如：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">mkdir web</span><br><span class="line"><span class="built_in">cd</span> web</span><br><span class="line">git <span class="built_in">clone</span> https://github.com/syxdevcode/ConsulTest.git</span><br><span class="line">git pull origin master <span class="comment">### 更新代码</span></span><br></pre></td></tr></table></figure>
-
-<p>使用docker-compose 运行程序：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> ConsulTest <span class="comment">## 进入目录</span></span><br><span class="line">docker-compose up -d --build</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Successfully built dfaf37c4246f</span><br><span class="line">Successfully tagged consultest:latest</span><br><span class="line">Recreating consultest_consultest_1 ... <span class="keyword">done</span></span><br></pre></td></tr></table></figure>
-
-<p>查看docker 容器：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker ps -a</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180620092619.png" alt="QQ截图20180620092619.png"></p>
-<p>其它命令：</p>
-<p>查看容器IP：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker inspect -f <span class="string">&#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27;</span> consultest_consultest_1</span><br></pre></td></tr></table></figure>
-
-<h3 id="3-5-验证"><a href="#3-5-验证" class="headerlink" title="3.5 验证"></a>3.5 验证</h3><p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180620093002.png" alt="QQ截图20180620093002.png"></p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180620093047.png" alt="QQ截图20180620093047.png"></p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://github.com/PlayFab/consuldotnet">https://github.com/PlayFab/consuldotnet</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.consul.io/docs/agent/options.html">https://www.consul.io/docs/agent/options.html</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/edisonchou/p/9124985.html">.NET Core微服务之基于Consul实现服务治理</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/xishuai/p/macos-ubuntu-install-consul.html">Mac OS、Ubuntu 安装及使用 Consul</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/xishuai/p/ubuntu-docker-consul-fabio-aspnet-core.html">Docker &amp; Consul &amp; Fabio &amp; ASP.NET Core 2.0 微服务跨平台实践</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/xishuai/p/docker-compose.html">Docker 三剑客之 Docker Compose</a></p>
-<p><a target="_blank" rel="noopener" href="http://xiaoquqi.github.io/blog/2015/12/07/consul-installation/">Consul的安装方法</a></p>
-<p><a target="_blank" rel="noopener" href="http://soft.dog/2016/03/18/consul-basic/">Consul 基础</a></p>
-<p><a target="_blank" rel="noopener" href="https://blog.coding.net/blog/intro-consul">Consul 原理和使用简介</a></p>
-<p><a target="_blank" rel="noopener" href="https://mritd.me/2017/09/21/set-up-ha-consul-cluster/">Consul 集群搭建</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.10tiao.com/html/357/201705/2247485185/1.html">Consul集群部署</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/f8746b81d65d">服务发现 - consul 的介绍、部署和使用</a></p>
-<p><a target="_blank" rel="noopener" href="http://dockone.io/article/1567">Consul + fabio 实现自动服务发现、负载均衡</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/06/13/Consul%E7%9A%84%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81dotnet%E5%AE%9E%E7%8E%B0/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/06/13/Consul%E7%9A%84%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81dotnet%E5%AE%9E%E7%8E%B0/" class="post-title-link" itemprop="url">Consul的分布式锁DotNet实现</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-06-13 10:23:53" itemprop="dateCreated datePublished" datetime="2018-06-13T10:23:53+00:00">2018-06-13</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-05-18 14:38:57" itemprop="dateModified" datetime="2021-05-18T14:38:57+00:00">2021-05-18</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Consul/" itemprop="url" rel="index"><span itemprop="name">Consul</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="Consul的分布式锁dotnet实现"><a href="#Consul的分布式锁dotnet实现" class="headerlink" title="Consul的分布式锁dotnet实现"></a>Consul的分布式锁dotnet实现</h1><h2 id="分布式锁实现"><a href="#分布式锁实现" class="headerlink" title="分布式锁实现"></a>分布式锁实现</h2><p>基于Consul的分布式锁主要利用Key/Value存储API中的acquire和release操作来实现。acquire和release操作是类似Check-And-Set的操作：</p>
-<p>acquire操作只有当锁不存在持有者时才会返回true，并且set设置的Value值，同时执行操作的session会持有对该Key的锁，否则就返回false</p>
-<p>release操作则是使用指定的session来释放某个Key的锁，如果指定的session无效，那么会返回false，否则就会set设置Value值，并返回true</p>
-<p>具体实现中主要使用了这几个Key/Value的API：</p>
-<p>create session：<a target="_blank" rel="noopener" href="https://www.consul.io/api/session.html#session_create">https://www.consul.io/api/session.html#session_create</a></p>
-<p>delete session：<a target="_blank" rel="noopener" href="https://www.consul.io/api/session.html#delete-session">https://www.consul.io/api/session.html#delete-session</a></p>
-<p>KV acquire/release：<a target="_blank" rel="noopener" href="https://www.consul.io/api/kv.html#create-update-key">https://www.consul.io/api/kv.html#create-update-key</a></p>
-<h2 id="基本流程"><a href="#基本流程" class="headerlink" title="基本流程"></a>基本流程</h2><p><img src="/img/consul-lock.png" alt="consul-lock.png"></p>
-<p>以上内容引用自：<a target="_blank" rel="noopener" href="http://blog.didispace.com/spring-cloud-consul-lock-and-semphore/">http://blog.didispace.com/spring-cloud-consul-lock-and-semphore/</a></p>
-<p>代码参考：</p>
-<p><a target="_blank" rel="noopener" href="https://github.com/PlayFab/consuldotnet">https://github.com/PlayFab/consuldotnet</a></p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://github.com/PlayFab/consuldotnet">https://github.com/PlayFab/consuldotnet</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.consul.io/docs/guides/leader-election.html">https://www.consul.io/docs/guides/leader-election.html</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.consul.io/api/kv.html">https://www.consul.io/api/kv.html</a></p>
-<p><a target="_blank" rel="noopener" href="http://blog.didispace.com/spring-cloud-consul-lock-and-semphore/">基于Consul的分布式锁实现</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -2335,7 +2250,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">414</span>
+          <span class="site-state-item-count">416</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
