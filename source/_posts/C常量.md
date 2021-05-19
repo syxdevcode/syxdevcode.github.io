@@ -20,6 +20,7 @@ categories: C语言
 整数常量可以带一个后缀 U 或 L，U 表示无符号整数（unsigned），L 表示长整数（long）。
 后缀可以是大写，也可以是小写，U 和 L 的顺序任意，可以两个同时存在。
 
+<!--more-->
 整数常量的实例:
 
 ```c
@@ -232,7 +233,7 @@ const type variable = value;
 
 ```c
 #define NUM 3.14159 //常量宏
-const doulbe Num = 3.14159; //此时并未将Pi放入ROM中
+const doulbe Num = 3.14159; //此时并未将Pi放入RAM中
 double i = Num; //此时为Pi分配内存，以后不再分配！
 double I= NUM; //编译期间进行宏替换，分配内存
 double j = Num; //没有内存分配

@@ -126,7 +126,7 @@ int addtwonum()
 ```
 
 `test.c` 文件代码：
-注意：vs code需要编码格式为 gb2312。
+注意：如果出现中文乱码，需要在vs code中，将文件编码格式设置为 `gb2312`。
 
 ```c
 #include <stdio.h>
