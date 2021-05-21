@@ -21,7 +21,9 @@ categories: MSDTC
 
 ## 配置注册表
 
-找到 `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\MSDTC`，添加 `ServerTcpPort`，选择 十进制，值输入：5000。
+运行 ：`Regedt32.exe`，找到 `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\MSDTC`，添加 `DWord (32位)`，输入 `ServerTcpPort`，选择 十进制，值输入：5000。
+
+![微信截图_20210521163327.png](/img/微信截图_20210521163327.png)
 
 ![微信截图_20210508154445.png](/img/微信截图_20210508154445.png)
 
