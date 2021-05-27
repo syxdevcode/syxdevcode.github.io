@@ -42,6 +42,7 @@ void myFunction(int param[])
 }
 ```
 
+<!--more-->
 实例：
 
 ```c

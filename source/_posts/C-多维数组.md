@@ -20,6 +20,7 @@ type name[size1][size2]...[sizeN];
 int threedim[5][10][4];
 ```
 
+<!--more-->
 ## 二维数组
 
 ```c
