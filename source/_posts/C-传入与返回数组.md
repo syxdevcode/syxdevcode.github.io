@@ -85,7 +85,7 @@ double getAverage(int arr[], int size)
 
 ### 二维数组传递给函数
 
-如果我们想将二维数组作为实参传递给某个函数，第一维的长度可以不指定，但必须指定第二维的长度:
+如果将二维数组作为实参传递给某个函数，第一维的长度可以不指定，但必须指定第二维的长度:
 
 ```c
 double * MatrixMultiple(double a[][], double b[][]); /* 错误的 */
