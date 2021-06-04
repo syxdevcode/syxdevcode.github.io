@@ -20,6 +20,7 @@ categories: C语言
 typedef int (*fun_ptr)(int,int); //声明一个指向同样参数、返回值的函数指针类型
 ```
 
+<!--more-->
 实例:
 
 声明了函数指针变量 `p`，指向函数 `max`

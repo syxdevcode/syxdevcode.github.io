@@ -39,6 +39,7 @@ struct Books
 
 在一般情况下，`tag`、`member-list`、`variable-list` 这 3 部分至少要出现 2 个。
 
+<!--more-->
 实例：
 
 ```c
