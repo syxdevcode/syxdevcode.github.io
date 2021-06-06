@@ -182,6 +182,259 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/02/17/ASP-NET%E8%AF%B7%E6%B1%82%E5%A4%84%E7%90%86%E7%AE%A1%E9%81%93/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/02/17/ASP-NET%E8%AF%B7%E6%B1%82%E5%A4%84%E7%90%86%E7%AE%A1%E9%81%93/" class="post-title-link" itemprop="url">ASP.NET请求处理管道</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-02-17 09:49:32" itemprop="dateCreated datePublished" datetime="2019-02-17T09:49:32+00:00">2019-02-17</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-06-06 14:10:27" itemprop="dateModified" datetime="2021-06-06T14:10:27+00:00">2021-06-06</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ASP-NET-IIS%E8%AF%B7%E6%B1%82%E5%A4%84%E7%90%86%E7%AE%A1%E9%81%93/" itemprop="url" rel="index"><span itemprop="name">ASP.NET/IIS请求处理管道</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p><img src="/img/2012071209470854.png" alt="2012071209470854.png"></p>
+<p>IIS 6.X和IIS7经典模式，采用aspnet_isapi.dll来响应请求；<br>IIS7集成模式则执行单独的管道；</p>
+<p>注：<font color=#ff0000 size=4 face="黑体">ASP.NET WebForm和ASP.NET MVC 同用一套请求处理管道。</font></p>
+<h2 id="创建HttpApplication"><a href="#创建HttpApplication" class="headerlink" title="创建HttpApplication"></a>创建HttpApplication</h2><p>创建 <code>HttpApplication</code>（即w3wp.exe）对象的时候，先去对象池中查找，没有则创建（编译Global.asax,创建HttpApplication对象），找到则直接返回对象。</p>
+<p>HttpApplication的工作包括：</p>
+<p>● 初始化的时候加载全部的HttpModule<br>● 接收请求<br>● 在不同阶段引发不同的事件，使得HttpModule通过订阅事件的方式加入到请求的处理过程中<br>● 在一个特定阶段获取一个IHttpHandler实例，最终将请求交给具体的IHttpHandler来实现</p>
+<p><code>HttpApplication</code> 创建之后，则是ASP.NET请求处理管道。</p>
+<h3 id="HttpModules-amp-HttpHandlers"><a href="#HttpModules-amp-HttpHandlers" class="headerlink" title="HttpModules &amp; HttpHandlers"></a>HttpModules &amp; HttpHandlers</h3><p>** HttpModules**</p>
+<p>所有的HttpModules都实现了IHttpModule接口,可以实现 <code>IHttpModule</code> 接口自定义 <code>HttpModule</code>。</p>
+<p>** HttpHandlers**</p>
+<p>当某个请求与一个规则匹配后，ASP.NET会调用匹配的HttpHandlerFactory的GetHandler方法来获取一个HttpHandler实例， 最后由一个HttpHandler实例来处理当前请求，生成响应内容</p>
+<p>所有的 <code>HttpHandlers</code> 都实现了 <code>IHttpHandler</code> 接口,可以实现 <code>IHttpHandler</code> 接口自定义 <code>HttpHandler</code>。</p>
+<p>如图：</p>
+<p><img src="/img/190047183794497.png" alt="190047183794497.png"></p>
+<h2 id="Asp-Net请求处理事件"><a href="#Asp-Net请求处理事件" class="headerlink" title="Asp.Net请求处理事件"></a>Asp.Net请求处理事件</h2><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>、BeginRequest：HTTP管道开始处理请求时，会触发BeginRequest事件</span><br><span class="line"></span><br><span class="line"><span class="number">2</span>、AuthenticateRequest：安全模块对请求进行身份验证时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">3</span>、PostAuthenticateRequest：安全模块对请求进行身份验证后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">4</span>、AuthorizeRequest：安全模块对请求进程授权时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">5</span>、PostAuthorizeRequest：安全模块对请求进程授权后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">6</span>、ResolveRequestCache：缓存模块利用缓存直接对请求进程响应时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">7</span>、PostResolveRequestCache：缓存模块利用缓存直接对请求进程响应后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">8</span>、PostMapRequestHandler：对于访问不同的资源类型，ASP.NET具有不同的HttpHandler对其进程处理。</span><br><span class="line">对于每个请求，ASP.NET会根据扩展名选择匹配相应的HttpHandler类型，成功匹配后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">9</span>、AcquireRequestState：状态管理模块获取基于当前请求相应的状态(比如SessionState)时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">10</span>、PostAcquireRequestState：状态管理模块获取基于当前请求相应的状态(比如SessionState)后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">11</span>、PreRequestHandlerExecute：在实行HttpHandler前触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">12</span>、PostRequestHandlerExecute：在实行HttpHandler后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">13</span>、ReleaseRequestState：状态管理模块释放基于当前请求相应的状态时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">14</span>、PostReleaseRequestState：状态管理模块释放基于当前请求相应的状态后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">15</span>、UpdateRequestCache：缓存模块将HttpHandler处理请求得到的相应保存到输出缓存时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">16</span>、PostUpdateRequestCache：缓存模块将HttpHandler处理请求得到的相应保存到输出缓存后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">17</span>、LogRequest：为当前请求进程日志记录时触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">18</span>、PostLogReques：为当前请求进程日志记录后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">19</span>、EndRequest：整个请求处理完成后触发该事件</span><br><span class="line"></span><br><span class="line"><span class="number">20</span>、PreSendRequestHeaders：.Net4<span class="number">.0</span>新增，可以根据发送的Header设置一些参数，</span><br><span class="line">例如，设置一个特殊的Header通知浏览器启用压缩来提高网络传输速度</span><br><span class="line"></span><br><span class="line"><span class="number">21</span>、PreSendRequestContent：.Net4<span class="number">.0</span>新增，恰好在 ASP.NET 向客户端发送内容之前发生。</span><br><span class="line">例如，在此事件压缩输出到浏览器的流。</span><br></pre></td></tr></table></figure>
+
+<p><font color=##ff0000 size=4 face="黑体">webform 和 mvc 共用一套管道，在第7个事件 <code>PostResolveRequestCache</code> 会根据Url去路由表匹配所有的路由规则，<br>如果匹配到了路由，则证明请求是MVC程序,反之，则是WebForm。</font></p>
+<h2 id="WebForm-管道事件摘要"><a href="#WebForm-管道事件摘要" class="headerlink" title="WebForm 管道事件摘要"></a>WebForm 管道事件摘要</h2><p>1，第八个事件 <code>PostMapRequestHandler</code> 创建Page类对象并转换为IHttpHandler接口。</p>
+<p>在这个事件中，对于访问不同的资源类型，ASP.NET具有不同的HttpHandler对其进程处理。对于每个请求，ASP.NET会通过扩展名选择匹配相应的HttpHandler类型，成功匹配后，该实现被触发。因此，如果请求的扩展名是.aspx，便会生成Page类对象，而Page类对象是实现了IHttpHandler接口的。</p>
+<p>2，在第九个到第十事件之间根据SessionId获取Session</p>
+<p>第九到第十个事件是：<code>AcquireRequestState</code>，<code>PostAcquireRequestState</code>。</p>
+<p>这期间首先会接收到浏览器发过来的SessionId，然后先会将IHttpHandler接口尝试转换为IRequiresSessionState接口，如果转换成功，ASP.NET会根据这个SessionId到服务器的Session池中去查找所对应的Session对象，并将这个Session对象赋值到HttpContext对象的Session属性。如果尝试转换为IRequiresSessionState接口不成功，则不加载Session。</p>
+<p>3，在第十一个事件与第十二个事件之间执行页面生命周期</p>
+<p>第十一和第十二个事件是：<code>PreRequestHandlerExecute</code>，<code>PostRequestHandlerExecute</code>。在这两个事件之间，ASP.NET最终通过请求资源类型相对应的HttpHandler实现对请求的处理，其实现方式是调用在第八个事件创建的页面对象的ProcessRequest方法。</p>
+<p><img src="/img/051837105625665.jpg" alt="051837105625665.jpg"></p>
+<p>在 <code>FrameworkInitialize()</code> 这个方法内部就开始打造WebForm的页面控件树，在其中调用了ProcessRequestMain方法，在这个方法里面就执行了整个ASP.NET WebFom页面生命周期。</p>
+<h2 id="MVC-管道事件摘要"><a href="#MVC-管道事件摘要" class="headerlink" title="MVC 管道事件摘要"></a>MVC 管道事件摘要</h2><p>在ASP.NET MVC中，最核心的当属“路由系统”，而路由系统的核心则源于一个强大的 <code>System.Web.Routing.dll</code> 组件。</p>
+<p><font color=##ff0000 size=4 face="黑体">在这个System.Web.Routing.dll中，有一个最重要的类叫做UrlRoutingModule , ASP.NET MVC的入口在 <code>UrlRoutingModule</code>，它是一个实现了<code>IHttpModule</code> 接口的类,订阅了 <code>HttpApplication</code> 的第7个管道事件 <code>PostResolveRequestCahce</code> 对请求进行了拦截。</font></p>
+<p>1,IIS网站的配置可以分为两个块：全局 Web.config 和本站 Web.config。Asp.Net Routing属于全局性的，所以它配置在全局Web.Config 中，我们可以在如下路径中找到：“$\Windows\Microsoft.NET\Framework\版本号\Config\Web.config“</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version=<span class="string">&quot;1.0&quot;</span> encoding=<span class="string">&quot;utf-8&quot;</span>?&gt;</span><br><span class="line"> &lt;!-- the root web configuration file --&gt;</span><br><span class="line"> &lt;configuration&gt;</span><br><span class="line">     &lt;system.web&gt;</span><br><span class="line">         &lt;httpModules&gt;</span><br><span class="line">             &lt;<span class="keyword">add</span> name=<span class="string">&quot;UrlRoutingModule-4.0&quot;</span> type=<span class="string">&quot;System.Web.Routing.UrlRoutingModule&quot;</span> /&gt;</span><br><span class="line">         &lt;/httpModules&gt;</span><br><span class="line">    &lt;/system.web&gt;</span><br><span class="line"> &lt;/configuration&gt;</span><br></pre></td></tr></table></figure>
+
+<p>2,通过在全局Web.Config中注册 <code>System.Web.Routing.UrlRoutingModule</code>，IIS请求处理管道接到请求后，就会加载 UrlRoutingModule类型的Init()方法，第7个管道事件 <code>PostResolveRequestCahce</code> 对请求进行了拦截。</p>
+<p>3,在第七个事件中创建实现了IHttpHandler接口的MvcHandler</p>
+<p>第七个事件：<code>PostResolveRequestCache</code></p>
+<p>当请求到达 <code>UrlRoutingModule</code> 的时候，<code>UrlRoutingModule</code> 取出请求中的 Controller、Action等RouteData信息，与路由表中的所有规则进行匹配，若匹配，把请求交给 <code>IRouteHandler</code>，即 <code>MVCRouteHandler</code>。我们可以看下<code>UrlRoutingModule</code> 的源码来看看，以下是几句核心的代码：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">PostResolveRequestCache</span>(<span class="params">HttpContextBase context</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 通过RouteCollection的静态方法GetRouteData获取到封装路由信息的RouteData实例</span></span><br><span class="line">    RouteData routeData = <span class="keyword">this</span>.RouteCollection.GetRouteData(context);</span><br><span class="line">    <span class="keyword">if</span> (routeData != <span class="literal">null</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// 再从RouteData中获取MVCRouteHandler</span></span><br><span class="line">        IRouteHandler routeHandler = routeData.RouteHandler;</span><br><span class="line">        ......</span><br><span class="line">        <span class="keyword">if</span> (!(routeHandler <span class="keyword">is</span> StopRoutingHandler))</span><br><span class="line">        &#123;</span><br><span class="line">            ......</span><br><span class="line">            <span class="comment">// 调用 IRouteHandler.GetHttpHandler()，获取的IHttpHandler 类型实例，它是由 IRouteHandler.GetHttpHandler获取的</span></span><br><span class="line">            IHttpHandler httpHandler = routeHandler.GetHttpHandler(requestContext);</span><br><span class="line">            ......</span><br><span class="line">            <span class="comment">// 合适条件下，把之前将获取的IHttpHandler 类型实例 映射到IIS HTTP处理管道中</span></span><br><span class="line">            context.RemapHandler(httpHandler);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>MVCRouteHandler</code> 的作用是用来生成实现 <code>IHttpHandler</code> 接口的 <code>MvcHandler</code>：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">namespace</span> <span class="title">System.Web.Routing</span></span><br><span class="line">&#123;  </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">interface</span> <span class="title">IRouteHandler</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function">IHttpHandler <span class="title">GetHttpHandler</span>(<span class="params">RequestContext requestContext</span>)</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>获取 <code>MvcRouteHadnler</code> :</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 继承HttpApplication</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">MvcApplication</span> : <span class="title">System.Web.HttpApplication</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 第一个管道事件</span></span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">Application_Start</span>(<span class="params"></span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        ......</span><br><span class="line">        <span class="comment">//注册路由</span></span><br><span class="line">        RouteConfig.RegisterRoutes(RouteTable.Routes);</span><br><span class="line">        BundleConfig.RegisterBundles(BundleTable.Bundles);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">RouteConfig</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">RegisterRoutes</span>(<span class="params">RouteCollection routes</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        routes.IgnoreRoute(<span class="string">&quot;&#123;resource&#125;.axd/&#123;*pathInfo&#125;&quot;</span>);</span><br><span class="line">        <span class="comment">// MapRoute位于System.Web.Mvc.RouteCollectionExtensions</span></span><br><span class="line">        routes.MapRoute(</span><br><span class="line">            name: <span class="string">&quot;Default&quot;</span>,</span><br><span class="line">            url: <span class="string">&quot;&#123;controller&#125;/&#123;action&#125;/&#123;id&#125;&quot;</span>,</span><br><span class="line">            defaults: <span class="keyword">new</span> &#123; controller = <span class="string">&quot;Home&quot;</span>, action = <span class="string">&quot;Index&quot;</span>, id = UrlParameter.Optional &#125;</span><br><span class="line">        );</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// System.Web.Mvc.RouteCollectionExtensions 扩展方法</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Route <span class="title">MapRoute</span>(<span class="params"><span class="keyword">this</span> RouteCollection routes, <span class="built_in">string</span> name, <span class="built_in">string</span> url, <span class="built_in">object</span> defaults, <span class="built_in">object</span> constraints, <span class="built_in">string</span>[] namespaces</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    ......</span><br><span class="line">　　　<span class="comment">// 通过Route类的构造函数把 MvcRouteHandler 注入到路由中</span></span><br><span class="line">    Route route = <span class="keyword">new</span> Route(url, <span class="keyword">new</span> MvcRouteHandler())             &#123;</span><br><span class="line">        Defaults = <span class="keyword">new</span> RouteValueDictionary(defaults),</span><br><span class="line">        Constraints = <span class="keyword">new</span> RouteValueDictionary(constraints),</span><br><span class="line">        DataTokens = <span class="keyword">new</span> RouteValueDictionary()</span><br><span class="line">    &#125;;</span><br><span class="line">    ......</span><br><span class="line">    <span class="keyword">return</span> route;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在第11和第12个事件之间调用了 <code>MvcHandler</code> 的 <code>ProcessRequest</code> 方法处理ASP.NET MVC。</p>
+<p>第十一和第十二个事件是：<code>PreRequestHandlerExecute</code>，<code>PostRequestHandlerExecute</code>。</p>
+<p>获取 <code>MvcHandler</code>:</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">IHttpHandler httpHandler = routeHandler.GetHttpHandler(requestContext);</span><br><span class="line">context.RemapHandler(httpHandler);</span><br><span class="line"></span><br><span class="line"><span class="comment">// MvcHandlerd的实现</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">virtual</span> IHttpHandler <span class="title">GetHttpHandler</span>(<span class="params">RequestContext requestContext</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">　　requestContext.HttpContext.SetSessionStateBehavior(GetSessionStateBehavior(requestContext));</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> MvcHandler(requestContext);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如图：</p>
+<p><img src="/img/190104512548523.png" alt="190104512548523.png"></p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/artech/archive/2009/06/20/1507165.html">再谈IIS与ASP.NET管道</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/zhangyihui/p/5082394.html">【深入ASP.NET原理系列】–ASP.NET请求管道、应用程序生命周期、整体运行机制</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/darrenji/p/3795661.html">ASP.NET MVC请求处理管道生命周期的19个关键环节(1-6)</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/darrenji/p/3795676.html">ASP.NET MVC请求处理管道生命周期的19个关键环节(7-12)</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/edisonchou/p/4201855.html">ASP.Net请求处理机制初步探索之旅 - Part 3 管道</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/02/15/ASP-NET%E5%9C%A8IIS%E8%BF%90%E8%A1%8C%E6%A8%A1%E5%BC%8F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/02/15/ASP-NET%E5%9C%A8IIS%E8%BF%90%E8%A1%8C%E6%A8%A1%E5%BC%8F/" class="post-title-link" itemprop="url">ASP.NET在IIS运行模式</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-02-15 08:55:33" itemprop="dateCreated datePublished" datetime="2019-02-15T08:55:33+00:00">2019-02-15</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-06-06 14:10:27" itemprop="dateModified" datetime="2021-06-06T14:10:27+00:00">2021-06-06</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ASP-NET-IIS%E8%AF%B7%E6%B1%82%E5%A4%84%E7%90%86%E7%AE%A1%E9%81%93/" itemprop="url" rel="index"><span itemprop="name">ASP.NET/IIS请求处理管道</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="ASP-NET在IIS运行模式"><a href="#ASP-NET在IIS运行模式" class="headerlink" title="ASP.NET在IIS运行模式"></a>ASP.NET在IIS运行模式</h1><h2 id="IIS6-处理模式"><a href="#IIS6-处理模式" class="headerlink" title="IIS6 处理模式"></a>IIS6 处理模式</h2><p>&emsp;&emsp;IIS 6引入了Application Pool。Application Pool就是一个application的容器，在IIS 6中，我们可以创建若干Application Pool，在创建Web Application的时候，我们为它指定一个既定的application pool。在运行的时候，一个Application对应一个Worker Process：w3wp.exe。也就是说，和前一个版本的IIS不同的是，对于IIS 6来说，同一台机器上可以同时运行多个Worker Process，每个Worker Process中的每个Application domain对应一个Application。这样，Application之间不但能提供Application Domain级别的隔离，你也可以将不同的Application置于不同的Application Pool中，从而基于Process级别的隔离。对于Host 一些重要的Application来说，这样的方式可以提供很好的Reliability。</p>
+<p>注：<font color=##ff0000 size=4 face="黑体">为了避免用户应用程序访问或者修改关键的操作系统数据，windows提供了两种处理器访问模式：用户模式（User Mode）和内核模式（Kernel Mode）。一般地，用户程序运行在User mode下，而操作系统代码运行在Kernel Mode下。Kernel Mode的代码允许访问所有系统内存和所有CPU指令。</font></p>
+<p>&emsp;&emsp;在User Mode下，http.sys接收到一个基于aspx的http request，然后它会根据IIS中的Metabase查看该基于该Request的Application属于哪个Application Pool，如果该Application Pool不存在，则创建之。否则直接将request发到对应Application Pool的Queue中。每个Application Pool对应着一个Worker Process：w3wp.exe，是运行在User Mode下的。在IIS Metabase中维护着Application Pool和worker process的Mapping。WAS（Web Administrative service）根据这样一个mapping，将存在于某个Application Pool Queue的request 传递到对应的worker process(如果没有，就创建这样一个进程)。在worker process初始化的时候，加载ASP.NET ISAPI，ASP.NET ISAPI进而加载CLR。最后的流程就和IIS 5.x一样了：通过AppManagerAppDomainFactory的Create方法为Application创建一个Application Domain；通过ISAPIRuntime的ProcessRequest处理Request，进而将流程进入到ASP.NET Http Runtime Pipeline。</p>
+<p><img src="/img/IIS6-1.jpg" alt="IIS6-1.jpg"></p>
+<ul>
+<li>HTTP.SYS:（Kernel）的一个组件，它负责侦听（Listen）来自于外部的HTTP请求,根据请求的URL将其转发给相应的应用程序池 (Application Pool)。当此HTTP请求处理完成时，它又负责将处理结果发送出去.为了提供更好的性能，HTTP.SYS内部建立了一个缓冲区，将最近的HTTP请求处理结果保存起来。</li>
+<li>Application Pool:IIS总会保持一个单独的工作进程：应用程序池。所有的处理都发生在这个进程里，包括ISAPI dll的执行。对于IIS6而言，应用程序池是一个重大的改进，因为它们允许以更小的粒度控制一个指定进程的执行。你可以为每一个虚拟目录或者整个Web 站点配置应用程序池，这可以使你很容易的把每一个应用程序隔离到各自的进程里，这样就可以把它与运行在同一台机器上其他程序完全隔离。从Web处理的角度看，如果一个进程死掉，至少它不会影响到其它的进程。当应用程序池接收到HTTP请求后，交由在此应用程序池中运行的工作者进程Worker Process: w3wp.exe来处理此HTTP请求。 </li>
+<li>Worker Process: 当工作者进程接收到请求后，首先根据后缀找到并加载对应的ISAPI扩展 (如:aspx 对应的映射是aspnet_isapi.dll)，工作者进程加载完aspnet_isapi.dll后，由aspnet_isapi.dll负责加载 ASP.NET应用程序的运行环境即CLR (.NET Runtime)。 Worker Process运行在非托管环境，而.NET中的对象则运行在托管环境之上(CLR)，它们之间的桥梁就是ISAPI扩展。</li>
+<li>WAS（Web Admin Service）：这是一个监控程序，它一方面可以存取放在InetInfo元数据库（Metabase）中的各种信息，另一方面也负责监控应用程序池（Application Pool）中的工作者进程的工作状态况，必要时它会关闭一个老的工作者进程并创建一个新的取而代之。</li>
+</ul>
+<h3 id="IIS6-X-运行时"><a href="#IIS6-X-运行时" class="headerlink" title="IIS6.X 运行时"></a>IIS6.X 运行时</h3><p>在worker process(w3wp.ext)初始化的时候，加载ASP.NET ISAPI，ASP.NET ISAPI进而加载CLR。<br><font color=##ff0000 size=4 face="黑体">ASP.NET ISAPI运行在一个非托管环境之中,ASP.NET ISAPI通过调用System.Web.Hosting.ISAPIRuntime Instance的ProcessRequest方法，进而从非托管的环境进入了托管的环境。</font></p>
+<p><img src="/img/iis_aspnet_process_mode_02_01.JPG" alt="iis_aspnet_process_mode_02_01.JPG"></p>
+<p>具体请参考：<a target="_blank" rel="noopener" href="http://www.cnblogs.com/artech/archive/2007/09/13/891262.html">ASP.NET Process Model之二：ASP.NET Http Runtime Pipeline[上篇]</a></p>
+<p>最后，通过 <code>AppManagerAppDomainFactory</code> 的Create方法为 <code>Application</code> 创建一个 <code>Application Domain</code>；通过<code>ISAPIRuntime</code> 的 <code>ProcessRequest</code> 处理 <code>Request</code>，进而将流程进入到 <code>ASP.NET Http Runtime Pipeline</code>。</p>
+<p>如下图：</p>
+<p><img src="/img/2012071209470854.png" alt="2012071209470854.png"></p>
+<p><font color=##ff0000 size=4 face="黑体">HttpContext(Request,Response)→ HttpRuntime→HttpApplicationFactory→HttpApplication→ HttpModule→HttpHandler→EndRequest</font></p>
+<p><img src="/img/iis_aspnet_process_mode_02_02.JPG" alt="iis_aspnet_process_mode_02_02.JPG"></p>
+<h2 id="IIS7-处理模式"><a href="#IIS7-处理模式" class="headerlink" title="IIS7 处理模式"></a>IIS7 处理模式</h2><p>IIS 7.0支持经典模式和集成模式。IIS6及IIS7的经典模式需要aspnet_isapi.dll来处理，而IIS7集成模式不需要aspnet_isapi.dll来处理，而可以直接根据文件扩展名找到相应的处理程序接口。例如aspx的处理程序是System.Web.UI.PageHandlerFactory类型。</p>
+<p>IIS 7.0对请求的监听和分发机制上又进行了革新性的改进，主要体现在对于Windows进程激活服务（Windows Process Activation Service，WAS）的引入，将原来（IIS 6.0）W3SVC承载的部分功能分流给了WAS。具体来说，通过上面的介绍，我们知道对于IIS 6.0来说，W3SVC主要承载着三大功能：</p>
+<ul>
+<li>HTTP请求接收：接收HTTP.SYS监听到的HTTP请求；</li>
+<li>配置管理：从元数据库（Metabase）中加载配置信息对相关组件进行配置；</li>
+<li>进程管理：创建、回收、监控工作进程。</li>
+</ul>
+<p>在IIS 7.0，后两组功能被移入WAS中，接收HTTP请求的任务依然落在W3SVC头上。</p>
+<h3 id="经典模式"><a href="#经典模式" class="headerlink" title="经典模式"></a>经典模式</h3><p>经典模式与IIS 6或者之前版本保持兼容的一种模式。</p>
+<p>利用文件扩展名，可以判断使用哪个ISAPI处理程序。例如，可以将扩展名为.aspx 和.ascx的文件映射到aspnet_isapi.dll；并且将扩展名为.asp的文件映射到asp.dll，这样就可以处理传统的ASP页面。</p>
+<p><img src="/img/04103814-376a25a1abe84619a45a90e3882ac641.jpg" alt="04103814-376a25a1abe84619a45a90e3882ac641.jpg"></p>
+<h3 id="集成模式"><a href="#集成模式" class="headerlink" title="集成模式"></a>集成模式</h3><p><img src="/img/04103815-d7ef2284320f485d9f048b507062cc4d.png" alt="04103815-d7ef2284320f485d9f048b507062cc4d.png"></p>
+<p>1、当客户端浏览器开始 HTTP 请求一个WEB 服务器的资源时，HTTP.sys 拦截到这个请求。</p>
+<p>2、HTTP.sys 联系 WAS 获取配置信息。</p>
+<p>3、WAS 向配置存储中心(applicationHost.config)请求配置信息。</p>
+<p>4、WWW 服务接收到配置信息，配置信息指类似应用程序池配置信息，站点配置信息等等。</p>
+<p>5、WWW 服务使用配置信息去配置 HTTP.sys 处理策略。</p>
+<p>6、WAS为请求创建一个进程(如果不存在的话)</p>
+<p>7、工作者进程处理请求并对HTTP.sys做出响应.</p>
+<p>8、客户端接受到处理结果信息。</p>
+<p>&emsp;&emsp;集成模式中，asp.net不再像IIS6一样只限定于aspnet_isapi.dll中，而是被解放出来，从IIS接收到HTTP请求开始，即进入asp.net的控制范围，asp.net可以存在于一个请求在IIS中各个处理阶段。允许我们将ASP.NET更好地与IIS集成，甚至允许我们在ASP.NET中编写一些功能（例如Module）来改变IIS的行为（扩 展）。集成的好处是，不再通过ISAPI的方式，提高了速度和稳定性。至于扩展，则可以使得我们对于IIS，以及其他类型的请求有更多的控制。（例如，我们希望静态网页也具备一些特殊的行为）。</p>
+<p>IIS 7.0集成模式下的优点：</p>
+<ul>
+<li>允许我们通过本地代码（Native Code）和托管代码（Managed Code）两种方式定义IIS Module，这些IIS Module注册到IIS中形成一个通用的请求处理管道。由这些IIS Module组成的这个管道能够处理所有的请求，不论请求基于怎样的资源类型。比如，可以将FormsAuthenticationModule提供的Forms认证应用到基于.aspx，CGI和静态文件的请求。</li>
+<li>将ASP.NET提供的一些强大的功能应用到原来难以企及的地方，比如将ASP.NET的URL重写功能置于身份验证之前；</li>
+<li>采用相同的方式去实现、配置、检测和支持一些服务器特性（Feature），比如Module、Handler映射、错误定制配置（Custom Error Configuration）等。</li>
+</ul>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/artech/archive/2007/09/09/887528.html">ASP.NET Process Model之一：IIS 和 ASP.NET ISAPI</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/zhaoyang/archive/2011/11/16/2251200.html">用三张图片详解Asp.Net 全生命周期</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/tenghoo/archive/2009/11/04/IIS_And_ASPNET_Http_Runtime_Pipeline.html">IIS与ASP.NET Http Runtime Pipeline</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/wenthink/archive/2013/05/06/HTTP_IIS_ASPNET_Pipeline.html">瀚海拾贝（一）HTTP协议/IIS 原理及ASP.NET运行机制浅析【图解】</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/fengzheng/p/3668283.html">ASP.NET是如何在IIS下工作的</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/01/24/CSharp-%E4%BD%BF%E7%94%A8%E7%A8%8B%E5%BA%8F%E9%9B%86%E7%BC%96%E7%A8%8B/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +466,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
+                <time title="修改时间：2021-06-06 14:10:27" itemprop="dateModified" datetime="2021-06-06T14:10:27+00:00">2021-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -316,7 +569,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
+                <time title="修改时间：2021-06-06 14:10:27" itemprop="dateModified" datetime="2021-06-06T14:10:27+00:00">2021-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -491,7 +744,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
+                <time title="修改时间：2021-06-06 14:10:27" itemprop="dateModified" datetime="2021-06-06T14:10:27+00:00">2021-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -567,7 +820,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
+                <time title="修改时间：2021-06-06 14:10:27" itemprop="dateModified" datetime="2021-06-06T14:10:27+00:00">2021-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -644,7 +897,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
+                <time title="修改时间：2021-06-06 14:10:27" itemprop="dateModified" datetime="2021-06-06T14:10:27+00:00">2021-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -834,7 +1087,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
+                <time title="修改时间：2021-06-06 14:10:27" itemprop="dateModified" datetime="2021-06-06T14:10:27+00:00">2021-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -911,7 +1164,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
+                <time title="修改时间：2021-06-06 14:10:27" itemprop="dateModified" datetime="2021-06-06T14:10:27+00:00">2021-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -992,7 +1245,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
+                <time title="修改时间：2021-06-06 14:10:27" itemprop="dateModified" datetime="2021-06-06T14:10:27+00:00">2021-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1073,7 +1326,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
+                <time title="修改时间：2021-06-06 14:10:27" itemprop="dateModified" datetime="2021-06-06T14:10:27+00:00">2021-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1160,7 +1413,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
+                <time title="修改时间：2021-06-06 14:10:27" itemprop="dateModified" datetime="2021-06-06T14:10:27+00:00">2021-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1241,7 +1494,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
+                <time title="修改时间：2021-06-06 14:10:27" itemprop="dateModified" datetime="2021-06-06T14:10:27+00:00">2021-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1323,7 +1576,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
+                <time title="修改时间：2021-06-06 14:10:27" itemprop="dateModified" datetime="2021-06-06T14:10:27+00:00">2021-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1409,7 +1662,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
+                <time title="修改时间：2021-06-06 14:10:27" itemprop="dateModified" datetime="2021-06-06T14:10:27+00:00">2021-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1570,230 +1823,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/01/10/CSharp%E5%9F%BA%E7%A1%80-SOLID%E5%8E%9F%E5%88%99/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/01/10/CSharp%E5%9F%BA%E7%A1%80-SOLID%E5%8E%9F%E5%88%99/" class="post-title-link" itemprop="url">CSharp基础-SOLID原则</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-01-10 12:04:25" itemprop="dateCreated datePublished" datetime="2019-01-10T12:04:25+00:00">2019-01-10</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" itemprop="url" rel="index"><span itemprop="name">设计模式</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="SOLID原则"><a href="#SOLID原则" class="headerlink" title="SOLID原则"></a>SOLID原则</h1><p>设计类和模块时，遵守 SOLID 原则可以让软件更加健壮和稳定。</p>
-<table>
-<thead>
-<tr>
-<th>简写</th>
-<th>全称</th>
-<th>翻译</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>SRP</td>
-<td>The Single Responsibility Principle</td>
-<td>单一责任原则</td>
-</tr>
-<tr>
-<td>OCP</td>
-<td>The Open Closed Principle</td>
-<td>开放封闭原则</td>
-</tr>
-<tr>
-<td>LSP</td>
-<td>The Liskov Substitution Principle</td>
-<td>里氏替换原则</td>
-</tr>
-<tr>
-<td>ISP</td>
-<td>The Interface Segregation Principle</td>
-<td>接口分离原则</td>
-</tr>
-<tr>
-<td>DIP</td>
-<td>The Dependency Inversion Principle</td>
-<td>依赖倒置原则</td>
-</tr>
-</tbody></table>
-<h2 id="单一职责原则（SRP）"><a href="#单一职责原则（SRP）" class="headerlink" title="单一职责原则（SRP）"></a>单一职责原则（SRP）</h2><p>单一职责原则（SRP）表明一个类有且只有一个职责。</p>
-<h2 id="开放封闭原则（OCP）"><a href="#开放封闭原则（OCP）" class="headerlink" title="开放封闭原则（OCP）"></a>开放封闭原则（OCP）</h2><p>开放封闭原则（OCP）指出，一个类应该对扩展开放，对修改关闭。这意味一旦你创建了一个类并且应用程序的其他部分开始使用它，你不应该修改它。即，可扩展(extension)，不可修改(modification)。</p>
-<h2 id="里氏替换原则（LSP）"><a href="#里氏替换原则（LSP）" class="headerlink" title="里氏替换原则（LSP）"></a>里氏替换原则（LSP）</h2><p>里氏替换原则指出，派生的子类应该是可替换基类的，也就是说任何基类可以出现的地方，子类一定可以出现。一个对象在其出现的任何地方，都可以用子类实例做替换，并且不会导致程序的错误。换句话说，当子类可以在任意地方替换基类且软件功能不受影响时，这种继承关系的建模才是合理的。当一个子类的实例应该能够替换任何其超类的实例时，它们之间才具有is-A关系。</p>
-<h2 id="接口隔离原则（ISP）"><a href="#接口隔离原则（ISP）" class="headerlink" title="接口隔离原则（ISP）"></a>接口隔离原则（ISP）</h2><p>接口隔离原则（ISP）表明类不应该被迫依赖他们不使用的方法，也就是说一个接口应该拥有尽可能少的行为。将接口拆分成更小和更具体的接口，有助于解耦，从而更容易重构、更改。</p>
-<h2 id="依赖倒置原则（DIP）"><a href="#依赖倒置原则（DIP）" class="headerlink" title="依赖倒置原则（DIP）"></a>依赖倒置原则（DIP）</h2><p>依赖倒置原则（DIP）表明高层模块不应该依赖低层模块，相反，他们应该依赖抽象类或者接口。这个设计原则的亮点在于任何被DI框架注入的类很容易用mock对象进行测试和维护，因为对象创建代码集中在框架中，客户端代码也不混乱。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/OceanEyes/p/overview-of-solid-principles.html#_label4">浅谈 SOLID 原则的具体使用</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/lanxuezaipiao/archive/2013/06/09/3128665.html">SOLID原则</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/01/07/DotNet%E5%9F%BA%E7%A1%80-%E8%87%AA%E5%AE%9A%E4%B9%89LINQ-Provider/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/01/07/DotNet%E5%9F%BA%E7%A1%80-%E8%87%AA%E5%AE%9A%E4%B9%89LINQ-Provider/" class="post-title-link" itemprop="url">DotNet基础-自定义LINQ Provider</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-01-07 15:12:23" itemprop="dateCreated datePublished" datetime="2019-01-07T15:12:23+00:00">2019-01-07</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/LINQ/" itemprop="url" rel="index"><span itemprop="name">LINQ</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="IQueryable和IQueryProvider接口"><a href="#IQueryable和IQueryProvider接口" class="headerlink" title="IQueryable和IQueryProvider接口"></a>IQueryable和IQueryProvider接口</h2><p><code>IQueryable&lt;T&gt;</code> 接口是 <code>Linq to Provider</code>的入口。</p>
-<h3 id="IQueryable接口"><a href="#IQueryable接口" class="headerlink" title="IQueryable接口"></a>IQueryable接口</h3><p>在.NET中，<code>IQueryable&lt;T&gt;</code> 继承于 <code>IEnumerable&lt;T&gt;</code> , <code>IEnumerable</code> 和 <code>IQueryable</code> 接口</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title">IQueryable</span>&lt;<span class="keyword">out</span> <span class="title">T</span>&gt; : <span class="title">IEnumerable</span>&lt;<span class="title">T</span>&gt;, <span class="title">IEnumerable</span>, <span class="title">IQueryable</span></span><br><span class="line">&#123;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title">IQueryable</span> : <span class="title">IEnumerable</span></span><br><span class="line">&#123;</span><br><span class="line">  Expression Expression &#123; [__DynamicallyInvokable] <span class="keyword">get</span>; &#125;</span><br><span class="line"></span><br><span class="line">  Type ElementType &#123; [__DynamicallyInvokable] <span class="keyword">get</span>; &#125;</span><br><span class="line"></span><br><span class="line">  IQueryProvider Provider &#123; [__DynamicallyInvokable] <span class="keyword">get</span>; &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>ElementType ：当前Query所对应的类型</li>
-<li>Expression ：获取与 <code>IQueryable</code> 的实例关联的表达式树</li>
-<li>Provider：获取与此数据源关联的查询提供程序</li>
-</ul>
-<p>我们所有定义在查询表达式中方法调用或者Lambda表达式都将由该Expression属性表示，最终会由Provider表示的提供程序翻译为它所对应的数据源的查询语言。</p>
-<p><code>IQueryable</code> 扩展方法传入的是 <code>Expression</code> 类型</p>
-<h3 id="IEnumerable接口"><a href="#IEnumerable接口" class="headerlink" title="IEnumerable接口"></a>IEnumerable接口</h3><p><code>IEnumrable</code> 扩展方法传入的是委托。</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title">IEnumerable</span>&lt;<span class="keyword">out</span> <span class="title">T</span>&gt; : <span class="title">IEnumerable</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="function">IEnumerator&lt;T&gt; <span class="title">GetEnumerator</span>(<span class="params"></span>)</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title">IEnumerable</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="function">IEnumerator <span class="title">GetEnumerator</span>(<span class="params"></span>)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="IQueryProvider接口"><a href="#IQueryProvider接口" class="headerlink" title="IQueryProvider接口"></a>IQueryProvider接口</h3><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title">IQueryProvider</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="function">IQueryable <span class="title">CreateQuery</span>(<span class="params">Expression expression</span>)</span>;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="title">IQueryable</span>&lt;<span class="title">TElement</span>&gt; <span class="title">CreateQuery</span>&lt;<span class="title">TElement</span>&gt;(<span class="params">Expression expression</span>)</span>;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="built_in">object</span> <span class="title">Execute</span>(<span class="params">Expression expression</span>)</span>;</span><br><span class="line"></span><br><span class="line">  <span class="function">TResult <span class="title">Execute</span>&lt;<span class="title">TResult</span>&gt;(<span class="params">Expression expression</span>)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p><code>Provider</code> 负责执行表达式目录树并返回结果。如果是 <code>LINQ to SQL</code> 的 <code>Provider</code> ，则它会负责把表达式目录树翻译为T-SQL语句并并传递给数据库服务器，并返回最后的执行的结果；如果是一个 <code>Web Service</code> 的 <code>Provider</code>，则它会负责翻译表达式目录树并调用 <code>Web Service</code>，最终返回结果。</p>
-<h2 id="自定义Provider"><a href="#自定义Provider" class="headerlink" title="自定义Provider"></a>自定义Provider</h2><p>首先，实现一个 <code>Query&lt;T&gt;</code> 类，它实现 <code>IQueryable&lt;T&gt;</code> 接口,提供了一个 <code>IQueryProvider</code> 和 <code>Expression</code> 属性。</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Query</span>&lt;<span class="title">T</span>&gt; : <span class="title">IQueryable</span>&lt;<span class="title">T</span>&gt;, <span class="title">IQueryable</span>, <span class="title">IEnumerable</span>&lt;<span class="title">T</span>&gt;, <span class="title">IEnumerable</span>, <span class="title">IOrderedQueryable</span>&lt;<span class="title">T</span>&gt;, <span class="title">IOrderedQueryable</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">readonly</span> QueryProvider provider;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">readonly</span> Expression expression;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Query</span>(<span class="params">QueryProvider provider</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">this</span>.provider = provider ?? <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentNullException(<span class="keyword">nameof</span>(provider));</span><br><span class="line"></span><br><span class="line">        <span class="keyword">this</span>.expression = Expression.Constant(<span class="keyword">this</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Query</span>(<span class="params">QueryProvider provider, Expression expression</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (expression == <span class="literal">null</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentNullException(<span class="keyword">nameof</span>(expression));</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (!<span class="keyword">typeof</span>(IQueryable&lt;T&gt;).IsAssignableFrom(expression.Type))</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentOutOfRangeException(<span class="keyword">nameof</span>(expression));</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">this</span>.provider = provider ?? <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentNullException(<span class="keyword">nameof</span>(provider));</span><br><span class="line"></span><br><span class="line">        <span class="keyword">this</span>.expression = expression;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    Expression IQueryable.Expression =&gt; <span class="keyword">this</span>.expression;</span><br><span class="line"></span><br><span class="line">    Type IQueryable.ElementType =&gt; <span class="keyword">typeof</span>(T);</span><br><span class="line"></span><br><span class="line">    IQueryProvider IQueryable.Provider =&gt; <span class="keyword">this</span>.provider;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> IEnumerator&lt;T&gt; <span class="title">GetEnumerator</span>(<span class="params"></span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> ((IEnumerable&lt;T&gt;)<span class="keyword">this</span>.provider.Execute(<span class="keyword">this</span>.expression)).GetEnumerator();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    IEnumerator IEnumerable.GetEnumerator()</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> ((IEnumerable)<span class="keyword">this</span>.provider.Execute(<span class="keyword">this</span>.expression)).GetEnumerator();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> <span class="built_in">string</span> <span class="title">ToString</span>(<span class="params"></span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.provider.GetQueryText(<span class="keyword">this</span>.expression);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>然后，定义一个抽象类 <code>QueryProvider</code>，它将会实现 <code>IQueryProvider</code> 接口，包括 <code>CreateQuery</code> 和 <code>Execute</code>方法（都包含泛型方法）。</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title">QueryProvider</span> : <span class="title">IQueryProvider</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="title">QueryProvider</span>(<span class="params"></span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    IQueryable&lt;S&gt; IQueryProvider.CreateQuery&lt;S&gt;(Expression expression)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> Query&lt;S&gt;(<span class="keyword">this</span>, expression);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    IQueryable IQueryProvider.CreateQuery(Expression expression)</span><br><span class="line">    &#123;</span><br><span class="line">        Type elementType = TypeSystem.GetElementType(expression.Type);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> (IQueryable)Activator.CreateInstance(<span class="keyword">typeof</span>(Query&lt;&gt;).MakeGenericType(elementType), <span class="keyword">new</span> <span class="built_in">object</span>[] &#123; <span class="keyword">this</span>, expression &#125;);</span><br><span class="line">        &#125;</span><br><span class="line">        catch (TargetInvocationException tie)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">throw</span> tie.InnerException;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    S IQueryProvider.Execute&lt;S&gt;(Expression expression)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> (S)<span class="keyword">this</span>.Execute(expression);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">object</span> IQueryProvider.Execute(Expression expression)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.Execute(expression);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="built_in">string</span> <span class="title">GetQueryText</span>(<span class="params">Expression expression</span>)</span>;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="built_in">object</span> <span class="title">Execute</span>(<span class="params">Expression expression</span>)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>最后定义一个具体 <code>Provider</code>，继承自抽象类 <code>QueryProvider</code>；</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">CnblogsQueryProvider</span> : <span class="title">QueryProvider</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> String <span class="title">GetQueryText</span>(<span class="params">Expression expression</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        SearchCriteria criteria;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 翻译查询条件</span></span><br><span class="line">        criteria = <span class="keyword">new</span> PostExpressionVisitor().ProcessExpression(expression);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 生成URL</span></span><br><span class="line">        String url = PostHelper.BuildUrl(criteria);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> url;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> <span class="built_in">object</span> <span class="title">Execute</span>(<span class="params">Expression expression</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        String url = GetQueryText(expression);</span><br><span class="line">        IEnumerable&lt;Post&gt; results = PostHelper.PerformWebQuery(url);</span><br><span class="line">        <span class="keyword">return</span> results;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>调用：</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">var</span> provider = <span class="keyword">new</span> CnblogsQueryProvider();</span><br><span class="line">    <span class="keyword">var</span> queryable = <span class="keyword">new</span> Query&lt;Post&gt;(provider);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> query =</span><br><span class="line">        <span class="keyword">from</span> p <span class="keyword">in</span> queryable</span><br><span class="line">        <span class="keyword">where</span> p.Diggs &gt;= <span class="number">10</span> &amp;&amp;</span><br><span class="line">              p.Comments &gt; <span class="number">10</span> &amp;&amp;</span><br><span class="line">              p.Views &gt; <span class="number">10</span> &amp;&amp;</span><br><span class="line">              p.Comments &lt; <span class="number">20</span></span><br><span class="line">        <span class="keyword">select</span> p;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> list = query.ToList();</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    Console.ReadLine();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>源码：<a target="_blank" rel="noopener" href="https://github.com/syxdevcode/LinqToCnBlogs">https://github.com/syxdevcode/LinqToCnBlogs</a></p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/Terrylee/archive/2008/08/25/custom-linq-provider-part-2-IQueryable-IQueryProvider.html">打造自己的LINQ Provider（中）：IQueryable和IQueryProvider</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/jesse2013/p/expressiontree-Linq-to-cnblogs.html">由浅入深表达式树（完结篇）重磅打造 Linq To 博客园</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/Terrylee/archive/2008/08/25/custom-linq-provider-part-2-IQueryable-IQueryProvider.html">打造自己的LINQ Provider（中）：IQueryable和IQueryProvider</a></p>
-<p><a target="_blank" rel="noopener" href="https://blogs.msdn.microsoft.com/mattwar/2007/07/30/linq-building-an-iqueryable-provider-part-i/">LINQ: Building an IQueryable Provider – Part I</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1863,7 +1892,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">438</span>
+          <span class="site-state-item-count">440</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
