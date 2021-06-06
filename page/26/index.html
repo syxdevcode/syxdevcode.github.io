@@ -182,6 +182,539 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/07/06/Openssl%E7%94%9F%E6%88%90SSL-TLS%E8%AF%81%E4%B9%A6/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/07/06/Openssl%E7%94%9F%E6%88%90SSL-TLS%E8%AF%81%E4%B9%A6/" class="post-title-link" itemprop="url">Openssl生成SSL/TLS证书</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-07-06 08:42:38" itemprop="dateCreated datePublished" datetime="2018-07-06T08:42:38+00:00">2018-07-06</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Openssl/" itemprop="url" rel="index"><span itemprop="name">Openssl</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="openssl生成SSL-TLS证书"><a href="#openssl生成SSL-TLS证书" class="headerlink" title="openssl生成SSL/TLS证书"></a>openssl生成SSL/TLS证书</h1><p>官网：<a target="_blank" rel="noopener" href="https://www.openssl.org/">https://www.openssl.org/</a></p>
+<p>github:<a target="_blank" rel="noopener" href="https://github.com/openssl/openssl">https://github.com/openssl/openssl</a></p>
+<p>文档：<a target="_blank" rel="noopener" href="https://www.openssl.org/docs/manmaster/man1/">https://www.openssl.org/docs/manmaster/man1/</a></p>
+<h2 id="证书相关概念"><a href="#证书相关概念" class="headerlink" title="证书相关概念"></a>证书相关概念</h2><h3 id="CA根证书"><a href="#CA根证书" class="headerlink" title="CA根证书"></a>CA根证书</h3><p>首先要有一个CA根证书，然后用CA根证书来签发用户证书。<br>用户进行证书申请：一般先生成一个私钥，然后用私钥生成证书请求(证书请求里应含有公钥信息)，再利用证书服务器的CA根证书来签发证书。</p>
+<p>** 特别说明:**</p>
+<ul>
+<li>（1）自签名证书(一般用于顶级证书、根证书): 证书的名称和认证机构的名称相同.</li>
+<li>（2）根证书：根证书是CA认证中心给自己颁发的证书,是信任链的起始点。任何安装CA根证书的服务器都意味着对这个CA认证中心是信任的。</li>
+</ul>
+<p>数字证书则是由证书认证机构（CA）对证书申请者真实身份验证之后，用CA的根证书对申请人的一些基本信息以及申请人的公钥进行签名（相当于加盖发证书机构的公章）后形成的一个数字文件。数字证书包含证书中所标识的实体的公钥（就是说你的证书里有你的公钥），由于证书将公钥与特定的个人匹配，并且该证书的真实性由颁发机构保证（就是说可以让大家相信你的证书是真的），因此，数字证书为如何找到用户的公钥并知道它是否有效这一问题提供了解决方案。</p>
+<h3 id="PKCS的15个标准"><a href="#PKCS的15个标准" class="headerlink" title="PKCS的15个标准"></a>PKCS的15个标准</h3><p>PKCS 全称是 Public-Key Cryptography Standards ，是由 RSA 实验室与其它安全系统开发商为促进公钥密码的发展而制订的一系列标准。</p>
+<ul>
+<li><p>** PKCS#1 **：RSA加密标准。PKCS#1定义了RSA公钥函数的基本格式标准，特别是数字签名。它定义了数字签名如何计算，包括待签名数据和签名本身的格式；它也定义了PSA公/私钥的语法。</p>
+</li>
+<li><p>** PKCS#2 **：涉及了RSA的消息摘要加密，这已被并入PKCS#1中。</p>
+</li>
+<li><p>** PKCS#3 **：Diffie-Hellman密钥协议标准。PKCS#3描述了一种实现Diffie- Hellman密钥协议的方法。</p>
+</li>
+<li><p>** PKCS#4 **：最初是规定RSA密钥语法的，现已经被包含进PKCS#1中。</p>
+</li>
+<li><p>** PKCS#5 **：基于口令的加密标准。PKCS#5描述了使用由口令生成的密钥来加密8位位组串并产生一个加密的8位位组串的方法。PKCS#5可以用于加密私钥，以便于密钥的安全传输（这在PKCS#8中描述）。</p>
+</li>
+<li><p>** PKCS#6 **：扩展证书语法标准。PKCS#6定义了提供附加实体信息的X.509证书属性扩展的语法（当PKCS#6第一次发布时，X.509还不支持扩展。这些扩展因此被包括在X.509中）。</p>
+</li>
+<li><p>** PKCS#7 **：密码消息语法标准。PKCS#7为使用密码算法的数据规定了通用语法，比如数字签名和数字信封。PKCS#7提供了许多格式选项，包括未加密或签名的格式化消息、已封装（加密）消息、已签名消息和既经过签名又经过加密的消息。</p>
+</li>
+<li><p>** PKCS#8 **：私钥信息语法标准。PKCS#8定义了私钥信息语法和加密私钥语法，其中私钥加密使用了PKCS#5标准。</p>
+</li>
+<li><p>** PKCS#9 **：可选属性类型。PKCS#9定义了PKCS#6扩展证书、PKCS#7数字签名消息、PKCS#8私钥信息和PKCS#10证书签名请求中要用到的可选属性类型。已定义的证书属性包括E-mail地址、无格式姓名、内容类型、消息摘要、签名时间、签名副本（counter signature）、质询口令字和扩展证书属性。</p>
+</li>
+<li><p>** PKCS#10 **：证书请求语法标准。PKCS#10定义了证书请求的语法。证书请求包含了一个唯一识别名、公钥和可选的一组属性，它们一起被请求证书的实体签名（证书管理协议中的PKIX证书请求消息就是一个PKCS#10）。</p>
+</li>
+<li><p>** PKCS#11 **：密码令牌接口标准。PKCS#11或“Cryptoki”为拥有密码信息（如加密密钥和证书）和执行密码学函数的单用户设备定义了一个应用程序接口（API）。智能卡就是实现Cryptoki的典型设备。注意：Cryptoki定义了密码函数接口，但并未指明设备具体如何实现这些函数。而且Cryptoki只说明了密码接口，并未定义对设备来说可能有用的其他接口，如访问设备的文件系统接口。</p>
+</li>
+<li><p>** PKCS#12 **：个人信息交换语法标准。PKCS#12定义了个人身份信息（包括私钥、证书、各种秘密和扩展字段）的格式。PKCS#12有助于传输证书及对应的私钥，于是用户可以在不同设备间移动他们的个人身份信息。</p>
+</li>
+<li><p>** PDCS#13 **：椭圆曲线密码标准。PKCS#13标准当前正在完善之中。它包括椭圆曲线参数的生成和验证、密钥生成和验证、数字签名和公钥加密，还有密钥协定，以及参数、密钥和方案标识的ASN.1语法。</p>
+</li>
+<li><p>** PKCS#14 **：伪随机数产生标准。PKCS#14标准当前正在完善之中。为什么随机数生成也需要建立自己的标准呢？PKI中用到的许多基本的密码学函数，如密钥生成和Diffie-Hellman共享密钥协商，都需要使用随机数。然而，如果“随机数”不是随机的，而是取自一个可预测的取值集合，那么密码学函数就不再是绝对安全了，因为它的取值被限于一个缩小了的值域中。因此，安全伪随机数的生成对于PKI的安全极为关键。</p>
+</li>
+<li><p>** PKCS#15 **：密码令牌信息语法标准。PKCS#15通过定义令牌上存储的密码对象的通用格式来增进密码令牌的互操作性。在实现PKCS#15的设备上存储的数据对于使用该设备的所有应用程序来说都是一样的，尽管实际上在内部实现时可能所用的格式不同。PKCS#15的实现扮演了翻译家的角色，它在卡的内部格式与应用程序支持的数据格式间进行转换。</p>
+</li>
+</ul>
+<p>** 注意：** net,ios中rsa加解密使用的是pkcs1，而java使用的是pkcs8</p>
+<p>以上参考：<a target="_blank" rel="noopener" href="http://falchion.iteye.com/blog/1472453">PKCS 发布的15 个标准</a></p>
+<h3 id="x509证书"><a href="#x509证书" class="headerlink" title="x509证书"></a>x509证书</h3><h4 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h4><p>X.509 是密码学里公钥证书的格式标准。 X.509 证书己应用在包括TLS/SSL（WWW万维网安全浏览的基石）在内的众多 Intenet协议里.同时它也用在很多非在线应用场景里，比如电子签名服务。X.509证书里含有公钥、身份信息(比如网络主机名，组织的名称或个体名称等)和签名信息（可以是证书签发机构CA的签名，也可以是自签名）。对于一份经由可信的证书签发机构签名或者可以通过其它方式验证的证书，证书的拥有者就可以用证书及相应的私钥来创建安全的通信，对文档进行数字签名.X.509还附带了证书吊销列表和用于从最终对证书进行签名的证书签发机构直到最终可信点为止的证书合法性验证算法。</p>
+<p>当前使用的版本是X.509 V3，它加入了扩展字段支持，这极大地增进了证书的灵活性。X.509 V3证书包括一组按预定义顺序排列的强制字段，还有可选扩展字段，即使在强制字段中，X.509证书也允许很大的灵活性，因为它为大多数字段提供了多种编码方案.</p>
+<p>x509证书一般会用到三类文件，key，csr，crt。<br>Key是私用密钥，openssl格式，通常是rsa算法。<br>csr是证书请求文件，用于申请证书。在制作csr文件的时候，必须使用自己的私钥来签署申请，还可以设定一个密钥。<br>crt是CA认证后的证书文件（windows下面的csr，其实是crt），签署人用自己的key给你签署的凭证。</p>
+<h4 id="编码格式-也用作扩展"><a href="#编码格式-也用作扩展" class="headerlink" title="编码格式(也用作扩展)"></a>编码格式(也用作扩展)</h4><ul>
+<li><p>** .PEM **- PEM扩展名用于不同类型的X.509v3文件,全称Privacy Enhanced Mail,打开看文本格式,以”—–BEGIN…”开头, “—–END…”结尾,内容是ASCII(BASE64)编码.</p>
+<p>  查看PEM格式证书的信息: <code>openssl x509 -in certificate.pem -text -noout</code></p>
+<p>  Apache和*NIX服务器偏向于使用这种编码格式.</p>
+</li>
+<li><p>** .DER** - DER扩展用于二进制DER编码证书,全称Distinguished Encoding Rules,打开看是二进制格式,不可读,这些文件也可能带有CER或CRT扩展名.</p>
+<p>  查看DER格式证书的信息: <code>openssl x509 -in certificate.der -inform der -text -noout</code></p>
+<p>  Java和Windows服务器偏向于使用这种编码格式.</p>
+</li>
+</ul>
+<p>例如：</p>
+<p>密钥pem格式：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">-----BEGIN RSA PRIVATE KEY-----</span><br><span class="line">-----END RSA PRIVATE KEY-----</span><br></pre></td></tr></table></figure>
+
+<p>证书pem格式：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">-----BEGIN CERTIFICATE-----</span><br><span class="line">-----END CERTIFICATE-----</span><br></pre></td></tr></table></figure>
+
+<h4 id="文件扩展名"><a href="#文件扩展名" class="headerlink" title="文件扩展名"></a>文件扩展名</h4><ul>
+<li><p>** .key格式 **：通常用来存放一个公钥或者私钥,默认PKCS＃1,并非X.509证书,可能是PEM,也可能是DER</p>
+</li>
+<li><p>** .csr/.p10格式 **：证书签名请求（证书请求文件），含有公钥信息，certificate signing request的缩写,PKCS#10标准定义</p>
+</li>
+<li><p>** .crt格式 **：证书文件，certificate的缩写,CRT扩展名用于证书，只有公钥没有私钥。证书可以编码为二进制DER或ASCII PEM。CER和CRT扩展几乎是同义词</p>
+</li>
+<li><p>** .cer格式 **：证书文件,常见于Windows系统，certificate缩写，只有公钥没有私钥,可能是PEM编码,也可能是DER编码,大多数应该是DER编码,crt文件和cer文件只有在使用相同编码的时候才可以安全地相互替代。</p>
+</li>
+<li><p>** .crl格式 **：证书吊销列表，Certificate Revocation List的缩写</p>
+</li>
+<li><p>** .pem格式 **：用于导出，导入证书时候的证书的格式，用于不同类型的X.509v3文件，有证书开头，结尾的格式</p>
+</li>
+<li><p>** .p7b/.p7r格式 **： 以树状展示证书链(certificate chain)，同时也支持单个证书，不含私钥,PKCS#7标准定义</p>
+</li>
+<li><p>** .p7c/.p7m/.p7s格式 **：PKCS#7证书格式，仅仅包含证书和CRL列表信息，没有私钥。</p>
+</li>
+<li><p>** .pfx/p12格式 **：由Public Key Cryptography Standards #12，PKCS#12标准定义，包含了公钥和私钥的二进制格式的证书形式，以pfx作为证书文件后缀名。PFX（也称为PKCS＃12）支持证书，私钥和证书路径中的所有证书的安全存储。PKCS＃12格式是唯一可用于导出证书及其私钥的文件格式。</p>
+</li>
+</ul>
+<h2 id="证书生成"><a href="#证书生成" class="headerlink" title="证书生成"></a>证书生成</h2><h3 id="openssl基本命令"><a href="#openssl基本命令" class="headerlink" title="openssl基本命令"></a>openssl基本命令</h3><p>公钥负责加密，私钥负责解密</p>
+<p>私钥负责签名，公钥负责验证</p>
+<h4 id="修改openssl-cnf配置文件"><a href="#修改openssl-cnf配置文件" class="headerlink" title="修改openssl.cnf配置文件"></a>修改openssl.cnf配置文件</h4><p>首先需要定位openssl.cnf文件：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">locate openssl.cnf</span><br></pre></td></tr></table></figure>
+
+<p>结果：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/etc/pki/tls/openssl.cnf</span><br><span class="line">/usr/share/man/man5/openssl.cnf.5ssl.gz</span><br></pre></td></tr></table></figure>
+
+<p>修改配置文件，修改其中的dir变量,重新设置SSL的工作目录</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/pki/tls/openssl.cnf</span><br></pre></td></tr></table></figure>
+
+<h4 id="生成私钥"><a href="#生成私钥" class="headerlink" title="生成私钥"></a>生成私钥</h4><p>命令：<code>openssl genrsa</code></p>
+<p>查看帮助：<code>openssl genrsa -h</code></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">-des           生成的私钥采用DES算法加密</span><br><span class="line">-des3          生成的私钥采用DES3算法加密 (168 bit key)</span><br><span class="line">-seed          encrypt PEM output with cbc seed</span><br><span class="line">-aes128, -aes192, -aes256</span><br><span class="line">-out file       私钥输出位置</span><br><span class="line">-passout arg    输出文件的密码，如果我们指定了对称加密算法，也可以不带此参数，会有命令行提示你输入密码</span><br></pre></td></tr></table></figure>
+
+<p>生成一个私钥：<br>默认长度512,PKCS1格式</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">openssl genrsa -out ca.key 2048</span><br><span class="line"><span class="comment">## 或者</span></span><br><span class="line">openssl genrsa -des3 -passout pass:123456 -out RSA.pem</span><br></pre></td></tr></table></figure>
+
+<p>查看：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">cat ca.key</span><br><span class="line">-----BEGIN RSA PRIVATE KEY-----</span><br><span class="line">MIIEpAIBAAKCAQE..................</span><br><span class="line">-----END RSA PRIVATE KEY-----</span><br></pre></td></tr></table></figure>
+
+<h4 id="生成公钥"><a href="#生成公钥" class="headerlink" title="生成公钥"></a>生成公钥</h4><p>命令：<code>openssl rsa</code></p>
+<p>查看帮助：<code>openssl rsa -h</code></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">-inform arg     输入文件编码格式，只有pem和der两种</span><br><span class="line">-outform arg    输出文件编码格式，只有pem和der两种</span><br><span class="line">-<span class="keyword">in</span> arg         input file  输入文件</span><br><span class="line">-sgckey         Use IIS SGC key format</span><br><span class="line">-passin arg     如果输入文件被对称加密过，需要指定输入文件的密码</span><br><span class="line">-out arg        输出文件位置</span><br><span class="line">-passout arg    如果输出文件也需要被对称加密，需要指定输出文件的密码</span><br><span class="line"></span><br><span class="line">-des            对输出结果采用对称加密 des算法</span><br><span class="line">-des3           对输出结果采用对称加密 des3算法</span><br><span class="line">-seed</span><br><span class="line">-aes128, -aes192, -aes256</span><br><span class="line"></span><br><span class="line">以上几个都是对称加密算法的指定，生成私钥的时候一般会用到，我们不让私钥明文保存</span><br><span class="line"></span><br><span class="line">-text           以明文形式输出各个参数值</span><br><span class="line">-noout          不输出密钥到任何文件</span><br><span class="line">-modulus        输出模数值</span><br><span class="line">-check          检查输入密钥的正确性和一致性</span><br><span class="line">-pubin          指定输入文件是公钥</span><br><span class="line">-pubout         指定输出文件是公钥</span><br><span class="line">-engine e       指定三方加密库或者硬件</span><br></pre></td></tr></table></figure>
+
+<p>使用刚刚生成的私钥，以生成公钥：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">openssl rsa -<span class="keyword">in</span> ca.key -pubout -out ca_pub.key</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">## 为RSA密钥增加口令保护</span></span><br><span class="line">openssl rsa -<span class="keyword">in</span> RSA.pem -des3 -passout pass:123456 -out E_RSA.pem</span><br><span class="line"></span><br><span class="line"><span class="comment">##为RSA密钥去除口令保护</span></span><br><span class="line">openssl rsa -<span class="keyword">in</span> E_RSA.pem -passin pass:123456 -out P_RSA.pem</span><br><span class="line"></span><br><span class="line"><span class="comment">## 比较</span></span><br><span class="line">diff RSA.pem P_RSA.pem</span><br><span class="line"></span><br><span class="line"><span class="comment">##修改加密算法为aes128，口令是123456</span></span><br><span class="line">openssl rsa -<span class="keyword">in</span> RSA.pem -passin pass:123456 -aes128 -passout pass:123456 -out E_RSA.pem</span><br><span class="line"></span><br><span class="line"><span class="comment">## 查看密钥对中的各个参数</span></span><br><span class="line">openssl rsa -<span class="keyword">in</span> RSA.pem -des -passin pass:123456 -text -noout</span><br><span class="line"></span><br><span class="line"><span class="comment">## 提取密钥中的公钥并打印模数值</span></span><br><span class="line"><span class="comment">## 提取公钥，用pubout参数指定输出为公钥</span></span><br><span class="line">openssl rsa -<span class="keyword">in</span> RSA.pem -passin pass:123456 -pubout -out pub.pem</span><br><span class="line"></span><br><span class="line"><span class="comment">##打印公钥中模数值</span></span><br><span class="line">$ openssl rsa -<span class="keyword">in</span> pub.pem -pubin -modulus -noout</span><br><span class="line"></span><br><span class="line">Modulus=C2B..........3ED</span><br><span class="line"></span><br><span class="line"><span class="comment">##把pem格式转化成der格式，使用outform指定der格式</span></span><br><span class="line">openssl rsa -<span class="keyword">in</span> RSA.pem -passin pass:123456 -des -passout pass:123456 -outform der -out rsa.der</span><br><span class="line"></span><br><span class="line"><span class="comment">##把der格式转化成pem格式，使用inform指定der格式</span></span><br><span class="line">openssl rsa -<span class="keyword">in</span> rsa.der -inform der -passin pass:123456 -out rsa.pem</span><br></pre></td></tr></table></figure>
+
+<h4 id="加解密-签名验证"><a href="#加解密-签名验证" class="headerlink" title="加解密/签名验证"></a>加解密/签名验证</h4><p>命令：<code>openssl rsautl</code></p>
+<p>注意：无论是使用公钥加密还是私钥加密，RSA每次能够加密的数据长度不能超过RSA密钥长度，并且根据具体的补齐方式不同输入的加密数据最大长度也不一样，而输出长度则总是跟RSA密钥长度相等。</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180706152021.png" alt="QQ截图20180706152021.png"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">openssl rsautl -h</span><br><span class="line">Usage: rsautl [options]</span><br><span class="line">-<span class="keyword">in</span> file        input file                                           //输入文件</span><br><span class="line">-out file       output file                                          //输出文件</span><br><span class="line">-inkey file     input key                                            //输入的密钥</span><br><span class="line">-keyform arg    private key format - default PEM                     //指定密钥格式</span><br><span class="line">-pubin          input is an RSA public                               //指定输入的是RSA公钥</span><br><span class="line">-certin         input is a certificate carrying an RSA public key    //指定输入的是证书文件</span><br><span class="line">-ssl            use SSL v2 padding                                   //使用SSLv23的填充方式</span><br><span class="line">-raw            use no padding                                       //不进行填充</span><br><span class="line">-pkcs           use PKCS<span class="comment">#1 v1.5 padding (default)                    //使用V1.5的填充方式</span></span><br><span class="line">-oaep           use PKCS<span class="comment">#1 OAEP                                      //使用OAEP的填充方式</span></span><br><span class="line">-sign           sign with private key                                //使用私钥做签名</span><br><span class="line">-verify         verify with public key                               //使用公钥认证签名</span><br><span class="line">-encrypt        encrypt with public key                              //使用公钥加密</span><br><span class="line">-decrypt        decrypt with private key                             //使用私钥解密</span><br><span class="line">-hexdump        hex dump output                                      //以16进制dump输出</span><br><span class="line">-engine e       use engine e, possibly a hardware device.            //指定三方库或者硬件设备</span><br><span class="line">-passin arg    pass phrase <span class="built_in">source</span>                                    //指定输入的密码</span><br></pre></td></tr></table></figure>
+
+<h5 id="加密和解密"><a href="#加密和解密" class="headerlink" title="加密和解密"></a>加密和解密</h5><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">##生成RSA密钥</span></span><br><span class="line">openssl genrsa -des3 -passout pass:123456 -out RSA.pem</span><br><span class="line"></span><br><span class="line"><span class="comment">##提取公钥</span></span><br><span class="line">openssl rsa -<span class="keyword">in</span> RSA.pem -passin pass:123456 -pubout -out pub.pem</span><br><span class="line"></span><br><span class="line"><span class="comment">##使用RSA作为密钥进行加密，实际上使用其中的公钥进行加密</span></span><br><span class="line">openssl rsautl -encrypt -<span class="keyword">in</span> plain.txt -inkey RSA.pem -passin pass:123456 -out enc.txt</span><br><span class="line"></span><br><span class="line"><span class="comment">##使用RSA作为密钥进行解密，实际上使用其中的私钥进行解密</span></span><br><span class="line">openssl rsautl -decrypt -<span class="keyword">in</span> enc.txt -inkey RSA.pem -passin pass:123456 -out replain.txt</span><br><span class="line"></span><br><span class="line"><span class="comment">##比较原始文件和解密后文件</span></span><br><span class="line">diff plain.txt replain.txt</span><br><span class="line"></span><br><span class="line"><span class="comment">##使用公钥进行加密</span></span><br><span class="line">openssl rsautl -encrypt -<span class="keyword">in</span> plain.txt -inkey pub.pem -pubin -out enc1.txt</span><br><span class="line"></span><br><span class="line"><span class="comment">##私钥进行解密</span></span><br><span class="line">openssl rsautl -decrypt -<span class="keyword">in</span> enc1.txt -inkey RSA.pem -passin pass:123456 -out replain1.txt</span><br><span class="line"></span><br><span class="line"><span class="comment">##比较原始文件和解密后文件</span></span><br><span class="line">diff plain.txt replain1.txt</span><br></pre></td></tr></table></figure>
+
+<h5 id="签名与验证"><a href="#签名与验证" class="headerlink" title="签名与验证"></a>签名与验证</h5><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">##使用RSA密钥进行签名，实际上使用私钥进行签名</span></span><br><span class="line">openssl rsautl -sign -<span class="keyword">in</span> plain.txt -inkey RSA.pem -passin pass:123456 -out sign.txt</span><br><span class="line"></span><br><span class="line"><span class="comment">##使使用RSA密钥进行验证，实际上使用公钥进行验证</span></span><br><span class="line">openssl rsautl -verify -<span class="keyword">in</span> sign.txt -inkey RSA.pem -passin pass:123456 -out replain.txt</span><br><span class="line"></span><br><span class="line"><span class="comment">##对比原始文件和签名解密后的文件</span></span><br><span class="line">diff plain.txt replain.txt</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">##提取PCKS8格式的私钥</span></span><br><span class="line">openssl pkcs8 -topk8 -<span class="keyword">in</span> RSA.pem -passin pass:123456 -out pri.pem -nocrypt</span><br><span class="line"></span><br><span class="line"><span class="comment">##使用私钥进行签名</span></span><br><span class="line">openssl rsautl -sign -<span class="keyword">in</span> plain.txt -inkey pri.pem  -out sign1.txt</span><br><span class="line"></span><br><span class="line"><span class="comment">##使用公钥进行验证</span></span><br><span class="line">openssl rsautl -verify -<span class="keyword">in</span> sign1.txt -inkey pub.pem -pubin -out replain1.txt</span><br><span class="line"></span><br><span class="line"><span class="comment">##对比原始文件和签名解密后的文件</span></span><br><span class="line">diff plain.txt replain1.txt</span><br></pre></td></tr></table></figure>
+
+<h3 id="CA证书生成"><a href="#CA证书生成" class="headerlink" title="CA证书生成"></a>CA证书生成</h3><p>生成CA私钥（.key）–&gt;生成CA证书请求（.csr）–&gt;自签名得到根证书（.crt）（CA给自已颁发的证书）。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Generate CA private key</span></span><br><span class="line">openssl genrsa -out ca.key 2048</span><br><span class="line"><span class="comment"># Generate CSR</span></span><br><span class="line">openssl req -new -key ca.key -out ca.csr <span class="comment">## 需要手动输入回车</span></span><br><span class="line"><span class="comment"># Generate Self Signed certificate（CA 根证书）</span></span><br><span class="line">openssl x509 -req -days 365 -<span class="keyword">in</span> ca.csr -signkey ca.key -out ca.crt</span><br><span class="line"></span><br><span class="line"><span class="comment">##或者</span></span><br><span class="line"><span class="comment"># Generate CA private key</span></span><br><span class="line">openssl genrsa -out ca.key 2048</span><br><span class="line"></span><br><span class="line">openssl req -passin pass:1111 -new -x509 -days 365 -key ca.key -out ca.crt -subj <span class="string">&quot;/C=CN/ST=JS/L=ZJ/O=zx/OU=test/CN=root&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="用户证书"><a href="#用户证书" class="headerlink" title="用户证书"></a>用户证书</h3><p>生成私钥（.key）–&gt;生成证书请求（.csr）–&gt;用CA根证书签名得到证书（.crt）</p>
+<h4 id="服务器端证书"><a href="#服务器端证书" class="headerlink" title="服务器端证书"></a>服务器端证书</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">openssl genrsa -passout pass:1111 -des3 -out server.key 2048</span><br><span class="line">openssl req -passin pass:1111 -new -key server.key -out server.csr -subj <span class="string">&quot;/C=CN/ST=JS/L=ZJ/O=zx/OU=test/CN=www.shiyx.top:5673&quot;</span></span><br><span class="line">openssl x509 -req -passin pass:1111 -days 365 -<span class="keyword">in</span> server.csr -CA ca.crt -CAkey ca.key -set_serial 01 -out server.crt</span><br><span class="line">openssl rsa -passin pass:1111 -<span class="keyword">in</span> server.key -out server.key <span class="comment">## 移除密码</span></span><br><span class="line"><span class="comment">## 生成pfx格式证书，需要输入密码，或使用 -passin pass:1111</span></span><br><span class="line">openssl pkcs12 -<span class="built_in">export</span> -out server.pfx -inkey server.key -<span class="keyword">in</span> server.crt -certfile ca.crt</span><br></pre></td></tr></table></figure>
+
+<h4 id="客户端证书"><a href="#客户端证书" class="headerlink" title="客户端证书"></a>客户端证书</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">openssl genrsa -passout pass:1111 -des3 -out client.key 2048</span><br><span class="line">openssl req -passin pass:1111 -new -key client.key -out client.csr -subj <span class="string">&quot;/C=CN/ST=JS/L=ZJ/O=zx/OU=test/CN=www.shiyx.top:5673&quot;</span></span><br><span class="line">openssl x509 -passin pass:1111 -req -days 365 -<span class="keyword">in</span> client.csr -CA ca.crt -CAkey ca.key -set_serial 01 -out client.crt</span><br><span class="line">openssl rsa -passin pass:1111 -<span class="keyword">in</span> client.key -out client.key <span class="comment">## 移除密码</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="PKCS＃12-pfx-p12-证书生成"><a href="#PKCS＃12-pfx-p12-证书生成" class="headerlink" title="PKCS＃12(.pfx .p12)证书生成"></a>PKCS＃12(.pfx .p12)证书生成</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">##将PEM证书文件和私钥转换为PKCS＃12(.pfx .p12)</span></span><br><span class="line"><span class="comment">## 需要输入密码</span></span><br><span class="line">openssl pkcs12 -<span class="built_in">export</span> -out server.pfx -inkey server.key -<span class="keyword">in</span> server.crt -certfile ca.crt</span><br></pre></td></tr></table></figure>
+
+<h4 id="生成pem格式证书"><a href="#生成pem格式证书" class="headerlink" title="生成pem格式证书"></a>生成pem格式证书</h4><p>有时需要用到pem格式的证书，可以用以下方式合并证书文件（crt）和私钥文件（key）来生成</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$cat</span> client.crt client.key&gt; client.pem</span><br><span class="line"><span class="variable">$cat</span> server.crt server.key &gt; server.pem</span><br><span class="line">$ cat server.crt server.key|tee server.pem <span class="comment"># 将私钥和证书合并到一个文件中</span></span><br></pre></td></tr></table></figure>
+
+<p>tee：定向输出到server.pem</p>
+<h4 id="证书转换"><a href="#证书转换" class="headerlink" title="证书转换"></a>证书转换</h4><p>可以使用以下命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">openssl x509 <span class="comment">## 必须为证书文件， .key文件非证书文件</span></span><br><span class="line"></span><br><span class="line">openssl rsa  <span class="comment">## 必须为密钥文件。</span></span><br></pre></td></tr></table></figure>
+
+<p>依赖命令中参数：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">-inform pem|der : 输入文件格式</span><br><span class="line">-outform der|pem: 输出文件格式</span><br></pre></td></tr></table></figure>
+
+<p>例如：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">## crt转换为pem</span></span><br><span class="line">openssl x509 -<span class="keyword">in</span> server.crt -out server.pem <span class="comment">## -outform der :从pem格式转成der格式</span></span><br><span class="line"></span><br><span class="line"><span class="comment">## pem转换为crt</span></span><br><span class="line">openssl x509 -<span class="keyword">in</span> server.pem -out server1.crt <span class="comment">## -outform der :从der格式转成pem格式</span></span><br><span class="line"></span><br><span class="line"><span class="comment">## 比较</span></span><br><span class="line">diff server.crt server1.crt</span><br><span class="line"></span><br><span class="line"><span class="comment">## der格式转成pem格式</span></span><br><span class="line">openssl x509 -<span class="keyword">in</span> ca.crt -outform der -out ca.der</span><br><span class="line">openssl rsa -<span class="keyword">in</span> ca.key -outform der -out ca1.der</span><br><span class="line"></span><br><span class="line"><span class="comment">## pem格式转成crt格式 需要指定 -inform der</span></span><br><span class="line">openssl x509 -<span class="keyword">in</span> ca.der -inform der -outform pem -out ca.pem</span><br><span class="line">diff ca.pem ca.crt</span><br><span class="line"></span><br><span class="line"><span class="comment">##将PEM证书文件和私钥转换为PKCS＃12(.pfx .p12)</span></span><br><span class="line"><span class="comment">## 需要输入密码</span></span><br><span class="line">openssl pkcs12 -<span class="built_in">export</span> -out server.pfx -inkey server.key -<span class="keyword">in</span> server.crt -certfile ca.crt</span><br><span class="line"></span><br><span class="line"><span class="comment">##将包含私钥和证书的PKCS＃12文件(.pfx .p12)转换为PEM</span></span><br><span class="line"><span class="comment">## 需要输入密码</span></span><br><span class="line">openssl pkcs12 -<span class="keyword">in</span> server.pfx -out server1.pem -nodes</span><br><span class="line">diff server.pem server.crt</span><br><span class="line"></span><br><span class="line">openssl pkcs12 -<span class="keyword">in</span> server.pfx -out server.cer -nodes</span><br></pre></td></tr></table></figure>
+
+<h4 id="pkcs1与pkcs8格式RSA私钥互相转换"><a href="#pkcs1与pkcs8格式RSA私钥互相转换" class="headerlink" title="pkcs1与pkcs8格式RSA私钥互相转换"></a>pkcs1与pkcs8格式RSA私钥互相转换</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">openssl pkcs8 -topk8 -inform PEM -<span class="keyword">in</span> server.key -outform pem -nocrypt -out pkcs8.pem</span><br><span class="line"><span class="comment">## openssl pkcs8 -in pkcs8.pem -nocrypt -out server2.key ## 失效</span></span><br><span class="line">openssl rsa -<span class="keyword">in</span> pkcs8.pem -out pkcs1.pem</span><br><span class="line">diff server.key pkcs1.pem</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/liuchunming033/article/details/48470575">openssl生成SSL证书的流程</a></p>
+<p><a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/X.509">X.509</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/guogangj/p/4118605.html">那些证书相关的玩意儿(SSL,X.509,PEM,DER,CRT,CER,KEY,CSR,P12等)</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/15b1d935a44b">OpenSSL加解密使用</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/f-ck-need-u/p/7115871.html">openssl ca(签署和自建CA)</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/08e41304edab">pkcs1与pkcs8格式RSA私钥互相转换</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/yaozhenfa/p/gRpc_with_ssl.html">http://www.cnblogs.com/yaozhenfa/p/gRpc_with_ssl.html</a></p>
+<p><a target="_blank" rel="noopener" href="https://vimsky.com/article/3608.html">https://vimsky.com/article/3608.html</a></p>
+<p><a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/13732826/convert-pem-to-crt-and-key?answertab=votes">https://stackoverflow.com/questions/13732826/convert-pem-to-crt-and-key?answertab=votes</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/07/04/Docker%E6%90%AD%E5%BB%BARabbitMQ%E9%AB%98%E5%8F%AF%E7%94%A8%E7%BE%A4%E9%9B%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/07/04/Docker%E6%90%AD%E5%BB%BARabbitMQ%E9%AB%98%E5%8F%AF%E7%94%A8%E7%BE%A4%E9%9B%86/" class="post-title-link" itemprop="url">Docker搭建RabbitMQ高可用群集</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-07-04 13:45:17" itemprop="dateCreated datePublished" datetime="2018-07-04T13:45:17+00:00">2018-07-04</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/RabbitMQ/" itemprop="url" rel="index"><span itemprop="name">RabbitMQ</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="Docker搭建RabbitMQ高可用群集"><a href="#Docker搭建RabbitMQ高可用群集" class="headerlink" title="Docker搭建RabbitMQ高可用群集"></a>Docker搭建RabbitMQ高可用群集</h1><p>官方镜像：</p>
+<p><a target="_blank" rel="noopener" href="https://hub.docker.com/_/rabbitmq/">https://hub.docker.com/_/rabbitmq/</a><br><a target="_blank" rel="noopener" href="https://github.com/docker-library/rabbitmq/blob/4b2b11c59ee65c2a09616b163d4572559a86bb7b/3.7/debian/management/Dockerfile">Dockerfile</a></p>
+<h2 id="Docker搭建RabbitMQ单机容器"><a href="#Docker搭建RabbitMQ单机容器" class="headerlink" title="Docker搭建RabbitMQ单机容器"></a>Docker搭建RabbitMQ单机容器</h2><p>目录结构：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">rabbitmq</span><br><span class="line">|--rabbitmq-a</span><br><span class="line">  |--data</span><br></pre></td></tr></table></figure>
+
+<p>获取镜像：</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pull rabbitmq:<span class="number">3.7</span>.<span class="number">6</span>-management</span><br></pre></td></tr></table></figure>
+
+<p>使用以下命令运行容器：</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">docker <span class="keyword">run</span><span class="bash"> -d --name rabbitmq-a \</span></span><br><span class="line"><span class="bash">    -p 4369:4369 \</span></span><br><span class="line"><span class="bash">    -p 5671:5671 \</span></span><br><span class="line"><span class="bash">    -p 5672:5672 \</span></span><br><span class="line"><span class="bash">    -p 25672:25672 \</span></span><br><span class="line"><span class="bash">    -p 15672:15672 \</span></span><br><span class="line"><span class="bash">    -h rabbitmq-node1 \</span></span><br><span class="line"><span class="bash">    -e RABBITMQ_NODENAME=rabbit \</span></span><br><span class="line"><span class="bash">    -e RABBITMQ_DEFAULT_USER=admin \</span></span><br><span class="line"><span class="bash">    -e RABBITMQ_DEFAULT_PASS=admin \</span></span><br><span class="line"><span class="bash">    -v <span class="variable">$PWD</span>/rabbitmq-a/data:/var/lib/rabbitmq \</span></span><br><span class="line"><span class="bash">    rabbitmq:3.7.6-management</span></span><br></pre></td></tr></table></figure>
+
+<p>进入容器：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker <span class="built_in">exec</span> -it rabbitmq-a /bin/bash</span><br></pre></td></tr></table></figure>
+
+<p>查看群集：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rabbitmqctl cluster_status</span><br></pre></td></tr></table></figure>
+
+<p>结果：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">root@rabbitmq-node1:/<span class="comment"># rabbitmqctl cluster_status</span></span><br><span class="line">Cluster status of node rabbit@rabbitmq-node1 ...</span><br><span class="line">[&#123;nodes,[&#123;disc,[<span class="string">&#x27;rabbit@rabbitmq-node1&#x27;</span>]&#125;]&#125;,</span><br><span class="line"> &#123;running_nodes,[<span class="string">&#x27;rabbit@rabbitmq-node1&#x27;</span>]&#125;,</span><br><span class="line"> &#123;cluster_name,&lt;&lt;<span class="string">&quot;rabbit@rabbitmq-node1&quot;</span>&gt;&gt;&#125;,</span><br><span class="line"> &#123;partitions,[]&#125;,</span><br><span class="line"> &#123;alarms,[&#123;<span class="string">&#x27;rabbit@rabbitmq-node1&#x27;</span>,[]&#125;]&#125;]</span><br></pre></td></tr></table></figure>
+
+<p>查找cookie:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">find / -name <span class="string">&quot;.erlang.cookie&quot;</span></span><br><span class="line">cat /var/lib/rabbitmq/.erlang.cookie</span><br></pre></td></tr></table></figure>
+
+<p>结果：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">root@rabbitmq-node1:/<span class="comment"># find / -name &quot;.erlang.cookie&quot;</span></span><br><span class="line">/root/.erlang.cookie</span><br><span class="line">/var/lib/rabbitmq/.erlang.cookie</span><br><span class="line">root@rabbitmq-node1:/<span class="comment"># cat /var/lib/rabbitmq/.erlang.cookie</span></span><br><span class="line">BYCWRWRQGDLYZZDXDBSB</span><br></pre></td></tr></table></figure>
+
+<h2 id="RabbitMQ-Server-高可用集群相关概念"><a href="#RabbitMQ-Server-高可用集群相关概念" class="headerlink" title="RabbitMQ Server 高可用集群相关概念"></a>RabbitMQ Server 高可用集群相关概念</h2><h3 id="设计集群的目的"><a href="#设计集群的目的" class="headerlink" title="设计集群的目的"></a>设计集群的目的</h3><ul>
+<li>允许消费者和生产者在 RabbitMQ 节点崩溃的情况下继续运行。</li>
+<li>通过增加更多的节点来扩展消息通信的吞吐量。</li>
+</ul>
+<h3 id="集群配置方式"><a href="#集群配置方式" class="headerlink" title="集群配置方式"></a>集群配置方式</h3><ul>
+<li>cluster：不支持跨网段，用于同一个网段内的局域网；可以随意的动态增加或者减少；节点之间需要运行相同版本的 RabbitMQ 和 Erlang。</li>
+<li>federation：应用于广域网，允许单台服务器上的交换机或队列接收发布到另一台服务器上交换机或队列的消息，可以是单独机器或集群。federation 队列类似于单向点对点连接，消息会在联盟队列之间转发任意次，直到被消费者接受。通常使用 federation 来连接 internet 上的中间服务器，用作订阅分发消息或工作队列。</li>
+<li>shovel：连接方式与 federation 的连接方式类似，但它工作在更低层次。可以应用于广域网。</li>
+</ul>
+<h3 id="节点类型"><a href="#节点类型" class="headerlink" title="节点类型"></a>节点类型</h3><ul>
+<li>RAM node：内存节点将所有的队列、交换机、绑定、用户、权限和 vhost 的元数据定义存储在内存中，好处是可以使得像交换机和队列声明等操作更加的快速。</li>
+<li>Disk node：将元数据存储在磁盘中，单节点系统只允许磁盘类型的节点，防止重启 RabbitMQ 的时候，丢失系统的配置信息。</li>
+</ul>
+<p>** 问题说明：**</p>
+<p>RabbitMQ 要求在集群中至少有一个磁盘节点，所有其他节点可以是内存节点，当节点加入或者离开集群时，必须要将该变更通知到至少一个磁盘节点。如果集群中唯一的一个磁盘节点崩溃的话，集群仍然可以保持运行，但是无法进行其他操作（增删改查），直到节点恢复。</p>
+<p>** 解决方案：**</p>
+<p>设置两个磁盘节点，至少有一个是可用的，可以保存元数据的更改。</p>
+<h3 id="镜像队列"><a href="#镜像队列" class="headerlink" title="镜像队列"></a>镜像队列</h3><p>RabbitMQ 的 Cluster 集群模式一般分为两种，普通模式和镜像模式。</p>
+<ul>
+<li>** 普通模式**：默认的集群模式，以两个节点（rabbit01、rabbit02）为例来进行说明。对于 Queue 来说，消息实体只存在于其中一个节点 rabbit01（或者 rabbit02），rabbit01 和 rabbit02 两个节点仅有相同的元数据，即队列的结构。当消息进入 rabbit01 节点的 Queue 后，consumer 从 rabbit02 节点消费时，RabbitMQ 会临时在 rabbit01、rabbit02 间进行消息传输，把 A 中的消息实体取出并经过 B 发送给 consumer。所以 consumer 应尽量连接每一个节点，从中取消息。即对于同一个逻辑队列，要在多个节点建立物理 Queue。否则无论 consumer 连 rabbit01 或 rabbit02，出口总在 rabbit01，会产生瓶颈。当 rabbit01 节点故障后，rabbit02 节点无法取到 rabbit01 节点中还未消费的消息实体。如果做了消息持久化，那么得等 rabbit01 节点恢复，然后才可被消费；如果没有持久化的话，就会产生消息丢失的现象。</li>
+<li>** 镜像模式**：将需要消费的队列变为镜像队列，存在于多个节点，这样就可以实现 RabbitMQ 的 HA 高可用性。作用就是消息实体会主动在镜像节点之间实现同步，而不是像普通模式那样，在 consumer 消费数据时临时读取。缺点就是，集群内部的同步通讯会占用大量的网络带宽。</li>
+</ul>
+<p>镜像队列实现了 RabbitMQ 的高可用性（HA），具体的实现策略如下所示：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180705085605.png" alt="QQ截图20180705085605.png"></p>
+<p>实例列举：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">queue_args(<span class="string">&quot;x-ha-policy&quot;</span>:<span class="string">&quot;all&quot;</span>) //定义字典来设置额外的队列声明参数</span><br><span class="line">channel.queue_declare(queue=<span class="string">&quot;hello-queue&quot;</span>,argument=queue_args)</span><br></pre></td></tr></table></figure>
+
+<p>如果需要设定特定的节点（以rabbit@localhost为例），再添加一个参数</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">queue_args(<span class="string">&quot;x-ha-policy&quot;</span>:<span class="string">&quot;nodes&quot;</span>,</span><br><span class="line">           <span class="string">&quot;x-ha-policy-params&quot;</span>:[<span class="string">&quot;rabbit@localhost&quot;</span>])</span><br><span class="line">channel.queue_declare(queue=<span class="string">&quot;hello-queue&quot;</span>,argument=queue_args)</span><br></pre></td></tr></table></figure>
+
+<p>可以通过命令行查看那个主节点进行了同步</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rabbitmqctl list_queue name slave_pids synchronised_slave_pids</span><br></pre></td></tr></table></figure>
+
+<p>以上内容主要参考：<a target="_blank" rel="noopener" href="https://blog.csdn.net/WoogeYu/article/details/51119101">RabbitMQ分布式集群架构</a></p>
+<h2 id="Docker-Compose搭建RabbitMQ高可用集群"><a href="#Docker-Compose搭建RabbitMQ高可用集群" class="headerlink" title="Docker-Compose搭建RabbitMQ高可用集群"></a>Docker-Compose搭建RabbitMQ高可用集群</h2><p>架构图：</p>
+<p><img src="/img/435188-20180427122219477-216329665.png" alt="435188-20180427122219477-216329665.png"></p>
+<p>这个编排主要实现一个磁盘节点、两个内存节点的RabbitMQ集群和一个HAProxy代理。</p>
+<p>目录结构：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">rabbitmq</span><br><span class="line">  |--cluster_entrypoint.sh</span><br><span class="line">  |--docker-compose.yml</span><br><span class="line">  |--haproxy.cfg</span><br><span class="line">  |--parameters.env</span><br></pre></td></tr></table></figure>
+
+<h3 id="cluster-entrypoint-sh"><a href="#cluster-entrypoint-sh" class="headerlink" title="cluster_entrypoint.sh"></a>cluster_entrypoint.sh</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">touch cluster_entrypoint.sh <span class="comment">##新建</span></span><br><span class="line">chmod +x cluster_entrypoint.sh <span class="comment">##执行权限</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="built_in">set</span> -e</span><br><span class="line"><span class="keyword">if</span> [ -e <span class="string">&quot;/root/is_not_first_time&quot;</span> ]; <span class="keyword">then</span></span><br><span class="line">    <span class="built_in">exec</span> <span class="string">&quot;<span class="variable">$@</span>&quot;</span></span><br><span class="line"><span class="keyword">else</span></span><br><span class="line">    /usr/<span class="built_in">local</span>/bin/docker-entrypoint.sh rabbitmq-server -detached <span class="comment"># 先按官方入口文件启动且是后台运行</span></span><br><span class="line">    rabbitmqctl -n <span class="string">&quot;<span class="variable">$RABBITMQ_NODENAME</span>@<span class="variable">$RABBITMQ_HOSTNAME</span>&quot;</span> stop_app <span class="comment"># 停止应用</span></span><br><span class="line">    rabbitmqctl -n <span class="string">&quot;<span class="variable">$RABBITMQ_NODENAME</span>@<span class="variable">$RABBITMQ_HOSTNAME</span>&quot;</span> join_cluster <span class="variable">$&#123;RMQHA_RAM_NODE:+--ram&#125;</span> <span class="string">&quot;<span class="variable">$RMQHA_MASTER_NODE</span>@<span class="variable">$RMQHA_MASTER_HOST</span>&quot;</span> <span class="comment"># 加入rabbitmq_node0集群</span></span><br><span class="line">    rabbitmqctl -n <span class="string">&quot;<span class="variable">$RABBITMQ_NODENAME</span>@<span class="variable">$RABBITMQ_HOSTNAME</span>&quot;</span> start_app <span class="comment"># 启动应用</span></span><br><span class="line">    rabbitmqctl stop <span class="comment"># 停止所有服务</span></span><br><span class="line">    touch /root/is_not_first_time</span><br><span class="line">    sleep 2s</span><br><span class="line">    <span class="built_in">exec</span> <span class="string">&quot;<span class="variable">$@</span>&quot;</span></span><br><span class="line"><span class="keyword">fi</span></span><br></pre></td></tr></table></figure>
+
+<p>注意：<br>rabbitmqctl join_cluster rabbit@node1<br>//默认是磁盘节点，如果是内存节点的话，需要加–ram参数</p>
+<h3 id="parameters-env"><a href="#parameters-env" class="headerlink" title="parameters.env"></a>parameters.env</h3><p>即公共环境变量</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">touch parameters.env</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">RMQHA_MASTER_NODE=rabbit</span><br><span class="line">RMQHA_MASTER_HOST=rabbitmq_node0</span><br><span class="line">RABBITMQ_DEFAULT_USER=admin</span><br><span class="line">RABBITMQ_DEFAULT_PASS=admin</span><br><span class="line">RABBITMQ_NODENAME=rabbit</span><br><span class="line">RABBITMQ_ERLANG_COOKIE=FQSCWUREIVFXVRTAOIFI</span><br></pre></td></tr></table></figure>
+
+<h3 id="haproxy-cfg"><a href="#haproxy-cfg" class="headerlink" title="haproxy.cfg"></a>haproxy.cfg</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line">global</span><br><span class="line">    <span class="built_in">log</span>     127.0.0.1  local0 info</span><br><span class="line">    <span class="built_in">log</span>     127.0.0.1  local1 notice</span><br><span class="line">    daemon</span><br><span class="line">    maxconn 4096</span><br><span class="line"></span><br><span class="line">defaults</span><br><span class="line">    <span class="built_in">log</span>     global</span><br><span class="line">    mode    tcp</span><br><span class="line">    option  tcplog</span><br><span class="line">    option  dontlognull</span><br><span class="line">    retries 3</span><br><span class="line">    option  abortonclose</span><br><span class="line">    maxconn 4096</span><br><span class="line">    timeout connect  5000ms</span><br><span class="line">    timeout client  3000ms</span><br><span class="line">    timeout server  3000ms</span><br><span class="line">    balance roundrobin</span><br><span class="line"></span><br><span class="line">listen private_monitoring</span><br><span class="line">    <span class="built_in">bind</span>    0.0.0.0:8100 <span class="comment"># haproxy容器8100端口显示代理统计页面</span></span><br><span class="line">    mode    http</span><br><span class="line">    option  httplog</span><br><span class="line">    stats   <span class="built_in">enable</span></span><br><span class="line">    stats   refresh  5s</span><br><span class="line">    stats   hide-version</span><br><span class="line">    stats   uri  /stats</span><br><span class="line">    stats   realm   Haproxy</span><br><span class="line">    stats   auth  admin:admin</span><br><span class="line"></span><br><span class="line">listen rabbitmq_admin</span><br><span class="line">    <span class="built_in">bind</span>    0.0.0.0:15672</span><br><span class="line">    server  rabbitmq_node0 rabbitmq_node0:15672</span><br><span class="line">    server  rabbitmq_node1 rabbitmq_node1:15672</span><br><span class="line">    server  rabbitmq_node2 rabbitmq_node2:15672</span><br><span class="line"></span><br><span class="line">listen rabbitmq_cluster</span><br><span class="line">    <span class="built_in">bind</span>    0.0.0.0:5672</span><br><span class="line">    mode    tcp</span><br><span class="line">    option  tcplog</span><br><span class="line">    balance roundrobin</span><br><span class="line">    timeout client  3h</span><br><span class="line">    timeout server  3h</span><br><span class="line">    server  rabbitmq_node0 rabbitmq_node0:5672  check inter 5s rise 2 fall 3</span><br><span class="line">    server  rabbitmq_node1 rabbitmq_node1:5672  check inter 5s rise 2 fall 3</span><br><span class="line">    server  rabbitmq_node2 rabbitmq_node2:5672  check inter 5s rise 2 fall 3</span><br><span class="line"><span class="comment"># ssl for rabbitmq</span></span><br><span class="line">frontend ssl_rabbitmq</span><br><span class="line">    <span class="built_in">bind</span> *:5673 ssl crt /usr/<span class="built_in">local</span>/etc/rmqha.pem</span><br><span class="line">    mode tcp</span><br><span class="line">    default_backend rabbitmq_cluster</span><br></pre></td></tr></table></figure>
+
+<h3 id="docker-compose-yml"><a href="#docker-compose-yml" class="headerlink" title="docker-compose.yml"></a>docker-compose.yml</h3><p>注意三个rabbitmq服务，并没有映射主机端口，而是开放容器端口。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br></pre></td><td class="code"><pre><span class="line">version: <span class="string">&quot;3&quot;</span></span><br><span class="line">services:</span><br><span class="line">  diskmq:</span><br><span class="line">    image: rabbitmq:3.7.6-management</span><br><span class="line">    container_name: rabbitmq_node0</span><br><span class="line">    restart: always</span><br><span class="line">    hostname: rabbitmq_node0</span><br><span class="line">    ports:</span><br><span class="line">      - <span class="string">&quot;15672&quot;</span></span><br><span class="line">      - <span class="string">&quot;5672&quot;</span></span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="string">&quot;./rabbitmq.config:/etc/rabbitmq/conf/rabbitmq.config&quot;</span></span><br><span class="line">      - <span class="string">&quot;/root/CA:/etc/rabbitmq/conf&quot;</span></span><br><span class="line">    env_file:</span><br><span class="line">      - ./parameters.env</span><br><span class="line">    environment:</span><br><span class="line">      - CONTAINER_NAME=rabbitmq_node0</span><br><span class="line">      - RABBITMQ_HOSTNAME=rabbitmq_node0</span><br><span class="line">      - RABBITMQ_NODENAME=rabbit</span><br><span class="line">      - RABBITMQ_CONFIG_FILE=/etc/rabbitmq/rabbitmq.config</span><br><span class="line">  rammq1:</span><br><span class="line">    image: rabbitmq:3.7.6-management</span><br><span class="line">    container_name: rabbitmq_node1</span><br><span class="line">    restart: always</span><br><span class="line">    depends_on:</span><br><span class="line">      - diskmq</span><br><span class="line">    hostname: rabbitmq_node1</span><br><span class="line">    ports:</span><br><span class="line">      - <span class="string">&quot;15672&quot;</span></span><br><span class="line">      - <span class="string">&quot;5672&quot;</span></span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="string">&quot;./cluster_entrypoint.sh:/usr/local/bin/cluster_entrypoint.sh&quot;</span></span><br><span class="line">      - <span class="string">&quot;./rabbitmq.config:/etc/rabbitmq/conf/rabbitmq.config&quot;</span></span><br><span class="line">      - <span class="string">&quot;/root/CA:/etc/rabbitmq/conf&quot;</span></span><br><span class="line">    entrypoint: <span class="string">&quot;/usr/local/bin/cluster_entrypoint.sh&quot;</span></span><br><span class="line">    <span class="built_in">command</span>: <span class="string">&quot;rabbitmq-server&quot;</span></span><br><span class="line">    env_file:</span><br><span class="line">      - ./parameters.env</span><br><span class="line">    environment:</span><br><span class="line">      - CONTAINER_NAME=rabbitmq_node1</span><br><span class="line">      - RABBITMQ_HOSTNAME=rabbitmq_node1</span><br><span class="line">      - RABBITMQ_NODENAME=rabbit</span><br><span class="line">      - RMQHA_RAM_NODE=<span class="literal">true</span></span><br><span class="line">      - RABBITMQ_CONFIG_FILE=/etc/rabbitmq/rabbitmq.config</span><br><span class="line">  rammq2:</span><br><span class="line">    image: rabbitmq:3.7.6-management</span><br><span class="line">    container_name: rabbitmq_node2</span><br><span class="line">    restart: always</span><br><span class="line">    depends_on:</span><br><span class="line">      - diskmq</span><br><span class="line">    hostname: rabbitmq_node2</span><br><span class="line">    ports:</span><br><span class="line">      - <span class="string">&quot;15672&quot;</span></span><br><span class="line">      - <span class="string">&quot;5672&quot;</span></span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="string">&quot;./cluster_entrypoint.sh:/usr/local/bin/cluster_entrypoint.sh&quot;</span></span><br><span class="line">      - <span class="string">&quot;./rabbitmq.config:/etc/rabbitmq/conf/rabbitmq.config&quot;</span></span><br><span class="line">      - <span class="string">&quot;/root/CA:/etc/rabbitmq/conf&quot;</span></span><br><span class="line">    entrypoint: <span class="string">&quot;/usr/local/bin/cluster_entrypoint.sh&quot;</span></span><br><span class="line">    <span class="built_in">command</span>: <span class="string">&quot;rabbitmq-server&quot;</span></span><br><span class="line">    env_file:</span><br><span class="line">      - ./parameters.env</span><br><span class="line">    environment:</span><br><span class="line">      - CONTAINER_NAME=rabbitmq_node2</span><br><span class="line">      - RABBITMQ_HOSTNAME=rabbitmq_node2</span><br><span class="line">      - RABBITMQ_NODENAME=rabbit</span><br><span class="line">      - RMQHA_RAM_NODE=<span class="literal">true</span></span><br><span class="line">      - RABBITMQ_CONFIG_FILE=/etc/rabbitmq/rabbitmq.config</span><br><span class="line">  haproxy:</span><br><span class="line">    image: haproxy:1.8-alpine</span><br><span class="line">    container_name: rabbitmq_proxy</span><br><span class="line">    restart: always</span><br><span class="line">    depends_on:</span><br><span class="line">      - diskmq</span><br><span class="line">      - rammq1</span><br><span class="line">      - rammq2</span><br><span class="line">    hostname: rabbitmq_proxy</span><br><span class="line">    ports:</span><br><span class="line">      - <span class="string">&quot;5672:5672&quot;</span></span><br><span class="line">      - <span class="string">&quot;5673:5673&quot;</span></span><br><span class="line">      - <span class="string">&quot;15672:15672&quot;</span></span><br><span class="line">      - <span class="string">&quot;8100:8100&quot;</span></span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="string">&quot;./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg&quot;</span></span><br><span class="line">    environment:</span><br><span class="line">      - CONTAINER_NAME=rabbitmq_proxy</span><br></pre></td></tr></table></figure>
+
+<p>** 执行docker-compose**</p>
+<p>运行:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker-compose up -d</span><br></pre></td></tr></table></figure>
+
+<p>停止：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker-compose down</span><br></pre></td></tr></table></figure>
+
+<h3 id="rabbitmq-SSL设置"><a href="#rabbitmq-SSL设置" class="headerlink" title="rabbitmq SSL设置"></a>rabbitmq SSL设置</h3><p>证书生成：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">## 生成CA证书</span></span><br><span class="line">openssl genrsa -out ca.key 2048</span><br><span class="line">openssl req -passin pass:1111 -new -x509 -days 365 -key ca.key -out ca.crt -subj <span class="string">&quot;/C=CN/ST=JS/L=ZJ/O=zx/OU=test/CN=root&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">## 生成服务器端pfx证书</span></span><br><span class="line">openssl genrsa -passout pass:1111 -des3 -out server.key 2048</span><br><span class="line">openssl req -passin pass:1111 -new -key server.key -out server.csr -subj <span class="string">&quot;/C=CN/ST=JS/L=ZJ/O=zx/OU=test/CN=www.shiyx.top&quot;</span></span><br><span class="line">openssl x509 -req -passin pass:1111 -days 365 -<span class="keyword">in</span> server.csr -CA ca.crt -CAkey ca.key -set_serial 01 -out server.crt</span><br><span class="line">openssl pkcs12 -<span class="built_in">export</span> -out server.pfx -inkey server.key -<span class="keyword">in</span> server.crt -certfile ca.crt</span><br><span class="line"></span><br><span class="line"><span class="comment">## haproxy使用ssl证书</span></span><br><span class="line">cat server.crt server.key|tee rmqha.pem <span class="comment"># 将私钥和证书合并到一个文件中</span></span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.rabbitmq.com/ssl.html">https://www.rabbitmq.com/ssl.html</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.rabbitmq.com/configure.html#customise-environment">https://www.rabbitmq.com/configure.html#customise-environment</a></p>
+<p><a target="_blank" rel="noopener" href="https://github.com/rabbitmq/rabbitmq-server/blob/master/docs/rabbitmq.conf.example">https://github.com/rabbitmq/rabbitmq-server/blob/master/docs/rabbitmq.conf.example</a></p>
+<h3 id="rabbitmq镜像队列"><a href="#rabbitmq镜像队列" class="headerlink" title="rabbitmq镜像队列"></a>rabbitmq镜像队列</h3><p>mirror queue：镜像队列，queue能在多台机器中同步。</p>
+<p>通过webui设置</p>
+<p><a href="/img/QQ截图20180705161425.png">QQ截图20180705161425.png</a></p>
+<p>或者通过命令行：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">## 表示当前如果是test开头的队列都是“镜像队列”。</span></span><br><span class="line">rabbitmqctl set_policy ha-all <span class="string">&quot;^test&quot;</span> <span class="string">&#x27;&#123;&quot;ha-mode&quot;:&quot;all&quot;,&quot;ha-sync-mode&quot;:&quot;automatic&quot;&#125;&#x27;</span></span><br><span class="line"><span class="comment"># 或者</span></span><br><span class="line">rabbitmqctl set_policy ha-all <span class="string">&quot;^&quot;</span> <span class="string">&#x27;&#123;&quot;ha-mode&quot;:&quot;all&quot;&#125;&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="防火墙开放端口"><a href="#防火墙开放端口" class="headerlink" title="防火墙开放端口"></a>防火墙开放端口</h3><p>命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">firewall-cmd --zone=public --add-port=8100/tcp --permanent</span><br><span class="line">firewall-cmd --zone=public --add-port=15672/tcp --permanent</span><br><span class="line">firewall-cmd --zone=public --add-port=5672/tcp --permanent</span><br><span class="line">firewall-cmd --reload</span><br></pre></td></tr></table></figure>
+
+<p>HAProxy 配置了三个地址：</p>
+<p>注：IP地址需要根据实际情况修改</p>
+<ul>
+<li><code>http://192.168.7.201:8100/stats</code> ：HAProxy 负载均衡信息地址，账号密码：admin/admin。</li>
+<li><code>http://192.168.7.201:15672</code>：RabbitMQ Server Web 管理界面（基于负载均衡），账号密码：admin/admin。</li>
+<li><code>http://192.168.7.201:5672</code>：RabbitMQ Server 服务地址（基于负载均衡），账号密码：admin/admin。</li>
+</ul>
+<h2 id="DotNet客户端测试"><a href="#DotNet客户端测试" class="headerlink" title="DotNet客户端测试"></a>DotNet客户端测试</h2><p>安装<a target="_blank" rel="noopener" href="https://www.nuget.org/packages/RabbitMQ.Client">RabbitMQ.Client</a></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Install-Package RabbitMQ.Client -Version 5.1.0</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        ConnectionFactory factory = <span class="keyword">new</span> ConnectionFactory()</span><br><span class="line">        &#123;</span><br><span class="line">            UserName = <span class="string">&quot;admin&quot;</span>,</span><br><span class="line">            Password = <span class="string">&quot;admin&quot;</span>,</span><br><span class="line">            AutomaticRecoveryEnabled = <span class="literal">true</span>,</span><br><span class="line">            TopologyRecoveryEnabled = <span class="literal">true</span></span><br><span class="line">        &#125;;</span><br><span class="line"></span><br><span class="line">        <span class="comment">//第一步：创建connection </span></span><br><span class="line">        <span class="keyword">var</span> connection = factory.CreateConnection(<span class="keyword">new</span> <span class="built_in">string</span>[<span class="number">1</span>] &#123; <span class="string">&quot;192.168.7.201&quot;</span> &#125;);</span><br><span class="line"></span><br><span class="line">        <span class="comment">//第二步：创建一个channel</span></span><br><span class="line">        <span class="keyword">var</span> channel = connection.CreateModel();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">var</span> result = channel.QueueDeclare(<span class="string">&quot;test1&quot;</span>, <span class="literal">true</span>, <span class="literal">false</span>, <span class="literal">false</span>, <span class="literal">null</span>);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; <span class="number">100</span>; i++)</span><br><span class="line">        &#123;</span><br><span class="line">            channel.BasicPublish(<span class="built_in">string</span>.Empty, <span class="string">&quot;test1&quot;</span>, <span class="literal">null</span>, <span class="keyword">new</span> <span class="built_in">byte</span>[<span class="number">10</span>]);</span><br><span class="line"></span><br><span class="line">            Console.WriteLine(<span class="string">&quot;&#123;0&#125; 推送成功&quot;</span>, i);</span><br><span class="line">            Thread.Sleep(<span class="number">1000</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        Console.Read();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>支持ssl安全连接：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">namespace</span> <span class="title">RabbitMqDemo</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            ServicePointManager.ServerCertificateValidationCallback += (sender, cert, chain, sslPolicyErrors) =&gt; <span class="literal">true</span>;</span><br><span class="line">            ConnectionFactory factory = <span class="keyword">new</span> ConnectionFactory()</span><br><span class="line">            &#123;</span><br><span class="line">                UserName = <span class="string">&quot;admin&quot;</span>,</span><br><span class="line">                Password = <span class="string">&quot;admin&quot;</span>,</span><br><span class="line">                AutomaticRecoveryEnabled = <span class="literal">true</span>,</span><br><span class="line">                Ssl = <span class="keyword">new</span> SslOption()</span><br><span class="line">                &#123;</span><br><span class="line">                    CertPath = <span class="string">@&quot;E:\git\RabbitMqDemo\RabbitMqDemo\server.pfx&quot;</span>,</span><br><span class="line">                    CertPassphrase = <span class="string">&quot;123123&quot;</span>,</span><br><span class="line">                    AcceptablePolicyErrors = SslPolicyErrors.RemoteCertificateNameMismatch |</span><br><span class="line">                                                SslPolicyErrors.RemoteCertificateChainErrors,</span><br><span class="line">                    Enabled = <span class="literal">true</span></span><br><span class="line">                &#125;,</span><br><span class="line">                <span class="comment">//AuthMechanisms = new AuthMechanismFactory[] &#123; new ExternalMechanismFactory() &#125;,</span></span><br><span class="line">                RequestedHeartbeat = <span class="number">60</span>,</span><br><span class="line">                Port = <span class="number">5673</span>,</span><br><span class="line">                TopologyRecoveryEnabled = <span class="literal">true</span></span><br><span class="line">            &#125;;</span><br><span class="line">            <span class="comment">//第一步：创建connection </span></span><br><span class="line">            <span class="keyword">var</span> connection = factory.CreateConnection(<span class="keyword">new</span> <span class="built_in">string</span>[<span class="number">1</span>] &#123; <span class="string">&quot;192.168.0.115&quot;</span> &#125;);</span><br><span class="line"></span><br><span class="line">            <span class="comment">//第二步：创建一个channel</span></span><br><span class="line">            <span class="keyword">var</span> channel = connection.CreateModel();</span><br><span class="line"></span><br><span class="line">            <span class="keyword">var</span> result = channel.QueueDeclare(<span class="string">&quot;test1&quot;</span>, <span class="literal">true</span>, <span class="literal">false</span>, <span class="literal">false</span>, <span class="literal">null</span>);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; <span class="built_in">int</span>.MaxValue; i++)</span><br><span class="line">            &#123;</span><br><span class="line">                channel.BasicPublish(<span class="built_in">string</span>.Empty, <span class="string">&quot;test1&quot;</span>, <span class="literal">null</span>, <span class="keyword">new</span> <span class="built_in">byte</span>[<span class="number">10</span>]);</span><br><span class="line"></span><br><span class="line">                Console.WriteLine(<span class="string">&quot;&#123;0&#125; 推送成功&quot;</span>, i);</span><br><span class="line">                <span class="comment">//Thread.Sleep(1000);</span></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            Console.Read();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/xishuai/p/centos-rabbitmq-cluster-and-haproxy.html">搭建 RabbitMQ Server 高可用集群</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/huangxincheng/p/6113891.html">搭建高可用的rabbitmq集群 + Mirror Queue + 使用C#驱动连接</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/97fbf9c82872">RabbitMQ 高可用集群</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/WoogeYu/article/details/51119101">RabbitMQ分布式集群架构</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/85543491ab00">docker搭建rabbitmq集群</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.breezelin.site/2017/12/05/practice-rabbitmq-ha-docker-compose/"></a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.breezelin.site/2017/12/05/practice-rabbitmq-ha-docker-compose/">用Docker搭建RabbitMQ高可用集群</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/fqydhk/article/details/80624547">docker-compose配置rabbitmq集群服务器</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/07/04/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E6%91%98%E8%A6%81/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/07/04/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E6%91%98%E8%A6%81/" class="post-title-link" itemprop="url">消息队列摘要</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-07-04 10:15:42" itemprop="dateCreated datePublished" datetime="2018-07-04T10:15:42+00:00">2018-07-04</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/" itemprop="url" rel="index"><span itemprop="name">消息队列</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="消息队列摘要"><a href="#消息队列摘要" class="headerlink" title="消息队列摘要"></a>消息队列摘要</h1><h2 id="1-为什么要使用消息队列"><a href="#1-为什么要使用消息队列" class="headerlink" title="1,为什么要使用消息队列"></a>1,为什么要使用消息队列</h2><p>解耦、弹性伸缩、冗余存储、流量削峰、异步通信、数据同步</p>
+<p>(1) 解耦</p>
+<p>将消息写入消息队列，需要消息的系统自己从消息队列中订阅，原系统不需要做任何修改。</p>
+<p>(2) 异步</p>
+<p>将消息写入消息队列，非必要的业务逻辑以异步的方式运行，加快响应速度</p>
+<p>(3) 削峰</p>
+<p>并发请求到消息队列，业务系统按照实际处理能力从消息队列拉去数据。</p>
+<h2 id="2-使用了消息队列会有什么缺点"><a href="#2-使用了消息队列会有什么缺点" class="headerlink" title="2,使用了消息队列会有什么缺点"></a>2,使用了消息队列会有什么缺点</h2><p>** 系统可用性降低**: 消息队列如果宕机，系统直接崩溃，因此，系统可用性降低</p>
+<p>** 系统复杂性增加**: 要多考虑的问题，比如一致性问题、如何保证消息不被重复消费，如何保证保证消息可靠传输。因此，需要考虑的东西更多，系统复杂性增大。</p>
+<h2 id="3，消息队列如何选型"><a href="#3，消息队列如何选型" class="headerlink" title="3，消息队列如何选型"></a>3，消息队列如何选型</h2><p><img src="/img/1506330751030_7532_1506330753496.png" alt="1506330751030_7532_1506330753496.png"></p>
+<p>** 中小型软件公司<strong>：建议选RabbitMQ<br>** 大型软件公司</strong>：根据具体使用在rocketMq和kafka之间二选一</p>
+<h2 id="4，如何保证消息队列是高可用的"><a href="#4，如何保证消息队列是高可用的" class="headerlink" title="4，如何保证消息队列是高可用的"></a>4，如何保证消息队列是高可用的</h2><p>参考具体的消息队列高可用方案</p>
+<h2 id="5，如何保证消息不被重复消费"><a href="#5，如何保证消息不被重复消费" class="headerlink" title="5，如何保证消息不被重复消费"></a>5，如何保证消息不被重复消费</h2><p>即保证消息队列的幂等性。</p>
+<p>正常情况下，消费者在消费消息时候，消费完毕后，会发送一个确认信息给消息队列，消息队列就知道该消息被消费了，就会将该消息从消息队列中删除。只是不同的消息队列发送的确认信息形式不同,例如RabbitMQ是发送一个ACK确认消息，RocketMQ是返回一个CONSUME_SUCCESS成功标志，kafka实际上有个offset的概念，简单说一下(如果还不懂，出门找一个kafka入门到精通教程),就是每一个消息都有一个offset，kafka消费过消息后，需要提交offset，让消息队列知道自己已经消费过了。那造成重复消费的原因?，就是因为网络传输等等故障，确认信息没有传送到消息队列，导致消息队列不知道自己已经消费过该消息了，再次将该消息分发给其他的消费者。</p>
+<p>解决：</p>
+<p>(1) 拿到这个消息做数据库的insert操作,分配这个消息一个唯一主键，如果出现重复消费，则会导致主键冲突。</p>
+<p>(2) redis的set的操作，无论set几次结果都是一样的，set操作本来就算幂等操作。</p>
+<p>(3) 消费记录，以redis为例，给消息分配一个全局id，只要消费过该消息，将&lt;id,message&gt;以K-V形式写入redis。那消费者开始消费前，先去redis中查询有没消费记录即可。</p>
+<h2 id="6，保证消费的可靠性传输"><a href="#6，保证消费的可靠性传输" class="headerlink" title="6，保证消费的可靠性传输"></a>6，保证消费的可靠性传输</h2><p>（1）生产者丢数据</p>
+<p>（2）消息队列丢数据</p>
+<p>（3）消费者丢数据</p>
+<h2 id="如何保证消息的顺序性"><a href="#如何保证消息的顺序性" class="headerlink" title="如何保证消息的顺序性"></a>如何保证消息的顺序性</h2><p>通过某种算法，将需要保持先后顺序的消息放到同一个消息队列中(kafka中就是partition,rabbitMq中就是queue)。然后只用一个消费者去消费该队列。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/rjzheng/p/8994962.html">【原创】分布式之消息队列复习精讲</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.infoq.com/cn/articles/kafka-vs-rabbitmq">消息中间件选型分析：从Kafka与RabbitMQ的对比看全局</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/my_life/articles/5128746.html">常用消息队列介绍与对比</a></p>
+<p><a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/1006035">消息队列及常见消息队列介绍</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/06/29/docker%E5%AE%B9%E5%99%A8%E6%97%A0%E6%B3%95%E8%AE%BF%E9%97%AE%E5%AE%BF%E4%B8%BB%E6%9C%BA-No-route-to-host/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +746,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 05:36:15" itemprop="dateModified" datetime="2021-06-06T05:36:15+00:00">2021-06-06</time>
+                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -296,7 +829,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 05:36:15" itemprop="dateModified" datetime="2021-06-06T05:36:15+00:00">2021-06-06</time>
+                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -456,7 +989,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 05:36:15" itemprop="dateModified" datetime="2021-06-06T05:36:15+00:00">2021-06-06</time>
+                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -609,7 +1142,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 05:36:15" itemprop="dateModified" datetime="2021-06-06T05:36:15+00:00">2021-06-06</time>
+                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -779,7 +1312,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 05:36:15" itemprop="dateModified" datetime="2021-06-06T05:36:15+00:00">2021-06-06</time>
+                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1034,7 +1567,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 05:36:15" itemprop="dateModified" datetime="2021-06-06T05:36:15+00:00">2021-06-06</time>
+                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1123,7 +1656,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 05:36:15" itemprop="dateModified" datetime="2021-06-06T05:36:15+00:00">2021-06-06</time>
+                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1197,7 +1730,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 05:36:15" itemprop="dateModified" datetime="2021-06-06T05:36:15+00:00">2021-06-06</time>
+                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1327,7 +1860,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 05:36:15" itemprop="dateModified" datetime="2021-06-06T05:36:15+00:00">2021-06-06</time>
+                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1491,7 +2024,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 05:36:15" itemprop="dateModified" datetime="2021-06-06T05:36:15+00:00">2021-06-06</time>
+                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1748,7 +2281,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 05:36:15" itemprop="dateModified" datetime="2021-06-06T05:36:15+00:00">2021-06-06</time>
+                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1922,7 +2455,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 05:36:15" itemprop="dateModified" datetime="2021-06-06T05:36:15+00:00">2021-06-06</time>
+                <time title="修改时间：2021-06-06 11:30:30" itemprop="dateModified" datetime="2021-06-06T11:30:30+00:00">2021-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2030,364 +2563,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/05/28/Redis%E6%8C%81%E4%B9%85%E5%8C%96/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/05/28/Redis%E6%8C%81%E4%B9%85%E5%8C%96/" class="post-title-link" itemprop="url">Redis持久化</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-05-28 08:46:39" itemprop="dateCreated datePublished" datetime="2018-05-28T08:46:39+00:00">2018-05-28</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 05:36:15" itemprop="dateModified" datetime="2021-06-06T05:36:15+00:00">2021-06-06</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="redis持久化"><a href="#redis持久化" class="headerlink" title="redis持久化"></a>redis持久化</h1><p>Redis虽然是一种内存型数据库，一旦服务器进程退出，数据库的数据就会丢失，为了解决这个问题Redis提供了两种持久化的方案，将内存中的数据保存到磁盘中，避免数据的丢失。</p>
-<h2 id="AOF与RDB对比"><a href="#AOF与RDB对比" class="headerlink" title="AOF与RDB对比"></a>AOF与RDB对比</h2><p>** AOF **更安全，可将数据及时同步到文件中，但需要较多的磁盘IO，AOF文件尺寸较大，文件内容恢复相对较慢， 也更完整。</p>
-<p>** RDB **持久化，安全性较差，它是正常时期数据备份及 master-slave数据同步的最佳手段，文件尺寸较小，恢复数度较快。</p>
-<h2 id="RDB持久化"><a href="#RDB持久化" class="headerlink" title="RDB持久化"></a>RDB持久化</h2><p>redis提供了RDB持久化的功能，这个功能可以将redis在内存中的的状态保存到硬盘中，它可以手动执行，也可以再redis.conf中配置，定期执行。</p>
-<p>RDB持久化产生的RDB文件是一个经过压缩的二进制文件，这个文件被保存在硬盘中，redis可以通过这个文件还原数据库当时的状态。</p>
-<h3 id="RDB的创建与载入"><a href="#RDB的创建与载入" class="headerlink" title="RDB的创建与载入"></a>RDB的创建与载入</h3><p>RDB文件可以通过两个命令来生成：</p>
-<p><code>SAVE</code>：阻塞redis的服务器进程，直到RDB文件被创建完毕。<br><code>BGSAVE</code>：派生(fork)一个子进程来创建新的RDB文件，记录接收到BGSAVE当时的数据库状态，父进程继续处理接收到的命令，子进程完成文件的创建之后，会发送信号给父进程，而与此同时，父进程处理命令的同时，通过轮询来接收子进程的信号。<br>而RDB文件的载入一般情况是自动的，redis服务器启动的时候，redis服务器再启动的时候如果检测到RDB文件的存在，那么redis会自动载入这个文件。</p>
-<p>如果服务器开启了AOF持久化，那么服务器会优先使用AOF文件来还原数据库状态。</p>
-<p>RDB是通过保存键值对来记录数据库状态的，采用copy on write的模式，每次都是全量的备份。</p>
-<h3 id="自动保存间隔"><a href="#自动保存间隔" class="headerlink" title="自动保存间隔"></a>自动保存间隔</h3><p><code>BGSAVE</code>可以在不阻塞主进程的情况下完成数据的备份。可以通过redis.conf中设置多个自动保存条件，只要有一个条件被满足，服务器就会执行BGSAVE命令。</p>
-<p>相关配置</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"># 以下配置表示的条件：</span><br><span class="line"># 服务器在900秒之内被修改了1次</span><br><span class="line">save 900 1</span><br><span class="line"># 服务器在300秒之内被修改了10次</span><br><span class="line">save 300 10</span><br><span class="line"># 服务器在60秒之内被修改了10000次</span><br><span class="line">save 60 10000</span><br></pre></td></tr></table></figure>
-
-<h2 id="AOF持久化"><a href="#AOF持久化" class="headerlink" title="AOF持久化"></a>AOF持久化</h2><p>AOF持久化（Append-Only-File），与RDB持久化不同，AOF持久化是通过保存Redis服务器锁执行的写状态来记录数据库的</p>
-<p>具体来说，RDB持久化相当于备份数据库状态，而AOF持久化是备份数据库接收到的命令，所有被写入AOF的命令都是以redis的协议格式来保存的。</p>
-<p>在AOF持久化的文件中，数据库会记录下所有变更数据库状态的命令，除了指定数据库的select命令，其他的命令都是来自client的，这些命令会以追加(append)的形式保存到文件中。</p>
-<p>** appendfsync** 影响服务器多久完成一次命令的记录</p>
-<p><code>always</code>：将缓存区的内容总是即时写到AOF文件中。</p>
-<p><code>everysec</code>：将缓存区的内容每隔一秒写入AOF文件中。</p>
-<p><code>no</code> ：写入AOF文件中的操作由操作系统决定，一般而言为了提高效率，操作系统会等待缓存区被填满，才会开始同步数据到磁盘</p>
-<p>redis默认<code>everysec</code></p>
-<p>redis在载入AOF文件的时候，会创建一个虚拟的client，把AOF中每一条命令都执行一遍，最终还原回数据库的状态，它的载入也是自动的。在RDB和AOF备份文件都有的情况下，redis会优先载入AOF备份文件</p>
-<p>AOF文件可能会随着服务器运行的时间越来越大，可以利用AOF重写的功能，来控制AOF文件的大小。AOF重写功能会首先读取数据库中现有的键值对状态，然后根据类型使用一条命令来替代前的键值对多条命令。</p>
-<p>AOF重写功能有大量写入操作，所以redis才用子进程来处理AOF重写。这里带来一个新的问题，由于处理重新的是子进程，这样意味着如果主线程的数据在此时被修改，备份的数据和主库的数据将会有不一致的情况发生。因此redis还设置了一个AOF重写缓冲区，这个缓冲区在子进程被创建开始之后开始使用，这个期间，所有的命令会被存两份，一份在AOF缓存空间，一份在AOF重写缓冲区，当AOF重写完成之后，子进程发送信号给主进程，通知主进程将AOF重写缓冲区的内容添加到AOF文件中。</p>
-<p>相关配置：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">#AOF 和 RDB 持久化方式可以同时启动并且无冲突。</span><br><span class="line">#如果AOF开启，启动redis时会加载aof文件，这些文件能够提供更好的保证。</span><br><span class="line">appendonly yes</span><br><span class="line"></span><br><span class="line"># 只增文件的文件名称。（默认是appendonly.aof）</span><br><span class="line"># appendfilename appendonly.aof </span><br><span class="line">#redis支持三种不同的写入方式：</span><br><span class="line">#</span><br><span class="line"># no:不调用，之等待操作系统来清空缓冲区当操作系统要输出数据时。很快。</span><br><span class="line"># always: 每次更新数据都写入仅增日志文件。慢，但是最安全。</span><br><span class="line"># everysec: 每秒调用一次。折中。</span><br><span class="line">appendfsync everysec</span><br><span class="line"></span><br><span class="line"># 设置为yes表示rewrite期间对新写操作不fsync,暂时存在内存中,等rewrite完成后再写入.官方文档建议如果你有特殊的情况可以配置为&#x27;yes&#x27;。但是配置为&#x27;no&#x27;是最为安全的选择。</span><br><span class="line">no-appendfsync-on-rewrite no</span><br><span class="line"></span><br><span class="line"># 自动重写只增文件。</span><br><span class="line"># redis可以自动盲从的调用‘BGREWRITEAOF’来重写日志文件，如果日志文件增长了指定的百分比。</span><br><span class="line"># 当前AOF文件大小是上次日志重写得到AOF文件大小的二倍时，自动启动新的日志重写过程。</span><br><span class="line">auto-aof-rewrite-percentage 100</span><br><span class="line"># 当前AOF文件启动新的日志重写过程的最小值，避免刚刚启动Reids时由于文件尺寸较小导致频繁的重写。</span><br><span class="line">auto-aof-rewrite-min-size 64mb</span><br></pre></td></tr></table></figure>
-
-<h3 id="目录结构"><a href="#目录结构" class="headerlink" title="目录结构"></a>目录结构</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">test1</span><br><span class="line"> |--data</span><br><span class="line"> |--docker-compose.yml</span><br><span class="line"> |--Dockerfile</span><br><span class="line"> |--redis.conf</span><br></pre></td></tr></table></figure>
-
-<h3 id="新建redis-conf"><a href="#新建redis-conf" class="headerlink" title="新建redis.conf"></a>新建redis.conf</h3><p>具体配置如下：</p>
-<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 使用守护进程模式</span></span><br><span class="line"><span class="attribute">daemonize</span> <span class="literal">no</span></span><br><span class="line"><span class="comment"># 非保护模式，可以外网访问</span></span><br><span class="line">protected-mode <span class="literal">no</span></span><br><span class="line">timeout <span class="number">300</span></span><br><span class="line">databases <span class="number">16</span></span><br><span class="line">rdbcompression <span class="literal">yes</span></span><br><span class="line"><span class="comment"># 学习开发，使用最大日志级别，能够看到最多的日志信息</span></span><br><span class="line">loglevel <span class="literal">debug</span></span><br><span class="line">port <span class="number">6380</span></span><br><span class="line"><span class="comment">##授权密码，各个配置保持一致</span></span><br><span class="line"><span class="comment">##暂且禁用指令重命名</span></span><br><span class="line"><span class="comment">##rename-command</span></span><br><span class="line"><span class="comment">##开启AOF，禁用snapshot</span></span><br><span class="line">slave-read-only <span class="literal">yes</span></span><br><span class="line">maxclients <span class="number">10000</span></span><br><span class="line">maxmemory 1000mb</span><br><span class="line"></span><br><span class="line"><span class="comment">#AOF 和 RDB 持久化方式可以同时启动并且无冲突。</span></span><br><span class="line"><span class="comment">#如果AOF开启，启动redis时会加载aof文件，这些文件能够提供更好的保证。</span></span><br><span class="line">appendonly <span class="literal">yes</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 只增文件的文件名称。（默认是appendonly.aof）</span></span><br><span class="line"><span class="comment"># appendfilename appendonly.aof</span></span><br><span class="line"><span class="comment">#redis支持三种不同的写入方式：</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># no:不调用，之等待操作系统来清空缓冲区当操作系统要输出数据时。很快。</span></span><br><span class="line"><span class="comment"># always: 每次更新数据都写入仅增日志文件。慢，但是最安全。</span></span><br><span class="line"><span class="comment"># everysec: 每秒调用一次。折中。</span></span><br><span class="line">appendfsync everysec</span><br><span class="line"></span><br><span class="line"><span class="comment"># 设置为yes表示rewrite期间对新写操作不fsync,暂时存在内存中,等rewrite完成后再写入.官方文档建议如果你有特殊的情况可以配置为&#x27;yes&#x27;。但是配置为&#x27;no&#x27;是最为安全的选择。</span></span><br><span class="line"><span class="literal">no</span>-appendfsync-<span class="literal">on</span>-rewrite <span class="literal">no</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 自动重写只增文件。</span></span><br><span class="line"><span class="comment"># redis可以自动盲从的调用‘BGREWRITEAOF’来重写日志文件，如果日志文件增长了指定的百分比。</span></span><br><span class="line"><span class="comment"># 当前AOF文件大小是上次日志重写得到AOF文件大小的二倍时，自动启动新的日志重写过程。</span></span><br><span class="line">auto-aof-rewrite-percentage <span class="number">100</span></span><br><span class="line"><span class="comment"># 当前AOF文件启动新的日志重写过程的最小值，避免刚刚启动Reids时由于文件尺寸较小导致频繁的重写。</span></span><br><span class="line">auto-aof-rewrite-min-size 64mb</span><br></pre></td></tr></table></figure>
-
-<h3 id="新建Dockerfile"><a href="#新建Dockerfile" class="headerlink" title="新建Dockerfile"></a>新建Dockerfile</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">FROM</span> redis:<span class="number">4</span>-alpine</span><br><span class="line"></span><br><span class="line"><span class="comment">#设置时区</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> apk add --update tzdata</span></span><br><span class="line"><span class="keyword">ENV</span> TZ=Asia/Shanghai</span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> ln -snf /usr/share/zoneinfo/<span class="variable">$TZ</span> /etc/localtime &amp;&amp; <span class="built_in">echo</span> <span class="variable">$TZ</span> &gt; /etc/timezone</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">COPY</span><span class="bash"> redis.conf /conf/redis.conf</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> chown redis:redis /conf/*</span></span><br></pre></td></tr></table></figure>
-
-<p>** 生成镜像**</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker build -t redis:v2 .</span><br></pre></td></tr></table></figure>
-
-<h3 id="新建docker-compose-yml"><a href="#新建docker-compose-yml" class="headerlink" title="新建docker-compose.yml"></a>新建docker-compose.yml</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">version: <span class="string">&#x27;3&#x27;</span></span><br><span class="line"></span><br><span class="line">services:</span><br><span class="line">  redis-master:</span><br><span class="line">    container_name: redis_server</span><br><span class="line">    volumes:</span><br><span class="line">      - $PWD/data:/data</span><br><span class="line">    image: redis:v2</span><br><span class="line">    command: [<span class="string">&quot;redis-server&quot;</span>, <span class="string">&quot;/conf/redis.conf&quot;</span>]</span><br><span class="line">    ports:</span><br><span class="line">      - <span class="string">&quot;6380:6380&quot;</span></span><br><span class="line">    <span class="keyword">expose</span>:</span><br><span class="line">      - <span class="string">&quot;6380&quot;</span></span><br></pre></td></tr></table></figure>
-
-<p>** 执行**</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker-compose up -d</span><br></pre></td></tr></table></figure>
-
-<h3 id="验证"><a href="#验证" class="headerlink" title="验证"></a>验证</h3><p>在data目录查看是否有.aof文件生成</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost redistest1]# cd data</span><br><span class="line">[root@localhost data]# ls</span><br><span class="line">appendonly.aof</span><br></pre></td></tr></table></figure>
-
-<h4 id="获取容器IP"><a href="#获取容器IP" class="headerlink" title="获取容器IP"></a>获取容器IP</h4><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">docker inspect -f <span class="string">&#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27;</span> redis_server</span><br><span class="line"><span class="number">172.19</span>.<span class="number">0.2</span></span><br></pre></td></tr></table></figure>
-
-<h4 id="连接Redis"><a href="#连接Redis" class="headerlink" title="连接Redis"></a>连接Redis</h4><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker exec -it redis_server redis-cli -h <span class="number">172.19</span>.<span class="number">0.2</span> -p <span class="number">6380</span></span><br></pre></td></tr></table></figure>
-
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/bedec93e5a7b">Redis 持久化</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/kismetv/p/9137897.html">深入学习Redis（2）：持久化</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/05/25/Docker%E4%BF%AE%E6%94%B9%E6%97%B6%E5%8C%BA/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/05/25/Docker%E4%BF%AE%E6%94%B9%E6%97%B6%E5%8C%BA/" class="post-title-link" itemprop="url">Docker修改时区</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-05-25 09:31:59" itemprop="dateCreated datePublished" datetime="2018-05-25T09:31:59+00:00">2018-05-25</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 05:36:15" itemprop="dateModified" datetime="2021-06-06T05:36:15+00:00">2021-06-06</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Docker/" itemprop="url" rel="index"><span itemprop="name">Docker</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="Docker修改时区"><a href="#Docker修改时区" class="headerlink" title="Docker修改时区"></a>Docker修改时区</h1><h2 id="修改Dockerfile"><a href="#修改Dockerfile" class="headerlink" title="修改Dockerfile"></a>修改Dockerfile</h2><p>** CentOS7**</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">RUN</span><span class="bash"> apk add --update tzdata</span></span><br><span class="line"><span class="keyword">ENV</span> TZ=Asia/Shanghai</span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> ln -snf /usr/share/zoneinfo/<span class="variable">$TZ</span> /etc/localtime &amp;&amp; <span class="built_in">echo</span> <span class="variable">$TZ</span> &gt; /etc/timezone</span></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#update system timezone</span></span><br><span class="line"><span class="comment">#RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#update application timezone</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> <span class="built_in">echo</span> <span class="string">&quot;Asia/Shanghai&quot;</span> &gt;&gt; /etc/timezone</span></span><br></pre></td></tr></table></figure>
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/05/21/Docker%E5%AE%89%E8%A3%85Redis%20Sentinel(%E9%AB%98%E5%8F%AF%E7%94%A8)/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/05/21/Docker%E5%AE%89%E8%A3%85Redis%20Sentinel(%E9%AB%98%E5%8F%AF%E7%94%A8)/" class="post-title-link" itemprop="url">Docker安装Redis Sentinel(高可用)</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-05-21 08:51:08" itemprop="dateCreated datePublished" datetime="2018-05-21T08:51:08+00:00">2018-05-21</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-06 05:36:15" itemprop="dateModified" datetime="2021-06-06T05:36:15+00:00">2021-06-06</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="Docker安装redis-Sentinel-高可用"><a href="#Docker安装redis-Sentinel-高可用" class="headerlink" title="Docker安装redis Sentinel(高可用)"></a>Docker安装redis Sentinel(高可用)</h1><h2 id="redis介绍"><a href="#redis介绍" class="headerlink" title="redis介绍"></a>redis介绍</h2><p>redis集群有两种，一种是redis sentinel(哨兵)，高可用集群，同时只有一个master，各实例数据保持一致；一种是redis cluster，分布式集群，同时有多个master，数据分片部署在各个master上。 哨兵模式简单说就是在后台有一个监控，监控当前的主机并巡逻主机下面的从机，如果某一时刻主机挂掉了，那么他会通过一种投票的机制从从机之中选举一台作为新的主机，并且其余的从机将会连接到这个新的主机上面，完成故障转移,主从模式就是一个中心化的结构,通过哨兵完成去中心化；本次要搭建的是redis sentinel。</p>
-<p>Redis 的 Sentinel 系统用于管理多个 Redis 服务器（instance）， 该系统执行以下三个任务：</p>
-<ul>
-<li>监控（Monitoring）： Sentinel 会不断地检查你的主服务器和从服务器是否运作正常。</li>
-<li>提醒（Notification）： 当被监控的某个 Redis 服务器出现问题时， Sentinel 可以通过 API 向管理员或者其他应用程序发送通知。</li>
-<li>自动故障迁移（Automatic failover）： 当一个主服务器不能正常工作时， Sentinel 会开始一次自动故障迁移操作， 它会将失效主服务器的其中一个从服务器升级为新的主服务器， 并让失效主服务器的其他从服务器改为复制新的主服务器； 当客户端试图连接失效的主服务器时， 集群也会向客户端返回新主服务器的地址， 使得集群可以使用新主服务器代替失效服务器。</li>
-</ul>
-<h2 id="目录结构"><a href="#目录结构" class="headerlink" title="目录结构"></a>目录结构</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">redis</span><br><span class="line"> |--master</span><br><span class="line"> |--slave1</span><br><span class="line"> |--slave2</span><br><span class="line"> |--Dockerfile</span><br><span class="line"> |--redis.conf</span><br><span class="line"> |--docker-compose.yml</span><br><span class="line"> |--sentinel.conf</span><br><span class="line"> |--start.sh</span><br></pre></td></tr></table></figure>
-
-<h2 id="制作镜像"><a href="#制作镜像" class="headerlink" title="制作镜像"></a>制作镜像</h2><p>整个集群可以分为一个master，N个slave，M个sentinel，本次以2个slave和3个sentinel为例</p>
-<h3 id="增加redis-conf"><a href="#增加redis-conf" class="headerlink" title="增加redis.conf"></a>增加redis.conf</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"># 使用守护进程模式</span><br><span class="line">daemonize no</span><br><span class="line"># 非保护模式，可以外网访问</span><br><span class="line">protected-mode no</span><br><span class="line">timeout 300</span><br><span class="line">databases 16</span><br><span class="line">rdbcompression yes</span><br><span class="line"># 学习开发，使用最大日志级别，能够看到最多的日志信息</span><br><span class="line">loglevel debug</span><br><span class="line">port $redis_port</span><br><span class="line">##授权密码，各个配置保持一致</span><br><span class="line">##暂且禁用指令重命名</span><br><span class="line">##rename-command</span><br><span class="line">##开启AOF，禁用snapshot</span><br><span class="line">appendonly yes</span><br><span class="line">#slaveof redis-master $master_port</span><br><span class="line">slave-read-only yes</span><br><span class="line">maxclients 10000</span><br><span class="line">maxmemory 1000mb</span><br></pre></td></tr></table></figure>
-
-<h3 id="增加sentinel-conf"><a href="#增加sentinel-conf" class="headerlink" title="增加sentinel.conf"></a>增加sentinel.conf</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">port $sentinel_port</span><br><span class="line">dir &quot;/tmp&quot;</span><br><span class="line">sentinel monitor mymaster redis-master $master_port 2</span><br><span class="line">sentinel down-after-milliseconds mymaster 60000</span><br><span class="line">sentinel failover-timeout manager1 180000</span><br><span class="line">sentinel parallel-syncs manager1 2</span><br></pre></td></tr></table></figure>
-
-<p>这四行配置为一组，因为我们只有一个 master 节点，所以只配置了一个 master，可以配置多个 master，不用配置 slave 的信息，因为 slave 能够被自动检测到（master 节点会有关于 slave 的消息）</p>
-<p>其他选项的基本格式如下：</p>
-<p>sentinel &lt;选项的名字&gt; &lt;主服务器的名字&gt; &lt;选项的值&gt;</p>
-<ul>
-<li><code>auth-pass</code>：选项指定了 master 的连接密码。</li>
-<li><code>down-after-milliseconds</code>：选项指定了 Sentinel 认为服务器已经断线所需的毫秒数。</li>
-<li><code>failover-timeout</code>：如果在该时间（ms）内未能完成 failover 操作，则认为该 failover 失败。</li>
-<li><code>parallel-syncs</code>：选项指定了在执行故障转移时，最多可以有多少个从服务器同时对新的主服务器进行同步，这个数字越小，完成故障转移所需的时间就越长。</li>
-</ul>
-<h3 id="添加start-sh"><a href="#添加start-sh" class="headerlink" title="添加start.sh"></a>添加start.sh</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">cd /conf</span><br><span class="line">redis_role=$1</span><br><span class="line">echo $redis_role</span><br><span class="line">if [ $redis_role = &quot;master&quot; ] ; then</span><br><span class="line">    echo &quot;master&quot;</span><br><span class="line">    sed -i &quot;s/\$redis_port/$redis_port/g&quot; redis.conf</span><br><span class="line">    redis-server /conf/redis.conf</span><br><span class="line">elif [ $redis_role = &quot;slave&quot; ] ; then</span><br><span class="line">    echo &quot;slave&quot;</span><br><span class="line">    sed -i &quot;s/\$redis_port/$redis_port/g&quot; redis.conf</span><br><span class="line">    sed -i &quot;s/#slaveof/slaveof/g&quot; redis.conf</span><br><span class="line">    sed -i &quot;s/\$master_port/$master_port/g&quot; redis.conf</span><br><span class="line">    redis-server /conf/redis.conf</span><br><span class="line">elif [ $redis_role = &quot;sentinel&quot; ] ; then</span><br><span class="line">    echo &quot;sentinel&quot;</span><br><span class="line">    sed -i &quot;s/\$sentinel_port/$sentinel_port/g&quot; sentinel.conf</span><br><span class="line">    sed -i &quot;s/\$master_port/$master_port/g&quot; sentinel.conf</span><br><span class="line">    redis-sentinel /conf/sentinel.conf</span><br><span class="line">else</span><br><span class="line">    echo &quot;unknow role!&quot;</span><br><span class="line">fi     #ifend</span><br></pre></td></tr></table></figure>
-
-<h3 id="添加Dockerfile"><a href="#添加Dockerfile" class="headerlink" title="添加Dockerfile"></a>添加Dockerfile</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">FROM</span> redis:<span class="number">4</span>-alpine</span><br><span class="line"></span><br><span class="line"><span class="comment"># 设置时区</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> apk add --update tzdata</span></span><br><span class="line"><span class="keyword">ENV</span> TZ=Asia/Shanghai</span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> ln -snf /usr/share/zoneinfo/<span class="variable">$TZ</span> /etc/localtime &amp;&amp; <span class="built_in">echo</span> <span class="variable">$TZ</span> &gt; /etc/timezone</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">COPY</span><span class="bash"> redis.conf /conf/redis.conf</span></span><br><span class="line"><span class="keyword">COPY</span><span class="bash"> sentinel.conf /conf/sentinel.conf</span></span><br><span class="line"><span class="keyword">COPY</span><span class="bash"> start.sh /conf/start.sh</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> chmod +x /conf/start.sh &amp;&amp; chown redis:redis /conf/*</span></span><br><span class="line"><span class="keyword">ENTRYPOINT</span><span class="bash"> [<span class="string">&quot;sh&quot;</span>,<span class="string">&quot;/conf/start.sh&quot;</span>]</span></span><br><span class="line"><span class="keyword">CMD</span><span class="bash"> [<span class="string">&quot;master&quot;</span>]</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="build镜像"><a href="#build镜像" class="headerlink" title="build镜像"></a>build镜像</h3><p>在当前目录执行以下命令，创建redis:v1镜像。</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker build -t redis:v1 .</span><br></pre></td></tr></table></figure>
-
-<h2 id="启动redis服务"><a href="#启动redis服务" class="headerlink" title="启动redis服务"></a>启动redis服务</h2><p>在根目录创建<code>master</code>,<code>slave1</code>,<code>slave2</code>目录。</p>
-<p>创建<code>docker-compose.yml</code></p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br></pre></td><td class="code"><pre><span class="line">version: <span class="string">&#x27;3&#x27;</span></span><br><span class="line"></span><br><span class="line">services:</span><br><span class="line">  redis-master:</span><br><span class="line">    container_name: redis-master</span><br><span class="line">    build:</span><br><span class="line">      context: ./master</span><br><span class="line">    volumes:</span><br><span class="line">      - /master/data:/data</span><br><span class="line">    environment:</span><br><span class="line">      redis_port: <span class="string">&#x27;16379&#x27;</span></span><br><span class="line">    image: redis:v1</span><br><span class="line">    <span class="keyword">expose</span>:</span><br><span class="line">      - <span class="string">&quot;16379&quot;</span></span><br><span class="line">  redis-slave1:</span><br><span class="line">    container_name: redis-slave1</span><br><span class="line">    build:</span><br><span class="line">      context:./slave1</span><br><span class="line">    volumes:</span><br><span class="line">      - /slave1/data:/data</span><br><span class="line">    environment:</span><br><span class="line">      master_port: <span class="string">&#x27;16379&#x27;</span></span><br><span class="line">      redis_port: <span class="string">&#x27;16380&#x27;</span></span><br><span class="line">    <span class="keyword">expose</span>:</span><br><span class="line">      - <span class="string">&quot;16380&quot;</span></span><br><span class="line">    command:</span><br><span class="line">      - slave</span><br><span class="line">    image: redis:v1</span><br><span class="line">  redis-slave2:</span><br><span class="line">    container_name: redis-slave2</span><br><span class="line">    build:</span><br><span class="line">      context:./slave2</span><br><span class="line">    volumes:</span><br><span class="line">      - /slave2/data:/data</span><br><span class="line">    environment:</span><br><span class="line">      master_port: <span class="string">&#x27;16379&#x27;</span></span><br><span class="line">      redis_port: <span class="string">&#x27;16380&#x27;</span></span><br><span class="line">    <span class="keyword">expose</span>:</span><br><span class="line">      - <span class="string">&quot;16380&quot;</span></span><br><span class="line">    command:</span><br><span class="line">      - slave</span><br><span class="line">    image: redis:v1</span><br><span class="line">  redis-sentinel-<span class="number">1</span>:</span><br><span class="line">    container_name: redis-sentinel-<span class="number">1</span></span><br><span class="line">    environment:</span><br><span class="line">      master_port: <span class="string">&#x27;16379&#x27;</span></span><br><span class="line">      sentinel_port: <span class="string">&#x27;16381&#x27;</span></span><br><span class="line">    <span class="keyword">expose</span>:</span><br><span class="line">      - <span class="string">&quot;16381&quot;</span></span><br><span class="line">    command:</span><br><span class="line">      - sentinel</span><br><span class="line">    depends_on:</span><br><span class="line">      - <span class="string">&quot;redis-master&quot;</span></span><br><span class="line">      - <span class="string">&quot;redis-slave1&quot;</span></span><br><span class="line">      - <span class="string">&quot;redis-slave2&quot;</span></span><br><span class="line">    image: redis:v1</span><br><span class="line">  redis-sentinel-<span class="number">2</span>:</span><br><span class="line">    container_name: redis-sentinel-<span class="number">2</span></span><br><span class="line">    environment:</span><br><span class="line">      master_port: <span class="string">&#x27;16379&#x27;</span></span><br><span class="line">      sentinel_port: <span class="string">&#x27;16381&#x27;</span></span><br><span class="line">    <span class="keyword">expose</span>:</span><br><span class="line">      - <span class="string">&quot;16381&quot;</span></span><br><span class="line">    command:</span><br><span class="line">      - sentinel</span><br><span class="line">    depends_on:</span><br><span class="line">      - <span class="string">&quot;redis-master&quot;</span></span><br><span class="line">      - <span class="string">&quot;redis-slave1&quot;</span></span><br><span class="line">      - <span class="string">&quot;redis-slave2&quot;</span></span><br><span class="line">    image: redis:v1</span><br><span class="line">  redis-sentinel-<span class="number">3</span>:</span><br><span class="line">    container_name: redis-sentinel-<span class="number">3</span></span><br><span class="line">    environment:</span><br><span class="line">      master_port: <span class="string">&#x27;16379&#x27;</span></span><br><span class="line">      sentinel_port: <span class="string">&#x27;16381&#x27;</span></span><br><span class="line">    <span class="keyword">expose</span>:</span><br><span class="line">      - <span class="string">&quot;16381&quot;</span></span><br><span class="line">    command:</span><br><span class="line">      - sentinel</span><br><span class="line">    depends_on:</span><br><span class="line">      - <span class="string">&quot;redis-master&quot;</span></span><br><span class="line">      - <span class="string">&quot;redis-slave1&quot;</span></span><br><span class="line">      - <span class="string">&quot;redis-slave2&quot;</span></span><br><span class="line">    image: redis:v1</span><br></pre></td></tr></table></figure>
-
-<p>运行以下命令以启动：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker-compose up</span><br></pre></td></tr></table></figure>
-
-<p>可以选择添加<code>-d</code>参数以守护进程启动。</p>
-<h2 id="Redis-Sentinel-故障转移测试"><a href="#Redis-Sentinel-故障转移测试" class="headerlink" title="Redis Sentinel 故障转移测试"></a>Redis Sentinel 故障转移测试</h2><h3 id="查看redis-master服务IP"><a href="#查看redis-master服务IP" class="headerlink" title="查看redis-master服务IP"></a>查看redis-master服务IP</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker inspect -f <span class="string">&#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27;</span> redis-master</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost redis]<span class="comment"># docker inspect -f &#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27; redis-master</span></span><br><span class="line"><span class="number">172.18</span>.<span class="number">0.2</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="查看mymaster节点IP"><a href="#查看mymaster节点IP" class="headerlink" title="查看mymaster节点IP"></a>查看mymaster节点IP</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker exec redis-sentinel-<span class="number">1</span> redis-cli -p <span class="number">16381</span> SENTINEL get-master-addr-by-name mymaster</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost redis]<span class="comment"># docker exec redis-sentinel-1 redis-cli -p 16381 SENTINEL get-master-addr-by-name mymaster</span></span><br><span class="line"><span class="number">172.18</span>.<span class="number">0.2</span></span><br><span class="line"><span class="number">16379</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="连接client"><a href="#连接client" class="headerlink" title="连接client"></a>连接client</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker exec -it redis-master redis-cli -h <span class="number">172.18</span>.<span class="number">0.2</span> -p <span class="number">16379</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="停止master节点"><a href="#停止master节点" class="headerlink" title="停止master节点"></a>停止master节点</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pause redis-master</span><br></pre></td></tr></table></figure>
-
-<h3 id="查询master主节点IP"><a href="#查询master主节点IP" class="headerlink" title="查询master主节点IP"></a>查询master主节点IP</h3><p>注意：中间有时间间隔。</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker exec redis-sentinel-<span class="number">1</span> redis-cli -p <span class="number">16381</span> SENTINEL get-master-addr-by-name mymaster</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost redis]<span class="comment"># docker exec redis-sentinel-1 redis-cli -p 16381 SENTINEL get-master-addr-by-name mymaster</span></span><br><span class="line"><span class="number">172.18</span>.<span class="number">0.4</span></span><br><span class="line"><span class="number">16380</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="恢复redis-master服务"><a href="#恢复redis-master服务" class="headerlink" title="恢复redis-master服务"></a>恢复redis-master服务</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker unpause redis-master</span><br></pre></td></tr></table></figure>
-
-<h3 id="分别查看slave1，slave2服务IP"><a href="#分别查看slave1，slave2服务IP" class="headerlink" title="分别查看slave1，slave2服务IP"></a>分别查看slave1，slave2服务IP</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost redis]<span class="comment"># docker inspect -f &#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27; redis-slave1</span></span><br><span class="line"><span class="number">172.18</span>.<span class="number">0.4</span></span><br><span class="line">[root@localhost redis]<span class="comment"># docker inspect -f &#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27; redis-slave2</span></span><br><span class="line"><span class="number">172.18</span>.<span class="number">0.3</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="停止主节点"><a href="#停止主节点" class="headerlink" title="停止主节点"></a>停止主节点</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pause redis-slave1</span><br></pre></td></tr></table></figure>
-
-<h3 id="查询主节点"><a href="#查询主节点" class="headerlink" title="查询主节点"></a>查询主节点</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker exec redis-sentinel-<span class="number">1</span> redis-cli -p <span class="number">16381</span> SENTINEL get-master-addr-by-name mymaster</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">localhost redis]<span class="comment"># docker exec redis-sentinel-1 redis-cli -p 16381 SENTINEL get-master-addr-by-name mymaster</span></span><br><span class="line"><span class="number">172.18</span>.<span class="number">0.2</span></span><br><span class="line"><span class="number">16379</span></span><br></pre></td></tr></table></figure>
-
-<p>至此，故障转移测试完成。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/xuning/p/8464625.html">高可用Redis服务架构分析与搭建</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/xishuai/p/redis-sentinel.html">Redis Sentinel 高可用服务架构搭建</a></p>
-<p><a target="_blank" rel="noopener" href="http://redis.majunwei.com/topics/sentinel.html">Redis哨兵-实现Redis高可用</a></p>
-<p><a target="_blank" rel="noopener" href="https://segmentfault.com/a/1190000002680804">Redis Sentinel机制与用法（一）</a></p>
-<p><a target="_blank" rel="noopener" href="https://itbilu.com/database/redis/Ey_r7mWR.html">Redis设置认证密码 Redis使用认证密码登录 在Redis集群中使用认证密码</a></p>
-<p><a target="_blank" rel="noopener" href="https://yq.aliyun.com/articles/58003">Docker化高可用redis集群</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/a63a98fa047d">Docker环境搭建redis集群(主从模式)</a></p>
-<p><a target="_blank" rel="noopener" href="https://github.com/AliyunContainerService/redis-cluster/blob/master/test.sh">https://github.com/AliyunContainerService/redis-cluster/blob/master/test.sh</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.redis.cn/topics/sentinel.html?spm=a2c4e.11153940.blogcont58003.8.5e0d6772hFOEsg">Redis 的 Sentinel 文档</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/25/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/25/">25</a><span class="page-number current">26</span><a class="page-number" href="/page/27/">27</a><span class="space">&hellip;</span><a class="page-number" href="/page/29/">29</a><a class="extend next" rel="next" href="/page/27/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
+    <a class="extend prev" rel="prev" href="/page/25/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/25/">25</a><span class="page-number current">26</span><a class="page-number" href="/page/27/">27</a><span class="space">&hellip;</span><a class="page-number" href="/page/30/">30</a><a class="extend next" rel="next" href="/page/27/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
   </nav>
 
 
@@ -2453,7 +2632,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">435</span>
+          <span class="site-state-item-count">438</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
