@@ -18,6 +18,7 @@ C 语言把所有的设备都当作文件。所以设备（比如显示器）被
 | 标准输出| 	stdout | 	屏幕| 
 | 标准错误| 	stderr | 	屏幕| 
 
+<!--more-->
 ## scanf() 和 printf() 函数
 
 * `int scanf(const char *format, ...)` 函数从标准输入流 `stdin` 读取输入，并根据提供的 format 来浏览输入。
