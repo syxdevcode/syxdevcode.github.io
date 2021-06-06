@@ -399,6 +399,26 @@ debug_size1_t size=12,debug_size2_t size=8
 1. debug_size1_t 存储空间分布为 a(1byte)+空闲(3byte)+b(4byte)+c(1byte)+空闲(3byte)=12(byte)。
 2. debug_size2_t 存储空间分布为a(1byte)+b(1byte)+空闲(2byte)+c(4byte)=8(byte)。
 
+## 动态可变长的结构体
+
+注意：一个结构体中只能有一个可变长的成员，并且该成员必须是最后一个成员。
+
+```c
+typedef struct
+{
+  int id;
+  char name[0];
+}stu_t;
+```
+
+定义该结构体，只占用4字节的内存，`name`不占用内存。
+
+```c
+stu_t *s = NULL;    //定义一个结构体指针
+s = malloc(sizeof(*s) + 100);//sizeof(*s)获取的是4，但加上了100，4字节给id成员使用，100字节是属于name成员的
+s->id = 1010;
+strcpy(s->name,"hello");
+```
 
 参考
 
