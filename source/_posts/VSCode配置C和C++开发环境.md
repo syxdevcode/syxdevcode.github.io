@@ -1,5 +1,5 @@
 ---
-title: VSCode配置C开发环境
+title: VSCode配置C和C++开发环境
 date: 2021-05-06 21:15:32
 tags:
 - C语言
