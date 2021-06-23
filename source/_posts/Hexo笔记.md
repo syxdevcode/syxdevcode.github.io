@@ -41,3 +41,13 @@ ssh-keygen -t rsa -C " 邮箱地址 "
 
 * 使用本地路径：在hexo/source目录下新建一个img文件夹，将图片放入该文件夹下，插入图片时链接即为/img/图片名称
   * 例如：`![配置](/img/mysql-workbench.png)`
+
+## 站内文章链接
+
+官方有标签插件实现站内文章链接，如下：
+
+post_link 官方文档
+
+```md
+{% post_link 'hexo blog' %}
+```
