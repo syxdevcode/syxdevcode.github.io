@@ -36,6 +36,7 @@ typedef short int wchar_t;
 * unsigned
 * short
 * long
+<!--more-->
 
 **注意：**不同系统会有所差异，一字节为 8 位。
 
