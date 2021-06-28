@@ -1,5 +1,5 @@
 ---
-title: C++-简介
+title: CPP-简介
 date: 2021-06-08 22:07:41
 tags:
 - C语言
