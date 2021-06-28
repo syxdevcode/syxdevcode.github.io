@@ -26,6 +26,7 @@ char const * p;
 
 `C++`标准规定，`const`关键字放在类型或变量名之前等价的。
 
+<!--more-->
 ```cpp
 const int n=5;    //same as below
 int const m=10;
