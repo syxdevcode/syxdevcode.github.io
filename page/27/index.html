@@ -182,6 +182,390 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/07/04/Docker%E6%90%AD%E5%BB%BARabbitMQ%E9%AB%98%E5%8F%AF%E7%94%A8%E7%BE%A4%E9%9B%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/07/04/Docker%E6%90%AD%E5%BB%BARabbitMQ%E9%AB%98%E5%8F%AF%E7%94%A8%E7%BE%A4%E9%9B%86/" class="post-title-link" itemprop="url">Docker搭建RabbitMQ高可用群集</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-07-04 13:45:17" itemprop="dateCreated datePublished" datetime="2018-07-04T13:45:17+00:00">2018-07-04</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/RabbitMQ/" itemprop="url" rel="index"><span itemprop="name">RabbitMQ</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="Docker搭建RabbitMQ高可用群集"><a href="#Docker搭建RabbitMQ高可用群集" class="headerlink" title="Docker搭建RabbitMQ高可用群集"></a>Docker搭建RabbitMQ高可用群集</h1><p>官方镜像：</p>
+<p><a target="_blank" rel="noopener" href="https://hub.docker.com/_/rabbitmq/">https://hub.docker.com/_/rabbitmq/</a><br><a target="_blank" rel="noopener" href="https://github.com/docker-library/rabbitmq/blob/4b2b11c59ee65c2a09616b163d4572559a86bb7b/3.7/debian/management/Dockerfile">Dockerfile</a></p>
+<h2 id="Docker搭建RabbitMQ单机容器"><a href="#Docker搭建RabbitMQ单机容器" class="headerlink" title="Docker搭建RabbitMQ单机容器"></a>Docker搭建RabbitMQ单机容器</h2><p>目录结构：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">rabbitmq</span><br><span class="line">|--rabbitmq-a</span><br><span class="line">  |--data</span><br></pre></td></tr></table></figure>
+
+<p>获取镜像：</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pull rabbitmq:<span class="number">3.7</span>.<span class="number">6</span>-management</span><br></pre></td></tr></table></figure>
+
+<p>使用以下命令运行容器：</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">docker <span class="keyword">run</span><span class="bash"> -d --name rabbitmq-a \</span></span><br><span class="line"><span class="bash">    -p 4369:4369 \</span></span><br><span class="line"><span class="bash">    -p 5671:5671 \</span></span><br><span class="line"><span class="bash">    -p 5672:5672 \</span></span><br><span class="line"><span class="bash">    -p 25672:25672 \</span></span><br><span class="line"><span class="bash">    -p 15672:15672 \</span></span><br><span class="line"><span class="bash">    -h rabbitmq-node1 \</span></span><br><span class="line"><span class="bash">    -e RABBITMQ_NODENAME=rabbit \</span></span><br><span class="line"><span class="bash">    -e RABBITMQ_DEFAULT_USER=admin \</span></span><br><span class="line"><span class="bash">    -e RABBITMQ_DEFAULT_PASS=admin \</span></span><br><span class="line"><span class="bash">    -v <span class="variable">$PWD</span>/rabbitmq-a/data:/var/lib/rabbitmq \</span></span><br><span class="line"><span class="bash">    rabbitmq:3.7.6-management</span></span><br></pre></td></tr></table></figure>
+
+<p>进入容器：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker <span class="built_in">exec</span> -it rabbitmq-a /bin/bash</span><br></pre></td></tr></table></figure>
+
+<p>查看群集：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rabbitmqctl cluster_status</span><br></pre></td></tr></table></figure>
+
+<p>结果：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">root@rabbitmq-node1:/<span class="comment"># rabbitmqctl cluster_status</span></span><br><span class="line">Cluster status of node rabbit@rabbitmq-node1 ...</span><br><span class="line">[&#123;nodes,[&#123;disc,[<span class="string">&#x27;rabbit@rabbitmq-node1&#x27;</span>]&#125;]&#125;,</span><br><span class="line"> &#123;running_nodes,[<span class="string">&#x27;rabbit@rabbitmq-node1&#x27;</span>]&#125;,</span><br><span class="line"> &#123;cluster_name,&lt;&lt;<span class="string">&quot;rabbit@rabbitmq-node1&quot;</span>&gt;&gt;&#125;,</span><br><span class="line"> &#123;partitions,[]&#125;,</span><br><span class="line"> &#123;alarms,[&#123;<span class="string">&#x27;rabbit@rabbitmq-node1&#x27;</span>,[]&#125;]&#125;]</span><br></pre></td></tr></table></figure>
+
+<p>查找cookie:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">find / -name <span class="string">&quot;.erlang.cookie&quot;</span></span><br><span class="line">cat /var/lib/rabbitmq/.erlang.cookie</span><br></pre></td></tr></table></figure>
+
+<p>结果：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">root@rabbitmq-node1:/<span class="comment"># find / -name &quot;.erlang.cookie&quot;</span></span><br><span class="line">/root/.erlang.cookie</span><br><span class="line">/var/lib/rabbitmq/.erlang.cookie</span><br><span class="line">root@rabbitmq-node1:/<span class="comment"># cat /var/lib/rabbitmq/.erlang.cookie</span></span><br><span class="line">BYCWRWRQGDLYZZDXDBSB</span><br></pre></td></tr></table></figure>
+
+<h2 id="RabbitMQ-Server-高可用集群相关概念"><a href="#RabbitMQ-Server-高可用集群相关概念" class="headerlink" title="RabbitMQ Server 高可用集群相关概念"></a>RabbitMQ Server 高可用集群相关概念</h2><h3 id="设计集群的目的"><a href="#设计集群的目的" class="headerlink" title="设计集群的目的"></a>设计集群的目的</h3><ul>
+<li>允许消费者和生产者在 RabbitMQ 节点崩溃的情况下继续运行。</li>
+<li>通过增加更多的节点来扩展消息通信的吞吐量。</li>
+</ul>
+<h3 id="集群配置方式"><a href="#集群配置方式" class="headerlink" title="集群配置方式"></a>集群配置方式</h3><ul>
+<li>cluster：不支持跨网段，用于同一个网段内的局域网；可以随意的动态增加或者减少；节点之间需要运行相同版本的 RabbitMQ 和 Erlang。</li>
+<li>federation：应用于广域网，允许单台服务器上的交换机或队列接收发布到另一台服务器上交换机或队列的消息，可以是单独机器或集群。federation 队列类似于单向点对点连接，消息会在联盟队列之间转发任意次，直到被消费者接受。通常使用 federation 来连接 internet 上的中间服务器，用作订阅分发消息或工作队列。</li>
+<li>shovel：连接方式与 federation 的连接方式类似，但它工作在更低层次。可以应用于广域网。</li>
+</ul>
+<h3 id="节点类型"><a href="#节点类型" class="headerlink" title="节点类型"></a>节点类型</h3><ul>
+<li>RAM node：内存节点将所有的队列、交换机、绑定、用户、权限和 vhost 的元数据定义存储在内存中，好处是可以使得像交换机和队列声明等操作更加的快速。</li>
+<li>Disk node：将元数据存储在磁盘中，单节点系统只允许磁盘类型的节点，防止重启 RabbitMQ 的时候，丢失系统的配置信息。</li>
+</ul>
+<p>** 问题说明：**</p>
+<p>RabbitMQ 要求在集群中至少有一个磁盘节点，所有其他节点可以是内存节点，当节点加入或者离开集群时，必须要将该变更通知到至少一个磁盘节点。如果集群中唯一的一个磁盘节点崩溃的话，集群仍然可以保持运行，但是无法进行其他操作（增删改查），直到节点恢复。</p>
+<p>** 解决方案：**</p>
+<p>设置两个磁盘节点，至少有一个是可用的，可以保存元数据的更改。</p>
+<h3 id="镜像队列"><a href="#镜像队列" class="headerlink" title="镜像队列"></a>镜像队列</h3><p>RabbitMQ 的 Cluster 集群模式一般分为两种，普通模式和镜像模式。</p>
+<ul>
+<li>** 普通模式**：默认的集群模式，以两个节点（rabbit01、rabbit02）为例来进行说明。对于 Queue 来说，消息实体只存在于其中一个节点 rabbit01（或者 rabbit02），rabbit01 和 rabbit02 两个节点仅有相同的元数据，即队列的结构。当消息进入 rabbit01 节点的 Queue 后，consumer 从 rabbit02 节点消费时，RabbitMQ 会临时在 rabbit01、rabbit02 间进行消息传输，把 A 中的消息实体取出并经过 B 发送给 consumer。所以 consumer 应尽量连接每一个节点，从中取消息。即对于同一个逻辑队列，要在多个节点建立物理 Queue。否则无论 consumer 连 rabbit01 或 rabbit02，出口总在 rabbit01，会产生瓶颈。当 rabbit01 节点故障后，rabbit02 节点无法取到 rabbit01 节点中还未消费的消息实体。如果做了消息持久化，那么得等 rabbit01 节点恢复，然后才可被消费；如果没有持久化的话，就会产生消息丢失的现象。</li>
+<li>** 镜像模式**：将需要消费的队列变为镜像队列，存在于多个节点，这样就可以实现 RabbitMQ 的 HA 高可用性。作用就是消息实体会主动在镜像节点之间实现同步，而不是像普通模式那样，在 consumer 消费数据时临时读取。缺点就是，集群内部的同步通讯会占用大量的网络带宽。</li>
+</ul>
+<p>镜像队列实现了 RabbitMQ 的高可用性（HA），具体的实现策略如下所示：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180705085605.png" alt="QQ截图20180705085605.png"></p>
+<p>实例列举：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">queue_args(<span class="string">&quot;x-ha-policy&quot;</span>:<span class="string">&quot;all&quot;</span>) //定义字典来设置额外的队列声明参数</span><br><span class="line">channel.queue_declare(queue=<span class="string">&quot;hello-queue&quot;</span>,argument=queue_args)</span><br></pre></td></tr></table></figure>
+
+<p>如果需要设定特定的节点（以rabbit@localhost为例），再添加一个参数</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">queue_args(<span class="string">&quot;x-ha-policy&quot;</span>:<span class="string">&quot;nodes&quot;</span>,</span><br><span class="line">           <span class="string">&quot;x-ha-policy-params&quot;</span>:[<span class="string">&quot;rabbit@localhost&quot;</span>])</span><br><span class="line">channel.queue_declare(queue=<span class="string">&quot;hello-queue&quot;</span>,argument=queue_args)</span><br></pre></td></tr></table></figure>
+
+<p>可以通过命令行查看那个主节点进行了同步</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rabbitmqctl list_queue name slave_pids synchronised_slave_pids</span><br></pre></td></tr></table></figure>
+
+<p>以上内容主要参考：<a target="_blank" rel="noopener" href="https://blog.csdn.net/WoogeYu/article/details/51119101">RabbitMQ分布式集群架构</a></p>
+<h2 id="Docker-Compose搭建RabbitMQ高可用集群"><a href="#Docker-Compose搭建RabbitMQ高可用集群" class="headerlink" title="Docker-Compose搭建RabbitMQ高可用集群"></a>Docker-Compose搭建RabbitMQ高可用集群</h2><p>架构图：</p>
+<p><img src="/img/435188-20180427122219477-216329665.png" alt="435188-20180427122219477-216329665.png"></p>
+<p>这个编排主要实现一个磁盘节点、两个内存节点的RabbitMQ集群和一个HAProxy代理。</p>
+<p>目录结构：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">rabbitmq</span><br><span class="line">  |--cluster_entrypoint.sh</span><br><span class="line">  |--docker-compose.yml</span><br><span class="line">  |--haproxy.cfg</span><br><span class="line">  |--parameters.env</span><br></pre></td></tr></table></figure>
+
+<h3 id="cluster-entrypoint-sh"><a href="#cluster-entrypoint-sh" class="headerlink" title="cluster_entrypoint.sh"></a>cluster_entrypoint.sh</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">touch cluster_entrypoint.sh <span class="comment">##新建</span></span><br><span class="line">chmod +x cluster_entrypoint.sh <span class="comment">##执行权限</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="built_in">set</span> -e</span><br><span class="line"><span class="keyword">if</span> [ -e <span class="string">&quot;/root/is_not_first_time&quot;</span> ]; <span class="keyword">then</span></span><br><span class="line">    <span class="built_in">exec</span> <span class="string">&quot;<span class="variable">$@</span>&quot;</span></span><br><span class="line"><span class="keyword">else</span></span><br><span class="line">    /usr/<span class="built_in">local</span>/bin/docker-entrypoint.sh rabbitmq-server -detached <span class="comment"># 先按官方入口文件启动且是后台运行</span></span><br><span class="line">    rabbitmqctl -n <span class="string">&quot;<span class="variable">$RABBITMQ_NODENAME</span>@<span class="variable">$RABBITMQ_HOSTNAME</span>&quot;</span> stop_app <span class="comment"># 停止应用</span></span><br><span class="line">    rabbitmqctl -n <span class="string">&quot;<span class="variable">$RABBITMQ_NODENAME</span>@<span class="variable">$RABBITMQ_HOSTNAME</span>&quot;</span> join_cluster <span class="variable">$&#123;RMQHA_RAM_NODE:+--ram&#125;</span> <span class="string">&quot;<span class="variable">$RMQHA_MASTER_NODE</span>@<span class="variable">$RMQHA_MASTER_HOST</span>&quot;</span> <span class="comment"># 加入rabbitmq_node0集群</span></span><br><span class="line">    rabbitmqctl -n <span class="string">&quot;<span class="variable">$RABBITMQ_NODENAME</span>@<span class="variable">$RABBITMQ_HOSTNAME</span>&quot;</span> start_app <span class="comment"># 启动应用</span></span><br><span class="line">    rabbitmqctl stop <span class="comment"># 停止所有服务</span></span><br><span class="line">    touch /root/is_not_first_time</span><br><span class="line">    sleep 2s</span><br><span class="line">    <span class="built_in">exec</span> <span class="string">&quot;<span class="variable">$@</span>&quot;</span></span><br><span class="line"><span class="keyword">fi</span></span><br></pre></td></tr></table></figure>
+
+<p>注意：<br>rabbitmqctl join_cluster rabbit@node1<br>//默认是磁盘节点，如果是内存节点的话，需要加–ram参数</p>
+<h3 id="parameters-env"><a href="#parameters-env" class="headerlink" title="parameters.env"></a>parameters.env</h3><p>即公共环境变量</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">touch parameters.env</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">RMQHA_MASTER_NODE=rabbit</span><br><span class="line">RMQHA_MASTER_HOST=rabbitmq_node0</span><br><span class="line">RABBITMQ_DEFAULT_USER=admin</span><br><span class="line">RABBITMQ_DEFAULT_PASS=admin</span><br><span class="line">RABBITMQ_NODENAME=rabbit</span><br><span class="line">RABBITMQ_ERLANG_COOKIE=FQSCWUREIVFXVRTAOIFI</span><br></pre></td></tr></table></figure>
+
+<h3 id="haproxy-cfg"><a href="#haproxy-cfg" class="headerlink" title="haproxy.cfg"></a>haproxy.cfg</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line">global</span><br><span class="line">    <span class="built_in">log</span>     127.0.0.1  local0 info</span><br><span class="line">    <span class="built_in">log</span>     127.0.0.1  local1 notice</span><br><span class="line">    daemon</span><br><span class="line">    maxconn 4096</span><br><span class="line"></span><br><span class="line">defaults</span><br><span class="line">    <span class="built_in">log</span>     global</span><br><span class="line">    mode    tcp</span><br><span class="line">    option  tcplog</span><br><span class="line">    option  dontlognull</span><br><span class="line">    retries 3</span><br><span class="line">    option  abortonclose</span><br><span class="line">    maxconn 4096</span><br><span class="line">    timeout connect  5000ms</span><br><span class="line">    timeout client  3000ms</span><br><span class="line">    timeout server  3000ms</span><br><span class="line">    balance roundrobin</span><br><span class="line"></span><br><span class="line">listen private_monitoring</span><br><span class="line">    <span class="built_in">bind</span>    0.0.0.0:8100 <span class="comment"># haproxy容器8100端口显示代理统计页面</span></span><br><span class="line">    mode    http</span><br><span class="line">    option  httplog</span><br><span class="line">    stats   <span class="built_in">enable</span></span><br><span class="line">    stats   refresh  5s</span><br><span class="line">    stats   hide-version</span><br><span class="line">    stats   uri  /stats</span><br><span class="line">    stats   realm   Haproxy</span><br><span class="line">    stats   auth  admin:admin</span><br><span class="line"></span><br><span class="line">listen rabbitmq_admin</span><br><span class="line">    <span class="built_in">bind</span>    0.0.0.0:15672</span><br><span class="line">    server  rabbitmq_node0 rabbitmq_node0:15672</span><br><span class="line">    server  rabbitmq_node1 rabbitmq_node1:15672</span><br><span class="line">    server  rabbitmq_node2 rabbitmq_node2:15672</span><br><span class="line"></span><br><span class="line">listen rabbitmq_cluster</span><br><span class="line">    <span class="built_in">bind</span>    0.0.0.0:5672</span><br><span class="line">    mode    tcp</span><br><span class="line">    option  tcplog</span><br><span class="line">    balance roundrobin</span><br><span class="line">    timeout client  3h</span><br><span class="line">    timeout server  3h</span><br><span class="line">    server  rabbitmq_node0 rabbitmq_node0:5672  check inter 5s rise 2 fall 3</span><br><span class="line">    server  rabbitmq_node1 rabbitmq_node1:5672  check inter 5s rise 2 fall 3</span><br><span class="line">    server  rabbitmq_node2 rabbitmq_node2:5672  check inter 5s rise 2 fall 3</span><br><span class="line"><span class="comment"># ssl for rabbitmq</span></span><br><span class="line">frontend ssl_rabbitmq</span><br><span class="line">    <span class="built_in">bind</span> *:5673 ssl crt /usr/<span class="built_in">local</span>/etc/rmqha.pem</span><br><span class="line">    mode tcp</span><br><span class="line">    default_backend rabbitmq_cluster</span><br></pre></td></tr></table></figure>
+
+<h3 id="docker-compose-yml"><a href="#docker-compose-yml" class="headerlink" title="docker-compose.yml"></a>docker-compose.yml</h3><p>注意三个rabbitmq服务，并没有映射主机端口，而是开放容器端口。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br></pre></td><td class="code"><pre><span class="line">version: <span class="string">&quot;3&quot;</span></span><br><span class="line">services:</span><br><span class="line">  diskmq:</span><br><span class="line">    image: rabbitmq:3.7.6-management</span><br><span class="line">    container_name: rabbitmq_node0</span><br><span class="line">    restart: always</span><br><span class="line">    hostname: rabbitmq_node0</span><br><span class="line">    ports:</span><br><span class="line">      - <span class="string">&quot;15672&quot;</span></span><br><span class="line">      - <span class="string">&quot;5672&quot;</span></span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="string">&quot;./rabbitmq.config:/etc/rabbitmq/conf/rabbitmq.config&quot;</span></span><br><span class="line">      - <span class="string">&quot;/root/CA:/etc/rabbitmq/conf&quot;</span></span><br><span class="line">    env_file:</span><br><span class="line">      - ./parameters.env</span><br><span class="line">    environment:</span><br><span class="line">      - CONTAINER_NAME=rabbitmq_node0</span><br><span class="line">      - RABBITMQ_HOSTNAME=rabbitmq_node0</span><br><span class="line">      - RABBITMQ_NODENAME=rabbit</span><br><span class="line">      - RABBITMQ_CONFIG_FILE=/etc/rabbitmq/rabbitmq.config</span><br><span class="line">  rammq1:</span><br><span class="line">    image: rabbitmq:3.7.6-management</span><br><span class="line">    container_name: rabbitmq_node1</span><br><span class="line">    restart: always</span><br><span class="line">    depends_on:</span><br><span class="line">      - diskmq</span><br><span class="line">    hostname: rabbitmq_node1</span><br><span class="line">    ports:</span><br><span class="line">      - <span class="string">&quot;15672&quot;</span></span><br><span class="line">      - <span class="string">&quot;5672&quot;</span></span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="string">&quot;./cluster_entrypoint.sh:/usr/local/bin/cluster_entrypoint.sh&quot;</span></span><br><span class="line">      - <span class="string">&quot;./rabbitmq.config:/etc/rabbitmq/conf/rabbitmq.config&quot;</span></span><br><span class="line">      - <span class="string">&quot;/root/CA:/etc/rabbitmq/conf&quot;</span></span><br><span class="line">    entrypoint: <span class="string">&quot;/usr/local/bin/cluster_entrypoint.sh&quot;</span></span><br><span class="line">    <span class="built_in">command</span>: <span class="string">&quot;rabbitmq-server&quot;</span></span><br><span class="line">    env_file:</span><br><span class="line">      - ./parameters.env</span><br><span class="line">    environment:</span><br><span class="line">      - CONTAINER_NAME=rabbitmq_node1</span><br><span class="line">      - RABBITMQ_HOSTNAME=rabbitmq_node1</span><br><span class="line">      - RABBITMQ_NODENAME=rabbit</span><br><span class="line">      - RMQHA_RAM_NODE=<span class="literal">true</span></span><br><span class="line">      - RABBITMQ_CONFIG_FILE=/etc/rabbitmq/rabbitmq.config</span><br><span class="line">  rammq2:</span><br><span class="line">    image: rabbitmq:3.7.6-management</span><br><span class="line">    container_name: rabbitmq_node2</span><br><span class="line">    restart: always</span><br><span class="line">    depends_on:</span><br><span class="line">      - diskmq</span><br><span class="line">    hostname: rabbitmq_node2</span><br><span class="line">    ports:</span><br><span class="line">      - <span class="string">&quot;15672&quot;</span></span><br><span class="line">      - <span class="string">&quot;5672&quot;</span></span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="string">&quot;./cluster_entrypoint.sh:/usr/local/bin/cluster_entrypoint.sh&quot;</span></span><br><span class="line">      - <span class="string">&quot;./rabbitmq.config:/etc/rabbitmq/conf/rabbitmq.config&quot;</span></span><br><span class="line">      - <span class="string">&quot;/root/CA:/etc/rabbitmq/conf&quot;</span></span><br><span class="line">    entrypoint: <span class="string">&quot;/usr/local/bin/cluster_entrypoint.sh&quot;</span></span><br><span class="line">    <span class="built_in">command</span>: <span class="string">&quot;rabbitmq-server&quot;</span></span><br><span class="line">    env_file:</span><br><span class="line">      - ./parameters.env</span><br><span class="line">    environment:</span><br><span class="line">      - CONTAINER_NAME=rabbitmq_node2</span><br><span class="line">      - RABBITMQ_HOSTNAME=rabbitmq_node2</span><br><span class="line">      - RABBITMQ_NODENAME=rabbit</span><br><span class="line">      - RMQHA_RAM_NODE=<span class="literal">true</span></span><br><span class="line">      - RABBITMQ_CONFIG_FILE=/etc/rabbitmq/rabbitmq.config</span><br><span class="line">  haproxy:</span><br><span class="line">    image: haproxy:1.8-alpine</span><br><span class="line">    container_name: rabbitmq_proxy</span><br><span class="line">    restart: always</span><br><span class="line">    depends_on:</span><br><span class="line">      - diskmq</span><br><span class="line">      - rammq1</span><br><span class="line">      - rammq2</span><br><span class="line">    hostname: rabbitmq_proxy</span><br><span class="line">    ports:</span><br><span class="line">      - <span class="string">&quot;5672:5672&quot;</span></span><br><span class="line">      - <span class="string">&quot;5673:5673&quot;</span></span><br><span class="line">      - <span class="string">&quot;15672:15672&quot;</span></span><br><span class="line">      - <span class="string">&quot;8100:8100&quot;</span></span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="string">&quot;./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg&quot;</span></span><br><span class="line">    environment:</span><br><span class="line">      - CONTAINER_NAME=rabbitmq_proxy</span><br></pre></td></tr></table></figure>
+
+<p>** 执行docker-compose**</p>
+<p>运行:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker-compose up -d</span><br></pre></td></tr></table></figure>
+
+<p>停止：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker-compose down</span><br></pre></td></tr></table></figure>
+
+<h3 id="rabbitmq-SSL设置"><a href="#rabbitmq-SSL设置" class="headerlink" title="rabbitmq SSL设置"></a>rabbitmq SSL设置</h3><p>证书生成：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">## 生成CA证书</span></span><br><span class="line">openssl genrsa -out ca.key 2048</span><br><span class="line">openssl req -passin pass:1111 -new -x509 -days 365 -key ca.key -out ca.crt -subj <span class="string">&quot;/C=CN/ST=JS/L=ZJ/O=zx/OU=test/CN=root&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">## 生成服务器端pfx证书</span></span><br><span class="line">openssl genrsa -passout pass:1111 -des3 -out server.key 2048</span><br><span class="line">openssl req -passin pass:1111 -new -key server.key -out server.csr -subj <span class="string">&quot;/C=CN/ST=JS/L=ZJ/O=zx/OU=test/CN=www.shiyx.top&quot;</span></span><br><span class="line">openssl x509 -req -passin pass:1111 -days 365 -<span class="keyword">in</span> server.csr -CA ca.crt -CAkey ca.key -set_serial 01 -out server.crt</span><br><span class="line">openssl pkcs12 -<span class="built_in">export</span> -out server.pfx -inkey server.key -<span class="keyword">in</span> server.crt -certfile ca.crt</span><br><span class="line"></span><br><span class="line"><span class="comment">## haproxy使用ssl证书</span></span><br><span class="line">cat server.crt server.key|tee rmqha.pem <span class="comment"># 将私钥和证书合并到一个文件中</span></span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.rabbitmq.com/ssl.html">https://www.rabbitmq.com/ssl.html</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.rabbitmq.com/configure.html#customise-environment">https://www.rabbitmq.com/configure.html#customise-environment</a></p>
+<p><a target="_blank" rel="noopener" href="https://github.com/rabbitmq/rabbitmq-server/blob/master/docs/rabbitmq.conf.example">https://github.com/rabbitmq/rabbitmq-server/blob/master/docs/rabbitmq.conf.example</a></p>
+<h3 id="rabbitmq镜像队列"><a href="#rabbitmq镜像队列" class="headerlink" title="rabbitmq镜像队列"></a>rabbitmq镜像队列</h3><p>mirror queue：镜像队列，queue能在多台机器中同步。</p>
+<p>通过webui设置</p>
+<p><a href="/img/QQ截图20180705161425.png">QQ截图20180705161425.png</a></p>
+<p>或者通过命令行：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">## 表示当前如果是test开头的队列都是“镜像队列”。</span></span><br><span class="line">rabbitmqctl set_policy ha-all <span class="string">&quot;^test&quot;</span> <span class="string">&#x27;&#123;&quot;ha-mode&quot;:&quot;all&quot;,&quot;ha-sync-mode&quot;:&quot;automatic&quot;&#125;&#x27;</span></span><br><span class="line"><span class="comment"># 或者</span></span><br><span class="line">rabbitmqctl set_policy ha-all <span class="string">&quot;^&quot;</span> <span class="string">&#x27;&#123;&quot;ha-mode&quot;:&quot;all&quot;&#125;&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="防火墙开放端口"><a href="#防火墙开放端口" class="headerlink" title="防火墙开放端口"></a>防火墙开放端口</h3><p>命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">firewall-cmd --zone=public --add-port=8100/tcp --permanent</span><br><span class="line">firewall-cmd --zone=public --add-port=15672/tcp --permanent</span><br><span class="line">firewall-cmd --zone=public --add-port=5672/tcp --permanent</span><br><span class="line">firewall-cmd --reload</span><br></pre></td></tr></table></figure>
+
+<p>HAProxy 配置了三个地址：</p>
+<p>注：IP地址需要根据实际情况修改</p>
+<ul>
+<li><code>http://192.168.7.201:8100/stats</code> ：HAProxy 负载均衡信息地址，账号密码：admin/admin。</li>
+<li><code>http://192.168.7.201:15672</code>：RabbitMQ Server Web 管理界面（基于负载均衡），账号密码：admin/admin。</li>
+<li><code>http://192.168.7.201:5672</code>：RabbitMQ Server 服务地址（基于负载均衡），账号密码：admin/admin。</li>
+</ul>
+<h2 id="DotNet客户端测试"><a href="#DotNet客户端测试" class="headerlink" title="DotNet客户端测试"></a>DotNet客户端测试</h2><p>安装<a target="_blank" rel="noopener" href="https://www.nuget.org/packages/RabbitMQ.Client">RabbitMQ.Client</a></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Install-Package RabbitMQ.Client -Version 5.1.0</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        ConnectionFactory factory = <span class="keyword">new</span> ConnectionFactory()</span><br><span class="line">        &#123;</span><br><span class="line">            UserName = <span class="string">&quot;admin&quot;</span>,</span><br><span class="line">            Password = <span class="string">&quot;admin&quot;</span>,</span><br><span class="line">            AutomaticRecoveryEnabled = <span class="literal">true</span>,</span><br><span class="line">            TopologyRecoveryEnabled = <span class="literal">true</span></span><br><span class="line">        &#125;;</span><br><span class="line"></span><br><span class="line">        <span class="comment">//第一步：创建connection </span></span><br><span class="line">        <span class="keyword">var</span> connection = factory.CreateConnection(<span class="keyword">new</span> <span class="built_in">string</span>[<span class="number">1</span>] &#123; <span class="string">&quot;192.168.7.201&quot;</span> &#125;);</span><br><span class="line"></span><br><span class="line">        <span class="comment">//第二步：创建一个channel</span></span><br><span class="line">        <span class="keyword">var</span> channel = connection.CreateModel();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">var</span> result = channel.QueueDeclare(<span class="string">&quot;test1&quot;</span>, <span class="literal">true</span>, <span class="literal">false</span>, <span class="literal">false</span>, <span class="literal">null</span>);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; <span class="number">100</span>; i++)</span><br><span class="line">        &#123;</span><br><span class="line">            channel.BasicPublish(<span class="built_in">string</span>.Empty, <span class="string">&quot;test1&quot;</span>, <span class="literal">null</span>, <span class="keyword">new</span> <span class="built_in">byte</span>[<span class="number">10</span>]);</span><br><span class="line"></span><br><span class="line">            Console.WriteLine(<span class="string">&quot;&#123;0&#125; 推送成功&quot;</span>, i);</span><br><span class="line">            Thread.Sleep(<span class="number">1000</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        Console.Read();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>支持ssl安全连接：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">namespace</span> <span class="title">RabbitMqDemo</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            ServicePointManager.ServerCertificateValidationCallback += (sender, cert, chain, sslPolicyErrors) =&gt; <span class="literal">true</span>;</span><br><span class="line">            ConnectionFactory factory = <span class="keyword">new</span> ConnectionFactory()</span><br><span class="line">            &#123;</span><br><span class="line">                UserName = <span class="string">&quot;admin&quot;</span>,</span><br><span class="line">                Password = <span class="string">&quot;admin&quot;</span>,</span><br><span class="line">                AutomaticRecoveryEnabled = <span class="literal">true</span>,</span><br><span class="line">                Ssl = <span class="keyword">new</span> SslOption()</span><br><span class="line">                &#123;</span><br><span class="line">                    CertPath = <span class="string">@&quot;E:\git\RabbitMqDemo\RabbitMqDemo\server.pfx&quot;</span>,</span><br><span class="line">                    CertPassphrase = <span class="string">&quot;123123&quot;</span>,</span><br><span class="line">                    AcceptablePolicyErrors = SslPolicyErrors.RemoteCertificateNameMismatch |</span><br><span class="line">                                                SslPolicyErrors.RemoteCertificateChainErrors,</span><br><span class="line">                    Enabled = <span class="literal">true</span></span><br><span class="line">                &#125;,</span><br><span class="line">                <span class="comment">//AuthMechanisms = new AuthMechanismFactory[] &#123; new ExternalMechanismFactory() &#125;,</span></span><br><span class="line">                RequestedHeartbeat = <span class="number">60</span>,</span><br><span class="line">                Port = <span class="number">5673</span>,</span><br><span class="line">                TopologyRecoveryEnabled = <span class="literal">true</span></span><br><span class="line">            &#125;;</span><br><span class="line">            <span class="comment">//第一步：创建connection </span></span><br><span class="line">            <span class="keyword">var</span> connection = factory.CreateConnection(<span class="keyword">new</span> <span class="built_in">string</span>[<span class="number">1</span>] &#123; <span class="string">&quot;192.168.0.115&quot;</span> &#125;);</span><br><span class="line"></span><br><span class="line">            <span class="comment">//第二步：创建一个channel</span></span><br><span class="line">            <span class="keyword">var</span> channel = connection.CreateModel();</span><br><span class="line"></span><br><span class="line">            <span class="keyword">var</span> result = channel.QueueDeclare(<span class="string">&quot;test1&quot;</span>, <span class="literal">true</span>, <span class="literal">false</span>, <span class="literal">false</span>, <span class="literal">null</span>);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; <span class="built_in">int</span>.MaxValue; i++)</span><br><span class="line">            &#123;</span><br><span class="line">                channel.BasicPublish(<span class="built_in">string</span>.Empty, <span class="string">&quot;test1&quot;</span>, <span class="literal">null</span>, <span class="keyword">new</span> <span class="built_in">byte</span>[<span class="number">10</span>]);</span><br><span class="line"></span><br><span class="line">                Console.WriteLine(<span class="string">&quot;&#123;0&#125; 推送成功&quot;</span>, i);</span><br><span class="line">                <span class="comment">//Thread.Sleep(1000);</span></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            Console.Read();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/xishuai/p/centos-rabbitmq-cluster-and-haproxy.html">搭建 RabbitMQ Server 高可用集群</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/huangxincheng/p/6113891.html">搭建高可用的rabbitmq集群 + Mirror Queue + 使用C#驱动连接</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/97fbf9c82872">RabbitMQ 高可用集群</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/WoogeYu/article/details/51119101">RabbitMQ分布式集群架构</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/85543491ab00">docker搭建rabbitmq集群</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.breezelin.site/2017/12/05/practice-rabbitmq-ha-docker-compose/"></a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.breezelin.site/2017/12/05/practice-rabbitmq-ha-docker-compose/">用Docker搭建RabbitMQ高可用集群</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/fqydhk/article/details/80624547">docker-compose配置rabbitmq集群服务器</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/07/04/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E6%91%98%E8%A6%81/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/07/04/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E6%91%98%E8%A6%81/" class="post-title-link" itemprop="url">消息队列摘要</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-07-04 10:15:42" itemprop="dateCreated datePublished" datetime="2018-07-04T10:15:42+00:00">2018-07-04</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/" itemprop="url" rel="index"><span itemprop="name">消息队列</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="消息队列摘要"><a href="#消息队列摘要" class="headerlink" title="消息队列摘要"></a>消息队列摘要</h1><h2 id="1-为什么要使用消息队列"><a href="#1-为什么要使用消息队列" class="headerlink" title="1,为什么要使用消息队列"></a>1,为什么要使用消息队列</h2><p>解耦、弹性伸缩、冗余存储、流量削峰、异步通信、数据同步</p>
+<p>(1) 解耦</p>
+<p>将消息写入消息队列，需要消息的系统自己从消息队列中订阅，原系统不需要做任何修改。</p>
+<p>(2) 异步</p>
+<p>将消息写入消息队列，非必要的业务逻辑以异步的方式运行，加快响应速度</p>
+<p>(3) 削峰</p>
+<p>并发请求到消息队列，业务系统按照实际处理能力从消息队列拉去数据。</p>
+<h2 id="2-使用了消息队列会有什么缺点"><a href="#2-使用了消息队列会有什么缺点" class="headerlink" title="2,使用了消息队列会有什么缺点"></a>2,使用了消息队列会有什么缺点</h2><p>** 系统可用性降低**: 消息队列如果宕机，系统直接崩溃，因此，系统可用性降低</p>
+<p>** 系统复杂性增加**: 要多考虑的问题，比如一致性问题、如何保证消息不被重复消费，如何保证保证消息可靠传输。因此，需要考虑的东西更多，系统复杂性增大。</p>
+<h2 id="3，消息队列如何选型"><a href="#3，消息队列如何选型" class="headerlink" title="3，消息队列如何选型"></a>3，消息队列如何选型</h2><p><img src="/img/1506330751030_7532_1506330753496.png" alt="1506330751030_7532_1506330753496.png"></p>
+<p>** 中小型软件公司<strong>：建议选RabbitMQ<br>** 大型软件公司</strong>：根据具体使用在rocketMq和kafka之间二选一</p>
+<h2 id="4，如何保证消息队列是高可用的"><a href="#4，如何保证消息队列是高可用的" class="headerlink" title="4，如何保证消息队列是高可用的"></a>4，如何保证消息队列是高可用的</h2><p>参考具体的消息队列高可用方案</p>
+<h2 id="5，如何保证消息不被重复消费"><a href="#5，如何保证消息不被重复消费" class="headerlink" title="5，如何保证消息不被重复消费"></a>5，如何保证消息不被重复消费</h2><p>即保证消息队列的幂等性。</p>
+<p>正常情况下，消费者在消费消息时候，消费完毕后，会发送一个确认信息给消息队列，消息队列就知道该消息被消费了，就会将该消息从消息队列中删除。只是不同的消息队列发送的确认信息形式不同,例如RabbitMQ是发送一个ACK确认消息，RocketMQ是返回一个CONSUME_SUCCESS成功标志，kafka实际上有个offset的概念，简单说一下(如果还不懂，出门找一个kafka入门到精通教程),就是每一个消息都有一个offset，kafka消费过消息后，需要提交offset，让消息队列知道自己已经消费过了。那造成重复消费的原因?，就是因为网络传输等等故障，确认信息没有传送到消息队列，导致消息队列不知道自己已经消费过该消息了，再次将该消息分发给其他的消费者。</p>
+<p>解决：</p>
+<p>(1) 拿到这个消息做数据库的insert操作,分配这个消息一个唯一主键，如果出现重复消费，则会导致主键冲突。</p>
+<p>(2) redis的set的操作，无论set几次结果都是一样的，set操作本来就算幂等操作。</p>
+<p>(3) 消费记录，以redis为例，给消息分配一个全局id，只要消费过该消息，将&lt;id,message&gt;以K-V形式写入redis。那消费者开始消费前，先去redis中查询有没消费记录即可。</p>
+<h2 id="6，保证消费的可靠性传输"><a href="#6，保证消费的可靠性传输" class="headerlink" title="6，保证消费的可靠性传输"></a>6，保证消费的可靠性传输</h2><p>（1）生产者丢数据</p>
+<p>（2）消息队列丢数据</p>
+<p>（3）消费者丢数据</p>
+<h2 id="如何保证消息的顺序性"><a href="#如何保证消息的顺序性" class="headerlink" title="如何保证消息的顺序性"></a>如何保证消息的顺序性</h2><p>通过某种算法，将需要保持先后顺序的消息放到同一个消息队列中(kafka中就是partition,rabbitMq中就是queue)。然后只用一个消费者去消费该队列。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/rjzheng/p/8994962.html">【原创】分布式之消息队列复习精讲</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.infoq.com/cn/articles/kafka-vs-rabbitmq">消息中间件选型分析：从Kafka与RabbitMQ的对比看全局</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/my_life/articles/5128746.html">常用消息队列介绍与对比</a></p>
+<p><a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/1006035">消息队列及常见消息队列介绍</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/06/29/docker%E5%AE%B9%E5%99%A8%E6%97%A0%E6%B3%95%E8%AE%BF%E9%97%AE%E5%AE%BF%E4%B8%BB%E6%9C%BA-No-route-to-host/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/06/29/docker%E5%AE%B9%E5%99%A8%E6%97%A0%E6%B3%95%E8%AE%BF%E9%97%AE%E5%AE%BF%E4%B8%BB%E6%9C%BA-No-route-to-host/" class="post-title-link" itemprop="url">Docker容器无法访问宿主机-No route to host</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-06-29 09:05:05" itemprop="dateCreated datePublished" datetime="2018-06-29T09:05:05+00:00">2018-06-29</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Docker/" itemprop="url" rel="index"><span itemprop="name">Docker</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="docker容器无法访问宿主机-No-route-to-host"><a href="#docker容器无法访问宿主机-No-route-to-host" class="headerlink" title="docker容器无法访问宿主机-No route to host"></a>docker容器无法访问宿主机-No route to host</h1><h2 id="方法一：关闭防火墙"><a href="#方法一：关闭防火墙" class="headerlink" title="方法一：关闭防火墙"></a>方法一：关闭防火墙</h2><p>centos关闭防火墙的操作为</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">systemctl stop firewalld</span><br></pre></td></tr></table></figure>
+
+<h2 id="方法二：-在防火墙上开发指定端口"><a href="#方法二：-在防火墙上开发指定端口" class="headerlink" title="方法二： 在防火墙上开发指定端口"></a>方法二： 在防火墙上开发指定端口</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">firewall-cmd --zone=public --add-port=2181/tcp --permanent</span><br><span class="line">firewall-cmd --reload</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/96aebba5d3cc">docker容器无法访问宿主机-No route to host</a></p>
+<p><a target="_blank" rel="noopener" href="https://wenfeng-gao.github.io/2016/05/20/docker-bridge-network.html">浅谈Docker Bridge网络模式</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/sparkdev/p/9217310.html">Docker 网络之理解 bridge 驱动</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/sparkdev/p/9198109.html">Docker 网络之进阶篇</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/06/28/AspNetCore%E5%88%A9%E7%94%A8Skywalking%E7%9B%91%E6%8E%A7%E6%80%A7%E8%83%BD/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +597,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-25 10:42:22" itemprop="dateModified" datetime="2021-06-25T10:42:22+00:00">2021-06-25</time>
+                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -373,7 +757,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-25 10:42:22" itemprop="dateModified" datetime="2021-06-25T10:42:22+00:00">2021-06-25</time>
+                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -526,7 +910,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-25 10:42:22" itemprop="dateModified" datetime="2021-06-25T10:42:22+00:00">2021-06-25</time>
+                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -696,7 +1080,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-25 10:42:22" itemprop="dateModified" datetime="2021-06-25T10:42:22+00:00">2021-06-25</time>
+                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -951,7 +1335,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-25 10:42:22" itemprop="dateModified" datetime="2021-06-25T10:42:22+00:00">2021-06-25</time>
+                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1040,7 +1424,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-25 10:42:22" itemprop="dateModified" datetime="2021-06-25T10:42:22+00:00">2021-06-25</time>
+                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1114,7 +1498,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-25 10:42:22" itemprop="dateModified" datetime="2021-06-25T10:42:22+00:00">2021-06-25</time>
+                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1244,7 +1628,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-25 10:42:22" itemprop="dateModified" datetime="2021-06-25T10:42:22+00:00">2021-06-25</time>
+                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1408,7 +1792,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-25 10:42:22" itemprop="dateModified" datetime="2021-06-25T10:42:22+00:00">2021-06-25</time>
+                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1665,7 +2049,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-25 10:42:22" itemprop="dateModified" datetime="2021-06-25T10:42:22+00:00">2021-06-25</time>
+                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1839,7 +2223,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-25 10:42:22" itemprop="dateModified" datetime="2021-06-25T10:42:22+00:00">2021-06-25</time>
+                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1982,7 +2366,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-25 10:42:22" itemprop="dateModified" datetime="2021-06-25T10:42:22+00:00">2021-06-25</time>
+                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2072,469 +2456,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/05/25/Docker%E4%BF%AE%E6%94%B9%E6%97%B6%E5%8C%BA/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/05/25/Docker%E4%BF%AE%E6%94%B9%E6%97%B6%E5%8C%BA/" class="post-title-link" itemprop="url">Docker修改时区</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-05-25 09:31:59" itemprop="dateCreated datePublished" datetime="2018-05-25T09:31:59+00:00">2018-05-25</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-25 10:42:22" itemprop="dateModified" datetime="2021-06-25T10:42:22+00:00">2021-06-25</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Docker/" itemprop="url" rel="index"><span itemprop="name">Docker</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="Docker修改时区"><a href="#Docker修改时区" class="headerlink" title="Docker修改时区"></a>Docker修改时区</h1><h2 id="修改Dockerfile"><a href="#修改Dockerfile" class="headerlink" title="修改Dockerfile"></a>修改Dockerfile</h2><p>** CentOS7**</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">RUN</span><span class="bash"> apk add --update tzdata</span></span><br><span class="line"><span class="keyword">ENV</span> TZ=Asia/Shanghai</span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> ln -snf /usr/share/zoneinfo/<span class="variable">$TZ</span> /etc/localtime &amp;&amp; <span class="built_in">echo</span> <span class="variable">$TZ</span> &gt; /etc/timezone</span></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#update system timezone</span></span><br><span class="line"><span class="comment">#RUN cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#update application timezone</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> <span class="built_in">echo</span> <span class="string">&quot;Asia/Shanghai&quot;</span> &gt;&gt; /etc/timezone</span></span><br></pre></td></tr></table></figure>
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/05/21/Docker%E5%AE%89%E8%A3%85Redis%20Sentinel(%E9%AB%98%E5%8F%AF%E7%94%A8)/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/05/21/Docker%E5%AE%89%E8%A3%85Redis%20Sentinel(%E9%AB%98%E5%8F%AF%E7%94%A8)/" class="post-title-link" itemprop="url">Docker安装Redis Sentinel(高可用)</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-05-21 08:51:08" itemprop="dateCreated datePublished" datetime="2018-05-21T08:51:08+00:00">2018-05-21</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-25 10:42:22" itemprop="dateModified" datetime="2021-06-25T10:42:22+00:00">2021-06-25</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="Docker安装redis-Sentinel-高可用"><a href="#Docker安装redis-Sentinel-高可用" class="headerlink" title="Docker安装redis Sentinel(高可用)"></a>Docker安装redis Sentinel(高可用)</h1><h2 id="redis介绍"><a href="#redis介绍" class="headerlink" title="redis介绍"></a>redis介绍</h2><p>redis集群有两种，一种是redis sentinel(哨兵)，高可用集群，同时只有一个master，各实例数据保持一致；一种是redis cluster，分布式集群，同时有多个master，数据分片部署在各个master上。 哨兵模式简单说就是在后台有一个监控，监控当前的主机并巡逻主机下面的从机，如果某一时刻主机挂掉了，那么他会通过一种投票的机制从从机之中选举一台作为新的主机，并且其余的从机将会连接到这个新的主机上面，完成故障转移,主从模式就是一个中心化的结构,通过哨兵完成去中心化；本次要搭建的是redis sentinel。</p>
-<p>Redis 的 Sentinel 系统用于管理多个 Redis 服务器（instance）， 该系统执行以下三个任务：</p>
-<ul>
-<li>监控（Monitoring）： Sentinel 会不断地检查你的主服务器和从服务器是否运作正常。</li>
-<li>提醒（Notification）： 当被监控的某个 Redis 服务器出现问题时， Sentinel 可以通过 API 向管理员或者其他应用程序发送通知。</li>
-<li>自动故障迁移（Automatic failover）： 当一个主服务器不能正常工作时， Sentinel 会开始一次自动故障迁移操作， 它会将失效主服务器的其中一个从服务器升级为新的主服务器， 并让失效主服务器的其他从服务器改为复制新的主服务器； 当客户端试图连接失效的主服务器时， 集群也会向客户端返回新主服务器的地址， 使得集群可以使用新主服务器代替失效服务器。</li>
-</ul>
-<h2 id="目录结构"><a href="#目录结构" class="headerlink" title="目录结构"></a>目录结构</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">redis</span><br><span class="line"> |--master</span><br><span class="line"> |--slave1</span><br><span class="line"> |--slave2</span><br><span class="line"> |--Dockerfile</span><br><span class="line"> |--redis.conf</span><br><span class="line"> |--docker-compose.yml</span><br><span class="line"> |--sentinel.conf</span><br><span class="line"> |--start.sh</span><br></pre></td></tr></table></figure>
-
-<h2 id="制作镜像"><a href="#制作镜像" class="headerlink" title="制作镜像"></a>制作镜像</h2><p>整个集群可以分为一个master，N个slave，M个sentinel，本次以2个slave和3个sentinel为例</p>
-<h3 id="增加redis-conf"><a href="#增加redis-conf" class="headerlink" title="增加redis.conf"></a>增加redis.conf</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"># 使用守护进程模式</span><br><span class="line">daemonize no</span><br><span class="line"># 非保护模式，可以外网访问</span><br><span class="line">protected-mode no</span><br><span class="line">timeout 300</span><br><span class="line">databases 16</span><br><span class="line">rdbcompression yes</span><br><span class="line"># 学习开发，使用最大日志级别，能够看到最多的日志信息</span><br><span class="line">loglevel debug</span><br><span class="line">port $redis_port</span><br><span class="line">##授权密码，各个配置保持一致</span><br><span class="line">##暂且禁用指令重命名</span><br><span class="line">##rename-command</span><br><span class="line">##开启AOF，禁用snapshot</span><br><span class="line">appendonly yes</span><br><span class="line">#slaveof redis-master $master_port</span><br><span class="line">slave-read-only yes</span><br><span class="line">maxclients 10000</span><br><span class="line">maxmemory 1000mb</span><br></pre></td></tr></table></figure>
-
-<h3 id="增加sentinel-conf"><a href="#增加sentinel-conf" class="headerlink" title="增加sentinel.conf"></a>增加sentinel.conf</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">port $sentinel_port</span><br><span class="line">dir &quot;/tmp&quot;</span><br><span class="line">sentinel monitor mymaster redis-master $master_port 2</span><br><span class="line">sentinel down-after-milliseconds mymaster 60000</span><br><span class="line">sentinel failover-timeout manager1 180000</span><br><span class="line">sentinel parallel-syncs manager1 2</span><br></pre></td></tr></table></figure>
-
-<p>这四行配置为一组，因为我们只有一个 master 节点，所以只配置了一个 master，可以配置多个 master，不用配置 slave 的信息，因为 slave 能够被自动检测到（master 节点会有关于 slave 的消息）</p>
-<p>其他选项的基本格式如下：</p>
-<p>sentinel &lt;选项的名字&gt; &lt;主服务器的名字&gt; &lt;选项的值&gt;</p>
-<ul>
-<li><code>auth-pass</code>：选项指定了 master 的连接密码。</li>
-<li><code>down-after-milliseconds</code>：选项指定了 Sentinel 认为服务器已经断线所需的毫秒数。</li>
-<li><code>failover-timeout</code>：如果在该时间（ms）内未能完成 failover 操作，则认为该 failover 失败。</li>
-<li><code>parallel-syncs</code>：选项指定了在执行故障转移时，最多可以有多少个从服务器同时对新的主服务器进行同步，这个数字越小，完成故障转移所需的时间就越长。</li>
-</ul>
-<h3 id="添加start-sh"><a href="#添加start-sh" class="headerlink" title="添加start.sh"></a>添加start.sh</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">cd /conf</span><br><span class="line">redis_role=$1</span><br><span class="line">echo $redis_role</span><br><span class="line">if [ $redis_role = &quot;master&quot; ] ; then</span><br><span class="line">    echo &quot;master&quot;</span><br><span class="line">    sed -i &quot;s/\$redis_port/$redis_port/g&quot; redis.conf</span><br><span class="line">    redis-server /conf/redis.conf</span><br><span class="line">elif [ $redis_role = &quot;slave&quot; ] ; then</span><br><span class="line">    echo &quot;slave&quot;</span><br><span class="line">    sed -i &quot;s/\$redis_port/$redis_port/g&quot; redis.conf</span><br><span class="line">    sed -i &quot;s/#slaveof/slaveof/g&quot; redis.conf</span><br><span class="line">    sed -i &quot;s/\$master_port/$master_port/g&quot; redis.conf</span><br><span class="line">    redis-server /conf/redis.conf</span><br><span class="line">elif [ $redis_role = &quot;sentinel&quot; ] ; then</span><br><span class="line">    echo &quot;sentinel&quot;</span><br><span class="line">    sed -i &quot;s/\$sentinel_port/$sentinel_port/g&quot; sentinel.conf</span><br><span class="line">    sed -i &quot;s/\$master_port/$master_port/g&quot; sentinel.conf</span><br><span class="line">    redis-sentinel /conf/sentinel.conf</span><br><span class="line">else</span><br><span class="line">    echo &quot;unknow role!&quot;</span><br><span class="line">fi     #ifend</span><br></pre></td></tr></table></figure>
-
-<h3 id="添加Dockerfile"><a href="#添加Dockerfile" class="headerlink" title="添加Dockerfile"></a>添加Dockerfile</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">FROM</span> redis:<span class="number">4</span>-alpine</span><br><span class="line"></span><br><span class="line"><span class="comment"># 设置时区</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> apk add --update tzdata</span></span><br><span class="line"><span class="keyword">ENV</span> TZ=Asia/Shanghai</span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> ln -snf /usr/share/zoneinfo/<span class="variable">$TZ</span> /etc/localtime &amp;&amp; <span class="built_in">echo</span> <span class="variable">$TZ</span> &gt; /etc/timezone</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">COPY</span><span class="bash"> redis.conf /conf/redis.conf</span></span><br><span class="line"><span class="keyword">COPY</span><span class="bash"> sentinel.conf /conf/sentinel.conf</span></span><br><span class="line"><span class="keyword">COPY</span><span class="bash"> start.sh /conf/start.sh</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> chmod +x /conf/start.sh &amp;&amp; chown redis:redis /conf/*</span></span><br><span class="line"><span class="keyword">ENTRYPOINT</span><span class="bash"> [<span class="string">&quot;sh&quot;</span>,<span class="string">&quot;/conf/start.sh&quot;</span>]</span></span><br><span class="line"><span class="keyword">CMD</span><span class="bash"> [<span class="string">&quot;master&quot;</span>]</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="build镜像"><a href="#build镜像" class="headerlink" title="build镜像"></a>build镜像</h3><p>在当前目录执行以下命令，创建redis:v1镜像。</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker build -t redis:v1 .</span><br></pre></td></tr></table></figure>
-
-<h2 id="启动redis服务"><a href="#启动redis服务" class="headerlink" title="启动redis服务"></a>启动redis服务</h2><p>在根目录创建<code>master</code>,<code>slave1</code>,<code>slave2</code>目录。</p>
-<p>创建<code>docker-compose.yml</code></p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br></pre></td><td class="code"><pre><span class="line">version: <span class="string">&#x27;3&#x27;</span></span><br><span class="line"></span><br><span class="line">services:</span><br><span class="line">  redis-master:</span><br><span class="line">    container_name: redis-master</span><br><span class="line">    build:</span><br><span class="line">      context: ./master</span><br><span class="line">    volumes:</span><br><span class="line">      - /master/data:/data</span><br><span class="line">    environment:</span><br><span class="line">      redis_port: <span class="string">&#x27;16379&#x27;</span></span><br><span class="line">    image: redis:v1</span><br><span class="line">    <span class="keyword">expose</span>:</span><br><span class="line">      - <span class="string">&quot;16379&quot;</span></span><br><span class="line">  redis-slave1:</span><br><span class="line">    container_name: redis-slave1</span><br><span class="line">    build:</span><br><span class="line">      context:./slave1</span><br><span class="line">    volumes:</span><br><span class="line">      - /slave1/data:/data</span><br><span class="line">    environment:</span><br><span class="line">      master_port: <span class="string">&#x27;16379&#x27;</span></span><br><span class="line">      redis_port: <span class="string">&#x27;16380&#x27;</span></span><br><span class="line">    <span class="keyword">expose</span>:</span><br><span class="line">      - <span class="string">&quot;16380&quot;</span></span><br><span class="line">    command:</span><br><span class="line">      - slave</span><br><span class="line">    image: redis:v1</span><br><span class="line">  redis-slave2:</span><br><span class="line">    container_name: redis-slave2</span><br><span class="line">    build:</span><br><span class="line">      context:./slave2</span><br><span class="line">    volumes:</span><br><span class="line">      - /slave2/data:/data</span><br><span class="line">    environment:</span><br><span class="line">      master_port: <span class="string">&#x27;16379&#x27;</span></span><br><span class="line">      redis_port: <span class="string">&#x27;16380&#x27;</span></span><br><span class="line">    <span class="keyword">expose</span>:</span><br><span class="line">      - <span class="string">&quot;16380&quot;</span></span><br><span class="line">    command:</span><br><span class="line">      - slave</span><br><span class="line">    image: redis:v1</span><br><span class="line">  redis-sentinel-<span class="number">1</span>:</span><br><span class="line">    container_name: redis-sentinel-<span class="number">1</span></span><br><span class="line">    environment:</span><br><span class="line">      master_port: <span class="string">&#x27;16379&#x27;</span></span><br><span class="line">      sentinel_port: <span class="string">&#x27;16381&#x27;</span></span><br><span class="line">    <span class="keyword">expose</span>:</span><br><span class="line">      - <span class="string">&quot;16381&quot;</span></span><br><span class="line">    command:</span><br><span class="line">      - sentinel</span><br><span class="line">    depends_on:</span><br><span class="line">      - <span class="string">&quot;redis-master&quot;</span></span><br><span class="line">      - <span class="string">&quot;redis-slave1&quot;</span></span><br><span class="line">      - <span class="string">&quot;redis-slave2&quot;</span></span><br><span class="line">    image: redis:v1</span><br><span class="line">  redis-sentinel-<span class="number">2</span>:</span><br><span class="line">    container_name: redis-sentinel-<span class="number">2</span></span><br><span class="line">    environment:</span><br><span class="line">      master_port: <span class="string">&#x27;16379&#x27;</span></span><br><span class="line">      sentinel_port: <span class="string">&#x27;16381&#x27;</span></span><br><span class="line">    <span class="keyword">expose</span>:</span><br><span class="line">      - <span class="string">&quot;16381&quot;</span></span><br><span class="line">    command:</span><br><span class="line">      - sentinel</span><br><span class="line">    depends_on:</span><br><span class="line">      - <span class="string">&quot;redis-master&quot;</span></span><br><span class="line">      - <span class="string">&quot;redis-slave1&quot;</span></span><br><span class="line">      - <span class="string">&quot;redis-slave2&quot;</span></span><br><span class="line">    image: redis:v1</span><br><span class="line">  redis-sentinel-<span class="number">3</span>:</span><br><span class="line">    container_name: redis-sentinel-<span class="number">3</span></span><br><span class="line">    environment:</span><br><span class="line">      master_port: <span class="string">&#x27;16379&#x27;</span></span><br><span class="line">      sentinel_port: <span class="string">&#x27;16381&#x27;</span></span><br><span class="line">    <span class="keyword">expose</span>:</span><br><span class="line">      - <span class="string">&quot;16381&quot;</span></span><br><span class="line">    command:</span><br><span class="line">      - sentinel</span><br><span class="line">    depends_on:</span><br><span class="line">      - <span class="string">&quot;redis-master&quot;</span></span><br><span class="line">      - <span class="string">&quot;redis-slave1&quot;</span></span><br><span class="line">      - <span class="string">&quot;redis-slave2&quot;</span></span><br><span class="line">    image: redis:v1</span><br></pre></td></tr></table></figure>
-
-<p>运行以下命令以启动：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker-compose up</span><br></pre></td></tr></table></figure>
-
-<p>可以选择添加<code>-d</code>参数以守护进程启动。</p>
-<h2 id="Redis-Sentinel-故障转移测试"><a href="#Redis-Sentinel-故障转移测试" class="headerlink" title="Redis Sentinel 故障转移测试"></a>Redis Sentinel 故障转移测试</h2><h3 id="查看redis-master服务IP"><a href="#查看redis-master服务IP" class="headerlink" title="查看redis-master服务IP"></a>查看redis-master服务IP</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker inspect -f <span class="string">&#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27;</span> redis-master</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost redis]<span class="comment"># docker inspect -f &#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27; redis-master</span></span><br><span class="line"><span class="number">172.18</span>.<span class="number">0.2</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="查看mymaster节点IP"><a href="#查看mymaster节点IP" class="headerlink" title="查看mymaster节点IP"></a>查看mymaster节点IP</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker exec redis-sentinel-<span class="number">1</span> redis-cli -p <span class="number">16381</span> SENTINEL get-master-addr-by-name mymaster</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost redis]<span class="comment"># docker exec redis-sentinel-1 redis-cli -p 16381 SENTINEL get-master-addr-by-name mymaster</span></span><br><span class="line"><span class="number">172.18</span>.<span class="number">0.2</span></span><br><span class="line"><span class="number">16379</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="连接client"><a href="#连接client" class="headerlink" title="连接client"></a>连接client</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker exec -it redis-master redis-cli -h <span class="number">172.18</span>.<span class="number">0.2</span> -p <span class="number">16379</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="停止master节点"><a href="#停止master节点" class="headerlink" title="停止master节点"></a>停止master节点</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pause redis-master</span><br></pre></td></tr></table></figure>
-
-<h3 id="查询master主节点IP"><a href="#查询master主节点IP" class="headerlink" title="查询master主节点IP"></a>查询master主节点IP</h3><p>注意：中间有时间间隔。</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker exec redis-sentinel-<span class="number">1</span> redis-cli -p <span class="number">16381</span> SENTINEL get-master-addr-by-name mymaster</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost redis]<span class="comment"># docker exec redis-sentinel-1 redis-cli -p 16381 SENTINEL get-master-addr-by-name mymaster</span></span><br><span class="line"><span class="number">172.18</span>.<span class="number">0.4</span></span><br><span class="line"><span class="number">16380</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="恢复redis-master服务"><a href="#恢复redis-master服务" class="headerlink" title="恢复redis-master服务"></a>恢复redis-master服务</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker unpause redis-master</span><br></pre></td></tr></table></figure>
-
-<h3 id="分别查看slave1，slave2服务IP"><a href="#分别查看slave1，slave2服务IP" class="headerlink" title="分别查看slave1，slave2服务IP"></a>分别查看slave1，slave2服务IP</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost redis]<span class="comment"># docker inspect -f &#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27; redis-slave1</span></span><br><span class="line"><span class="number">172.18</span>.<span class="number">0.4</span></span><br><span class="line">[root@localhost redis]<span class="comment"># docker inspect -f &#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27; redis-slave2</span></span><br><span class="line"><span class="number">172.18</span>.<span class="number">0.3</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="停止主节点"><a href="#停止主节点" class="headerlink" title="停止主节点"></a>停止主节点</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pause redis-slave1</span><br></pre></td></tr></table></figure>
-
-<h3 id="查询主节点"><a href="#查询主节点" class="headerlink" title="查询主节点"></a>查询主节点</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker exec redis-sentinel-<span class="number">1</span> redis-cli -p <span class="number">16381</span> SENTINEL get-master-addr-by-name mymaster</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">localhost redis]<span class="comment"># docker exec redis-sentinel-1 redis-cli -p 16381 SENTINEL get-master-addr-by-name mymaster</span></span><br><span class="line"><span class="number">172.18</span>.<span class="number">0.2</span></span><br><span class="line"><span class="number">16379</span></span><br></pre></td></tr></table></figure>
-
-<p>至此，故障转移测试完成。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/xuning/p/8464625.html">高可用Redis服务架构分析与搭建</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/xishuai/p/redis-sentinel.html">Redis Sentinel 高可用服务架构搭建</a></p>
-<p><a target="_blank" rel="noopener" href="http://redis.majunwei.com/topics/sentinel.html">Redis哨兵-实现Redis高可用</a></p>
-<p><a target="_blank" rel="noopener" href="https://segmentfault.com/a/1190000002680804">Redis Sentinel机制与用法（一）</a></p>
-<p><a target="_blank" rel="noopener" href="https://itbilu.com/database/redis/Ey_r7mWR.html">Redis设置认证密码 Redis使用认证密码登录 在Redis集群中使用认证密码</a></p>
-<p><a target="_blank" rel="noopener" href="https://yq.aliyun.com/articles/58003">Docker化高可用redis集群</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/a63a98fa047d">Docker环境搭建redis集群(主从模式)</a></p>
-<p><a target="_blank" rel="noopener" href="https://github.com/AliyunContainerService/redis-cluster/blob/master/test.sh">https://github.com/AliyunContainerService/redis-cluster/blob/master/test.sh</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.redis.cn/topics/sentinel.html?spm=a2c4e.11153940.blogcont58003.8.5e0d6772hFOEsg">Redis 的 Sentinel 文档</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/05/17/Docker-Docker-Compose-Nginx-%E9%83%A8%E7%BD%B2DotNetCore%E9%A1%B9%E7%9B%AE/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/05/17/Docker-Docker-Compose-Nginx-%E9%83%A8%E7%BD%B2DotNetCore%E9%A1%B9%E7%9B%AE/" class="post-title-link" itemprop="url">Docker & Docker Compose & Nginx 部署DotNetCore项目</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-05-17 08:51:19" itemprop="dateCreated datePublished" datetime="2018-05-17T08:51:19+00:00">2018-05-17</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-25 10:42:22" itemprop="dateModified" datetime="2021-06-25T10:42:22+00:00">2021-06-25</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Docker-Compose/" itemprop="url" rel="index"><span itemprop="name">Docker Compose</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="Docker-amp-Docker-Compose-amp-Nginx-部署DotNetCore项目"><a href="#Docker-amp-Docker-Compose-amp-Nginx-部署DotNetCore项目" class="headerlink" title="Docker &amp; Docker Compose &amp; Nginx 部署DotNetCore项目"></a>Docker &amp; Docker Compose &amp; Nginx 部署DotNetCore项目</h1><h2 id="Docker-Compose简介"><a href="#Docker-Compose简介" class="headerlink" title="Docker Compose简介"></a>Docker Compose简介</h2><p>文档：<a target="_blank" rel="noopener" href="https://docs.docker.com/compose/">https://docs.docker.com/compose/</a></p>
-<p><code>Compose</code> 项目是 Docker 官方的开源项目，负责实现对 <code>Docker</code> 容器集群的快速编排。从功能上看，跟 <code>OpenStack</code> 中的 <code>Heat</code> 十分类似。</p>
-<p>其代码目前在 <a target="_blank" rel="noopener" href="https://github.com/docker/compose">https://github.com/docker/compose</a> 上开源。</p>
-<p><code>Compose</code> 定位是 「定义和运行多个 Docker 容器的应用（Defining and running multi-container Docker applications）」，其前身是开源项目 Fig。</p>
-<p>通过第一部分中的介绍，我们知道使用一个 <code>Dockerfile</code> 模板文件，可以让用户很方便的定义一个单独的应用容器。然而，在日常工作中，经常会碰到需要多个容器相互配合来完成某项任务的情况。例如要实现一个 Web 项目，除了 Web 服务容器本身，往往还需要再加上后端的数据库服务容器，甚至还包括负载均衡容器等。</p>
-<p><code>Compose</code> 恰好满足了这样的需求。它允许用户通过一个单独的 <code>docker-compose.yml</code> 模板文件（YAML 格式）来定义一组相关联的应用容器为一个项目（project）。</p>
-<p><code>Compose</code> 中有两个重要的概念：</p>
-<p><code>服务 (service)</code>：一个应用的容器，实际上可以包括若干运行相同镜像的容器实例。</p>
-<p><code>项目 (project)</code>：由一组关联的应用容器组成的一个完整业务单元，在 <code>docker-compose.yml</code> 文件中定义。</p>
-<p><code>Compose</code> 的默认管理对象是项目，通过子命令对项目中的一组容器进行便捷地生命周期管理。</p>
-<p><code>Compose</code> 项目由 Python 编写，实现上调用了 Docker 服务提供的 API 来对容器进行管理。因此，只要所操作的平台支持 Docker API，就可以在其上利用 Compose 来进行编排管理。</p>
-<h2 id="Docker-Compose安装"><a href="#Docker-Compose安装" class="headerlink" title="Docker Compose安装"></a>Docker Compose安装</h2><p><a target="_blank" rel="noopener" href="https://docs.docker.com/compose/install/#install-compose">https://docs.docker.com/compose/install/#install-compose</a></p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo curl -L https://github.com/docker/compose/releases/download/<span class="number">1.21</span>.<span class="number">2</span>/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose</span><br><span class="line">sudo chmod +x /usr/local/bin/docker-compose</span><br><span class="line">docker-compose --version</span><br><span class="line">docker-compose version <span class="number">1.21</span>.<span class="number">2</span>, build a133471</span><br></pre></td></tr></table></figure>
-
-<h2 id="常用命令"><a href="#常用命令" class="headerlink" title="常用命令"></a>常用命令</h2><h3 id="YAML配置命令"><a href="#YAML配置命令" class="headerlink" title="YAML配置命令"></a>YAML配置命令</h3><table>
-<thead>
-<tr>
-<th>配置</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>build</td>
-<td>指定 Dockerfile 所在的目录地址，用于构建镜像，并使用此镜像创建容器，比如上面配置的 <code>build: .</code></td>
-</tr>
-<tr>
-<td>command</td>
-<td>容器的执行命令</td>
-</tr>
-<tr>
-<td>dns</td>
-<td>自定义 dns 服务器</td>
-</tr>
-<tr>
-<td>expose</td>
-<td>暴露端口配置，但不映射到宿主机，只被连接的服务访问</td>
-</tr>
-<tr>
-<td>extends</td>
-<td>对<code>docker-compose.yml</code>的扩展，配置在服务中</td>
-</tr>
-<tr>
-<td>image</td>
-<td>使用的镜像名称或镜像 ID</td>
-</tr>
-<tr>
-<td>links</td>
-<td>链接到其它服务中的容器（一般桥接网络模式使用）</td>
-</tr>
-<tr>
-<td>net</td>
-<td>设置容器的网络模式（四种：<code>bridge</code>, <code>none</code>, <code>container:[name or id]</code>和<code>host</code>）</td>
-</tr>
-<tr>
-<td>ports</td>
-<td>暴露端口信息，主机和容器的端口映射</td>
-</tr>
-<tr>
-<td>volumes</td>
-<td>数据卷所挂载路径设置</td>
-</tr>
-</tbody></table>
-<h3 id="Docker-Compose-常用命令"><a href="#Docker-Compose-常用命令" class="headerlink" title="Docker Compose 常用命令"></a>Docker Compose 常用命令</h3><table>
-<thead>
-<tr>
-<th>命令</th>
-<th>说明</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>docker-compose build</td>
-<td>构建项目中的镜像，–force-rm：删除构建过程中的临时容器；–no-cache：不使用缓存构建；–pull：获取最新版本的镜像</td>
-</tr>
-<tr>
-<td>docker-compose up -d</td>
-<td>构建镜像、创建服务和启动项目，-d表示后台运行</td>
-</tr>
-<tr>
-<td>docker-compose run ubuntu ls -d</td>
-<td>指定服务上运行一个命令，-d表示后台运行</td>
-</tr>
-<tr>
-<td>docker-compose logs</td>
-<td>查看服务容器输出日志</td>
-</tr>
-<tr>
-<td>docker-compose ps</td>
-<td>列出项目中所有的容器</td>
-</tr>
-<tr>
-<td>docker-compose pause [service_name]</td>
-<td>暂停一个服务容器</td>
-</tr>
-<tr>
-<td>docker-compose unpause [service_name]</td>
-<td>恢复已暂停的一个服务容器</td>
-</tr>
-<tr>
-<td>docker-compose restart</td>
-<td>重启项目中的所有服务容器（也可以指定具体的服务）</td>
-</tr>
-<tr>
-<td>docker-compose stop</td>
-<td>停止运行项目中的所有服务容器（也可以指定具体的服务）</td>
-</tr>
-<tr>
-<td>docker-compose start</td>
-<td>启动已经停止项目中的所有服务容器（也可以指定具体的服务）</td>
-</tr>
-<tr>
-<td>docker-compose rm</td>
-<td>删除项目中的所有服务容器（也可以指定具体的服务），-f：强制删除（包含运行的）</td>
-</tr>
-<tr>
-<td>docker-compose kill</td>
-<td>强制停止项目中的所有服务容器（也可以指定具体的服务）</td>
-</tr>
-</tbody></table>
-<h2 id="编写一个docker-compose-yml"><a href="#编写一个docker-compose-yml" class="headerlink" title="编写一个docker-compose.yml"></a>编写一个docker-compose.yml</h2><p><code>dockers-compose.yml</code>文件要定义在我们项目的文件夹下。</p>
-<p>整体目录结构：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">|-- docker.web</span><br><span class="line">  |--Dockerfile</span><br><span class="line">|-- nginx</span><br><span class="line">  |--nginx.conf</span><br><span class="line">  |--Dockerfile</span><br><span class="line">|--docker-compose.yml</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">version: <span class="string">&#x27;3&#x27;</span></span><br><span class="line"></span><br><span class="line">services:</span><br><span class="line">  dockerwebapp:</span><br><span class="line">    container_name:dockerwebapp</span><br><span class="line">    build:</span><br><span class="line">      context: ./docker.web</span><br><span class="line">      dockerfile: Dockerfile</span><br><span class="line">    <span class="keyword">expose</span>:</span><br><span class="line">      - <span class="string">&quot;5000&quot;</span></span><br><span class="line">    ports:</span><br><span class="line">     - <span class="string">&quot;5000:5000&quot;</span></span><br><span class="line">  reverse-proxy:</span><br><span class="line">    container_name: reverse-proxy-nginx</span><br><span class="line">    build:</span><br><span class="line">      context: ./nginx</span><br><span class="line">    volumes:</span><br><span class="line">        - /etc/letsencrypt:/etc/letsencrypt/</span><br><span class="line">    ports:</span><br><span class="line">     - <span class="string">&quot;80:80&quot;</span></span><br><span class="line">     - <span class="string">&quot;443:443&quot;</span></span><br></pre></td></tr></table></figure>
-
-<p>** docker.web下Dockerfile:**</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">FROM</span> microsoft/dotnet:latest</span><br><span class="line"><span class="keyword">WORKDIR</span><span class="bash"> /app</span></span><br><span class="line"><span class="keyword">COPY</span><span class="bash"> . /app</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> dotnet restore</span></span><br><span class="line"><span class="keyword">EXPOSE</span> <span class="number">5000</span></span><br><span class="line"><span class="keyword">ENV</span> ASPNETCORE_URLS http://*:<span class="number">5000</span></span><br><span class="line"><span class="keyword">ENTRYPOINT</span><span class="bash"> [<span class="string">&quot;dotnet&quot;</span>,<span class="string">&quot;run&quot;</span>]</span></span><br></pre></td></tr></table></figure>
-
-<p>** nginx下Dockerfile**</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">FROM</span> nginx</span><br><span class="line"><span class="keyword">COPY</span><span class="bash"> nginx.conf /etc/nginx/nginx.conf</span></span><br></pre></td></tr></table></figure>
-
-<p>** nginx下nginx.conf配置**</p>
-<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br></pre></td><td class="code"><pre><span class="line"><span class="attribute">user</span>  nginx;</span><br><span class="line"><span class="attribute">worker_processes</span>  <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line"><span class="attribute">error_log</span>  /var/log/nginx/error.log <span class="literal">warn</span>;</span><br><span class="line"><span class="attribute">pid</span>        /var/run/nginx.pid;</span><br><span class="line"></span><br><span class="line"><span class="section">events</span> &#123;</span><br><span class="line">    <span class="attribute">worker_connections</span>  <span class="number">1024</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="section">http</span> &#123;</span><br><span class="line">    <span class="attribute">include</span>       /etc/nginx/mime.types;</span><br><span class="line">    <span class="attribute">default_type</span>  application/octet-stream;</span><br><span class="line"></span><br><span class="line">    <span class="attribute">log_format</span>  main  <span class="string">&#x27;$remote_addr - $remote_user [$time_local] &quot;$request&quot; &#x27;</span></span><br><span class="line">                      <span class="string">&#x27;$status $body_bytes_sent &quot;$http_referer&quot; &#x27;</span></span><br><span class="line">                      <span class="string">&#x27;&quot;$http_user_agent&quot; &quot;$http_x_forwarded_for&quot;&#x27;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="attribute">access_log</span>  /var/log/nginx/access.log  main;</span><br><span class="line"></span><br><span class="line">    <span class="attribute">sendfile</span>        <span class="literal">on</span>;</span><br><span class="line">    <span class="comment">#tcp_nopush     on;</span></span><br><span class="line"></span><br><span class="line">    <span class="attribute">keepalive_timeout</span>  <span class="number">65</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">#gzip  on;</span></span><br><span class="line"></span><br><span class="line">    <span class="section">server</span> &#123;</span><br><span class="line">        <span class="attribute">listen</span> <span class="number">80</span>;</span><br><span class="line">        <span class="attribute">server_name</span> www.shiyx.top;</span><br><span class="line">        <span class="attribute">return</span> <span class="number">301</span> https://www.shiyx.top$request_uri;</span><br><span class="line">        <span class="attribute">server_tokens</span> <span class="literal">off</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="attribute">upstream</span> app_servers &#123;</span><br><span class="line">        <span class="attribute">server</span> dockerwebapp:<span class="number">5000</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="section">server</span> &#123;</span><br><span class="line">        <span class="attribute">listen</span> <span class="number">443</span> ssl http2;</span><br><span class="line">        <span class="attribute">ssl</span> <span class="literal">on</span>;</span><br><span class="line">        <span class="attribute">server_name</span> www.shiyx.top;</span><br><span class="line">        <span class="comment">#$host该变量的值等于请求头中Host的值。如果Host无效时，那么就是处理该请求的server的名称。</span></span><br><span class="line">        <span class="comment">#permanent: 永久性重定向。请求日志中的状态码为301</span></span><br><span class="line">        <span class="comment">#nginx 对文档检测比较严格，所以if ( $host != &#x27;www.csdn.com&#x27; ) 这些代码之间需要有空格隔开，不然会</span></span><br><span class="line">        <span class="comment">#报错：unknown directive “if($host!=”</span></span><br><span class="line">        <span class="attribute">if</span> ($host != <span class="string">&#x27;www.shiyx.top&#x27;</span> )&#123;</span><br><span class="line">                <span class="attribute">rewrite</span><span class="regexp"> ^/(.*)$</span> https://www.shiyx.top/<span class="variable">$1</span> <span class="literal">permanent</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="attribute">ssl_certificate</span> /etc/letsencrypt/live/shiyx.top/fullchain.pem;</span><br><span class="line"></span><br><span class="line">        <span class="attribute">ssl_certificate_key</span> /etc/letsencrypt/live/shiyx.top/privkey.pem;</span><br><span class="line"></span><br><span class="line">        <span class="comment">#禁止在header中出现服务器版本，防止黑客利用版本漏洞攻击</span></span><br><span class="line">        <span class="attribute">server_tokens</span> <span class="literal">off</span>;</span><br><span class="line">        <span class="comment"># 设置ssl/tls会话缓存的类型和大小。如果设置了这个参数一般是shared，buildin可能会参数内存碎片，默认是none，</span></span><br><span class="line">        <span class="comment">#和off差不多，停用缓存。如shared:SSL:10m表示我&gt;所有的nginx工作进程共享ssl会话缓存，</span></span><br><span class="line">        <span class="comment">#网介绍说1M可以存放约4000个sessions。</span></span><br><span class="line">        <span class="attribute">ssl_session_cache</span>    shared:SSL:<span class="number">1m</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 客户端可以重用会话缓存中ssl参数的过期时间，内网系统默认5分钟太短了，可以设成30m即30分钟甚至4h。</span></span><br><span class="line">        <span class="attribute">ssl_session_timeout</span>  <span class="number">5m</span>;</span><br><span class="line"></span><br><span class="line">        <span class="attribute">ssl_protocols</span> SSLv3 TLSv1 TLSv1.<span class="number">1</span> TLSv1.<span class="number">2</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 选择加密套件，不同的浏览器所支持的套件（和顺序）可能会不同。</span></span><br><span class="line">        <span class="comment"># 这里指定的是OpenSSL库能够识别的写法，你可以通过 openssl -v cipher &#x27;RC4:HIGH:!aNULL:!MD5&#x27;</span></span><br><span class="line">        <span class="comment">#（后面是你所指定的套件加密算法） 来看所支持算法。</span></span><br><span class="line">        <span class="attribute">ssl_ciphers</span>  HIGH:!aNULL:!MD5;</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 设置协商加密算法时，优先使用我们服务端的加密套件，而不是客户端浏览器的加密套件。</span></span><br><span class="line">        <span class="attribute">ssl_prefer_server_ciphers</span>  <span class="literal">on</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment"># 查看代理程序的ip</span></span><br><span class="line">        <span class="comment"># sudo docker inspect --format &#x27;&#123;&#123; .NetworkSettings.IPAddress &#125;&#125;&#x27; &lt;container-ID&gt;</span></span><br><span class="line">        <span class="attribute">location</span> / &#123;</span><br><span class="line">            <span class="attribute">proxy_pass</span> http://app_servers;</span><br><span class="line">            <span class="attribute">proxy_set_header</span>   Upgrade $http_upgrade;</span><br><span class="line">            <span class="attribute">proxy_set_header</span>   Connection keep-alive;</span><br><span class="line">            <span class="attribute">proxy_set_header</span>   Host $http_host;</span><br><span class="line">            <span class="attribute">proxy_set_header</span>   X-Real-IP $remote_addr;</span><br><span class="line">            <span class="attribute">proxy_set_header</span>   X-Forwarded-For $proxy_add_x_forwarded_for;</span><br><span class="line">            <span class="attribute">proxy_set_header</span>   X-Forwarded-Host $server_name;</span><br><span class="line">            <span class="attribute">proxy_cache_bypass</span> $http_upgrade;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="attribute">location</span> <span class="regexp">~ /.well-known</span>&#123;</span><br><span class="line">                <span class="attribute">allow</span> all;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>其中要注意反向代理的配置：<code>server dockerwebapp:5000;</code>，其中ip部分直接指定的是docker-compose.yml中定义的第一个服务的名称dockerwebapp</p>
-<h2 id="启动compose"><a href="#启动compose" class="headerlink" title="启动compose"></a>启动compose</h2><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker-compose up -d --build</span><br></pre></td></tr></table></figure>
-
-<p>运行结果：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">ubuntu@ip-172-31-16-20:~/dotnet$ docker-compose up -d --build</span><br><span class="line">Creating network <span class="string">&quot;dotnet_default&quot;</span> with the default driver</span><br><span class="line">Building dockerwebapp</span><br><span class="line">Step 1/7 : FROM microsoft/dotnet:latest</span><br><span class="line"> ---&gt; 2ac9a416f201</span><br><span class="line">Step 2/7 : WORKDIR /app</span><br><span class="line"> ---&gt; Using cache</span><br><span class="line"> ---&gt; 9449738bc5a1</span><br><span class="line">Step 3/7 : COPY . /app</span><br><span class="line"> ---&gt; 63468e7420e1</span><br><span class="line">Step 4/7 : RUN dotnet restore</span><br><span class="line"> ---&gt; Running <span class="keyword">in</span> 24ecd554e076</span><br><span class="line">  Restore completed <span class="keyword">in</span> 75.73 ms <span class="keyword">for</span> /app/docker.web.csproj.</span><br><span class="line">  Restoring packages <span class="keyword">for</span> /app/docker.web.csproj...</span><br><span class="line">  Restore completed <span class="keyword">in</span> 464.93 ms <span class="keyword">for</span> /app/docker.web.csproj.</span><br><span class="line">Removing intermediate container 24ecd554e076</span><br><span class="line"> ---&gt; cdc5f195aa36</span><br><span class="line">Step 5/7 : EXPOSE 5000</span><br><span class="line"> ---&gt; Running <span class="keyword">in</span> af5717cc39b8</span><br><span class="line">Removing intermediate container af5717cc39b8</span><br><span class="line"> ---&gt; afe466d24f6d</span><br><span class="line">Step 6/7 : ENV ASPNETCORE_URLS http://*:5000</span><br><span class="line"> ---&gt; Running <span class="keyword">in</span> d151cad8058d</span><br><span class="line">Removing intermediate container d151cad8058d</span><br><span class="line"> ---&gt; d4e8dadfe89c</span><br><span class="line">Step 7/7 : ENTRYPOINT [<span class="string">&quot;dotnet&quot;</span>,<span class="string">&quot;run&quot;</span>]</span><br><span class="line"> ---&gt; Running <span class="keyword">in</span> de41a97d97a8</span><br><span class="line">Removing intermediate container de41a97d97a8</span><br><span class="line"> ---&gt; 05c1f1c48653</span><br><span class="line">Successfully built 05c1f1c48653</span><br><span class="line">Successfully tagged dotnet_dockerwebapp:latest</span><br><span class="line">Building reverse-proxy</span><br><span class="line">Step 1/2 : FROM nginx</span><br><span class="line"> ---&gt; ae513a47849c</span><br><span class="line">Step 2/2 : COPY nginx.conf /etc/nginx/nginx.conf</span><br><span class="line"> ---&gt; 458d9128600f</span><br><span class="line">Successfully built 458d9128600f</span><br><span class="line">Successfully tagged dotnet_reverse-proxy:latest</span><br><span class="line">Creating reverse-proxy-nginx ... <span class="keyword">done</span></span><br><span class="line">Creating dockerwebapp        ... <span class="keyword">done</span></span><br></pre></td></tr></table></figure>
-
-<p>验证启动的服务：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo docker-compose ps</span><br></pre></td></tr></table></figure>
-
-<p>显示结果：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">ubuntu@ip-<span class="number">172</span>-<span class="number">31</span>-<span class="number">16</span>-<span class="number">20</span>:~/dotnet$ docker-compose ps</span><br><span class="line">       Name                 Command          State              Ports</span><br><span class="line">--------------------------------------------------------------------------------</span><br><span class="line">dockerwebapp          dotnet <span class="keyword">run</span><span class="bash">             Up      5000/tcp</span></span><br><span class="line">reverse-proxy-nginx   nginx -g daemon off;   Up      <span class="number">0.0</span>.<span class="number">0.0</span>:<span class="number">443</span>-&gt;<span class="number">443</span>/tcp,</span><br><span class="line">                                                     <span class="number">0.0</span>.<span class="number">0.0</span>:<span class="number">80</span>-&gt;<span class="number">80</span>/tcp</span><br></pre></td></tr></table></figure>
-
-<p>** remove-orphans**</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker-compose down --rmi local --remove-orphans</span><br></pre></td></tr></table></figure>
-
-<h2 id="删除tag为none镜像"><a href="#删除tag为none镜像" class="headerlink" title="删除tag为none镜像"></a>删除tag为none镜像</h2><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">docker images -a|grep none|awk <span class="string">&#x27;&#123;print $3&#125;&#x27;</span>|xargs docker rmi</span><br><span class="line"><span class="comment">## 显示依赖关系</span></span><br><span class="line">docker image inspect --format=<span class="string">&#x27;&#123;&#123;.RepoTags&#125;&#125; &#123;&#123;.Id&#125;&#125; &#123;&#123;.Parent&#125;&#125;&#x27;</span> $(docker image ls -q --filter since=b64089162379)</span><br></pre></td></tr></table></figure>
-
-<p>其中b64089162379为镜像ID。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://yeasy.gitbooks.io/docker_practice/content/compose/introduction.html">https://yeasy.gitbooks.io/docker_practice/content/compose/introduction.html</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.sep.com/sep-blog/2017/02/27/nginx-reverse-proxy-to-asp-net-core-separate-docker-containers/">https://www.sep.com/sep-blog/2017/02/27/nginx-reverse-proxy-to-asp-net-core-separate-docker-containers/</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/sheng-jie/p/8116276.html">https://www.cnblogs.com/sheng-jie/p/8116276.html</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/xishuai/p/docker-compose.html">http://www.cnblogs.com/xishuai/p/docker-compose.html</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/lsxqw2004/p/6709766.html">http://www.cnblogs.com/lsxqw2004/p/6709766.html</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/26/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/26/">26</a><span class="page-number current">27</span><a class="page-number" href="/page/28/">28</a><span class="space">&hellip;</span><a class="page-number" href="/page/30/">30</a><a class="extend next" rel="next" href="/page/28/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
+    <a class="extend prev" rel="prev" href="/page/26/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/26/">26</a><span class="page-number current">27</span><a class="page-number" href="/page/28/">28</a><span class="space">&hellip;</span><a class="page-number" href="/page/31/">31</a><a class="extend next" rel="next" href="/page/28/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
   </nav>
 
 
@@ -2600,7 +2525,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">449</span>
+          <span class="site-state-item-count">452</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
