@@ -182,6 +182,238 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/07/06/Openssl%E7%94%9F%E6%88%90SSL-TLS%E8%AF%81%E4%B9%A6/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/07/06/Openssl%E7%94%9F%E6%88%90SSL-TLS%E8%AF%81%E4%B9%A6/" class="post-title-link" itemprop="url">Openssl生成SSL/TLS证书</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-07-06 08:42:38" itemprop="dateCreated datePublished" datetime="2018-07-06T08:42:38+00:00">2018-07-06</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-06-28 07:02:28" itemprop="dateModified" datetime="2021-06-28T07:02:28+00:00">2021-06-28</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Openssl/" itemprop="url" rel="index"><span itemprop="name">Openssl</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="openssl生成SSL-TLS证书"><a href="#openssl生成SSL-TLS证书" class="headerlink" title="openssl生成SSL/TLS证书"></a>openssl生成SSL/TLS证书</h1><p>官网：<a target="_blank" rel="noopener" href="https://www.openssl.org/">https://www.openssl.org/</a></p>
+<p>github:<a target="_blank" rel="noopener" href="https://github.com/openssl/openssl">https://github.com/openssl/openssl</a></p>
+<p>文档：<a target="_blank" rel="noopener" href="https://www.openssl.org/docs/manmaster/man1/">https://www.openssl.org/docs/manmaster/man1/</a></p>
+<h2 id="证书相关概念"><a href="#证书相关概念" class="headerlink" title="证书相关概念"></a>证书相关概念</h2><h3 id="CA根证书"><a href="#CA根证书" class="headerlink" title="CA根证书"></a>CA根证书</h3><p>首先要有一个CA根证书，然后用CA根证书来签发用户证书。<br>用户进行证书申请：一般先生成一个私钥，然后用私钥生成证书请求(证书请求里应含有公钥信息)，再利用证书服务器的CA根证书来签发证书。</p>
+<p><strong>特别说明:</strong></p>
+<ul>
+<li>（1）自签名证书(一般用于顶级证书、根证书): 证书的名称和认证机构的名称相同.</li>
+<li>（2）根证书：根证书是CA认证中心给自己颁发的证书,是信任链的起始点。任何安装CA根证书的服务器都意味着对这个CA认证中心是信任的。</li>
+</ul>
+<p>数字证书则是由证书认证机构（CA）对证书申请者真实身份验证之后，用CA的根证书对申请人的一些基本信息以及申请人的公钥进行签名（相当于加盖发证书机构的公章）后形成的一个数字文件。数字证书包含证书中所标识的实体的公钥（就是说你的证书里有你的公钥），由于证书将公钥与特定的个人匹配，并且该证书的真实性由颁发机构保证（就是说可以让大家相信你的证书是真的），因此，数字证书为如何找到用户的公钥并知道它是否有效这一问题提供了解决方案。</p>
+<h3 id="PKCS的15个标准"><a href="#PKCS的15个标准" class="headerlink" title="PKCS的15个标准"></a>PKCS的15个标准</h3><p>PKCS 全称是 Public-Key Cryptography Standards ，是由 RSA 实验室与其它安全系统开发商为促进公钥密码的发展而制订的一系列标准。</p>
+<ul>
+<li><p><strong>PKCS#1</strong>：RSA加密标准。PKCS#1定义了RSA公钥函数的基本格式标准，特别是数字签名。它定义了数字签名如何计算，包括待签名数据和签名本身的格式；它也定义了PSA公/私钥的语法。</p>
+</li>
+<li><p><strong>PKCS#2</strong>：涉及了RSA的消息摘要加密，这已被并入PKCS#1中。</p>
+</li>
+<li><p><strong>PKCS#3</strong>：Diffie-Hellman密钥协议标准。PKCS#3描述了一种实现Diffie- Hellman密钥协议的方法。</p>
+</li>
+<li><p><strong>PKCS#4</strong>：最初是规定RSA密钥语法的，现已经被包含进PKCS#1中。</p>
+</li>
+<li><p><strong>PKCS#5</strong>：基于口令的加密标准。PKCS#5描述了使用由口令生成的密钥来加密8位位组串并产生一个加密的8位位组串的方法。PKCS#5可以用于加密私钥，以便于密钥的安全传输（这在PKCS#8中描述）。</p>
+</li>
+<li><p><strong>PKCS#6</strong>：扩展证书语法标准。PKCS#6定义了提供附加实体信息的X.509证书属性扩展的语法（当PKCS#6第一次发布时，X.509还不支持扩展。这些扩展因此被包括在X.509中）。</p>
+</li>
+<li><p><strong>PKCS#7</strong>：密码消息语法标准。PKCS#7为使用密码算法的数据规定了通用语法，比如数字签名和数字信封。PKCS#7提供了许多格式选项，包括未加密或签名的格式化消息、已封装（加密）消息、已签名消息和既经过签名又经过加密的消息。</p>
+</li>
+<li><p><strong>PKCS#8</strong>：私钥信息语法标准。PKCS#8定义了私钥信息语法和加密私钥语法，其中私钥加密使用了PKCS#5标准。</p>
+</li>
+<li><p><strong>PKCS#9</strong>：可选属性类型。PKCS#9定义了PKCS#6扩展证书、PKCS#7数字签名消息、PKCS#8私钥信息和PKCS#10证书签名请求中要用到的可选属性类型。已定义的证书属性包括E-mail地址、无格式姓名、内容类型、消息摘要、签名时间、签名副本（counter signature）、质询口令字和扩展证书属性。</p>
+</li>
+<li><p><strong>PKCS#10</strong>：证书请求语法标准。PKCS#10定义了证书请求的语法。证书请求包含了一个唯一识别名、公钥和可选的一组属性，它们一起被请求证书的实体签名（证书管理协议中的PKIX证书请求消息就是一个PKCS#10）。</p>
+</li>
+<li><p><strong>PKCS#11</strong>：密码令牌接口标准。PKCS#11或“Cryptoki”为拥有密码信息（如加密密钥和证书）和执行密码学函数的单用户设备定义了一个应用程序接口（API）。智能卡就是实现Cryptoki的典型设备。注意：Cryptoki定义了密码函数接口，但并未指明设备具体如何实现这些函数。而且Cryptoki只说明了密码接口，并未定义对设备来说可能有用的其他接口，如访问设备的文件系统接口。</p>
+</li>
+<li><p><strong>PKCS#12</strong>：个人信息交换语法标准。PKCS#12定义了个人身份信息（包括私钥、证书、各种秘密和扩展字段）的格式。PKCS#12有助于传输证书及对应的私钥，于是用户可以在不同设备间移动他们的个人身份信息。</p>
+</li>
+<li><p><strong>PDCS#13</strong>：椭圆曲线密码标准。PKCS#13标准当前正在完善之中。它包括椭圆曲线参数的生成和验证、密钥生成和验证、数字签名和公钥加密，还有密钥协定，以及参数、密钥和方案标识的ASN.1语法。</p>
+</li>
+<li><p><strong>PKCS#14</strong>：伪随机数产生标准。PKCS#14标准当前正在完善之中。为什么随机数生成也需要建立自己的标准呢？PKI中用到的许多基本的密码学函数，如密钥生成和Diffie-Hellman共享密钥协商，都需要使用随机数。然而，如果“随机数”不是随机的，而是取自一个可预测的取值集合，那么密码学函数就不再是绝对安全了，因为它的取值被限于一个缩小了的值域中。因此，安全伪随机数的生成对于PKI的安全极为关键。</p>
+</li>
+<li><p><strong>PKCS#15</strong>：密码令牌信息语法标准。PKCS#15通过定义令牌上存储的密码对象的通用格式来增进密码令牌的互操作性。在实现PKCS#15的设备上存储的数据对于使用该设备的所有应用程序来说都是一样的，尽管实际上在内部实现时可能所用的格式不同。PKCS#15的实现扮演了翻译家的角色，它在卡的内部格式与应用程序支持的数据格式间进行转换。</p>
+</li>
+</ul>
+<p><strong>注意</strong> net,ios中rsa加解密使用的是<code>pkcs1</code>，而java使用的是<code>pkcs8</code>。</p>
+<p>以上参考：<a target="_blank" rel="noopener" href="http://falchion.iteye.com/blog/1472453">PKCS 发布的15 个标准</a></p>
+<h3 id="x509证书"><a href="#x509证书" class="headerlink" title="x509证书"></a>x509证书</h3><h4 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h4><p>X.509 是密码学里公钥证书的格式标准。 X.509 证书己应用在包括TLS/SSL（WWW万维网安全浏览的基石）在内的众多 Intenet协议里.同时它也用在很多非在线应用场景里，比如电子签名服务。X.509证书里含有公钥、身份信息(比如网络主机名，组织的名称或个体名称等)和签名信息（可以是证书签发机构CA的签名，也可以是自签名）。对于一份经由可信的证书签发机构签名或者可以通过其它方式验证的证书，证书的拥有者就可以用证书及相应的私钥来创建安全的通信，对文档进行数字签名.X.509还附带了证书吊销列表和用于从最终对证书进行签名的证书签发机构直到最终可信点为止的证书合法性验证算法。</p>
+<p>当前使用的版本是X.509 V3，它加入了扩展字段支持，这极大地增进了证书的灵活性。X.509 V3证书包括一组按预定义顺序排列的强制字段，还有可选扩展字段，即使在强制字段中，X.509证书也允许很大的灵活性，因为它为大多数字段提供了多种编码方案.</p>
+<p>x509证书一般会用到三类文件，key，csr，crt。<br>Key是私用密钥，openssl格式，通常是rsa算法。<br>csr是证书请求文件，用于申请证书。在制作csr文件的时候，必须使用自己的私钥来签署申请，还可以设定一个密钥。<br>crt是CA认证后的证书文件（windows下面的csr，其实是crt），签署人用自己的key给你签署的凭证。</p>
+<h4 id="编码格式-也用作扩展"><a href="#编码格式-也用作扩展" class="headerlink" title="编码格式(也用作扩展)"></a>编码格式(也用作扩展)</h4><ul>
+<li><p><strong>.PEM</strong>- PEM扩展名用于不同类型的X.509v3文件,全称Privacy Enhanced Mail,打开看文本格式,以”—–BEGIN…”开头, “—–END…”结尾,内容是ASCII(BASE64)编码.</p>
+<p>  查看PEM格式证书的信息: <code>openssl x509 -in certificate.pem -text -noout</code></p>
+<p>  Apache和*NIX服务器偏向于使用这种编码格式.</p>
+</li>
+<li><p><strong>.DER</strong> - DER扩展用于二进制DER编码证书,全称Distinguished Encoding Rules,打开看是二进制格式,不可读,这些文件也可能带有CER或CRT扩展名.</p>
+<p>  查看DER格式证书的信息: <code>openssl x509 -in certificate.der -inform der -text -noout</code></p>
+<p>  Java和Windows服务器偏向于使用这种编码格式.</p>
+</li>
+</ul>
+<p>例如：</p>
+<p>密钥pem格式：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">-----BEGIN RSA PRIVATE KEY-----</span><br><span class="line">-----END RSA PRIVATE KEY-----</span><br></pre></td></tr></table></figure>
+
+<p>证书pem格式：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">-----BEGIN CERTIFICATE-----</span><br><span class="line">-----END CERTIFICATE-----</span><br></pre></td></tr></table></figure>
+
+<h4 id="文件扩展名"><a href="#文件扩展名" class="headerlink" title="文件扩展名"></a>文件扩展名</h4><ul>
+<li><p><strong>.key格式</strong>：通常用来存放一个公钥或者私钥,默认PKCS＃1,并非X.509证书,可能是PEM,也可能是DER</p>
+</li>
+<li><p><strong>.csr/.p10格式</strong>：证书签名请求（证书请求文件），含有公钥信息，certificate signing request的缩写,PKCS#10标准定义</p>
+</li>
+<li><p><strong>.crt格式</strong>：证书文件，certificate的缩写,CRT扩展名用于证书，只有公钥没有私钥。证书可以编码为二进制DER或ASCII PEM。CER和CRT扩展几乎是同义词</p>
+</li>
+<li><p><strong>.cer格式</strong>：证书文件,常见于Windows系统，certificate缩写，只有公钥没有私钥,可能是PEM编码,也可能是DER编码,大多数应该是DER编码,crt文件和cer文件只有在使用相同编码的时候才可以安全地相互替代。</p>
+</li>
+<li><p><strong>.crl格式</strong>：证书吊销列表，Certificate Revocation List的缩写</p>
+</li>
+<li><p><strong>.pem格式</strong>：用于导出，导入证书时候的证书的格式，用于不同类型的X.509v3文件，有证书开头，结尾的格式</p>
+</li>
+<li><p><strong>.p7b/.p7r格式</strong>： 以树状展示证书链(certificate chain)，同时也支持单个证书，不含私钥,PKCS#7标准定义</p>
+</li>
+<li><p><strong>.p7c/.p7m/.p7s格式</strong>：PKCS#7证书格式，仅仅包含证书和CRL列表信息，没有私钥。</p>
+</li>
+<li><p><strong>.pfx/p12格式</strong>：由Public Key Cryptography Standards #12，PKCS#12标准定义，包含了公钥和私钥的二进制格式的证书形式，以pfx作为证书文件后缀名。PFX（也称为PKCS＃12）支持证书，私钥和证书路径中的所有证书的安全存储。PKCS＃12格式是唯一可用于导出证书及其私钥的文件格式。</p>
+</li>
+</ul>
+<h2 id="证书生成"><a href="#证书生成" class="headerlink" title="证书生成"></a>证书生成</h2><h3 id="openssl基本命令"><a href="#openssl基本命令" class="headerlink" title="openssl基本命令"></a>openssl基本命令</h3><p>公钥负责加密，私钥负责解密</p>
+<p>私钥负责签名，公钥负责验证</p>
+<h4 id="修改openssl-cnf配置文件"><a href="#修改openssl-cnf配置文件" class="headerlink" title="修改openssl.cnf配置文件"></a>修改openssl.cnf配置文件</h4><p>首先需要定位openssl.cnf文件：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">locate openssl.cnf</span><br></pre></td></tr></table></figure>
+
+<p>结果：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/etc/pki/tls/openssl.cnf</span><br><span class="line">/usr/share/man/man5/openssl.cnf.5ssl.gz</span><br></pre></td></tr></table></figure>
+
+<p>修改配置文件，修改其中的dir变量,重新设置SSL的工作目录</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/pki/tls/openssl.cnf</span><br></pre></td></tr></table></figure>
+
+<h4 id="生成私钥"><a href="#生成私钥" class="headerlink" title="生成私钥"></a>生成私钥</h4><p>命令：<code>openssl genrsa</code></p>
+<p>查看帮助：<code>openssl genrsa -h</code></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">-des           生成的私钥采用DES算法加密</span><br><span class="line">-des3          生成的私钥采用DES3算法加密 (168 bit key)</span><br><span class="line">-seed          encrypt PEM output with cbc seed</span><br><span class="line">-aes128, -aes192, -aes256</span><br><span class="line">-out file       私钥输出位置</span><br><span class="line">-passout arg    输出文件的密码，如果我们指定了对称加密算法，也可以不带此参数，会有命令行提示你输入密码</span><br></pre></td></tr></table></figure>
+
+<p>生成一个私钥：<br>默认长度512,PKCS1格式</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">openssl genrsa -out ca.key 2048</span><br><span class="line"><span class="comment">## 或者</span></span><br><span class="line">openssl genrsa -des3 -passout pass:123456 -out RSA.pem</span><br></pre></td></tr></table></figure>
+
+<p>查看：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">cat ca.key</span><br><span class="line">-----BEGIN RSA PRIVATE KEY-----</span><br><span class="line">MIIEpAIBAAKCAQE..................</span><br><span class="line">-----END RSA PRIVATE KEY-----</span><br></pre></td></tr></table></figure>
+
+<h4 id="生成公钥"><a href="#生成公钥" class="headerlink" title="生成公钥"></a>生成公钥</h4><p>命令：<code>openssl rsa</code></p>
+<p>查看帮助：<code>openssl rsa -h</code></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">-inform arg     输入文件编码格式，只有pem和der两种</span><br><span class="line">-outform arg    输出文件编码格式，只有pem和der两种</span><br><span class="line">-<span class="keyword">in</span> arg         input file  输入文件</span><br><span class="line">-sgckey         Use IIS SGC key format</span><br><span class="line">-passin arg     如果输入文件被对称加密过，需要指定输入文件的密码</span><br><span class="line">-out arg        输出文件位置</span><br><span class="line">-passout arg    如果输出文件也需要被对称加密，需要指定输出文件的密码</span><br><span class="line"></span><br><span class="line">-des            对输出结果采用对称加密 des算法</span><br><span class="line">-des3           对输出结果采用对称加密 des3算法</span><br><span class="line">-seed</span><br><span class="line">-aes128, -aes192, -aes256</span><br><span class="line"></span><br><span class="line">以上几个都是对称加密算法的指定，生成私钥的时候一般会用到，我们不让私钥明文保存</span><br><span class="line"></span><br><span class="line">-text           以明文形式输出各个参数值</span><br><span class="line">-noout          不输出密钥到任何文件</span><br><span class="line">-modulus        输出模数值</span><br><span class="line">-check          检查输入密钥的正确性和一致性</span><br><span class="line">-pubin          指定输入文件是公钥</span><br><span class="line">-pubout         指定输出文件是公钥</span><br><span class="line">-engine e       指定三方加密库或者硬件</span><br></pre></td></tr></table></figure>
+
+<p>使用刚刚生成的私钥，以生成公钥：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">openssl rsa -<span class="keyword">in</span> ca.key -pubout -out ca_pub.key</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">## 为RSA密钥增加口令保护</span></span><br><span class="line">openssl rsa -<span class="keyword">in</span> RSA.pem -des3 -passout pass:123456 -out E_RSA.pem</span><br><span class="line"></span><br><span class="line"><span class="comment">##为RSA密钥去除口令保护</span></span><br><span class="line">openssl rsa -<span class="keyword">in</span> E_RSA.pem -passin pass:123456 -out P_RSA.pem</span><br><span class="line"></span><br><span class="line"><span class="comment">## 比较</span></span><br><span class="line">diff RSA.pem P_RSA.pem</span><br><span class="line"></span><br><span class="line"><span class="comment">##修改加密算法为aes128，口令是123456</span></span><br><span class="line">openssl rsa -<span class="keyword">in</span> RSA.pem -passin pass:123456 -aes128 -passout pass:123456 -out E_RSA.pem</span><br><span class="line"></span><br><span class="line"><span class="comment">## 查看密钥对中的各个参数</span></span><br><span class="line">openssl rsa -<span class="keyword">in</span> RSA.pem -des -passin pass:123456 -text -noout</span><br><span class="line"></span><br><span class="line"><span class="comment">## 提取密钥中的公钥并打印模数值</span></span><br><span class="line"><span class="comment">## 提取公钥，用pubout参数指定输出为公钥</span></span><br><span class="line">openssl rsa -<span class="keyword">in</span> RSA.pem -passin pass:123456 -pubout -out pub.pem</span><br><span class="line"></span><br><span class="line"><span class="comment">##打印公钥中模数值</span></span><br><span class="line">$ openssl rsa -<span class="keyword">in</span> pub.pem -pubin -modulus -noout</span><br><span class="line"></span><br><span class="line">Modulus=C2B..........3ED</span><br><span class="line"></span><br><span class="line"><span class="comment">##把pem格式转化成der格式，使用outform指定der格式</span></span><br><span class="line">openssl rsa -<span class="keyword">in</span> RSA.pem -passin pass:123456 -des -passout pass:123456 -outform der -out rsa.der</span><br><span class="line"></span><br><span class="line"><span class="comment">##把der格式转化成pem格式，使用inform指定der格式</span></span><br><span class="line">openssl rsa -<span class="keyword">in</span> rsa.der -inform der -passin pass:123456 -out rsa.pem</span><br></pre></td></tr></table></figure>
+
+<h4 id="加解密-签名验证"><a href="#加解密-签名验证" class="headerlink" title="加解密/签名验证"></a>加解密/签名验证</h4><p>命令：<code>openssl rsautl</code></p>
+<p>注意：无论是使用公钥加密还是私钥加密，RSA每次能够加密的数据长度不能超过RSA密钥长度，并且根据具体的补齐方式不同输入的加密数据最大长度也不一样，而输出长度则总是跟RSA密钥长度相等。</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180706152021.png" alt="QQ截图20180706152021.png"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">openssl rsautl -h</span><br><span class="line">Usage: rsautl [options]</span><br><span class="line">-<span class="keyword">in</span> file        input file                                           //输入文件</span><br><span class="line">-out file       output file                                          //输出文件</span><br><span class="line">-inkey file     input key                                            //输入的密钥</span><br><span class="line">-keyform arg    private key format - default PEM                     //指定密钥格式</span><br><span class="line">-pubin          input is an RSA public                               //指定输入的是RSA公钥</span><br><span class="line">-certin         input is a certificate carrying an RSA public key    //指定输入的是证书文件</span><br><span class="line">-ssl            use SSL v2 padding                                   //使用SSLv23的填充方式</span><br><span class="line">-raw            use no padding                                       //不进行填充</span><br><span class="line">-pkcs           use PKCS<span class="comment">#1 v1.5 padding (default)                    //使用V1.5的填充方式</span></span><br><span class="line">-oaep           use PKCS<span class="comment">#1 OAEP                                      //使用OAEP的填充方式</span></span><br><span class="line">-sign           sign with private key                                //使用私钥做签名</span><br><span class="line">-verify         verify with public key                               //使用公钥认证签名</span><br><span class="line">-encrypt        encrypt with public key                              //使用公钥加密</span><br><span class="line">-decrypt        decrypt with private key                             //使用私钥解密</span><br><span class="line">-hexdump        hex dump output                                      //以16进制dump输出</span><br><span class="line">-engine e       use engine e, possibly a hardware device.            //指定三方库或者硬件设备</span><br><span class="line">-passin arg    pass phrase <span class="built_in">source</span>                                    //指定输入的密码</span><br></pre></td></tr></table></figure>
+
+<h5 id="加密和解密"><a href="#加密和解密" class="headerlink" title="加密和解密"></a>加密和解密</h5><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">##生成RSA密钥</span></span><br><span class="line">openssl genrsa -des3 -passout pass:123456 -out RSA.pem</span><br><span class="line"></span><br><span class="line"><span class="comment">##提取公钥</span></span><br><span class="line">openssl rsa -<span class="keyword">in</span> RSA.pem -passin pass:123456 -pubout -out pub.pem</span><br><span class="line"></span><br><span class="line"><span class="comment">##使用RSA作为密钥进行加密，实际上使用其中的公钥进行加密</span></span><br><span class="line">openssl rsautl -encrypt -<span class="keyword">in</span> plain.txt -inkey RSA.pem -passin pass:123456 -out enc.txt</span><br><span class="line"></span><br><span class="line"><span class="comment">##使用RSA作为密钥进行解密，实际上使用其中的私钥进行解密</span></span><br><span class="line">openssl rsautl -decrypt -<span class="keyword">in</span> enc.txt -inkey RSA.pem -passin pass:123456 -out replain.txt</span><br><span class="line"></span><br><span class="line"><span class="comment">##比较原始文件和解密后文件</span></span><br><span class="line">diff plain.txt replain.txt</span><br><span class="line"></span><br><span class="line"><span class="comment">##使用公钥进行加密</span></span><br><span class="line">openssl rsautl -encrypt -<span class="keyword">in</span> plain.txt -inkey pub.pem -pubin -out enc1.txt</span><br><span class="line"></span><br><span class="line"><span class="comment">##私钥进行解密</span></span><br><span class="line">openssl rsautl -decrypt -<span class="keyword">in</span> enc1.txt -inkey RSA.pem -passin pass:123456 -out replain1.txt</span><br><span class="line"></span><br><span class="line"><span class="comment">##比较原始文件和解密后文件</span></span><br><span class="line">diff plain.txt replain1.txt</span><br></pre></td></tr></table></figure>
+
+<h5 id="签名与验证"><a href="#签名与验证" class="headerlink" title="签名与验证"></a>签名与验证</h5><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">##使用RSA密钥进行签名，实际上使用私钥进行签名</span></span><br><span class="line">openssl rsautl -sign -<span class="keyword">in</span> plain.txt -inkey RSA.pem -passin pass:123456 -out sign.txt</span><br><span class="line"></span><br><span class="line"><span class="comment">##使使用RSA密钥进行验证，实际上使用公钥进行验证</span></span><br><span class="line">openssl rsautl -verify -<span class="keyword">in</span> sign.txt -inkey RSA.pem -passin pass:123456 -out replain.txt</span><br><span class="line"></span><br><span class="line"><span class="comment">##对比原始文件和签名解密后的文件</span></span><br><span class="line">diff plain.txt replain.txt</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">##提取PCKS8格式的私钥</span></span><br><span class="line">openssl pkcs8 -topk8 -<span class="keyword">in</span> RSA.pem -passin pass:123456 -out pri.pem -nocrypt</span><br><span class="line"></span><br><span class="line"><span class="comment">##使用私钥进行签名</span></span><br><span class="line">openssl rsautl -sign -<span class="keyword">in</span> plain.txt -inkey pri.pem  -out sign1.txt</span><br><span class="line"></span><br><span class="line"><span class="comment">##使用公钥进行验证</span></span><br><span class="line">openssl rsautl -verify -<span class="keyword">in</span> sign1.txt -inkey pub.pem -pubin -out replain1.txt</span><br><span class="line"></span><br><span class="line"><span class="comment">##对比原始文件和签名解密后的文件</span></span><br><span class="line">diff plain.txt replain1.txt</span><br></pre></td></tr></table></figure>
+
+<h3 id="CA证书生成"><a href="#CA证书生成" class="headerlink" title="CA证书生成"></a>CA证书生成</h3><p>生成CA私钥（.key）–&gt;生成CA证书请求（.csr）–&gt;自签名得到根证书（.crt）（CA给自已颁发的证书）。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Generate CA private key</span></span><br><span class="line">openssl genrsa -out ca.key 2048</span><br><span class="line"><span class="comment"># Generate CSR</span></span><br><span class="line">openssl req -new -key ca.key -out ca.csr <span class="comment">## 需要手动输入回车</span></span><br><span class="line"><span class="comment"># Generate Self Signed certificate（CA 根证书）</span></span><br><span class="line">openssl x509 -req -days 365 -<span class="keyword">in</span> ca.csr -signkey ca.key -out ca.crt</span><br><span class="line"></span><br><span class="line"><span class="comment">##或者</span></span><br><span class="line"><span class="comment"># Generate CA private key</span></span><br><span class="line">openssl genrsa -out ca.key 2048</span><br><span class="line"></span><br><span class="line">openssl req -passin pass:1111 -new -x509 -days 365 -key ca.key -out ca.crt -subj <span class="string">&quot;/C=CN/ST=JS/L=ZJ/O=zx/OU=test/CN=root&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="用户证书"><a href="#用户证书" class="headerlink" title="用户证书"></a>用户证书</h3><p>生成私钥（.key）–&gt;生成证书请求（.csr）–&gt;用CA根证书签名得到证书（.crt）</p>
+<h4 id="服务器端证书"><a href="#服务器端证书" class="headerlink" title="服务器端证书"></a>服务器端证书</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">openssl genrsa -passout pass:1111 -des3 -out server.key 2048</span><br><span class="line">openssl req -passin pass:1111 -new -key server.key -out server.csr -subj <span class="string">&quot;/C=CN/ST=JS/L=ZJ/O=zx/OU=test/CN=www.shiyx.top:5673&quot;</span></span><br><span class="line">openssl x509 -req -passin pass:1111 -days 365 -<span class="keyword">in</span> server.csr -CA ca.crt -CAkey ca.key -set_serial 01 -out server.crt</span><br><span class="line">openssl rsa -passin pass:1111 -<span class="keyword">in</span> server.key -out server.key <span class="comment">## 移除密码</span></span><br><span class="line"><span class="comment">## 生成pfx格式证书，需要输入密码，或使用 -passin pass:1111</span></span><br><span class="line">openssl pkcs12 -<span class="built_in">export</span> -out server.pfx -inkey server.key -<span class="keyword">in</span> server.crt -certfile ca.crt</span><br></pre></td></tr></table></figure>
+
+<h4 id="客户端证书"><a href="#客户端证书" class="headerlink" title="客户端证书"></a>客户端证书</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">openssl genrsa -passout pass:1111 -des3 -out client.key 2048</span><br><span class="line">openssl req -passin pass:1111 -new -key client.key -out client.csr -subj <span class="string">&quot;/C=CN/ST=JS/L=ZJ/O=zx/OU=test/CN=www.shiyx.top:5673&quot;</span></span><br><span class="line">openssl x509 -passin pass:1111 -req -days 365 -<span class="keyword">in</span> client.csr -CA ca.crt -CAkey ca.key -set_serial 01 -out client.crt</span><br><span class="line">openssl rsa -passin pass:1111 -<span class="keyword">in</span> client.key -out client.key <span class="comment">## 移除密码</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="PKCS＃12-pfx-p12-证书生成"><a href="#PKCS＃12-pfx-p12-证书生成" class="headerlink" title="PKCS＃12(.pfx .p12)证书生成"></a>PKCS＃12(.pfx .p12)证书生成</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">##将PEM证书文件和私钥转换为PKCS＃12(.pfx .p12)</span></span><br><span class="line"><span class="comment">## 需要输入密码</span></span><br><span class="line">openssl pkcs12 -<span class="built_in">export</span> -out server.pfx -inkey server.key -<span class="keyword">in</span> server.crt -certfile ca.crt</span><br></pre></td></tr></table></figure>
+
+<h4 id="生成pem格式证书"><a href="#生成pem格式证书" class="headerlink" title="生成pem格式证书"></a>生成pem格式证书</h4><p>有时需要用到pem格式的证书，可以用以下方式合并证书文件（crt）和私钥文件（key）来生成</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$cat</span> client.crt client.key&gt; client.pem</span><br><span class="line"><span class="variable">$cat</span> server.crt server.key &gt; server.pem</span><br><span class="line">$ cat server.crt server.key|tee server.pem <span class="comment"># 将私钥和证书合并到一个文件中</span></span><br></pre></td></tr></table></figure>
+
+<p>tee：定向输出到server.pem</p>
+<h4 id="证书转换"><a href="#证书转换" class="headerlink" title="证书转换"></a>证书转换</h4><p>可以使用以下命令：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">openssl x509 <span class="comment">## 必须为证书文件， .key文件非证书文件</span></span><br><span class="line"></span><br><span class="line">openssl rsa  <span class="comment">## 必须为密钥文件。</span></span><br></pre></td></tr></table></figure>
+
+<p>依赖命令中参数：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">-inform pem|der : 输入文件格式</span><br><span class="line">-outform der|pem: 输出文件格式</span><br></pre></td></tr></table></figure>
+
+<p>例如：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">## crt转换为pem</span></span><br><span class="line">openssl x509 -<span class="keyword">in</span> server.crt -out server.pem <span class="comment">## -outform der :从pem格式转成der格式</span></span><br><span class="line"></span><br><span class="line"><span class="comment">## pem转换为crt</span></span><br><span class="line">openssl x509 -<span class="keyword">in</span> server.pem -out server1.crt <span class="comment">## -outform der :从der格式转成pem格式</span></span><br><span class="line"></span><br><span class="line"><span class="comment">## 比较</span></span><br><span class="line">diff server.crt server1.crt</span><br><span class="line"></span><br><span class="line"><span class="comment">## der格式转成pem格式</span></span><br><span class="line">openssl x509 -<span class="keyword">in</span> ca.crt -outform der -out ca.der</span><br><span class="line">openssl rsa -<span class="keyword">in</span> ca.key -outform der -out ca1.der</span><br><span class="line"></span><br><span class="line"><span class="comment">## pem格式转成crt格式 需要指定 -inform der</span></span><br><span class="line">openssl x509 -<span class="keyword">in</span> ca.der -inform der -outform pem -out ca.pem</span><br><span class="line">diff ca.pem ca.crt</span><br><span class="line"></span><br><span class="line"><span class="comment">##将PEM证书文件和私钥转换为PKCS＃12(.pfx .p12)</span></span><br><span class="line"><span class="comment">## 需要输入密码</span></span><br><span class="line">openssl pkcs12 -<span class="built_in">export</span> -out server.pfx -inkey server.key -<span class="keyword">in</span> server.crt -certfile ca.crt</span><br><span class="line"></span><br><span class="line"><span class="comment">##将包含私钥和证书的PKCS＃12文件(.pfx .p12)转换为PEM</span></span><br><span class="line"><span class="comment">## 需要输入密码</span></span><br><span class="line">openssl pkcs12 -<span class="keyword">in</span> server.pfx -out server1.pem -nodes</span><br><span class="line">diff server.pem server.crt</span><br><span class="line"></span><br><span class="line">openssl pkcs12 -<span class="keyword">in</span> server.pfx -out server.cer -nodes</span><br></pre></td></tr></table></figure>
+
+<h4 id="pkcs1与pkcs8格式RSA私钥互相转换"><a href="#pkcs1与pkcs8格式RSA私钥互相转换" class="headerlink" title="pkcs1与pkcs8格式RSA私钥互相转换"></a>pkcs1与pkcs8格式RSA私钥互相转换</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">openssl pkcs8 -topk8 -inform PEM -<span class="keyword">in</span> server.key -outform pem -nocrypt -out pkcs8.pem</span><br><span class="line"><span class="comment">## openssl pkcs8 -in pkcs8.pem -nocrypt -out server2.key ## 失效</span></span><br><span class="line">openssl rsa -<span class="keyword">in</span> pkcs8.pem -out pkcs1.pem</span><br><span class="line">diff server.key pkcs1.pem</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/liuchunming033/article/details/48470575">openssl生成SSL证书的流程</a></p>
+<p><a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/X.509">X.509</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/guogangj/p/4118605.html">那些证书相关的玩意儿(SSL,X.509,PEM,DER,CRT,CER,KEY,CSR,P12等)</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/15b1d935a44b">OpenSSL加解密使用</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/f-ck-need-u/p/7115871.html">openssl ca(签署和自建CA)</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/08e41304edab">pkcs1与pkcs8格式RSA私钥互相转换</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/yaozhenfa/p/gRpc_with_ssl.html">http://www.cnblogs.com/yaozhenfa/p/gRpc_with_ssl.html</a></p>
+<p><a target="_blank" rel="noopener" href="https://vimsky.com/article/3608.html">https://vimsky.com/article/3608.html</a></p>
+<p><a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/13732826/convert-pem-to-crt-and-key?answertab=votes">https://stackoverflow.com/questions/13732826/convert-pem-to-crt-and-key?answertab=votes</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/07/04/Docker%E6%90%AD%E5%BB%BARabbitMQ%E9%AB%98%E5%8F%AF%E7%94%A8%E7%BE%A4%E9%9B%86/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +445,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
+                <time title="修改时间：2021-06-28 07:02:28" itemprop="dateModified" datetime="2021-06-28T07:02:28+00:00">2021-06-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -414,7 +646,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
+                <time title="修改时间：2021-06-28 07:02:28" itemprop="dateModified" datetime="2021-06-28T07:02:28+00:00">2021-06-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -514,7 +746,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
+                <time title="修改时间：2021-06-28 07:02:28" itemprop="dateModified" datetime="2021-06-28T07:02:28+00:00">2021-06-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -597,7 +829,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
+                <time title="修改时间：2021-06-28 07:02:28" itemprop="dateModified" datetime="2021-06-28T07:02:28+00:00">2021-06-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -757,7 +989,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
+                <time title="修改时间：2021-06-28 07:02:28" itemprop="dateModified" datetime="2021-06-28T07:02:28+00:00">2021-06-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -910,7 +1142,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
+                <time title="修改时间：2021-06-28 07:02:28" itemprop="dateModified" datetime="2021-06-28T07:02:28+00:00">2021-06-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1080,7 +1312,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
+                <time title="修改时间：2021-06-28 07:02:28" itemprop="dateModified" datetime="2021-06-28T07:02:28+00:00">2021-06-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1335,7 +1567,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
+                <time title="修改时间：2021-06-28 07:02:28" itemprop="dateModified" datetime="2021-06-28T07:02:28+00:00">2021-06-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1424,7 +1656,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
+                <time title="修改时间：2021-06-28 07:02:28" itemprop="dateModified" datetime="2021-06-28T07:02:28+00:00">2021-06-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1498,7 +1730,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
+                <time title="修改时间：2021-06-28 07:02:28" itemprop="dateModified" datetime="2021-06-28T07:02:28+00:00">2021-06-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1628,7 +1860,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
+                <time title="修改时间：2021-06-28 07:02:28" itemprop="dateModified" datetime="2021-06-28T07:02:28+00:00">2021-06-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1792,7 +2024,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
+                <time title="修改时间：2021-06-28 07:02:28" itemprop="dateModified" datetime="2021-06-28T07:02:28+00:00">2021-06-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2049,7 +2281,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
+                <time title="修改时间：2021-06-28 07:02:28" itemprop="dateModified" datetime="2021-06-28T07:02:28+00:00">2021-06-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2223,7 +2455,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
+                <time title="修改时间：2021-06-28 07:02:28" itemprop="dateModified" datetime="2021-06-28T07:02:28+00:00">2021-06-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2331,131 +2563,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/05/28/Redis%E6%8C%81%E4%B9%85%E5%8C%96/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/05/28/Redis%E6%8C%81%E4%B9%85%E5%8C%96/" class="post-title-link" itemprop="url">Redis持久化</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-05-28 08:46:39" itemprop="dateCreated datePublished" datetime="2018-05-28T08:46:39+00:00">2018-05-28</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-28 06:09:25" itemprop="dateModified" datetime="2021-06-28T06:09:25+00:00">2021-06-28</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="redis持久化"><a href="#redis持久化" class="headerlink" title="redis持久化"></a>redis持久化</h1><p>Redis虽然是一种内存型数据库，一旦服务器进程退出，数据库的数据就会丢失，为了解决这个问题Redis提供了两种持久化的方案，将内存中的数据保存到磁盘中，避免数据的丢失。</p>
-<h2 id="AOF与RDB对比"><a href="#AOF与RDB对比" class="headerlink" title="AOF与RDB对比"></a>AOF与RDB对比</h2><p>** AOF **更安全，可将数据及时同步到文件中，但需要较多的磁盘IO，AOF文件尺寸较大，文件内容恢复相对较慢， 也更完整。</p>
-<p>** RDB **持久化，安全性较差，它是正常时期数据备份及 master-slave数据同步的最佳手段，文件尺寸较小，恢复数度较快。</p>
-<h2 id="RDB持久化"><a href="#RDB持久化" class="headerlink" title="RDB持久化"></a>RDB持久化</h2><p>redis提供了RDB持久化的功能，这个功能可以将redis在内存中的的状态保存到硬盘中，它可以手动执行，也可以再redis.conf中配置，定期执行。</p>
-<p>RDB持久化产生的RDB文件是一个经过压缩的二进制文件，这个文件被保存在硬盘中，redis可以通过这个文件还原数据库当时的状态。</p>
-<h3 id="RDB的创建与载入"><a href="#RDB的创建与载入" class="headerlink" title="RDB的创建与载入"></a>RDB的创建与载入</h3><p>RDB文件可以通过两个命令来生成：</p>
-<p><code>SAVE</code>：阻塞redis的服务器进程，直到RDB文件被创建完毕。<br><code>BGSAVE</code>：派生(fork)一个子进程来创建新的RDB文件，记录接收到BGSAVE当时的数据库状态，父进程继续处理接收到的命令，子进程完成文件的创建之后，会发送信号给父进程，而与此同时，父进程处理命令的同时，通过轮询来接收子进程的信号。<br>而RDB文件的载入一般情况是自动的，redis服务器启动的时候，redis服务器再启动的时候如果检测到RDB文件的存在，那么redis会自动载入这个文件。</p>
-<p>如果服务器开启了AOF持久化，那么服务器会优先使用AOF文件来还原数据库状态。</p>
-<p>RDB是通过保存键值对来记录数据库状态的，采用copy on write的模式，每次都是全量的备份。</p>
-<h3 id="自动保存间隔"><a href="#自动保存间隔" class="headerlink" title="自动保存间隔"></a>自动保存间隔</h3><p><code>BGSAVE</code>可以在不阻塞主进程的情况下完成数据的备份。可以通过redis.conf中设置多个自动保存条件，只要有一个条件被满足，服务器就会执行BGSAVE命令。</p>
-<p>相关配置</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"># 以下配置表示的条件：</span><br><span class="line"># 服务器在900秒之内被修改了1次</span><br><span class="line">save 900 1</span><br><span class="line"># 服务器在300秒之内被修改了10次</span><br><span class="line">save 300 10</span><br><span class="line"># 服务器在60秒之内被修改了10000次</span><br><span class="line">save 60 10000</span><br></pre></td></tr></table></figure>
-
-<h2 id="AOF持久化"><a href="#AOF持久化" class="headerlink" title="AOF持久化"></a>AOF持久化</h2><p>AOF持久化（Append-Only-File），与RDB持久化不同，AOF持久化是通过保存Redis服务器锁执行的写状态来记录数据库的</p>
-<p>具体来说，RDB持久化相当于备份数据库状态，而AOF持久化是备份数据库接收到的命令，所有被写入AOF的命令都是以redis的协议格式来保存的。</p>
-<p>在AOF持久化的文件中，数据库会记录下所有变更数据库状态的命令，除了指定数据库的select命令，其他的命令都是来自client的，这些命令会以追加(append)的形式保存到文件中。</p>
-<p>** appendfsync** 影响服务器多久完成一次命令的记录</p>
-<p><code>always</code>：将缓存区的内容总是即时写到AOF文件中。</p>
-<p><code>everysec</code>：将缓存区的内容每隔一秒写入AOF文件中。</p>
-<p><code>no</code> ：写入AOF文件中的操作由操作系统决定，一般而言为了提高效率，操作系统会等待缓存区被填满，才会开始同步数据到磁盘</p>
-<p>redis默认<code>everysec</code></p>
-<p>redis在载入AOF文件的时候，会创建一个虚拟的client，把AOF中每一条命令都执行一遍，最终还原回数据库的状态，它的载入也是自动的。在RDB和AOF备份文件都有的情况下，redis会优先载入AOF备份文件</p>
-<p>AOF文件可能会随着服务器运行的时间越来越大，可以利用AOF重写的功能，来控制AOF文件的大小。AOF重写功能会首先读取数据库中现有的键值对状态，然后根据类型使用一条命令来替代前的键值对多条命令。</p>
-<p>AOF重写功能有大量写入操作，所以redis才用子进程来处理AOF重写。这里带来一个新的问题，由于处理重新的是子进程，这样意味着如果主线程的数据在此时被修改，备份的数据和主库的数据将会有不一致的情况发生。因此redis还设置了一个AOF重写缓冲区，这个缓冲区在子进程被创建开始之后开始使用，这个期间，所有的命令会被存两份，一份在AOF缓存空间，一份在AOF重写缓冲区，当AOF重写完成之后，子进程发送信号给主进程，通知主进程将AOF重写缓冲区的内容添加到AOF文件中。</p>
-<p>相关配置：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">#AOF 和 RDB 持久化方式可以同时启动并且无冲突。</span><br><span class="line">#如果AOF开启，启动redis时会加载aof文件，这些文件能够提供更好的保证。</span><br><span class="line">appendonly yes</span><br><span class="line"></span><br><span class="line"># 只增文件的文件名称。（默认是appendonly.aof）</span><br><span class="line"># appendfilename appendonly.aof </span><br><span class="line">#redis支持三种不同的写入方式：</span><br><span class="line">#</span><br><span class="line"># no:不调用，之等待操作系统来清空缓冲区当操作系统要输出数据时。很快。</span><br><span class="line"># always: 每次更新数据都写入仅增日志文件。慢，但是最安全。</span><br><span class="line"># everysec: 每秒调用一次。折中。</span><br><span class="line">appendfsync everysec</span><br><span class="line"></span><br><span class="line"># 设置为yes表示rewrite期间对新写操作不fsync,暂时存在内存中,等rewrite完成后再写入.官方文档建议如果你有特殊的情况可以配置为&#x27;yes&#x27;。但是配置为&#x27;no&#x27;是最为安全的选择。</span><br><span class="line">no-appendfsync-on-rewrite no</span><br><span class="line"></span><br><span class="line"># 自动重写只增文件。</span><br><span class="line"># redis可以自动盲从的调用‘BGREWRITEAOF’来重写日志文件，如果日志文件增长了指定的百分比。</span><br><span class="line"># 当前AOF文件大小是上次日志重写得到AOF文件大小的二倍时，自动启动新的日志重写过程。</span><br><span class="line">auto-aof-rewrite-percentage 100</span><br><span class="line"># 当前AOF文件启动新的日志重写过程的最小值，避免刚刚启动Reids时由于文件尺寸较小导致频繁的重写。</span><br><span class="line">auto-aof-rewrite-min-size 64mb</span><br></pre></td></tr></table></figure>
-
-<h3 id="目录结构"><a href="#目录结构" class="headerlink" title="目录结构"></a>目录结构</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">test1</span><br><span class="line"> |--data</span><br><span class="line"> |--docker-compose.yml</span><br><span class="line"> |--Dockerfile</span><br><span class="line"> |--redis.conf</span><br></pre></td></tr></table></figure>
-
-<h3 id="新建redis-conf"><a href="#新建redis-conf" class="headerlink" title="新建redis.conf"></a>新建redis.conf</h3><p>具体配置如下：</p>
-<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 使用守护进程模式</span></span><br><span class="line"><span class="attribute">daemonize</span> <span class="literal">no</span></span><br><span class="line"><span class="comment"># 非保护模式，可以外网访问</span></span><br><span class="line">protected-mode <span class="literal">no</span></span><br><span class="line">timeout <span class="number">300</span></span><br><span class="line">databases <span class="number">16</span></span><br><span class="line">rdbcompression <span class="literal">yes</span></span><br><span class="line"><span class="comment"># 学习开发，使用最大日志级别，能够看到最多的日志信息</span></span><br><span class="line">loglevel <span class="literal">debug</span></span><br><span class="line">port <span class="number">6380</span></span><br><span class="line"><span class="comment">##授权密码，各个配置保持一致</span></span><br><span class="line"><span class="comment">##暂且禁用指令重命名</span></span><br><span class="line"><span class="comment">##rename-command</span></span><br><span class="line"><span class="comment">##开启AOF，禁用snapshot</span></span><br><span class="line">slave-read-only <span class="literal">yes</span></span><br><span class="line">maxclients <span class="number">10000</span></span><br><span class="line">maxmemory 1000mb</span><br><span class="line"></span><br><span class="line"><span class="comment">#AOF 和 RDB 持久化方式可以同时启动并且无冲突。</span></span><br><span class="line"><span class="comment">#如果AOF开启，启动redis时会加载aof文件，这些文件能够提供更好的保证。</span></span><br><span class="line">appendonly <span class="literal">yes</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 只增文件的文件名称。（默认是appendonly.aof）</span></span><br><span class="line"><span class="comment"># appendfilename appendonly.aof</span></span><br><span class="line"><span class="comment">#redis支持三种不同的写入方式：</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># no:不调用，之等待操作系统来清空缓冲区当操作系统要输出数据时。很快。</span></span><br><span class="line"><span class="comment"># always: 每次更新数据都写入仅增日志文件。慢，但是最安全。</span></span><br><span class="line"><span class="comment"># everysec: 每秒调用一次。折中。</span></span><br><span class="line">appendfsync everysec</span><br><span class="line"></span><br><span class="line"><span class="comment"># 设置为yes表示rewrite期间对新写操作不fsync,暂时存在内存中,等rewrite完成后再写入.官方文档建议如果你有特殊的情况可以配置为&#x27;yes&#x27;。但是配置为&#x27;no&#x27;是最为安全的选择。</span></span><br><span class="line"><span class="literal">no</span>-appendfsync-<span class="literal">on</span>-rewrite <span class="literal">no</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 自动重写只增文件。</span></span><br><span class="line"><span class="comment"># redis可以自动盲从的调用‘BGREWRITEAOF’来重写日志文件，如果日志文件增长了指定的百分比。</span></span><br><span class="line"><span class="comment"># 当前AOF文件大小是上次日志重写得到AOF文件大小的二倍时，自动启动新的日志重写过程。</span></span><br><span class="line">auto-aof-rewrite-percentage <span class="number">100</span></span><br><span class="line"><span class="comment"># 当前AOF文件启动新的日志重写过程的最小值，避免刚刚启动Reids时由于文件尺寸较小导致频繁的重写。</span></span><br><span class="line">auto-aof-rewrite-min-size 64mb</span><br></pre></td></tr></table></figure>
-
-<h3 id="新建Dockerfile"><a href="#新建Dockerfile" class="headerlink" title="新建Dockerfile"></a>新建Dockerfile</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">FROM</span> redis:<span class="number">4</span>-alpine</span><br><span class="line"></span><br><span class="line"><span class="comment">#设置时区</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> apk add --update tzdata</span></span><br><span class="line"><span class="keyword">ENV</span> TZ=Asia/Shanghai</span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> ln -snf /usr/share/zoneinfo/<span class="variable">$TZ</span> /etc/localtime &amp;&amp; <span class="built_in">echo</span> <span class="variable">$TZ</span> &gt; /etc/timezone</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">COPY</span><span class="bash"> redis.conf /conf/redis.conf</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> chown redis:redis /conf/*</span></span><br></pre></td></tr></table></figure>
-
-<p>** 生成镜像**</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker build -t redis:v2 .</span><br></pre></td></tr></table></figure>
-
-<h3 id="新建docker-compose-yml"><a href="#新建docker-compose-yml" class="headerlink" title="新建docker-compose.yml"></a>新建docker-compose.yml</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">version: <span class="string">&#x27;3&#x27;</span></span><br><span class="line"></span><br><span class="line">services:</span><br><span class="line">  redis-master:</span><br><span class="line">    container_name: redis_server</span><br><span class="line">    volumes:</span><br><span class="line">      - $PWD/data:/data</span><br><span class="line">    image: redis:v2</span><br><span class="line">    command: [<span class="string">&quot;redis-server&quot;</span>, <span class="string">&quot;/conf/redis.conf&quot;</span>]</span><br><span class="line">    ports:</span><br><span class="line">      - <span class="string">&quot;6380:6380&quot;</span></span><br><span class="line">    <span class="keyword">expose</span>:</span><br><span class="line">      - <span class="string">&quot;6380&quot;</span></span><br></pre></td></tr></table></figure>
-
-<p>** 执行**</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker-compose up -d</span><br></pre></td></tr></table></figure>
-
-<h3 id="验证"><a href="#验证" class="headerlink" title="验证"></a>验证</h3><p>在data目录查看是否有.aof文件生成</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost redistest1]# cd data</span><br><span class="line">[root@localhost data]# ls</span><br><span class="line">appendonly.aof</span><br></pre></td></tr></table></figure>
-
-<h4 id="获取容器IP"><a href="#获取容器IP" class="headerlink" title="获取容器IP"></a>获取容器IP</h4><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">docker inspect -f <span class="string">&#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27;</span> redis_server</span><br><span class="line"><span class="number">172.19</span>.<span class="number">0.2</span></span><br></pre></td></tr></table></figure>
-
-<h4 id="连接Redis"><a href="#连接Redis" class="headerlink" title="连接Redis"></a>连接Redis</h4><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker exec -it redis_server redis-cli -h <span class="number">172.19</span>.<span class="number">0.2</span> -p <span class="number">6380</span></span><br></pre></td></tr></table></figure>
-
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/bedec93e5a7b">Redis 持久化</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/kismetv/p/9137897.html">深入学习Redis（2）：持久化</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -2525,7 +2632,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">452</span>
+          <span class="site-state-item-count">453</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
