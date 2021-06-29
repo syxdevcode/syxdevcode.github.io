@@ -182,6 +182,416 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/08/03/Ocelot%E4%B8%8EConsul%E9%9B%86%E6%88%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/08/03/Ocelot%E4%B8%8EConsul%E9%9B%86%E6%88%90/" class="post-title-link" itemprop="url">Ocelot与Consul集成</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-08-03 08:42:09" itemprop="dateCreated datePublished" datetime="2018-08-03T08:42:09+00:00">2018-08-03</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-06-29 09:05:27" itemprop="dateModified" datetime="2021-06-29T09:05:27+00:00">2021-06-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Ocelot/" itemprop="url" rel="index"><span itemprop="name">Ocelot</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="API网关"><a href="#API网关" class="headerlink" title="API网关"></a>API网关</h1><p>API网关是一个服务器，是系统的唯一入口。从面向对象设计的角度看，它与外观模式类似。API网关封装了系统内部架构，为每个客户端提供一个定制的API。它可能还具有其它职责，如身份验证、监控、负载均衡、缓存、请求分片与管理、静态响应处理。<br>API网关方式的核心要点是，所有的客户端和消费端都通过统一的网关接入微服务，在网关层处理所有的非业务功能。通常，网关也是提供REST/HTTP的访问API。服务端通过API-GW注册和管理服务。</p>
+<h2 id="Ocelot简介"><a href="#Ocelot简介" class="headerlink" title="Ocelot简介"></a>Ocelot简介</h2><p>Ocelot是一个使用.NET Core平台上的一个API Gateway，这个项目的目标是在.NET上面运行微服务架构。Ocelot框架内部集成了IdentityServer（身份验证）和Consul（服务注册发现），还引入了Polly（上一篇博文中提到过）来处理进行故障处理。<br>Ocelot的实现原理就是把客户端对网关的请求(Request)，按照configuration.json的映射配置，转发给对应的后端http service，然后从后端http service获取响应(Response)后，再返回给客户端。当然有了网关后，我们可以在网关这层去做统一验证，也可以在网关处统一作监控。</p>
+<h2 id="集成Ocelot网关"><a href="#集成Ocelot网关" class="headerlink" title="集成Ocelot网关"></a>集成Ocelot网关</h2><h3 id="新建项目"><a href="#新建项目" class="headerlink" title="新建项目"></a>新建项目</h3><p>新建三个项目，ProductService,ClientService,APIGateWay；</p>
+<p>APIGateWay项目新建配置文件。</p>
+<p>注意新建的json文件需要更改属性，选择【如果较新则复制】或【始终复制】</p>
+<p>参考代码：</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/syxdevcode/GateWayDemo.git">https://github.com/syxdevcode/GateWayDemo.git</a></p>
+<h3 id="部署项目"><a href="#部署项目" class="headerlink" title="部署项目"></a>部署项目</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> https://github.com/syxdevcode/GateWayDemo.git <span class="comment">## 下载项目</span></span><br><span class="line">git pull origin master <span class="comment">## 更新代码</span></span><br><span class="line">docker-compose up -d --build <span class="comment">## 执行docker-compose命令</span></span><br></pre></td></tr></table></figure>
+
+<p>项目成功启动之后，查看运行后的IP</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">docker inspect -f <span class="string">&#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27;</span> gatewaydemo_demo.productservice_1</span><br><span class="line"></span><br><span class="line">docker inspect -f <span class="string">&#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27;</span> gatewaydemo_demo.clientservice_1</span><br></pre></td></tr></table></figure>
+
+<p>记录ClientService和ProductService容器的IP。</p>
+<h4 id="开放主机端口"><a href="#开放主机端口" class="headerlink" title="开放主机端口"></a>开放主机端口</h4><p>主要供consul可以访问到网关项目地址。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo firewall-cmd --zone=public --add-port=5000/tcp --permanent</span><br><span class="line">sudo firewall-cmd --zone=public --add-port=5001/tcp --permanent</span><br><span class="line">sudo firewall-cmd --zone=public --add-port=5002/tcp --permanent</span><br><span class="line">sudo firewall-cmd --reload</span><br></pre></td></tr></table></figure>
+
+<h3 id="重新运行Consul客户端容器"><a href="#重新运行Consul客户端容器" class="headerlink" title="重新运行Consul客户端容器"></a>重新运行Consul客户端容器</h3><p>在consul运行目录-&gt;config目录，新建ocelot_apigateway.json文件，填入已下内容：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="attr">&quot;services&quot;</span>:[</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="attr">&quot;id&quot;</span>: <span class="string">&quot;gatewaydemo_demo.clientservice_1&quot;</span>,</span><br><span class="line">            <span class="attr">&quot;name&quot;</span> : <span class="string">&quot;Demo.ClientService&quot;</span>,</span><br><span class="line">            <span class="attr">&quot;tags&quot;</span>: [</span><br><span class="line">                <span class="string">&quot;urlprefix-/clientservice&quot;</span></span><br><span class="line">            ],</span><br><span class="line">            <span class="attr">&quot;address&quot;</span>: <span class="string">&quot;172.18.0.4&quot;</span>, <span class="comment">// 对应clientservice容器IP</span></span><br><span class="line">            <span class="attr">&quot;port&quot;</span>: <span class="number">5001</span>,</span><br><span class="line">            <span class="attr">&quot;checks&quot;</span>: [</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="attr">&quot;name&quot;</span>: <span class="string">&quot;clientservice_check&quot;</span>,</span><br><span class="line">                    <span class="attr">&quot;http&quot;</span>: <span class="string">&quot;http://172.18.0.4:5001/api/health&quot;</span>,<span class="comment">// 对应clientservice项目连接</span></span><br><span class="line">                    <span class="attr">&quot;interval&quot;</span>: <span class="string">&quot;10s&quot;</span>,</span><br><span class="line">                    <span class="attr">&quot;timeout&quot;</span>: <span class="string">&quot;5s&quot;</span></span><br><span class="line">                &#125;</span><br><span class="line">            ]</span><br><span class="line">        &#125;,</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="attr">&quot;id&quot;</span>: <span class="string">&quot;gatewaydemo_demo.productservice_1&quot;</span>,</span><br><span class="line">            <span class="attr">&quot;name&quot;</span> : <span class="string">&quot;Demo.ProductService&quot;</span>,</span><br><span class="line">            <span class="attr">&quot;tags&quot;</span>: [</span><br><span class="line">                <span class="string">&quot;urlprefix-/productservice&quot;</span></span><br><span class="line">            ],</span><br><span class="line">            <span class="attr">&quot;address&quot;</span>: <span class="string">&quot;172.18.0.3&quot;</span>, <span class="comment">// 对应productserver容器IP</span></span><br><span class="line">            <span class="attr">&quot;port&quot;</span>: <span class="number">5002</span>,</span><br><span class="line">            <span class="attr">&quot;checks&quot;</span>: [</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="attr">&quot;name&quot;</span>: <span class="string">&quot;productservice_check&quot;</span>,</span><br><span class="line">                    <span class="attr">&quot;http&quot;</span>: <span class="string">&quot;http://172.18.0.3:5002/api/health&quot;</span>, <span class="comment">// 对应productservice项目连接</span></span><br><span class="line">                    <span class="attr">&quot;interval&quot;</span>: <span class="string">&quot;10s&quot;</span>,</span><br><span class="line">                    <span class="attr">&quot;timeout&quot;</span>: <span class="string">&quot;5s&quot;</span></span><br><span class="line">                &#125;</span><br><span class="line">            ]</span><br><span class="line">        &#125;</span><br><span class="line">     ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>重新运行client1容器,如果容器存在，应当先删除容器</p>
+<p>需要在consul目录的上一级运行docker run命令</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo docker rm -f client1</span><br><span class="line">sudo docker run --name=client1 -it -d -p 8500:8500 -v <span class="variable">$PWD</span>/consul:/consul consul agent -config-dir=/consul/config -config-file=/consul/client1.json</span><br></pre></td></tr></table></figure>
+
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180803095300.png" alt="QQ截图20180803095300.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180803095334.png" alt="QQ截图20180803095334.png"></p>
+<h2 id="负载均衡"><a href="#负载均衡" class="headerlink" title="负载均衡"></a>负载均衡</h2><p>新建项目:clientservice1,并且修改如下方法，<br>clientservice项目同样需要修改：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// GET api/values/5</span></span><br><span class="line">[<span class="meta">HttpGet(<span class="meta-string">&quot;&#123;id&#125;&quot;</span>)</span>]</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="built_in">string</span>[] <span class="title">Get</span>(<span class="params"><span class="built_in">int</span> id</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> <span class="built_in">string</span>[] &#123; <span class="string">$&quot;ClinetService: <span class="subst">&#123;DateTime.Now.ToString()&#125;</span> <span class="subst">&#123;Environment.MachineName&#125;</span> &quot;</span> +</span><br><span class="line">        <span class="string">$&quot;OS: <span class="subst">&#123;Environment.OSVersion.VersionString&#125;</span>&quot;</span> &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>部署项目，并获取到容器IP；</p>
+<p>ocelot配置文件中负载均衡的设置：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">&quot;ReRoutes&quot;</span>: [</span><br><span class="line">  &#123;</span><br><span class="line">    .....</span><br><span class="line">    <span class="attr">&quot;LoadBalancerOptions&quot;</span>: &#123;</span><br><span class="line">      <span class="attr">&quot;Type&quot;</span>: <span class="string">&quot;RoundRobin&quot;</span></span><br><span class="line">    &#125;,</span><br><span class="line">    .....</span><br><span class="line">  &#125;]</span><br></pre></td></tr></table></figure>
+
+<p>负载均衡LoadBalance可选值：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">RoundRobin - 轮询</span><br><span class="line">LeastConnection - 最小连接数，谁的任务最少谁来</span><br><span class="line">NoLoadBalance - 不要负载均衡</span><br></pre></td></tr></table></figure>
+
+<p>通过consul测试，需要新建一个consul client端：</p>
+<p>在consul文件夹下，新建config1文件夹，client2.json文件：</p>
+<p>client2.json配置如下：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="attr">&quot;data_dir&quot;</span>: <span class="string">&quot;/data&quot;</span>,</span><br><span class="line">    <span class="attr">&quot;datacenter&quot;</span>: <span class="string">&quot;consul-test&quot;</span>,</span><br><span class="line">    <span class="attr">&quot;log_level&quot;</span>: <span class="string">&quot;INFO&quot;</span>,</span><br><span class="line">    <span class="attr">&quot;node_name&quot;</span>: <span class="string">&quot;client2&quot;</span>,</span><br><span class="line">    <span class="attr">&quot;server&quot;</span>: <span class="literal">false</span>,</span><br><span class="line">    <span class="attr">&quot;ui&quot;</span>: <span class="literal">true</span>,</span><br><span class="line">    <span class="attr">&quot;http_config&quot;</span>: &#123;</span><br><span class="line">        <span class="attr">&quot;response_headers&quot;</span>: &#123;</span><br><span class="line">          <span class="attr">&quot;Access-Control-Allow-Origin&quot;</span>: <span class="string">&quot;*&quot;</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="attr">&quot;addresses&quot;</span>: &#123;</span><br><span class="line">        <span class="attr">&quot;http&quot;</span>: <span class="string">&quot;0.0.0.0&quot;</span></span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="attr">&quot;start_join&quot;</span>: [<span class="string">&quot;172.17.0.2&quot;</span>, <span class="string">&quot;172.17.0.3&quot;</span>, <span class="string">&quot;172.17.0.4&quot;</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在config1文件夹下，新建config.json:</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">    <span class="string">&quot;services&quot;</span>:[</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="attr">&quot;id&quot;</span>: <span class="string">&quot;gatewaydemo_demo.clientservice_1&quot;</span>,</span><br><span class="line">            <span class="attr">&quot;name&quot;</span> : <span class="string">&quot;Demo.ClientService&quot;</span>,</span><br><span class="line">            <span class="attr">&quot;tags&quot;</span>: [</span><br><span class="line">                <span class="string">&quot;urlprefix-/clientservice&quot;</span></span><br><span class="line">            ],</span><br><span class="line">            <span class="attr">&quot;address&quot;</span>: <span class="string">&quot;172.18.0.5&quot;</span>,<span class="comment">// 容器IP</span></span><br><span class="line">            <span class="attr">&quot;port&quot;</span>: <span class="number">5003</span>,</span><br><span class="line">            <span class="attr">&quot;checks&quot;</span>: [</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="attr">&quot;name&quot;</span>: <span class="string">&quot;clientservice_check&quot;</span>,</span><br><span class="line">                    <span class="attr">&quot;http&quot;</span>: <span class="string">&quot;http://172.18.0.5:5003/api/health&quot;</span>,</span><br><span class="line">                    <span class="attr">&quot;interval&quot;</span>: <span class="string">&quot;10s&quot;</span>,</span><br><span class="line">                    <span class="attr">&quot;timeout&quot;</span>: <span class="string">&quot;5s&quot;</span></span><br><span class="line">                &#125;</span><br><span class="line">            ]</span><br><span class="line">        &#125;</span><br><span class="line">     ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>显示结果：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180803154641.png" alt="QQ截图20180803154641.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180803154718.png" alt="QQ截图20180803154718.png"></p>
+<h2 id="动态路由（Dynamic-Routing）"><a href="#动态路由（Dynamic-Routing）" class="headerlink" title="动态路由（Dynamic Routing）"></a>动态路由（Dynamic Routing）</h2><p>参考代码：</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/syxdevcode/GateWayDemo.git">https://github.com/syxdevcode/GateWayDemo.git</a></p>
+<p>效果：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180803173238.png" alt="QQ截图20180803173238.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180803173307.png" alt="QQ截图20180803173307.png"></p>
+<h2 id="集成Swagger统一API文档入口"><a href="#集成Swagger统一API文档入口" class="headerlink" title="集成Swagger统一API文档入口"></a>集成Swagger统一API文档入口</h2><p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180806113303.png" alt="QQ截图20180806113303.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180806113358.png" alt="QQ截图20180806113358.png"></p>
+<p>注：docker部署项目，需要在项目.csproj文件中添加如下属性：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&lt;PropertyGroup&gt;</span><br><span class="line">  &lt;GenerateDocumentationFile&gt;<span class="literal">true</span>&lt;/GenerateDocumentationFile&gt;</span><br><span class="line">  &lt;NoWarn&gt;$(NoWarn);<span class="number">1591</span>&lt;/NoWarn&gt;</span><br><span class="line">&lt;/PropertyGroup&gt;</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/edisonchou/p/api_gateway_ocelot_foundation_01.html">.NET Core微服务之基于Ocelot实现API网关服务</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/axzxs2001/p/8487521.html">Ocelot + Consul实践</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/edisonchou/p/api_gateway_ocelot_foundation_02.html">.NET Core微服务之基于Ocelot实现API网关服务（续）</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/savorboard/p/api-gateway.html">谈谈微服务中的 API 网关（API Gateway）</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/08/02/%E7%94%A8%E6%88%B7%E5%90%8D-%E4%B8%8D%E5%9C%A8-sudoers%E6%96%87%E4%BB%B6%E4%B8%AD%EF%BC%8C%E6%AD%A4%E4%BA%8B%E5%B0%86%E8%A2%AB%E6%8A%A5%E5%91%8A/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/08/02/%E7%94%A8%E6%88%B7%E5%90%8D-%E4%B8%8D%E5%9C%A8-sudoers%E6%96%87%E4%BB%B6%E4%B8%AD%EF%BC%8C%E6%AD%A4%E4%BA%8B%E5%B0%86%E8%A2%AB%E6%8A%A5%E5%91%8A/" class="post-title-link" itemprop="url">用户名 不在 sudoers文件中，此事将被报告</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-08-02 11:22:49" itemprop="dateCreated datePublished" datetime="2018-08-02T11:22:49+00:00">2018-08-02</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-06-29 09:05:27" itemprop="dateModified" datetime="2021-06-29T09:05:27+00:00">2021-06-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/CentOS7/" itemprop="url" rel="index"><span itemprop="name">CentOS7</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>root账户执行以下命令，或者使用<code>sudo</code>,否则提示权限不足。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/sudoers</span><br></pre></td></tr></table></figure>
+
+<p>找到root用户：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">## Allow root to run any commands anywhere</span></span><br><span class="line">root    ALL=(ALL)       ALL</span><br><span class="line">toor    ALL=(ALL)       ALL</span><br></pre></td></tr></table></figure>
+
+<p>:!wq<br>退出保存</p>
+<p>sudoers的权限是0440，即只有root才能读。在你用root或sudo后强行保存（wq!）即可。</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/08/02/Centos7%E5%AE%89%E8%A3%85Docker-Compose/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/08/02/Centos7%E5%AE%89%E8%A3%85Docker-Compose/" class="post-title-link" itemprop="url">Centos7安装Docker-Compose</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-08-02 10:32:55" itemprop="dateCreated datePublished" datetime="2018-08-02T10:32:55+00:00">2018-08-02</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-06-29 09:05:27" itemprop="dateModified" datetime="2021-06-29T09:05:27+00:00">2021-06-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Docker-Compose/" itemprop="url" rel="index"><span itemprop="name">Docker Compose</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="下载包"><a href="#下载包" class="headerlink" title="下载包"></a>下载包</h1><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo curl -L https://github.com/docker/compose/releases/download/<span class="number">1.22</span>.<span class="number">0</span>/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose</span><br></pre></td></tr></table></figure>
+
+<p>注意出现：<code>curl: (35) Peer reports incompatible or unsupported protocol version.</code></p>
+<p>需要更新nss,curl</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo yum update nss curl</span><br></pre></td></tr></table></figure>
+
+<h1 id="授权"><a href="#授权" class="headerlink" title="授权"></a>授权</h1><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo chmod +x /usr/<span class="built_in">local</span>/bin/docker-compose</span><br></pre></td></tr></table></figure>
+
+<h1 id="查看版本"><a href="#查看版本" class="headerlink" title="查看版本"></a>查看版本</h1><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker-compose --version</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://docs.docker.com/compose/install/#install-compose">https://docs.docker.com/compose/install/#install-compose</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/07/26/Polly%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8%E8%8C%83%E4%BE%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/07/26/Polly%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8%E8%8C%83%E4%BE%8B/" class="post-title-link" itemprop="url">Polly基本使用范例</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-07-26 16:11:28" itemprop="dateCreated datePublished" datetime="2018-07-26T16:11:28+00:00">2018-07-26</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-06-29 09:05:27" itemprop="dateModified" datetime="2021-06-29T09:05:27+00:00">2021-06-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Polly/" itemprop="url" rel="index"><span itemprop="name">Polly</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h1><p>Polly是一个被.NET基金会认可的弹性和瞬态故障处理库，允许我们以非常顺畅和线程安全的方式来执诸如行重试</p>
+<p>官网：<a target="_blank" rel="noopener" href="http://www.thepollyproject.org/">http://www.thepollyproject.org/</a></p>
+<p>源码：<a target="_blank" rel="noopener" href="https://github.com/App-vNext/Polly">https://github.com/App-vNext/Polly</a></p>
+<p>其主要功能如下：</p>
+<ul>
+<li>重试（Retry）</li>
+<li>断路器（Circuit-Breaker）</li>
+<li>超时检测（Timeout）</li>
+<li>隔板隔离 (Bulkhead Isolation)</li>
+<li>缓存（Cache）</li>
+<li>降级（Fallback）</li>
+</ul>
+<p>在Polly中，对这些服务容错模式分为两类：</p>
+<ul>
+<li>错误处理(fault handling)：重试、熔断、回退（降级）</li>
+<li>弹性应变(resilience)：超时、舱壁、缓存</li>
+</ul>
+<p>可以说错误处理是当错误已经发生时，防止由于该错误对整个系统造成更坏的影响而设置。而弹性应变，则在是错误发生前，针对有可能发生错误的地方进行预先处理，从而达到保护整个系统的目地。</p>
+<h1 id="错误处理-fault-handling"><a href="#错误处理-fault-handling" class="headerlink" title="错误处理(fault handling)"></a>错误处理(fault handling)</h1><h2 id="重试"><a href="#重试" class="headerlink" title="重试"></a>重试</h2><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Test1</span>(<span class="params"></span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">try</span></span><br><span class="line">    &#123;</span><br><span class="line">        ISyncPolicy policy = Policy.Handle&lt;ArgumentException&gt;()</span><br><span class="line">        .Retry(<span class="number">2</span>, (ex, retryCount, context) =&gt;</span><br><span class="line">         &#123;</span><br><span class="line">             Console.WriteLine(<span class="string">$&quot;Error occured,runing fallback,exception :<span class="subst">&#123;ex.Message&#125;</span>,retryCount:<span class="subst">&#123;retryCount&#125;</span>&quot;</span>);</span><br><span class="line">         &#125;);</span><br><span class="line"></span><br><span class="line">        policy.Execute(() =&gt;</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;Job Start&quot;</span>);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentException(<span class="string">&quot;Hello Polly!&quot;</span>);</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">    catch (Exception ex)</span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;There&#x27;s one unhandled exception : &quot;</span> + ex.Message);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>.Retry(3) ：按次数重试</li>
+<li>.RetryForever() ：不断重试(直到成功)</li>
+<li>.WaitAndRetry() ：等待之后重试</li>
+<li>.WaitAndRetryForever ：等待并永远重试（直到成功</li>
+</ul>
+<h2 id="熔断-Circuit-Breaker"><a href="#熔断-Circuit-Breaker" class="headerlink" title="熔断 Circuit Breaker"></a>熔断 Circuit Breaker</h2><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">CircuitBreaker</span>(<span class="params"></span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    Action&lt;Exception, TimeSpan, Context&gt; onBreak = (exception, timespan, context) =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;onBreak Running : &quot;</span> + exception.Message);</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    Action&lt;Context&gt; onReset = context =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;Job Back to normal&quot;</span>);</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    CircuitBreakerPolicy breaker = Policy</span><br><span class="line">        .Handle&lt;AggregateException&gt;()</span><br><span class="line">        .CircuitBreaker(<span class="number">3</span>, TimeSpan.FromSeconds(<span class="number">10</span>), onBreak, onReset);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Monitor the circuit state, for example for health reporting.</span></span><br><span class="line">    CircuitState state = breaker.CircuitState;</span><br><span class="line"></span><br><span class="line">    ISyncPolicy policy = Policy.Handle&lt;ArgumentException&gt;()</span><br><span class="line">        .Retry(<span class="number">3</span>, (ex, retryCount, context) =&gt;</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(<span class="string">$&quot;Runing fallback,Exception :<span class="subst">&#123;ex.Message&#125;</span>,RetryCount:<span class="subst">&#123;retryCount&#125;</span>&quot;</span>);</span><br><span class="line">        &#125;);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> (<span class="literal">true</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">try</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">var</span> policyWrap = Policy.Wrap(policy, breaker);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// (wraps the policies around any executed delegate: fallback outermost ... bulkhead innermost)</span></span><br><span class="line">            policyWrap.Execute(() =&gt;</span><br><span class="line">            &#123;</span><br><span class="line">                Console.WriteLine(<span class="string">&quot;Job Start&quot;</span>);</span><br><span class="line"></span><br><span class="line">                <span class="keyword">if</span> (DateTime.Now.Second % <span class="number">3</span> == <span class="number">0</span>)</span><br><span class="line">                    <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentException(<span class="string">&quot;Hello Polly!&quot;</span>);</span><br><span class="line">            &#125;);</span><br><span class="line">        &#125;</span><br><span class="line">        catch (Exception ex)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="comment">// 手动打开熔断器，阻止执行</span></span><br><span class="line">            breaker.Isolate();</span><br><span class="line">        &#125;</span><br><span class="line">        Thread.Sleep(<span class="number">1000</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 恢复操作，启动执行</span></span><br><span class="line">        breaker.Reset();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="降级-Fallback"><a href="#降级-Fallback" class="headerlink" title="降级 Fallback"></a>降级 Fallback</h2><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">FallbackTest</span>(<span class="params"></span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    ISyncPolicy policy = Policy.Handle&lt;ArgumentException&gt;()</span><br><span class="line">    .Fallback(() =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;Error occured,runing fallback&quot;</span>);</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    policy.Execute(() =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;Job Start&quot;</span>);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentException(<span class="string">&quot;Hello Polly!&quot;</span>);</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="弹性应变处理-Resilience"><a href="#弹性应变处理-Resilience" class="headerlink" title="弹性应变处理 (Resilience)"></a>弹性应变处理 (Resilience)</h1><h2 id="超时"><a href="#超时" class="headerlink" title="超时"></a>超时</h2><p>Timeout则是指超时处理，但是超时策略一般不能直接使用，而是其其他策略封装到一起使用。<br>常用悲观超时。</p>
+<h3 id="乐观超时-Optimistic-timeout"><a href="#乐观超时-Optimistic-timeout" class="headerlink" title="乐观超时 (Optimistic timeout)"></a>乐观超时 (Optimistic timeout)</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">Should_be_able_to_cancel_with_user_cancellation_token_before_timeout__optimistic</span>(<span class="params"></span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">int</span> timeout = <span class="number">10</span>;</span><br><span class="line">    <span class="keyword">var</span> policy = Policy.TimeoutAsync(timeout, TimeoutStrategy.Optimistic);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">using</span> (CancellationTokenSource userTokenSource = <span class="keyword">new</span> CancellationTokenSource())</span><br><span class="line">    &#123;</span><br><span class="line">        policy.Awaiting(<span class="keyword">async</span> p =&gt; <span class="keyword">await</span> p.ExecuteAsync(</span><br><span class="line">            ct =&gt; &#123;</span><br><span class="line">                userTokenSource.Cancel(); ct.ThrowIfCancellationRequested();   <span class="comment">// Simulate cancel in the middle of execution</span></span><br><span class="line">                <span class="keyword">return</span> TaskHelper.EmptyTask;</span><br><span class="line">            &#125;, userTokenSource.Token) <span class="comment">// ... with user token.</span></span><br><span class="line">           ).ShouldThrow&lt;OperationCanceledException&gt;();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="悲观超时"><a href="#悲观超时" class="headerlink" title="悲观超时"></a>悲观超时</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">PessimisticTimeOutTest</span>(<span class="params"></span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    CancellationTokenSource userCancellationSource = <span class="keyword">new</span> CancellationTokenSource();</span><br><span class="line"></span><br><span class="line">    ISyncPolicy fallback = Policy.Handle&lt;Polly.Timeout.TimeoutRejectedException&gt;()</span><br><span class="line">         .Or&lt;ArgumentException&gt;()</span><br><span class="line">         .Fallback(() =&gt;</span><br><span class="line">         &#123;</span><br><span class="line">             Console.WriteLine(<span class="string">&quot;Error occured,runing fallback&quot;</span>);</span><br><span class="line">         &#125;,</span><br><span class="line">         (ex) =&gt; &#123; Console.WriteLine(<span class="string">$&quot;Fallback exception:<span class="subst">&#123;ex.GetType().ToString()&#125;</span>,Message:<span class="subst">&#123;ex.Message&#125;</span>&quot;</span>); &#125;);</span><br><span class="line"></span><br><span class="line">    ISyncPolicy policyTimeout = Policy.Timeout(<span class="number">3</span>, Polly.Timeout.TimeoutStrategy.Pessimistic);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> (<span class="literal">true</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">var</span> policyWrap = Policy.Wrap(fallback, policyTimeout);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// (wraps the policies around any executed delegate: fallback outermost ... bulkhead innermost)</span></span><br><span class="line">        policyWrap.Execute(() =&gt;</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;Job Start&quot;</span>);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (DateTime.Now.Second % <span class="number">2</span> == <span class="number">0</span>)</span><br><span class="line">            &#123;</span><br><span class="line">                Thread.Sleep(<span class="number">3000</span>);</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentException(<span class="string">&quot;Hello Polly!&quot;</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        Thread.Sleep(<span class="number">300</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="舱壁-Bulkhead"><a href="#舱壁-Bulkhead" class="headerlink" title="舱壁 Bulkhead"></a>舱壁 Bulkhead</h2><p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/App-vNext/Polly">https://github.com/App-vNext/Polly</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/07/25/%E5%AE%B9%E9%94%99%E5%A4%84%E7%90%86%E5%BA%93Polly%E4%BD%BF%E7%94%A8%E6%96%87%E6%A1%A3/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +623,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 08:04:08" itemprop="dateModified" datetime="2021-06-29T08:04:08+00:00">2021-06-29</time>
+                <time title="修改时间：2021-06-29 09:05:27" itemprop="dateModified" datetime="2021-06-29T09:05:27+00:00">2021-06-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -362,7 +772,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 08:04:08" itemprop="dateModified" datetime="2021-06-29T08:04:08+00:00">2021-06-29</time>
+                <time title="修改时间：2021-06-29 09:05:27" itemprop="dateModified" datetime="2021-06-29T09:05:27+00:00">2021-06-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -447,7 +857,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 08:04:08" itemprop="dateModified" datetime="2021-06-29T08:04:08+00:00">2021-06-29</time>
+                <time title="修改时间：2021-06-29 09:05:27" itemprop="dateModified" datetime="2021-06-29T09:05:27+00:00">2021-06-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -526,7 +936,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 08:04:08" itemprop="dateModified" datetime="2021-06-29T08:04:08+00:00">2021-06-29</time>
+                <time title="修改时间：2021-06-29 09:05:27" itemprop="dateModified" datetime="2021-06-29T09:05:27+00:00">2021-06-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -607,7 +1017,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 08:04:08" itemprop="dateModified" datetime="2021-06-29T08:04:08+00:00">2021-06-29</time>
+                <time title="修改时间：2021-06-29 09:05:27" itemprop="dateModified" datetime="2021-06-29T09:05:27+00:00">2021-06-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -798,7 +1208,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 08:04:08" itemprop="dateModified" datetime="2021-06-29T08:04:08+00:00">2021-06-29</time>
+                <time title="修改时间：2021-06-29 09:05:27" itemprop="dateModified" datetime="2021-06-29T09:05:27+00:00">2021-06-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -883,7 +1293,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 08:04:08" itemprop="dateModified" datetime="2021-06-29T08:04:08+00:00">2021-06-29</time>
+                <time title="修改时间：2021-06-29 09:05:27" itemprop="dateModified" datetime="2021-06-29T09:05:27+00:00">2021-06-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1011,7 +1421,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 08:04:08" itemprop="dateModified" datetime="2021-06-29T08:04:08+00:00">2021-06-29</time>
+                <time title="修改时间：2021-06-29 09:05:27" itemprop="dateModified" datetime="2021-06-29T09:05:27+00:00">2021-06-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1243,7 +1653,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 08:04:08" itemprop="dateModified" datetime="2021-06-29T08:04:08+00:00">2021-06-29</time>
+                <time title="修改时间：2021-06-29 09:05:27" itemprop="dateModified" datetime="2021-06-29T09:05:27+00:00">2021-06-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1444,7 +1854,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 08:04:08" itemprop="dateModified" datetime="2021-06-29T08:04:08+00:00">2021-06-29</time>
+                <time title="修改时间：2021-06-29 09:05:27" itemprop="dateModified" datetime="2021-06-29T09:05:27+00:00">2021-06-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1544,7 +1954,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 08:04:08" itemprop="dateModified" datetime="2021-06-29T08:04:08+00:00">2021-06-29</time>
+                <time title="修改时间：2021-06-29 09:05:27" itemprop="dateModified" datetime="2021-06-29T09:05:27+00:00">2021-06-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1577,744 +1987,6 @@
 <p><a target="_blank" rel="noopener" href="https://wenfeng-gao.github.io/2016/05/20/docker-bridge-network.html">浅谈Docker Bridge网络模式</a></p>
 <p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/sparkdev/p/9217310.html">Docker 网络之理解 bridge 驱动</a></p>
 <p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/sparkdev/p/9198109.html">Docker 网络之进阶篇</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/06/28/AspNetCore%E5%88%A9%E7%94%A8Skywalking%E7%9B%91%E6%8E%A7%E6%80%A7%E8%83%BD/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/06/28/AspNetCore%E5%88%A9%E7%94%A8Skywalking%E7%9B%91%E6%8E%A7%E6%80%A7%E8%83%BD/" class="post-title-link" itemprop="url">AspNetCore利用Skywalking监控性能</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-06-28 16:40:42" itemprop="dateCreated datePublished" datetime="2018-06-28T16:40:42+00:00">2018-06-28</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 08:04:08" itemprop="dateModified" datetime="2021-06-29T08:04:08+00:00">2021-06-29</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Skywalking/" itemprop="url" rel="index"><span itemprop="name">Skywalking</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="AspNetCore利用Skywalking监控性能"><a href="#AspNetCore利用Skywalking监控性能" class="headerlink" title="AspNetCore利用Skywalking监控性能"></a>AspNetCore利用Skywalking监控性能</h1><p><a target="_blank" rel="noopener" href="https://github.com/apache/incubator-skywalking/blob/master/README_ZH.md">SkyWalking</a>开源项目由吴晟于2015年创建，同年10月在GitHub上作为个人项目开源。</p>
-<p>SkyWalking项目的核心目标，是针对微服务、Cloud Native、容器化架构，提供应用性能监控（APM）和分布式调用链追踪能力。</p>
-<p>2017年11月，SkyWalking社区正式决定，寻求加入Apache基金会，希望能使项目成为更为开放、全球化和强大的APM开源产品，并加强来自社区的合作和交流。最终实现构建一款功能强大、简单易用的开源APM产品。</p>
-<p>2017年12月8日，Apache软件基金会孵化器项目管理委员会 ASF IPMC宣布“SkyWalking全票通过，进入Apache孵化器”。</p>
-<p>** 软件环境**</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">CentOS7</span><br><span class="line">Docker 18.03.1-ce</span><br><span class="line">ElasticSearch5.X</span><br><span class="line">AspDotNetCore2.x</span><br><span class="line">skywalking 5.0.0-beta</span><br></pre></td></tr></table></figure>
-
-<h2 id="Docker安装ElasticSearch5-X"><a href="#Docker安装ElasticSearch5-X" class="headerlink" title="Docker安装ElasticSearch5.X"></a>Docker安装ElasticSearch5.X</h2><p>新建docker-compose.yml文件：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">touch docker-compose.yml</span><br></pre></td></tr></table></figure>
-
-<p>编辑，填入以下内容：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">version: <span class="string">&#x27;2.2&#x27;</span></span><br><span class="line">services:</span><br><span class="line">  elasticsearch5.<span class="number">6</span>:</span><br><span class="line">    image: docker.elastic.co/elasticsearch/elasticsearch:<span class="number">5.6</span>.<span class="number">10</span></span><br><span class="line">    container_name: elasticsearch5.<span class="number">6</span></span><br><span class="line">    environment:</span><br><span class="line">      - cluster.name=CollectorDBCluster</span><br><span class="line">      - xpack.security.enabled=false</span><br><span class="line">      - network.host= <span class="number">0.0</span>.<span class="number">0.0</span></span><br><span class="line">      - thread_pool.bulk.queue_size=<span class="number">1000</span></span><br><span class="line">      - bootstrap.memory_lock=true</span><br><span class="line">      - <span class="string">&quot;ES_JAVA_OPTS=-Xms512m -Xmx512m&quot;</span></span><br><span class="line">    ulimits:</span><br><span class="line">      memlock:</span><br><span class="line">        soft: -<span class="number">1</span></span><br><span class="line">        hard: -<span class="number">1</span></span><br><span class="line">    volumes:</span><br><span class="line">      - esdata1:/usr/share/elasticsearch/data</span><br><span class="line">    ports:</span><br><span class="line">      - <span class="number">9200</span>:<span class="number">9200</span></span><br><span class="line">      - <span class="number">9300</span>:<span class="number">9300</span></span><br><span class="line">    networks:</span><br><span class="line">      - esnet</span><br><span class="line">volumes:</span><br><span class="line">  esdata1:</span><br><span class="line">    driver: local</span><br><span class="line">networks:</span><br><span class="line">  esnet:</span><br></pre></td></tr></table></figure>
-
-<p>注：需要使用xpack.security.enabled=false，关闭xpack身份验证。</p>
-<p>启动：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">docker-compose up -d</span><br><span class="line">docker ps <span class="comment"># 查看容器</span></span><br></pre></td></tr></table></figure>
-
-<h2 id="部署skywalking"><a href="#部署skywalking" class="headerlink" title="部署skywalking"></a>部署skywalking</h2><p>官网：<a target="_blank" rel="noopener" href="https://github.com/apache/incubator-skywalking/releases">https://github.com/apache/incubator-skywalking/releases</a></p>
-<p>参考：<a target="_blank" rel="noopener" href="https://github.com/apache/incubator-skywalking/blob/master/docs/en/Deploy-backend-in-standalone-mode.md">https://github.com/apache/incubator-skywalking/blob/master/docs/en/Deploy-backend-in-standalone-mode.md</a></p>
-<p>下载<a target="_blank" rel="noopener" href="https://github.com/apache/incubator-skywalking/archive/v5.0.0-beta.tar.gz">5.0.0-beta</a></p>
-<p>解压：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tar -xzvf apache-skywalking-apm-incubating-5.0.0-beta.tar.gz</span><br></pre></td></tr></table></figure>
-
-<p>** 修改配置**</p>
-<p>（1） 修改/bin目录下webappService.sh</p>
-<p>–collector.ribbon.listOfServers=192.168.0.110:10800</p>
-<p>修改localhost为本地IP地址：</p>
-<p>localhost=&gt;192.168.0.110</p>
-<p>（2） 修改config目录下application.yml</p>
-<p>修改localhost为本地IP地址：</p>
-<p>localhost=&gt;192.168.0.110</p>
-<p>进入解压后的目录，运行：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./bin/startup.sh</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">SkyWalking Collector started successfully!</span><br><span class="line">SkyWalking Web Application started successfully!</span><br></pre></td></tr></table></figure>
-
-<p>查看主机监控的端口：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">netstat -ntlp</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">tcp6       0      0 192.168.0.110:12800     :::*                    LISTEN      4147/java</span><br><span class="line">tcp6       0      0 192.168.0.110:10800     :::*                    LISTEN      4147/java</span><br><span class="line">tcp6       0      0 :::8080                 :::*                    LISTEN      4153/java</span><br><span class="line">tcp6       0      0 :::9200                 :::*                    LISTEN      3682/docker-proxy</span><br><span class="line">tcp6       0      0 :::8083                 :::*                    LISTEN      3971/docker-proxy</span><br><span class="line">tcp6       0      0 :::8084                 :::*                    LISTEN      3868/docker-proxy</span><br><span class="line">tcp6       0      0 :::9300                 :::*                    LISTEN      3672/docker-proxy</span><br><span class="line">tcp6       0      0 192.168.0.110:11800     :::*                    LISTEN      4147/java</span><br></pre></td></tr></table></figure>
-
-<p>其中8080，10800，11800，12800为skywalking程序使用的端口，<br>8083，8084为AspDotNetCore使用端口<br>9200，9300为EalsticSearch使用端口</p>
-<h2 id="运行dotnetcore应用"><a href="#运行dotnetcore应用" class="headerlink" title="运行dotnetcore应用"></a>运行dotnetcore应用</h2><h3 id="1-获取AspDotNetCore项目"><a href="#1-获取AspDotNetCore项目" class="headerlink" title="1.获取AspDotNetCore项目"></a>1.获取AspDotNetCore项目</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> https://github.com/syxdevcode/SkyWalking.Sample.git <span class="comment">## 克隆项目</span></span><br><span class="line">git pull origin master <span class="comment">## 更新代码（可选）</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="2-使用docker-compose命令启动"><a href="#2-使用docker-compose命令启动" class="headerlink" title="2.使用docker-compose命令启动"></a>2.使用docker-compose命令启动</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker-compose up -d --build</span><br></pre></td></tr></table></figure>
-
-<p>注：运行可能遇到问题：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Unable to load the service index <span class="keyword">for</span> <span class="built_in">source</span> https://api.nuget.org/v3/index.json</span><br></pre></td></tr></table></figure>
-
-<p>可能因为镜像服务问题：</p>
-<p>解决：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/docker/daemon.json</span><br></pre></td></tr></table></figure>
-
-<p>修改前：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  &quot;registry-mirrors&quot;: [&quot;https://lhao27k5.mirror.aliyuncs.com&quot;]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>修改后：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  &quot;registry-mirrors&quot;: [&quot;https://registry.docker-cn.com&quot;]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>重启docker服务：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl daemon-reload</span><br><span class="line">sudo systemctl restart docker</span><br></pre></td></tr></table></figure>
-
-<p>之后继续执行docker-compose命令，同时，不要忘记将elasticsearch容器启动。</p>
-<p>查看容器IP：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">docker inspect -f <span class="string">&#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27;</span> skywalkingsample_skywalkingfrontend_1</span><br><span class="line">docker inspect -f <span class="string">&#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27;</span> skywalkingsample_skywalkingbackend_1</span><br></pre></td></tr></table></figure>
-
-<h3 id="3-firewalld添加端口"><a href="#3-firewalld添加端口" class="headerlink" title="3.firewalld添加端口"></a>3.firewalld添加端口</h3><p>在docker容器内部无法访问宿主机-No route to host问题，需要在宿主机防火墙添加端口，或者关闭防火墙（不推荐）</p>
-<p>(1) 关闭/启动防火墙：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">systemctl start firewalld</span><br><span class="line">systemctl stop firewalld</span><br></pre></td></tr></table></figure>
-
-<p>(2) 添加端口</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">firewall-cmd --zone=public --add-port=8080/tcp --permanent</span><br><span class="line">firewall-cmd --zone=public --add-port=11800/tcp --permanent</span><br><span class="line">firewall-cmd --reload</span><br></pre></td></tr></table></figure>
-
-<h3 id="4-测试AspDotNetCore程序接口"><a href="#4-测试AspDotNetCore程序接口" class="headerlink" title="4.测试AspDotNetCore程序接口"></a>4.测试AspDotNetCore程序接口</h3><p>（1） Backend项目Put接口</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">curl --header <span class="string">&quot;Content-Type: application/json&quot;</span> \</span><br><span class="line">  --request PUT \</span><br><span class="line">  --data <span class="string">&#x27;&#123;&quot;Id&quot;:&quot;1&quot;,&quot;Name&quot;:&quot;Test1&quot;&#125;&#x27;</span> \</span><br><span class="line">  http://192.168.0.110:8084/api/apps</span><br></pre></td></tr></table></figure>
-
-<p>(2) Backend项目Get接口</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">curl http://localhost:8084/api/apps</span><br><span class="line">[&#123;<span class="string">&quot;id&quot;</span>:1,<span class="string">&quot;name&quot;</span>:<span class="string">&quot;Test1&quot;</span>&#125;]</span><br></pre></td></tr></table></figure>
-
-<h3 id="5-查看skywalking"><a href="#5-查看skywalking" class="headerlink" title="5.查看skywalking"></a>5.查看skywalking</h3><p>访问：<a target="_blank" rel="noopener" href="http://localhost:8080/#/monitor/dashboard">http://localhost:8080/#/monitor/dashboard</a></p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180629105145.png" alt="QQ截图20180629105145.png"></p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://github.com/apache/incubator-skywalking/blob/master/docs/en/Deploy-backend-in-standalone-mode.md">https://github.com/apache/incubator-skywalking/blob/master/docs/en/Deploy-backend-in-standalone-mode.md</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/3ddd986c7581?from=timeline&isappinstalled=0">利用Skywalking-netcore监控你的应用性能</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/liuhaoyang/p/skywalking-dotnet-v02-release.html">Apache SkyWalking 为.NET Core带来开箱即用的分布式追踪和应用性能监控</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/06/25/Docker%E5%AE%89%E8%A3%85Elasticsearch/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/06/25/Docker%E5%AE%89%E8%A3%85Elasticsearch/" class="post-title-link" itemprop="url">Docker安装Elasticsearch</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-06-25 09:01:07" itemprop="dateCreated datePublished" datetime="2018-06-25T09:01:07+00:00">2018-06-25</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 08:04:08" itemprop="dateModified" datetime="2021-06-29T08:04:08+00:00">2021-06-29</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Elasticsearch/" itemprop="url" rel="index"><span itemprop="name">Elasticsearch</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="Docker安装Elasticsearch"><a href="#Docker安装Elasticsearch" class="headerlink" title="Docker安装Elasticsearch"></a>Docker安装Elasticsearch</h1><h2 id="用Dockeredit安装Elasticsearch"><a href="#用Dockeredit安装Elasticsearch" class="headerlink" title="用Dockeredit安装Elasticsearch"></a>用Dockeredit安装Elasticsearch</h2><p>Elasticsearch也可用作Docker镜像。 镜像使用centos:7作为基本图像。</p>
-<p>所有发布的Docker镜像和标签列表可以在<a href="www.docker.elastic.co">www.docker.elastic.co</a>找到。 源代码可以在GitHub上找到。</p>
-<p>X-Pack是一个Elastic Stack的扩展，可将安全性，警报，监控，报告和图形功能捆绑到一个易于安装的软件包中。 虽然X-Pack组件旨在无缝协同工作，您也可以轻松地启用或禁用要使用的功能。<br>在Elasticsearch 5.0.0之前，您必须安装单独的Shield，Watcher和Marvel插件，以获得X-Pack中捆绑在一起的功能。 使用X-Pack，您不再需要担心每个插件是否具有正确的版本，而只需安装您正在运行的Elasticsearch版本的X-Pack就可以了。</p>
-<h2 id="拉去镜像"><a href="#拉去镜像" class="headerlink" title="拉去镜像"></a>拉去镜像</h2><p>镜像仓库：<a target="_blank" rel="noopener" href="https://www.docker.elastic.co">https://www.docker.elastic.co</a></p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">docker pull docker.elastic.co/elasticsearch/elasticsearch:<span class="number">6.3</span>.<span class="number">0</span></span><br><span class="line">docker pull docker.elastic.co/elasticsearch/elasticsearch-oss:<span class="number">6.3</span>.<span class="number">0</span></span><br></pre></td></tr></table></figure>
-
-<h2 id="运行Elasticsearch"><a href="#运行Elasticsearch" class="headerlink" title="运行Elasticsearch"></a>运行Elasticsearch</h2><h3 id="开发模式"><a href="#开发模式" class="headerlink" title="开发模式"></a>开发模式</h3><p>使用以下命令可以快速启动Elasticsearch以进行开发或测试：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker <span class="keyword">run</span><span class="bash"> -p 9200:9200 -p 9300:9300 -e <span class="string">&quot;discovery.type=single-node&quot;</span> docker.elastic.co/elasticsearch/elasticsearch:6.3.0</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="生产模式"><a href="#生产模式" class="headerlink" title="生产模式"></a>生产模式</h3><p>Linux</p>
-<p>该vm.max_map_count设置应该在/etc/sysctl.conf中永久设置：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ vim /etc/sysctl.conf</span><br><span class="line">vm.max_map_count = <span class="number">262144</span></span><br></pre></td></tr></table></figure>
-
-<p>使命令生效：sysctl -p</p>
-<p>要在临时应用该设置： sysctl -w vm.max_map_count=262144</p>
-<p>参考：<a target="_blank" rel="noopener" href="https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html#docker-cli-run-prod-mode">https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html#docker-cli-run-prod-mode</a></p>
-<h4 id="docker-compose启动"><a href="#docker-compose启动" class="headerlink" title="docker-compose启动"></a>docker-compose启动</h4><p>启动命令：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker-compose up -d</span><br></pre></td></tr></table></figure>
-
-<p>节点elasticsearch侦听localhost:9200，而elasticsearch2 谈判elasticsearch在桥接网络。</p>
-<p>这个例子还使用了 名为卷的Docker，它将被调用esdata1，esdata2如果尚不存在，将会创建它。</p>
-<p>docker-compose.yml:</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line">version: <span class="string">&#x27;2.2&#x27;</span></span><br><span class="line">services:</span><br><span class="line">  elasticsearch:</span><br><span class="line">    image: docker.elastic.co/elasticsearch/elasticsearch:<span class="number">6.3</span>.<span class="number">0</span></span><br><span class="line">    container_name: elasticsearch</span><br><span class="line">    environment:</span><br><span class="line">      - cluster.name=CollectorDBCluster</span><br><span class="line">      - network.host= <span class="number">0.0</span>.<span class="number">0.0</span></span><br><span class="line">      - thread_pool.bulk.queue_size=<span class="number">1000</span></span><br><span class="line">      - bootstrap.memory_lock=true</span><br><span class="line">      - <span class="string">&quot;ES_JAVA_OPTS=-Xms512m -Xmx512m&quot;</span></span><br><span class="line">    ulimits:</span><br><span class="line">      memlock:</span><br><span class="line">        soft: -<span class="number">1</span></span><br><span class="line">        hard: -<span class="number">1</span></span><br><span class="line">    volumes:</span><br><span class="line">      - esdata1:/usr/share/elasticsearch/data</span><br><span class="line">    ports:</span><br><span class="line">      - <span class="number">9200</span>:<span class="number">9200</span></span><br><span class="line">    networks:</span><br><span class="line">      - esnet</span><br><span class="line">  elasticsearch2:</span><br><span class="line">    image: docker.elastic.co/elasticsearch/elasticsearch:<span class="number">6.3</span>.<span class="number">0</span></span><br><span class="line">    container_name: elasticsearch2</span><br><span class="line">    environment:</span><br><span class="line">      - cluster.name=CollectorDBCluster</span><br><span class="line">      - network.host= <span class="number">0.0</span>.<span class="number">0.0</span></span><br><span class="line">      - thread_pool.bulk.queue_size=<span class="number">1000</span></span><br><span class="line">      - bootstrap.memory_lock=true</span><br><span class="line">      - <span class="string">&quot;ES_JAVA_OPTS=-Xms512m -Xmx512m&quot;</span></span><br><span class="line">      - <span class="string">&quot;discovery.zen.ping.unicast.hosts=elasticsearch&quot;</span></span><br><span class="line">    ulimits:</span><br><span class="line">      memlock:</span><br><span class="line">        soft: -<span class="number">1</span></span><br><span class="line">        hard: -<span class="number">1</span></span><br><span class="line">    volumes:</span><br><span class="line">      - esdata2:/usr/share/elasticsearch/data</span><br><span class="line">    networks:</span><br><span class="line">      - esnet</span><br><span class="line"></span><br><span class="line">volumes:</span><br><span class="line">  esdata1:</span><br><span class="line">    driver: local</span><br><span class="line">  esdata2:</span><br><span class="line">    driver: local</span><br><span class="line"></span><br><span class="line">networks:</span><br><span class="line">  esnet:</span><br></pre></td></tr></table></figure>
-
-<p>要停止群集，请键入docker-compose down。数据量将持续存在，因此可以使用docker-compose up再次使用相同的数据启动群集。要销毁群集和数据卷，只需键入 docker-compose down -v。</p>
-<h4 id="检查群集状态"><a href="#检查群集状态" class="headerlink" title="检查群集状态"></a>检查群集状态</h4><p>查询容器IP：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">docker inspect -f <span class="string">&#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27;</span> elasticsearch</span><br><span class="line"><span class="number">172.24</span>.<span class="number">0.2</span></span><br></pre></td></tr></table></figure>
-
-<p>检查群集状态：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">curl http://127.0.0.1:9200/_cat/health <span class="comment"># 或者使用Docker IP</span></span><br><span class="line">1529905639 05:47:19 docker-cluster green 2 2 0 0 0 0 0 0 - 100.0%</span><br></pre></td></tr></table></figure>
-
-<p>使用docker logs 查看日志。</p>
-<h2 id="用Docker-配置Elasticsearch"><a href="#用Docker-配置Elasticsearch" class="headerlink" title="用Docker 配置Elasticsearch"></a>用Docker 配置Elasticsearch</h2><p>elasticsearch从/usr/share/elasticsearch/config/其下的文件加载它的配置。配置Elasticsearch和设置JVM选项中记录了这些配置文件。</p>
-<p>该镜像提供了几种配置Elasticsearch设置的方法，传统方法是提供定制文件，也就是说 elasticsearch.yml。也可以使用环境变量来设置选项：</p>
-<h3 id="通过Docker环境变量呈现参数"><a href="#通过Docker环境变量呈现参数" class="headerlink" title="通过Docker环境变量呈现参数"></a>通过Docker环境变量呈现参数</h3><p>要定义群集名称，docker run您可以通过 -e “cluster.name=mynewclustername”。双引号是必需的。</p>
-<h3 id="绑定配置"><a href="#绑定配置" class="headerlink" title="绑定配置"></a>绑定配置</h3><p>创建您的自定义配置文件并将其安装在图像的相应文件上。例如结合安装一custom_elasticsearch.yml与docker run可与参数来完成：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-v full_path_to / custom_elasticsearch.yml：/usr/share/elasticsearch/config/elasticsearch.yml</span><br></pre></td></tr></table></figure>
-
-<p>容器以用户elasticsearch使用uid：gid的方式运行Elasticsearch1000:1000。绑定安装的主机目录和文件（如custom_elasticsearch.yml上面） 需要由该用户访问。对于数据和日志文件，例如/usr/share/elasticsearch/data写入访问也是必需的。另请参阅下面的注1。</p>
-<h3 id="自定义镜像"><a href="#自定义镜像" class="headerlink" title="自定义镜像"></a>自定义镜像</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">FROM</span> docker.elastic.co/elasticsearch/elasticsearch:<span class="number">6.3</span>.<span class="number">0</span></span><br><span class="line"><span class="keyword">COPY</span><span class="bash"> --chown=elasticsearch:elasticsearch elasticsearch.yml /usr/share/elasticsearch/config/</span></span><br></pre></td></tr></table></figure>
-
-<p>然后构建镜像</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">docker build --tag=elasticsearch-custom .</span><br><span class="line">docker <span class="keyword">run</span><span class="bash"> -ti -v /usr/share/elasticsearch/data elasticsearch-custom</span></span><br></pre></td></tr></table></figure>
-
-<p>一些插件需要额外的安全权限。您必须通过tty在运行Docker映像时附加一个并在提示中接受yes 来明确接受它们，或者单独检查安全权限，并且如果您对将这些–batch标志添加到plugin install命令时感到满意，那么您必须明确接受它们。查看<a target="_blank" rel="noopener" href="https://www.elastic.co/guide/en/elasticsearch/plugins/6.3/_other_command_line_parameters.html">插件管理文档</a>了解更多详情。</p>
-<h2 id="使用Elasticsearch-Docker镜像配置SSL-TLS"><a href="#使用Elasticsearch-Docker镜像配置SSL-TLS" class="headerlink" title="使用Elasticsearch Docker镜像配置SSL/TLS"></a>使用Elasticsearch Docker镜像配置SSL/TLS</h2><p><a target="_blank" rel="noopener" href="https://www.elastic.co/guide/en/elasticsearch/reference/current/configuring-tls-docker.html">https://www.elastic.co/guide/en/elasticsearch/reference/current/configuring-tls-docker.html</a></p>
-<h2 id="生产环境注意事项"><a href="#生产环境注意事项" class="headerlink" title="生产环境注意事项"></a>生产环境注意事项</h2><ul>
-<li>1.默认情况下，Elasticsearch以elasticsearch使用uid：gid的用户身份在容器内运行1000:1000。</li>
-</ul>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mkdir esdatadir</span><br><span class="line">chmod g+rwx esdatadir</span><br><span class="line">chgrp 1000 esdatadir</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>2.确保nofile 和nproc可用于Elasticsearch容器的ulimits是非常重要的</li>
-</ul>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">--ulimit nofile = <span class="number">65536</span>：<span class="number">65536</span></span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>3.交换性能和节点稳定性需要禁用。</li>
-</ul>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-e“bootstrap.memory_lock = true”--ulimit memlock = -<span class="number">1</span>：-<span class="number">1</span></span><br></pre></td></tr></table></figure>
-
-<ul>
-<li><p>4.该镜像开放 TCP端口9200和9300.对于群集，建议随机化发布的端口–publish-all，除非您为每个主机固定一个容器。</p>
-</li>
-<li><p>5.使用ES_JAVA_OPTS环境变量来设置堆大小。例如，使用16GB的使用-e ES_JAVA_OPTS=”-Xms16g -Xmx16g”与docker run。</p>
-</li>
-<li><p>6.<code>/usr/share/elasticsearch/data</code>如生产示例中所示， 始终使用绑定的卷，原因如下：</p>
-</li>
-</ul>
-<p>(1) 如果容器被杀死，您的elasticsearch节点的数据不会丢失<br>(2) Elasticsearch对I/O敏感，而Docker存储驱动程序对于快速I / O并不理想<br>(3) 它允许使用高级 Docker卷插件</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html">https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html</a></p>
-<p><a target="_blank" rel="noopener" href="https://wenchao.ren/archives/250">Docker环境中Elasticsearch的安装</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/ginb/p/7027910.html">Elasticsearch重要配置</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/wangiqngpei557/p/5967377.html">ElasticSearch大数据分布式弹性搜索引擎使用</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/ljhdo/p/4959412.html">ElasticSearch入门 第二篇：集群配置</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/LiZhiW/p/4978396.html">elasticsearch.yml配置文件</a></p>
-<p><a target="_blank" rel="noopener" href="https://github.com/13428282016/elasticsearch-CN/wiki/es-setup--elasticsearch">https://github.com/13428282016/elasticsearch-CN/wiki/es-setup–elasticsearch</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.elastic.co/guide/en/elasticsearch/reference/current/system-config.html">https://www.elastic.co/guide/en/elasticsearch/reference/current/system-config.html</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.elastic.co/guide/en/elasticsearch/reference/current/important-settings.html">https://www.elastic.co/guide/en/elasticsearch/reference/current/important-settings.html</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/06/20/ASP.NET%20Core%E5%9F%BA%E4%BA%8EConsul%E6%9C%8D%E5%8A%A1%E6%B2%BB%E7%90%86%E5%AE%9E%E7%8E%B0/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/06/20/ASP.NET%20Core%E5%9F%BA%E4%BA%8EConsul%E6%9C%8D%E5%8A%A1%E6%B2%BB%E7%90%86%E5%AE%9E%E7%8E%B0/" class="post-title-link" itemprop="url">ASP.NET Core基于Consul服务治理实现</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-06-20 14:21:15" itemprop="dateCreated datePublished" datetime="2018-06-20T14:21:15+00:00">2018-06-20</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 08:04:08" itemprop="dateModified" datetime="2021-06-29T08:04:08+00:00">2021-06-29</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Consul/" itemprop="url" rel="index"><span itemprop="name">Consul</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="ASP-NET-Core基于Consul服务治理实现"><a href="#ASP-NET-Core基于Consul服务治理实现" class="headerlink" title="ASP.NET Core基于Consul服务治理实现"></a>ASP.NET Core基于Consul服务治理实现</h1><h2 id="直接运行ASP-NET-Core程序"><a href="#直接运行ASP-NET-Core程序" class="headerlink" title="直接运行ASP.NET Core程序"></a>直接运行ASP.NET Core程序</h2><p>参照：<a target="_blank" rel="noopener" href="https://syxdevcode.github.io/2018/06/13/Docker-Fabio-Consul-%E7%BE%A4%E9%9B%86-ASP.NET%20Core%202.0%E5%AE%9E%E8%B7%B5/">Docker &amp; Fabio &amp; Consul群集 &amp; ASP.NET Core 2.0实践</a></p>
-<p>目录结构：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">web</span><br><span class="line">|--ConsulTest</span><br><span class="line">|--ConsulTest1</span><br></pre></td></tr></table></figure>
-
-<p>复制一份新目录</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cp -R ConsulTest ConsulTest1</span><br></pre></td></tr></table></figure>
-
-<p>修改docker-compose.override.yml配置文件：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">version: <span class="string">&#x27;3.4&#x27;</span></span><br><span class="line"></span><br><span class="line">services:</span><br><span class="line">  consultest:</span><br><span class="line">    environment:</span><br><span class="line">      - ASPNETCORE_ENVIRONMENT=Development</span><br><span class="line">    ports:</span><br><span class="line">      - <span class="string">&quot;8080:8080&quot;</span></span><br></pre></td></tr></table></figure>
-
-<p>修改bundleconfig.json：</p>
-<p>注：service.ip需要使用以下命令查询：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker inspect -f <span class="string">&#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27;</span> consultest_consultest_1</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="string">&quot;Service&quot;</span>: &#123;</span><br><span class="line">    <span class="string">&quot;IP&quot;</span>: <span class="string">&quot;172.22.0.2&quot;</span>,</span><br><span class="line">    <span class="string">&quot;Name&quot;</span>: <span class="string">&quot;ConsulDemo1&quot;</span>,</span><br><span class="line">    <span class="string">&quot;Port&quot;</span>: <span class="string">&quot;8080&quot;</span></span><br><span class="line">  &#125;,</span><br><span class="line">  <span class="string">&quot;Consul&quot;</span>: &#123;</span><br><span class="line">    <span class="string">&quot;IP&quot;</span>: <span class="string">&quot;172.17.0.5&quot;</span>,</span><br><span class="line">    <span class="string">&quot;Port&quot;</span>: <span class="string">&quot;8500&quot;</span></span><br><span class="line">  &#125;,</span><br><span class="line">  <span class="string">&quot;Logging&quot;</span>: &#123;</span><br><span class="line">    <span class="string">&quot;IncludeScopes&quot;</span>: false,</span><br><span class="line">    <span class="string">&quot;LogLevel&quot;</span>: &#123;</span><br><span class="line">      <span class="string">&quot;Default&quot;</span>: <span class="string">&quot;Warning&quot;</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>修改Program.cs</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> IWebHost <span class="title">BuildWebHost</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span> =&gt;</span><br><span class="line">    WebHost.CreateDefaultBuilder(args)</span><br><span class="line">        .UseStartup&lt;Startup&gt;()</span><br><span class="line">        .UseUrls(<span class="string">&quot;http://*:8080&quot;</span>) <span class="comment">// 添加端口映射</span></span><br><span class="line">        .Build();</span><br></pre></td></tr></table></figure>
-
-<p>运行以下命令，启动服务：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker-compose up -d --build</span><br></pre></td></tr></table></figure>
-
-<h2 id="使用配置文件重新启动consul客户端"><a href="#使用配置文件重新启动consul客户端" class="headerlink" title="使用配置文件重新启动consul客户端"></a>使用配置文件重新启动consul客户端</h2><p>准备配置文件，取名services_config.json(命名规则，需要使用.json后缀)</p>
-<p>注：配置中的web service服务需要提前启动，以获取IP，port信息。</p>
-<p>目录结构：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">document</span><br><span class="line">|--consul</span><br><span class="line">   |--client1.josn</span><br><span class="line">   |--config</span><br><span class="line">      |--services_config.json</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="attr">&quot;services&quot;</span>:[</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="attr">&quot;id&quot;</span>: <span class="string">&quot;EDC_DNC_MSAD_CLIENT_SERVICE_01&quot;</span>,</span><br><span class="line">            <span class="attr">&quot;name&quot;</span> : <span class="string">&quot;Client-Service&quot;</span>,</span><br><span class="line">            <span class="attr">&quot;tags&quot;</span>: [</span><br><span class="line">                <span class="string">&quot;urlprefix-/ClientService80&quot;</span></span><br><span class="line">            ],</span><br><span class="line">            <span class="attr">&quot;address&quot;</span>: <span class="string">&quot;172.21.0.2&quot;</span>,</span><br><span class="line">            <span class="attr">&quot;port&quot;</span>: <span class="number">80</span>,</span><br><span class="line">            <span class="attr">&quot;checks&quot;</span>: [</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="attr">&quot;name&quot;</span>: <span class="string">&quot;clientservice80_check&quot;</span>,</span><br><span class="line">                    <span class="attr">&quot;http&quot;</span>: <span class="string">&quot;http://172.21.0.2:80/api/health&quot;</span>,</span><br><span class="line">                    <span class="attr">&quot;interval&quot;</span>: <span class="string">&quot;10s&quot;</span>,</span><br><span class="line">                    <span class="attr">&quot;timeout&quot;</span>: <span class="string">&quot;5s&quot;</span></span><br><span class="line">                &#125;</span><br><span class="line">            ]</span><br><span class="line">        &#125;,</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="attr">&quot;id&quot;</span>: <span class="string">&quot;EDC_DNC_MSAD_CLIENT_SERVICE_02&quot;</span>,</span><br><span class="line">            <span class="attr">&quot;name&quot;</span> : <span class="string">&quot;Client-Service&quot;</span>,</span><br><span class="line">            <span class="attr">&quot;tags&quot;</span>: [</span><br><span class="line">                <span class="string">&quot;urlprefix-/ClientService8080&quot;</span></span><br><span class="line">            ],</span><br><span class="line">            <span class="attr">&quot;address&quot;</span>: <span class="string">&quot;172.22.0.2&quot;</span>,</span><br><span class="line">            <span class="attr">&quot;port&quot;</span>: <span class="number">8080</span>,</span><br><span class="line">            <span class="attr">&quot;checks&quot;</span>: [</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="attr">&quot;name&quot;</span>: <span class="string">&quot;clientservice8080_check&quot;</span>,</span><br><span class="line">                    <span class="attr">&quot;http&quot;</span>: <span class="string">&quot;http://172.22.0.2:8080/api/health&quot;</span>,</span><br><span class="line">                    <span class="attr">&quot;interval&quot;</span>: <span class="string">&quot;10s&quot;</span>,</span><br><span class="line">                    <span class="attr">&quot;timeout&quot;</span>: <span class="string">&quot;5s&quot;</span></span><br><span class="line">                &#125;</span><br><span class="line">            ]</span><br><span class="line">        &#125;</span><br><span class="line">     ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>在document文件夹下运行以下命令：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker <span class="keyword">run</span><span class="bash"> --name=client1 -it -d -p 8500:8500 -v <span class="variable">$PWD</span>/consul:/consul consul agent -config-dir=/consul/config -config-file=/consul/client1.json</span></span><br></pre></td></tr></table></figure>
-
-<p>-config-dir - 要加载的配置文件的目录。 Consul将加载后缀为“.json”的所有文件。加载顺序是按字母顺序排列的，并且与上面的配置文件选项一样使用相同的合并例程。可以多次指定此选项以加载多个目录。不加载config目录的子目录。</p>
-<p>结果：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180620162327.png" alt="QQ截图20180620162327.png"></p>
-<h3 id="通过API进行服务发现"><a href="#通过API进行服务发现" class="headerlink" title="通过API进行服务发现"></a>通过API进行服务发现</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl http://localhost:8500/v1/catalog/service/Client-Service | python -m json.tool</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost document]<span class="comment"># curl http://localhost:8500/v1/catalog/service/Client-Service | python -m json.tool</span></span><br><span class="line">  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current</span><br><span class="line">                                 Dload  Upload   Total   Spent    Left  Speed</span><br><span class="line">  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     100   945  100   945    0     0  51053      0 --:--:-- --:--:-- --:--:-- 52500</span><br><span class="line">[</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="string">&quot;Address&quot;</span>: <span class="string">&quot;172.17.0.5&quot;</span>,</span><br><span class="line">        <span class="string">&quot;CreateIndex&quot;</span>: 24219,</span><br><span class="line">        <span class="string">&quot;Datacenter&quot;</span>: <span class="string">&quot;consul-test&quot;</span>,</span><br><span class="line">        <span class="string">&quot;ID&quot;</span>: <span class="string">&quot;8bc069e0-821b-b714-751d-c6fe07dfa7ea&quot;</span>,</span><br><span class="line">        <span class="string">&quot;ModifyIndex&quot;</span>: 24442,</span><br><span class="line">        <span class="string">&quot;Node&quot;</span>: <span class="string">&quot;client1&quot;</span>,</span><br><span class="line">        <span class="string">&quot;NodeMeta&quot;</span>: &#123;</span><br><span class="line">            <span class="string">&quot;consul-network-segment&quot;</span>: <span class="string">&quot;&quot;</span></span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="string">&quot;ServiceAddress&quot;</span>: <span class="string">&quot;172.21.0.2&quot;</span>,</span><br><span class="line">        <span class="string">&quot;ServiceEnableTagOverride&quot;</span>: <span class="literal">false</span>,</span><br><span class="line">        <span class="string">&quot;ServiceID&quot;</span>: <span class="string">&quot;EDC_DNC_MSAD_CLIENT_SERVICE_01&quot;</span>,</span><br><span class="line">        <span class="string">&quot;ServiceMeta&quot;</span>: &#123;&#125;,</span><br><span class="line">        <span class="string">&quot;ServiceName&quot;</span>: <span class="string">&quot;Client-Service&quot;</span>,</span><br><span class="line">        <span class="string">&quot;ServicePort&quot;</span>: 80,</span><br><span class="line">        <span class="string">&quot;ServiceTags&quot;</span>: [</span><br><span class="line">            <span class="string">&quot;urlprefix-/ClientService80&quot;</span></span><br><span class="line">        ],</span><br><span class="line">        <span class="string">&quot;TaggedAddresses&quot;</span>: &#123;</span><br><span class="line">            <span class="string">&quot;lan&quot;</span>: <span class="string">&quot;172.17.0.5&quot;</span>,</span><br><span class="line">            <span class="string">&quot;wan&quot;</span>: <span class="string">&quot;172.17.0.5&quot;</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="string">&quot;Address&quot;</span>: <span class="string">&quot;172.17.0.5&quot;</span>,</span><br><span class="line">        <span class="string">&quot;CreateIndex&quot;</span>: 24220,</span><br><span class="line">        <span class="string">&quot;Datacenter&quot;</span>: <span class="string">&quot;consul-test&quot;</span>,</span><br><span class="line">        <span class="string">&quot;ID&quot;</span>: <span class="string">&quot;8bc069e0-821b-b714-751d-c6fe07dfa7ea&quot;</span>,</span><br><span class="line">        <span class="string">&quot;ModifyIndex&quot;</span>: 24443,</span><br><span class="line">        <span class="string">&quot;Node&quot;</span>: <span class="string">&quot;client1&quot;</span>,</span><br><span class="line">        <span class="string">&quot;NodeMeta&quot;</span>: &#123;</span><br><span class="line">            <span class="string">&quot;consul-network-segment&quot;</span>: <span class="string">&quot;&quot;</span></span><br><span class="line">        &#125;,</span><br><span class="line">        <span class="string">&quot;ServiceAddress&quot;</span>: <span class="string">&quot;172.22.0.2&quot;</span>,</span><br><span class="line">        <span class="string">&quot;ServiceEnableTagOverride&quot;</span>: <span class="literal">false</span>,</span><br><span class="line">        <span class="string">&quot;ServiceID&quot;</span>: <span class="string">&quot;EDC_DNC_MSAD_CLIENT_SERVICE_02&quot;</span>,</span><br><span class="line">        <span class="string">&quot;ServiceMeta&quot;</span>: &#123;&#125;,</span><br><span class="line">        <span class="string">&quot;ServiceName&quot;</span>: <span class="string">&quot;Client-Service&quot;</span>,</span><br><span class="line">        <span class="string">&quot;ServicePort&quot;</span>: 8080,</span><br><span class="line">        <span class="string">&quot;ServiceTags&quot;</span>: [</span><br><span class="line">            <span class="string">&quot;urlprefix-/ClientService8080&quot;</span></span><br><span class="line">        ],</span><br><span class="line">        <span class="string">&quot;TaggedAddresses&quot;</span>: &#123;</span><br><span class="line">            <span class="string">&quot;lan&quot;</span>: <span class="string">&quot;172.17.0.5&quot;</span>,</span><br><span class="line">            <span class="string">&quot;wan&quot;</span>: <span class="string">&quot;172.17.0.5&quot;</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-
-<p>可以看到返回了两个服务实例的信息，当然，这里建议服务名还是不要有空格为好。此外，在服务发现的过程中，会加以一定的负载均衡策略，从这两个服务实例中选择一个返回给服务消费端，比如：随机、轮询、加权轮询、基于性能的最小连接数等等。</p>
-<h2 id="Consul集群之Key-Value存储"><a href="#Consul集群之Key-Value存储" class="headerlink" title="Consul集群之Key/Value存储"></a>Consul集群之Key/Value存储</h2><p>Consul除了可以实现服务注册和服务发现之外，还提供了强大的KV（Key/Value）存储。我们可以使用Consul的分层KV存储干任何事情，比如：动态配置，特征标记，协调，leader选举等。KV存储的API是基于http的。</p>
-<h3 id="查看所有KV"><a href="#查看所有KV" class="headerlink" title="查看所有KV"></a>查看所有KV</h3><p>通过<code>curl http://localhost:8500/v1/kv/?recurse</code>命令</p>
-<p>或者通过Web UI 查看。</p>
-<h3 id="新增KV"><a href="#新增KV" class="headerlink" title="新增KV"></a>新增KV</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X PUT -d <span class="string">&#x27;consulvalue&#x27;</span> http://172.17.0.5:8500/v1/kv/web/value1</span><br></pre></td></tr></table></figure>
-
-<p>key：value1, value：consulvalue</p>
-<p>查看key/value:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ConsulTest]<span class="comment"># curl http://172.17.0.5:8500/v1/kv/web/value1</span></span><br><span class="line">[&#123;<span class="string">&quot;LockIndex&quot;</span>:0,<span class="string">&quot;Key&quot;</span>:<span class="string">&quot;web/value1&quot;</span>,<span class="string">&quot;Flags&quot;</span>:0,<span class="string">&quot;Value&quot;</span>:<span class="string">&quot;Y29uc3VsdmFsdWU=&quot;</span>,<span class="string">&quot;CreateIndex&quot;</span>:24586,<span class="string">&quot;ModifyIndex&quot;</span>:24592&#125;]</span><br></pre></td></tr></table></figure>
-
-<p>由于Consul的Value是经过Base64编码的（主要是为了允许非UTF-8的字符），所以这里看到的是编码后的结果。我们可以通过解码得到最终的Value值。</p>
-<h3 id="验证KV是否同步"><a href="#验证KV是否同步" class="headerlink" title="验证KV是否同步"></a>验证KV是否同步</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost document]<span class="comment"># docker exec -it server1 sh</span></span><br><span class="line">/ <span class="comment"># consul kv get web/value1</span></span><br><span class="line">consulvalue</span><br><span class="line">/ <span class="comment"># exit</span></span><br><span class="line">[root@localhost document]<span class="comment"># docker exec -it server2 sh</span></span><br><span class="line">/ <span class="comment"># consul kv get web/value1</span></span><br><span class="line">consulvalue</span><br><span class="line">/ <span class="comment"># exit</span></span><br><span class="line">[root@localhost document]<span class="comment"># docker exec -it server3 sh</span></span><br><span class="line">/ <span class="comment"># consul kv get web/value1</span></span><br><span class="line">consulvalue</span><br></pre></td></tr></table></figure>
-
-<h3 id="编辑KV和删除KV"><a href="#编辑KV和删除KV" class="headerlink" title="编辑KV和删除KV"></a>编辑KV和删除KV</h3><p>编辑：(同添加KV)</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X PUT -d <span class="string">&#x27;consulvalue&#x27;</span> http://172.17.0.5:8500/v1/kv/web/value1</span><br></pre></td></tr></table></figure>
-
-<p>删除：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl -X DELETE http://172.17.0.5:8500/v1/kv/web/value1</span><br></pre></td></tr></table></figure>
-
-<h2 id="Consul服务告警之Watch机制"><a href="#Consul服务告警之Watch机制" class="headerlink" title="Consul服务告警之Watch机制"></a>Consul服务告警之Watch机制</h2><h3 id="添加NoticeService服务"><a href="#添加NoticeService服务" class="headerlink" title="添加NoticeService服务"></a>添加NoticeService服务</h3><p>源码参考：<a target="_blank" rel="noopener" href="https://github.com/syxdevcode/ConsulTest.git">https://github.com/syxdevcode/ConsulTest.git</a></p>
-<p>首先在ConsulTest目录运行以下命令更新源代码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git checkout .  ##撤销更改</span><br><span class="line">git pull origin master</span><br></pre></td></tr></table></figure>
-
-<p>在NoticeService目录运行以下命令，启动服务：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker-compose up -d --build</span><br></pre></td></tr></table></figure>
-
-<p>查看生成的容器的IP:</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">docker inspect -f <span class="string">&#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27;</span> noticeservice_noticeservice_1</span><br><span class="line"><span class="number">172.23</span>.<span class="number">0.2</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="修改配置文件"><a href="#修改配置文件" class="headerlink" title="修改配置文件"></a>修改配置文件</h3><h4 id="添加watch-json配置文件"><a href="#添加watch-json配置文件" class="headerlink" title="添加watch.json配置文件"></a>添加watch.json配置文件</h4><p>目录结构：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">document</span><br><span class="line">|--consul</span><br><span class="line">   |--client1.josn</span><br><span class="line">   |--config</span><br><span class="line">      |--services_config.json</span><br><span class="line">      |--watch.json</span><br></pre></td></tr></table></figure>
-
-<p>在config文件夹下，添加watch.json文件，内容如下：</p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">&quot;watches&quot;</span>: [</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="attr">&quot;type&quot;</span>: <span class="string">&quot;checks&quot;</span>,</span><br><span class="line">      <span class="attr">&quot;handler_type&quot;</span>: <span class="string">&quot;http&quot;</span>,</span><br><span class="line">      <span class="attr">&quot;state&quot;</span>: <span class="string">&quot;critical&quot;</span>,</span><br><span class="line">      <span class="attr">&quot;http_handler_config&quot;</span>: &#123;</span><br><span class="line">        <span class="attr">&quot;path&quot;</span>: <span class="string">&quot;http://172.23.0.2:8081/notice&quot;</span>,</span><br><span class="line">        <span class="attr">&quot;method&quot;</span>: <span class="string">&quot;POST&quot;</span>,</span><br><span class="line">        <span class="attr">&quot;timeout&quot;</span>: <span class="string">&quot;10s&quot;</span>,</span><br><span class="line">        <span class="attr">&quot;header&quot;</span>: &#123; <span class="attr">&quot;Authorization&quot;</span>: [ <span class="string">&quot;token&quot;</span> ] &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>细节请参考：</p>
-<p><a target="_blank" rel="noopener" href="https://www.consul.io/docs/agent/watches.html">https://www.consul.io/docs/agent/watches.html</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.consul.io/api/health.html">https://www.consul.io/api/health.html</a></p>
-<p>state支持： any, passing, warning, or critical。</p>
-<h4 id="修改services-config-json文件"><a href="#修改services-config-json文件" class="headerlink" title="修改services_config.json文件"></a>修改services_config.json文件</h4><figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">&quot;services&quot;</span>: [</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="attr">&quot;id&quot;</span>: <span class="string">&quot;EDC_DNC_MSAD_CLIENT_SERVICE_01&quot;</span>,</span><br><span class="line">      <span class="attr">&quot;name&quot;</span>: <span class="string">&quot;Client-Service&quot;</span>,</span><br><span class="line">      <span class="attr">&quot;tags&quot;</span>: [</span><br><span class="line">        <span class="string">&quot;urlprefix-/ClientService80&quot;</span></span><br><span class="line">      ],</span><br><span class="line">      <span class="attr">&quot;address&quot;</span>: <span class="string">&quot;172.21.0.2&quot;</span>,</span><br><span class="line">      <span class="attr">&quot;port&quot;</span>: <span class="number">80</span>,</span><br><span class="line">      <span class="attr">&quot;checks&quot;</span>: [</span><br><span class="line">        &#123;</span><br><span class="line">          <span class="attr">&quot;name&quot;</span>: <span class="string">&quot;clientservice80_check&quot;</span>,</span><br><span class="line">          <span class="attr">&quot;http&quot;</span>: <span class="string">&quot;http://172.21.0.2:80/api/health&quot;</span>,</span><br><span class="line">          <span class="attr">&quot;interval&quot;</span>: <span class="string">&quot;10s&quot;</span>,</span><br><span class="line">          <span class="attr">&quot;timeout&quot;</span>: <span class="string">&quot;5s&quot;</span></span><br><span class="line">        &#125;</span><br><span class="line">      ]</span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="attr">&quot;id&quot;</span>: <span class="string">&quot;EDC_DNC_MSAD_CLIENT_SERVICE_02&quot;</span>,</span><br><span class="line">      <span class="attr">&quot;name&quot;</span>: <span class="string">&quot;Client-Service&quot;</span>,</span><br><span class="line">      <span class="attr">&quot;tags&quot;</span>: [</span><br><span class="line">        <span class="string">&quot;urlprefix-/ClientService8080&quot;</span></span><br><span class="line">      ],</span><br><span class="line">      <span class="attr">&quot;address&quot;</span>: <span class="string">&quot;172.22.0.2&quot;</span>,</span><br><span class="line">      <span class="attr">&quot;port&quot;</span>: <span class="number">8080</span>,</span><br><span class="line">      <span class="attr">&quot;checks&quot;</span>: [</span><br><span class="line">        &#123;</span><br><span class="line">          <span class="attr">&quot;name&quot;</span>: <span class="string">&quot;clientservice8080_check&quot;</span>,</span><br><span class="line">          <span class="attr">&quot;http&quot;</span>: <span class="string">&quot;http://172.22.0.2:8080/api/health&quot;</span>,</span><br><span class="line">          <span class="attr">&quot;interval&quot;</span>: <span class="string">&quot;10s&quot;</span>,</span><br><span class="line">          <span class="attr">&quot;timeout&quot;</span>: <span class="string">&quot;5s&quot;</span></span><br><span class="line">        &#125;</span><br><span class="line">      ]</span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="attr">&quot;id&quot;</span>: <span class="string">&quot;EDC_DNC_MSAD_NOTICE_SERVICE&quot;</span>,</span><br><span class="line">      <span class="attr">&quot;name&quot;</span>: <span class="string">&quot;Client-Service&quot;</span>,</span><br><span class="line">      <span class="attr">&quot;tags&quot;</span>: [</span><br><span class="line">        <span class="string">&quot;urlprefix-/NoticeService8081&quot;</span></span><br><span class="line">      ],</span><br><span class="line">      <span class="attr">&quot;address&quot;</span>: <span class="string">&quot;172.23.0.2&quot;</span>,</span><br><span class="line">      <span class="attr">&quot;port&quot;</span>: <span class="number">8081</span>,</span><br><span class="line">      <span class="attr">&quot;checks&quot;</span>: [</span><br><span class="line">        &#123;</span><br><span class="line">          <span class="attr">&quot;name&quot;</span>: <span class="string">&quot;noticeservice_check&quot;</span>,</span><br><span class="line">          <span class="attr">&quot;http&quot;</span>: <span class="string">&quot;http://172.23.0.2:8081/api/health&quot;</span>,</span><br><span class="line">          <span class="attr">&quot;interval&quot;</span>: <span class="string">&quot;10s&quot;</span>,</span><br><span class="line">          <span class="attr">&quot;timeout&quot;</span>: <span class="string">&quot;5s&quot;</span></span><br><span class="line">        &#125;</span><br><span class="line">      ]</span><br><span class="line">    &#125;</span><br><span class="line">  ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>重启client1，并且查看NoticeService是否注册成功：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker restart client1</span><br></pre></td></tr></table></figure>
-
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180621134758.png" alt="QQ截图20180621134758.png"></p>
-<h3 id="测试服务预警"><a href="#测试服务预警" class="headerlink" title="测试服务预警"></a>测试服务预警</h3><p>（1） 手动关闭三个dotnet core服务中的其中一个，如：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker stop consultest1_consultest_1</span><br></pre></td></tr></table></figure>
-
-<p>(2) 收到邮件。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">健康检查故障:</span><br><span class="line">--------------------------------------</span><br><span class="line">Node:client1</span><br><span class="line">Service ID:EDC_DNC_MSAD_CLIENT_SERVICE_02</span><br><span class="line">Service Name:Client-Service</span><br><span class="line">Check ID:service:EDC_DNC_MSAD_CLIENT_SERVICE_02</span><br><span class="line">Check Name:clientservice8080_check</span><br><span class="line">Check Status:critical</span><br><span class="line">Check Output:Get http://172.22.0.2:8080/api/health: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)</span><br></pre></td></tr></table></figure>
-
-<p>** 注意:确保你的虚拟机可以访问外网，不然是发布出来Email的**</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/edisonchou/p/9148034.html">.NET Core微服务之基于Consul实现服务治理（续）</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.consul.io/docs/agent/watches.html">https://www.consul.io/docs/agent/watches.html</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.consul.io/api/health.html">https://www.consul.io/api/health.html</a></p>
-<p><a target="_blank" rel="noopener" href="https://github.com/PlayFab/consuldotnet">https://github.com/PlayFab/consuldotnet</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/06/13/Docker-Fabio-Consul-%E7%BE%A4%E9%9B%86-ASP.NET%20Core%202.0%E5%AE%9E%E8%B7%B5/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/06/13/Docker-Fabio-Consul-%E7%BE%A4%E9%9B%86-ASP.NET%20Core%202.0%E5%AE%9E%E8%B7%B5/" class="post-title-link" itemprop="url">Docker & Fabio & Consul群集 & ASP.NET Core 2.0实践</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-06-13 11:36:36" itemprop="dateCreated datePublished" datetime="2018-06-13T11:36:36+00:00">2018-06-13</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 08:04:08" itemprop="dateModified" datetime="2021-06-29T08:04:08+00:00">2021-06-29</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Consul/" itemprop="url" rel="index"><span itemprop="name">Consul</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="Docker-amp-Fabio-amp-Consul群集-amp-ASP-NET-Core-2-0实践"><a href="#Docker-amp-Fabio-amp-Consul群集-amp-ASP-NET-Core-2-0实践" class="headerlink" title="Docker &amp; Fabio &amp; Consul群集 &amp; ASP.NET Core 2.0实践"></a>Docker &amp; Fabio &amp; Consul群集 &amp; ASP.NET Core 2.0实践</h1><h2 id="1，Docker运行consul环境"><a href="#1，Docker运行consul环境" class="headerlink" title="1，Docker运行consul环境"></a>1，Docker运行consul环境</h2><h3 id="1、Consul基础介绍"><a href="#1、Consul基础介绍" class="headerlink" title="1、Consul基础介绍"></a>1、Consul基础介绍</h3><p><a target="_blank" rel="noopener" href="https://www.consul.io/">https://www.consul.io/</a></p>
-<p>Consul 是 HashiCorp 公司推出的开源工具，用于实现分布式系统的服务发现与配置。与其他分布式服务注册与发现的方案，比如 Airbnb 的 SmartStack 等相比，Consul 的方案更“一站式”，一致性协议采用 Raft 算法,用来保证服务的高可用. 使用 GOSSIP 协议管理成员和广播消息, 并且支持 ACL 访问控制，内置了服务注册与发现框架、分布一致性协议实现、健康检查,并允许 HTTP 和 DNS 协议调用 API 存储键值对、Key/Value 存储、多数据中心方案，不再需要依赖其他工具（比如 ZooKeeper 等）。使用起来也较为简单。<br>Consul 用 Golang 实现，因此具有天然可移植性(支持 Linux、windows 和 Mac OS X)；安装包仅包含一个可执行文件，方便部署，与 Docker 等轻量级容器可无缝配合。</p>
-<p>要想利用Consul提供的服务实现服务的注册与发现，我们需要建立Consul Cluster。在Consul方案中，每个提供服务的节点上都要部署和运行Consul的agent，所有运行Consul Agent节点的集合构成Consul Cluster。Consul Agent有两种运行模式：Server和Client。这里的Server和Client只是Consul集群层面的区分，与搭建在Cluster之上的应用服务无关。以Server模式运行的Consul Agent节点用于维护Consul集群的状态，官方建议每个Consul Cluster至少有3个或以上的运行在Server Mode的Agent，Client节点不限。</p>
-<p>　　Consul支持多数据中心，每个数据中心的Consul Cluster都会在运行于Server模式下的Agent节点中选出一个Leader节点，这个选举过程通过Consul实现的raft协议保证，多个Server节点上的Consul数据信息是强一致的。处于Client Mode的Consul Agent节点比较简单，无状态，仅仅负责将请求转发给Server Agent节点。</p>
-<p>** Consul 功能：**</p>
-<ul>
-<li><p>服务发现（Service Discovery）：客户端通过 Consul 提供服务，其他客户端可以通过 Consul 利用 dns 或者 http 发现依赖服务</p>
-</li>
-<li><p>健康检查（Health Checking）: Consul 提供任务的健康检查，可以用来操作或者监控集群的健康，也可以在服务发现时去除失效的服务</p>
-</li>
-<li><p>键值对存储（Key/Value Store）: 存储层级键值对</p>
-</li>
-<li><p>多数据中心（Multi Datacenter）: Consul 支持开箱即用的多数据中心</p>
-</li>
-</ul>
-<p>** Consul的优势**</p>
-<ul>
-<li><p>使用 Raft 算法来保证一致性, 比复杂的 Paxos 算法更直接. 相比较而言, zookeeper 采用的是 Paxos, 而 etcd 使用的则是 Raft.</p>
-</li>
-<li><p>支持多数据中心，内外网的服务采用不同的端口进行监听。 多数据中心集群可以避免单数据中心的单点故障,而其部署则需要考虑网络延迟, 分片等情况等. zookeeper 和 etcd 均不提供多数据中心功能的支持.</p>
-</li>
-<li><p>支持健康检查. etcd 不提供此功能.</p>
-</li>
-<li><p>支持 http 和 dns 协议接口. zookeeper 的集成较为复杂, etcd 只支持 http 协议,官方提供web管理界面, etcd 无此功能.</p>
-</li>
-</ul>
-<p>** Consul 的使用场景**</p>
-<ul>
-<li><p>docker 实例的注册与配置共享</p>
-</li>
-<li><p>coreos 实例的注册与配置共享</p>
-</li>
-<li><p>vitess 集群</p>
-</li>
-<li><p>SaaS 应用的配置共享</p>
-</li>
-<li><p>与 confd 服务集成，动态生成 nginx 和 haproxy 配置文件</p>
-</li>
-</ul>
-<p>** Consul 的模式**</p>
-<ul>
-<li><p>client: 客户端, 无状态, 将 HTTP 和 DNS 接口请求转发给局域网内的服务端集群。一个 Client 是一个转发所有 RPC 到 Server 的代理。这个 Client 是相对无状态的；Client 唯一执行的后台活动是加入 LAN gossip 池，这有一个最低的资源开销并且仅消耗少量的网络带宽。</p>
-</li>
-<li><p>server: 服务端, 保存配置信息, 高可用集群, 在局域网内与本地客户端通讯, 通过广域网与其他数据中心通讯. 每个数据中心的 server 数量推荐为 3 个或是 5 个。参与 Raft 选举，维护集群状态，响应 RPC 查询，与其他数据中心交互 WAN gossip 和转发查询给 leader 或者远程数据中心。</p>
-</li>
-</ul>
-<p>群集架构图如下：</p>
-<p><img src="/img/n4mdw.jpg" alt="n4mdw.jpg"></p>
-<p><img src="/img/435188-20161228110501664-588566717.png" alt="435188-20161228110501664-588566717.png"></p>
-<p>Consul和其他类似软件的对比：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180613135320.png" alt="QQ截图20180613135320.png"></p>
-<h3 id="2、Consul群集搭建"><a href="#2、Consul群集搭建" class="headerlink" title="2、Consul群集搭建"></a>2、Consul群集搭建</h3><p>Consul 集群搭建时一般提供两种模式:</p>
-<p>** 手动模式<strong>: 启动第一个节点后，此时此节点处于 bootstrap 模式，其节点手动执行加入，使用： -join命令<br>** 自动模式</strong>: 启动第一个节点后，在其他节点配置好尝试加入的目标节点，然后等待其自动加入(不需要人为命令加入)，配置：retry_join</p>
-<p>以自动模式为例：</p>
-<p>目录结构：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">document</span><br><span class="line">|--consul</span><br><span class="line">   |--server1.json</span><br><span class="line">   |--server2.json</span><br><span class="line">   |--server3.json</span><br><span class="line">   |--client1.json</span><br><span class="line">   |--data</span><br></pre></td></tr></table></figure>
-
-<p>server1.json配置文件：</p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">&quot;data_dir&quot;</span>: <span class="string">&quot;/data&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;datacenter&quot;</span>: <span class="string">&quot;consul-test&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;log_level&quot;</span>: <span class="string">&quot;INFO&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;node_name&quot;</span>: <span class="string">&quot;server1&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;server&quot;</span>: <span class="literal">true</span>,</span><br><span class="line">  <span class="attr">&quot;bind_addr&quot;</span>: <span class="string">&quot;172.17.0.2&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;bootstrap&quot;</span>: <span class="literal">true</span>,</span><br><span class="line">  <span class="attr">&quot;retry_join&quot;</span>: [<span class="string">&quot;172.17.0.2&quot;</span>, <span class="string">&quot;172.17.0.3&quot;</span>, <span class="string">&quot;172.17.0.4&quot;</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>server2.json配置文件：</p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">&quot;data_dir&quot;</span>: <span class="string">&quot;/data&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;datacenter&quot;</span>: <span class="string">&quot;consul-test&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;log_level&quot;</span>: <span class="string">&quot;INFO&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;node_name&quot;</span>: <span class="string">&quot;server2&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;server&quot;</span>: <span class="literal">true</span>,</span><br><span class="line">  <span class="attr">&quot;bind_addr&quot;</span>: <span class="string">&quot;172.17.0.3&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;retry_join&quot;</span>: [<span class="string">&quot;172.17.0.2&quot;</span>, <span class="string">&quot;172.17.0.3&quot;</span>, <span class="string">&quot;172.17.0.4&quot;</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>server3.json配置文件：</p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">&quot;data_dir&quot;</span>: <span class="string">&quot;/data&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;datacenter&quot;</span>: <span class="string">&quot;consul-test&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;log_level&quot;</span>: <span class="string">&quot;INFO&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;node_name&quot;</span>: <span class="string">&quot;server3&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;server&quot;</span>: <span class="literal">true</span>,</span><br><span class="line">  <span class="attr">&quot;bind_addr&quot;</span>: <span class="string">&quot;172.17.0.4&quot;</span>,</span><br><span class="line">  <span class="attr">&quot;retry_join&quot;</span>: [<span class="string">&quot;172.17.0.2&quot;</span>, <span class="string">&quot;172.17.0.3&quot;</span>, <span class="string">&quot;172.17.0.4&quot;</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>client1.json配置文件：</p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="attr">&quot;data_dir&quot;</span>: <span class="string">&quot;/data&quot;</span>,</span><br><span class="line">    <span class="attr">&quot;datacenter&quot;</span>: <span class="string">&quot;consul-test&quot;</span>,</span><br><span class="line">    <span class="attr">&quot;log_level&quot;</span>: <span class="string">&quot;INFO&quot;</span>,</span><br><span class="line">    <span class="attr">&quot;node_name&quot;</span>: <span class="string">&quot;client1&quot;</span>,</span><br><span class="line">    <span class="attr">&quot;server&quot;</span>: <span class="literal">false</span>,</span><br><span class="line">    <span class="attr">&quot;ui&quot;</span>: <span class="literal">true</span>,                         <span class="comment">// 是否开启 UI 访问</span></span><br><span class="line">    <span class="attr">&quot;http_config&quot;</span>: &#123;</span><br><span class="line">        <span class="attr">&quot;response_headers&quot;</span>: &#123;</span><br><span class="line">          <span class="attr">&quot;Access-Control-Allow-Origin&quot;</span>: <span class="string">&quot;*&quot;</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="attr">&quot;addresses&quot;</span>: &#123;</span><br><span class="line">        <span class="attr">&quot;http&quot;</span>: <span class="string">&quot;0.0.0.0&quot;</span></span><br><span class="line">    &#125;,</span><br><span class="line">    <span class="attr">&quot;start_join&quot;</span>: [<span class="string">&quot;172.17.0.2&quot;</span>, <span class="string">&quot;172.17.0.3&quot;</span>, <span class="string">&quot;172.17.0.4&quot;</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>运行docker容器：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">docker run --name=server1 -it -d -v <span class="variable">$PWD</span>/consul:/consul consul agent -config-file=/consul/server1.json</span><br><span class="line"></span><br><span class="line">docker run --name=server2 -it -d -v <span class="variable">$PWD</span>/consul:/consul consul agent -config-file=/consul/server2.json</span><br><span class="line"></span><br><span class="line">docker run --name=server3 -it -d -v <span class="variable">$PWD</span>/consul:/consul consul agent -config-file=/consul/server3.json</span><br><span class="line"></span><br><span class="line">docker run --name=client1 -it -d -v <span class="variable">$PWD</span>/consul:/consul consul agent -config-file=/consul/client1.json</span><br></pre></td></tr></table></figure>
-
-<p>查看容器运行日志(选择其中一个即可)，可以看出选举server1作为Leader：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker logs server1</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">2018/06/14 08:12:06 [INFO] consul: New leader elected: server1</span><br></pre></td></tr></table></figure>
-
-<p>可以查看容器的ip:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">docker inspect -f <span class="string">&#x27;&#123;&#123;.NetworkSettings.IPAddress&#125;&#125;&#x27;</span> server1</span><br><span class="line">docker inspect -f <span class="string">&#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27;</span> server1</span><br></pre></td></tr></table></figure>
-
-<p>查看下集群的状态</p>
-<p>注：server1为Leader;</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker <span class="built_in">exec</span> -t server1 consul members</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost document]<span class="comment"># docker exec -t server1 consul members</span></span><br><span class="line">Node     Address          Status  Type    Build  Protocol  DC           Segment</span><br><span class="line">server1  172.17.0.2:8301  alive   server  1.1.0  2         consul-test  &lt;all&gt;</span><br><span class="line">server2  172.17.0.3:8301  alive   server  1.1.0  2         consul-test  &lt;all&gt;</span><br><span class="line">server3  172.17.0.4:8301  alive   server  1.1.0  2         consul-test  &lt;all&gt;</span><br><span class="line">client1  172.17.0.5:8301  alive   client  1.1.0  2         consul-test  &lt;default&gt;</span><br></pre></td></tr></table></figure>
-
-<p>访问：<a target="_blank" rel="noopener" href="http://172.17.0.5:8500">http://172.17.0.5:8500</a>,打开 Consul UI 界面，就可以看到我们配置的 Consul Client:</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180615092803.png" alt="QQ截图20180615092803.png"></p>
-<p>可以使用以下命令查询其它信息：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">curl -L http://172.17.0.5:8500/v1/catalog/datacenters</span><br><span class="line">curl -L http://172.17.0.5:8500/v1/agent/members | python -m json.tool</span><br><span class="line">curl http://172.17.0.5:8500/v1/agent/self | python -m json.tool</span><br></pre></td></tr></table></figure>
-
-<h3 id="3、节点异常处理"><a href="#3、节点异常处理" class="headerlink" title="3、节点异常处理"></a>3、节点异常处理</h3><h4 id="LEADER-挂了"><a href="#LEADER-挂了" class="headerlink" title="LEADER 挂了"></a>LEADER 挂了</h4><p>leader挂了，consul会重新选取出新的leader，只要超过一半的SERVER还活着，集群是可以正常工作的。</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker stop server1</span><br></pre></td></tr></table></figure>
-
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180615095815.png" alt="QQ截图20180615095815.png"></p>
-<p>运行以下命令查看现在的Leader：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl http://172.17.0.5:8500/v1/status/leader</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost document]<span class="comment"># curl http://172.17.0.5:8500/v1/status/leader</span></span><br><span class="line"><span class="string">&quot;172.17.0.3:8300&quot;</span></span><br></pre></td></tr></table></figure>
-
-<p>注：172.17.0.3为server2 IP。</p>
-<h2 id="2，Docker-运行-Fabio-环境"><a href="#2，Docker-运行-Fabio-环境" class="headerlink" title="2，Docker 运行 Fabio 环境"></a>2，Docker 运行 Fabio 环境</h2><h3 id="Fabio简介"><a href="#Fabio简介" class="headerlink" title="Fabio简介"></a>Fabio简介</h3><p><a target="_blank" rel="noopener" href="https://github.com/fabiolb/fabio">Fabio</a> 是 ebay 团队用 golang 开发的一个快速、现代、zero-conf 负载均衡 HTTP(S) 路由器，用于部署 Consul 管理的微服务。</p>
-<p>因为 consul 支持服务注册与健康检查所以 fabio 能够零配置提供负载。</p>
-<p>根据项目的介绍fabio 能提供每秒15000次请求。</p>
-<p>** 服务发现的特点**</p>
-<p>服务与服务之间的调用需要在配置文件中填写好主机和端口,不易于维护且分布式环境中不易于部署与扩容。</p>
-<p>那么此时就需要考虑服务启动的时候自己把主机和端口以及一些其他信息注册到注册中心，这样其他服务可以从中找到它。</p>
-<p>甚至更为简单的注册完毕后通过 DNS 的方式来『寻址』。比如 Zookeepr 可以很好的完成这个工作，但是其中还有一个弊端就是服务的健康检查服务注册到注册中心之后如何保证这个服务一定可用？此时就需要自己来写逻辑当服务不可用的时候自动从注册中心下线掉。 然后Consul 可以很轻易的解决这个问题。</p>
-<p>** 工作原理**</p>
-<p>Consul 提供了一套健康检测机制简单的说针对 http 类型的服务(consul 也支持 其他类型例如tcp)在注册的时候可以顺便注册下健康检测的信息，提供一个健康检测的地址(url)以及一个频率超时时间这样的话 consul 会定期的来请求当状态码是200的时候设置次服务是健康的状态否则是故障状态。</p>
-<p>既然注册到consul的服务能够自己维护健康状态此时 fabio 的工作就很简单了！ 就是直接从consul 注册表里面取出健康的服务根据服务注册时候的 tags 配置自动创建自己的路由表，然后当一个 http 请求过来的时候自动去做负载均衡</p>
-<p>简单流程图：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">======    服务注册     =========       =========</span><br><span class="line">A服务   &lt;------&gt;      consul集群  ----&gt;  健康的 A/不健康的 A 集群</span><br><span class="line">======    健康检查     =========       =========</span><br><span class="line">                                     ^</span><br><span class="line">                                     | 加入/移出路由表</span><br><span class="line">                                     |</span><br><span class="line">                                  ========</span><br><span class="line">                                   fabio 集群</span><br><span class="line">                                  ========</span><br><span class="line">                                     ^</span><br><span class="line">                                     |</span><br><span class="line">                                     | A服务   如果找到则成功路由否则返回错误</span><br><span class="line">                                     V</span><br><span class="line">                                    http 请求</span><br></pre></td></tr></table></figure>
-
-<h3 id="Docker-运行-Fabio"><a href="#Docker-运行-Fabio" class="headerlink" title="Docker 运行 Fabio"></a>Docker 运行 Fabio</h3><p>Fabio Docker 镜像地址：<a target="_blank" rel="noopener" href="https://hub.docker.com/r/magiconair/fabio/">https://hub.docker.com/r/magiconair/fabio/</a></p>
-<p>** 目录结构**</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">fabio</span><br><span class="line">|--fabio.properties</span><br></pre></td></tr></table></figure>
-
-<p>首先，在/fabio/目录下创建一个fabio.properties文件（<a target="_blank" rel="noopener" href="https://raw.githubusercontent.com/eBay/fabio/master/fabio.properties">示例配置</a>），然后vim fabio.properties增加下面配置：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">registry.consul.register.addr = 172.17.0.6:9998</span><br><span class="line">registry.consul.addr = 172.17.0.5:8500</span><br></pre></td></tr></table></figure>
-
-<p>在fabio文件夹下运行命令：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run -d -p 9999:9999 -p 9998:9998 --name=fabio -v <span class="variable">$PWD</span>/fabio.properties:/etc/fabio/fabio.properties magiconair/fabio</span><br></pre></td></tr></table></figure>
-
-<p>注：默认是bridge网络模式，也就是我们常用的桥接模式，Docker 会分配给容器一个独立的 IP 地址（端口也是独立的），并且容器和主机之间可以相互访问。或者添加参数：–net=host：host网络模式，容器的网络接口和主机一样，也就是共享一个 IP 地址。</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180615172806.png" alt="QQ截图20180615172806.png"></p>
-<h2 id="3，Docker-运行-ASP-NET-Core-2-0-服务"><a href="#3，Docker-运行-ASP-NET-Core-2-0-服务" class="headerlink" title="3，Docker 运行 ASP.NET Core 2.0 服务"></a>3，Docker 运行 ASP.NET Core 2.0 服务</h2><h3 id="3-1-准备asp-net-Core应用程序"><a href="#3-1-准备asp-net-Core应用程序" class="headerlink" title="3.1 准备asp.net Core应用程序"></a>3.1 准备asp.net Core应用程序</h3><p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180620090937.png" alt="QQ截图20180620090937.png"></p>
-<h3 id="3-2-添加HealthController用于Consul健康检查"><a href="#3-2-添加HealthController用于Consul健康检查" class="headerlink" title="3.2 添加HealthController用于Consul健康检查"></a>3.2 添加HealthController用于Consul健康检查</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[<span class="meta">Produces(<span class="meta-string">&quot;application/json&quot;</span>)</span>]</span><br><span class="line">[<span class="meta">Route(<span class="meta-string">&quot;api/Health&quot;</span>)</span>]</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">HealthController</span> : <span class="title">Controller</span></span><br><span class="line">&#123;</span><br><span class="line">    [<span class="meta">HttpGet</span>]</span><br><span class="line">    <span class="function"><span class="keyword">public</span> IActionResult <span class="title">Get</span>(<span class="params"></span>)</span> =&gt; Ok(<span class="string">&quot;ok&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="3-3-调用Consul-API注册服务"><a href="#3-3-调用Consul-API注册服务" class="headerlink" title="3.3 调用Consul API注册服务"></a>3.3 调用Consul API注册服务</h3><p>组件地址：<a target="_blank" rel="noopener" href="https://github.com/PlayFab/consuldotnet">https://github.com/PlayFab/consuldotnet</a></p>
-<p>（1） 首先安装 Consul包：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">install-package Conusl</span><br></pre></td></tr></table></figure>
-
-<p>（2） 添加扩展方法，用于调用Consul API</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title">AppBuilderExtensions</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> IApplicationBuilder <span class="title">RegisterWithConsul</span>(<span class="params"><span class="keyword">this</span> IApplicationBuilder app, IApplicationLifetime lifetime, ServiceEntity serviceEntity</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">var</span> consulClient = <span class="keyword">new</span> ConsulClient(x =&gt; x.Address = <span class="keyword">new</span> Uri(<span class="string">$&quot;http://<span class="subst">&#123;serviceEntity.ConsulIP&#125;</span>:<span class="subst">&#123;serviceEntity.ConsulPort&#125;</span>&quot;</span>));<span class="comment">//请求注册的 Consul 地址</span></span><br><span class="line">            <span class="keyword">var</span> httpCheck = <span class="keyword">new</span> AgentServiceCheck()</span><br><span class="line">            &#123;</span><br><span class="line">                DeregisterCriticalServiceAfter = TimeSpan.FromSeconds(<span class="number">5</span>),<span class="comment">//服务启动多久后注册</span></span><br><span class="line">                Interval = TimeSpan.FromSeconds(<span class="number">10</span>),<span class="comment">//健康检查时间间隔，或者称为心跳间隔</span></span><br><span class="line"></span><br><span class="line">                <span class="comment">// 即本程序运行后的IP地址。需要使用命令：</span></span><br><span class="line">                <span class="comment">// docker inspect -f &#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27; consultest_consultest_1</span></span><br><span class="line">                HTTP = <span class="string">$&quot;http://<span class="subst">&#123;serviceEntity.IP&#125;</span>:<span class="subst">&#123;serviceEntity.Port&#125;</span>/api/health&quot;</span>,<span class="comment">//健康检查地址</span></span><br><span class="line">                Timeout = TimeSpan.FromSeconds(<span class="number">5</span>)</span><br><span class="line">            &#125;;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// Register service with consul</span></span><br><span class="line">            <span class="keyword">var</span> registration = <span class="keyword">new</span> AgentServiceRegistration()</span><br><span class="line">            &#123;</span><br><span class="line">                Checks = <span class="keyword">new</span>[] &#123; httpCheck &#125;,</span><br><span class="line">                ID = Guid.NewGuid().ToString(),</span><br><span class="line">                Name = serviceEntity.ServiceName,</span><br><span class="line">                Address = serviceEntity.IP,</span><br><span class="line">                Port = serviceEntity.Port,</span><br><span class="line">                Tags = <span class="keyword">new</span>[] &#123; <span class="string">$&quot;urlprefix-/<span class="subst">&#123;serviceEntity.ServiceName&#125;</span>&quot;</span> &#125;<span class="comment">//添加 urlprefix-/servicename 格式的 tag 标签，以便 Fabio 识别</span></span><br><span class="line">            &#125;;</span><br><span class="line"></span><br><span class="line">            consulClient.Agent.ServiceRegister(registration).Wait();<span class="comment">//服务启动时注册，内部实现其实就是使用 Consul API 进行注册（HttpClient发起）</span></span><br><span class="line">            lifetime.ApplicationStopping.Register(() =&gt;</span><br><span class="line">            &#123;</span><br><span class="line">                consulClient.Agent.ServiceDeregister(registration.ID).Wait();<span class="comment">//服务停止时取消注册</span></span><br><span class="line">            &#125;);</span><br><span class="line">            <span class="keyword">return</span> app;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-
-<p>（3）Starup类的Configure方法中，调用此扩展方法</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.</span></span><br><span class="line">       <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">Configure</span>(<span class="params">IApplicationBuilder app, IHostingEnvironment env, IApplicationLifetime lifetime</span>)</span></span><br><span class="line">       &#123;</span><br><span class="line">           <span class="keyword">if</span> (env.IsDevelopment())</span><br><span class="line">           &#123;</span><br><span class="line">               app.UseBrowserLink();</span><br><span class="line">               app.UseDeveloperExceptionPage();</span><br><span class="line">           &#125;</span><br><span class="line">           <span class="keyword">else</span></span><br><span class="line">           &#123;</span><br><span class="line">               app.UseExceptionHandler(<span class="string">&quot;/Home/Error&quot;</span>);</span><br><span class="line">           &#125;</span><br><span class="line"></span><br><span class="line">           app.UseStaticFiles();</span><br><span class="line"></span><br><span class="line">           app.UseMvc(routes =&gt;</span><br><span class="line">           &#123;</span><br><span class="line">               routes.MapRoute(</span><br><span class="line">                   name: <span class="string">&quot;default&quot;</span>,</span><br><span class="line">                   template: <span class="string">&quot;&#123;controller=Home&#125;/&#123;action=Index&#125;/&#123;id?&#125;&quot;</span>);</span><br><span class="line">           &#125;);</span><br><span class="line"></span><br><span class="line">           <span class="comment">// register this service</span></span><br><span class="line">           ServiceEntity serviceEntity = <span class="keyword">new</span> ServiceEntity</span><br><span class="line">           &#123;</span><br><span class="line">               IP = Configuration[<span class="string">&quot;Service:IP&quot;</span>],<span class="comment">// NetworkHelper.LocalIPAddress,</span></span><br><span class="line">               Port = Convert.ToInt32(Configuration[<span class="string">&quot;Service:Port&quot;</span>]),</span><br><span class="line">               ServiceName = Configuration[<span class="string">&quot;Service:Name&quot;</span>],</span><br><span class="line">               ConsulIP = Configuration[<span class="string">&quot;Consul:IP&quot;</span>],</span><br><span class="line">               ConsulPort = Convert.ToInt32(Configuration[<span class="string">&quot;Consul:Port&quot;</span>])</span><br><span class="line">           &#125;;</span><br><span class="line">           app.RegisterWithConsul(lifetime, serviceEntity);</span><br><span class="line">       &#125;</span><br></pre></td></tr></table></figure>
-
-<p>ServiceEntity类定义:</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">ServiceEntity</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="built_in">string</span> IP &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">        <span class="keyword">public</span> <span class="built_in">int</span> Port &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">        <span class="keyword">public</span> <span class="built_in">string</span> ServiceName &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">        <span class="keyword">public</span> <span class="built_in">string</span> ConsulIP &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">        <span class="keyword">public</span> <span class="built_in">int</span> ConsulPort &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-
-<p>appSettings.json配置文件:</p>
-<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">&quot;Service&quot;</span>: &#123;</span><br><span class="line">    <span class="attr">&quot;IP&quot;</span>: <span class="string">&quot;172.21.0.2&quot;</span>,</span><br><span class="line">    <span class="attr">&quot;Name&quot;</span>: <span class="string">&quot;ConsulDemo&quot;</span>,</span><br><span class="line">    <span class="attr">&quot;Port&quot;</span>: <span class="string">&quot;80&quot;</span></span><br><span class="line">  &#125;,</span><br><span class="line">  <span class="attr">&quot;Consul&quot;</span>: &#123;</span><br><span class="line">    <span class="attr">&quot;IP&quot;</span>: <span class="string">&quot;172.17.0.5&quot;</span>,</span><br><span class="line">    <span class="attr">&quot;Port&quot;</span>: <span class="string">&quot;8500&quot;</span></span><br><span class="line">  &#125;,</span><br><span class="line">  <span class="attr">&quot;Logging&quot;</span>: &#123;</span><br><span class="line">    <span class="attr">&quot;IncludeScopes&quot;</span>: <span class="literal">false</span>,</span><br><span class="line">    <span class="attr">&quot;LogLevel&quot;</span>: &#123;</span><br><span class="line">      <span class="attr">&quot;Default&quot;</span>: <span class="string">&quot;Warning&quot;</span></span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="3-4-运行ASP-NET-Core程序"><a href="#3-4-运行ASP-NET-Core程序" class="headerlink" title="3.4 运行ASP.NET Core程序"></a>3.4 运行ASP.NET Core程序</h3><p>在Linux服务器下，建立程序文件夹，使用git clone命令下载代码，如：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">mkdir web</span><br><span class="line"><span class="built_in">cd</span> web</span><br><span class="line">git <span class="built_in">clone</span> https://github.com/syxdevcode/ConsulTest.git</span><br><span class="line">git pull origin master <span class="comment">### 更新代码</span></span><br></pre></td></tr></table></figure>
-
-<p>使用docker-compose 运行程序：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> ConsulTest <span class="comment">## 进入目录</span></span><br><span class="line">docker-compose up -d --build</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Successfully built dfaf37c4246f</span><br><span class="line">Successfully tagged consultest:latest</span><br><span class="line">Recreating consultest_consultest_1 ... <span class="keyword">done</span></span><br></pre></td></tr></table></figure>
-
-<p>查看docker 容器：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker ps -a</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180620092619.png" alt="QQ截图20180620092619.png"></p>
-<p>其它命令：</p>
-<p>查看容器IP：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker inspect -f <span class="string">&#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27;</span> consultest_consultest_1</span><br></pre></td></tr></table></figure>
-
-<h3 id="3-5-验证"><a href="#3-5-验证" class="headerlink" title="3.5 验证"></a>3.5 验证</h3><p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180620093002.png" alt="QQ截图20180620093002.png"></p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180620093047.png" alt="QQ截图20180620093047.png"></p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://github.com/PlayFab/consuldotnet">https://github.com/PlayFab/consuldotnet</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.consul.io/docs/agent/options.html">https://www.consul.io/docs/agent/options.html</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/edisonchou/p/9124985.html">.NET Core微服务之基于Consul实现服务治理</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/xishuai/p/macos-ubuntu-install-consul.html">Mac OS、Ubuntu 安装及使用 Consul</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/xishuai/p/ubuntu-docker-consul-fabio-aspnet-core.html">Docker &amp; Consul &amp; Fabio &amp; ASP.NET Core 2.0 微服务跨平台实践</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/xishuai/p/docker-compose.html">Docker 三剑客之 Docker Compose</a></p>
-<p><a target="_blank" rel="noopener" href="http://xiaoquqi.github.io/blog/2015/12/07/consul-installation/">Consul的安装方法</a></p>
-<p><a target="_blank" rel="noopener" href="http://soft.dog/2016/03/18/consul-basic/">Consul 基础</a></p>
-<p><a target="_blank" rel="noopener" href="https://blog.coding.net/blog/intro-consul">Consul 原理和使用简介</a></p>
-<p><a target="_blank" rel="noopener" href="https://mritd.me/2017/09/21/set-up-ha-consul-cluster/">Consul 集群搭建</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.10tiao.com/html/357/201705/2247485185/1.html">Consul集群部署</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/f8746b81d65d">服务发现 - consul 的介绍、部署和使用</a></p>
-<p><a target="_blank" rel="noopener" href="http://dockone.io/article/1567">Consul + fabio 实现自动服务发现、负载均衡</a></p>
 
       
     </div>
@@ -2399,7 +2071,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">460</span>
+          <span class="site-state-item-count">464</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
