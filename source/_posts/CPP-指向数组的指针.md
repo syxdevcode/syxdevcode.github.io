@@ -28,6 +28,7 @@ p = runoobAarray;
 
 使用数组名作为常量指针是合法的，反之亦然。因此，`*(runoobAarray + 4)` 是一种访问 `runoobAarray[4]` 数据的合法方式。使用 `*p、*(p+1)、*(p+2)` 等来访问数组元素。
 
+<!--more-->
 ```cpp
 #include <iostream>
 using namespace std;
