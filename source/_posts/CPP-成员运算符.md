@@ -33,7 +33,7 @@ strcpy(emp.first_name, "zara");
 
 **（->）箭头运算符**
 
-如果 `p_emp` 是一个指针，指向类型为 `Employee` 的对象，则要把值 `zara` 赋给对象 emp 的 `first_name` 成员，需要编写如下代码：
+如果 `p_emp` 是一个指针，指向类型为 `Employee` 的对象，则要把值 `zara` 赋给对象 `p_emp` 的 `first_name` 成员，需要编写如下代码：
 
 ```cpp
 strcpy(p_emp->first_name, "zara");
