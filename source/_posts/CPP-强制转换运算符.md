@@ -2,10 +2,8 @@
 title: CPP-强制转换运算符
 date: 2021-06-28 17:25:33
 tags:
-- C语言
 - CPP
 - VSCode
-- VS
 - MingGW64
 categories: CPP
 ---

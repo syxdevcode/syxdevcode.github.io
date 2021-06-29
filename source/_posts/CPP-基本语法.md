@@ -2,10 +2,8 @@
 title: CPP-基本语法
 date: 2021-06-23 10:05:39
 tags:
-- C语言
 - CPP
 - VSCode
-- VS
 - MingGW64
 categories: CPP
 ---

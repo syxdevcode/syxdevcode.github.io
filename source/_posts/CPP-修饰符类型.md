@@ -2,10 +2,8 @@
 title: CPP-修饰符类型
 date: 2021-06-28 14:11:25
 tags:
-- C语言
 - CPP
 - VSCode
-- VS
 - MingGW64
 categories: CPP
 ---

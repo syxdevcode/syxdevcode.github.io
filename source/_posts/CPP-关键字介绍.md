@@ -2,10 +2,8 @@
 title: CPP-关键字介绍
 date: 2021-06-23 10:33:35
 tags:
-- C语言
 - CPP
 - VSCode
-- VS
 - MingGW64
 categories: CPP
 ---

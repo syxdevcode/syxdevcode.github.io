@@ -2,10 +2,8 @@
 title: CPP之const char*, char const*, char*const 的区别
 date: 2021-06-28 13:50:26
 tags:
-- C语言
 - CPP
 - VSCode
-- VS
 - MingGW64
 categories: CPP
 ---

@@ -2,10 +2,8 @@
 title: CPP-变量作用域
 date: 2021-06-24 09:32:56
 tags:
-- C语言
 - CPP
 - VSCode
-- VS
 - MingGW64
 categories: CPP
 ---

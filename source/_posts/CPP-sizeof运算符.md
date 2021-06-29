@@ -2,10 +2,8 @@
 title: CPP-sizeof运算符
 date: 2021-06-28 16:53:16
 tags:
-- C语言
 - CPP
 - VSCode
-- VS
 - MingGW64
 categories: CPP
 ---

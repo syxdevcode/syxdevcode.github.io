@@ -3,7 +3,7 @@ title: VSCode配置C和C++开发环境
 date: 2021-05-06 21:15:32
 tags:
 - C语言
-- C++
+- CPP
 - VSCode
 - MingGW64
 categories: C语言

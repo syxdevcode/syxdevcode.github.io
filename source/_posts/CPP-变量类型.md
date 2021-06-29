@@ -2,10 +2,8 @@
 title: CPP-变量类型
 date: 2021-06-23 15:13:32
 tags:
-- C语言
 - CPP
 - VSCode
-- VS
 - MingGW64
 categories: CPP
 ---

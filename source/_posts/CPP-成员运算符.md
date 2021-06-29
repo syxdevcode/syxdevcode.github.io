@@ -2,10 +2,8 @@
 title: CPP-成员运算符
 date: 2021-06-28 17:15:53
 tags:
-- C语言
 - CPP
 - VSCode
-- VS
 - MingGW64
 categories: CPP
 ---

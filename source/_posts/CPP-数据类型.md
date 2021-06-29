@@ -2,10 +2,8 @@
 title: CPP-数据类型
 date: 2021-06-23 11:28:08
 tags:
-- C语言
 - CPP
 - VSCode
-- VS
 - MingGW64
 categories: CPP
 ---
