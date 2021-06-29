@@ -182,6 +182,140 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2017/12/04/WinDbg%E5%BF%AB%E9%80%9F%E5%88%86%E6%9E%90%E5%BC%82%E5%B8%B8%E6%83%85%E5%86%B5Dump%E6%96%87%E4%BB%B6/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2017/12/04/WinDbg%E5%BF%AB%E9%80%9F%E5%88%86%E6%9E%90%E5%BC%82%E5%B8%B8%E6%83%85%E5%86%B5Dump%E6%96%87%E4%BB%B6/" class="post-title-link" itemprop="url">WinDbg快速分析异常情况Dump文件</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2017-12-04 14:26:29" itemprop="dateCreated datePublished" datetime="2017-12-04T14:26:29+00:00">2017-12-04</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-06-29 06:59:09" itemprop="dateModified" datetime="2021-06-29T06:59:09+00:00">2021-06-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/WinDbg/" itemprop="url" rel="index"><span itemprop="name">WinDbg</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="WinDbg快速分析异常情况Dump文件"><a href="#WinDbg快速分析异常情况Dump文件" class="headerlink" title="WinDbg快速分析异常情况Dump文件"></a>WinDbg快速分析异常情况Dump文件</h1><p>生产环境偶尔会出现一些异常问题，WinDbg 或 GDB 就是解决此类问题的利器。调试工具 WinDbg 如同医生的听诊器，是系统生病时做问题诊断的逆向分析工具，Dump 文件类似于飞机的黑匣子，记录着生产环境程序运行的状态。<br>本文主要介绍了调试工具 WinDbg 和抓包工具 ProcDump 的使用。</p>
+<h2 id="一、简介"><a href="#一、简介" class="headerlink" title="一、简介"></a>一、简介</h2><h3 id="1、WinDbg"><a href="#1、WinDbg" class="headerlink" title="1、WinDbg"></a>1、WinDbg</h3><p>WinDbg 是在 Windows 平台下的、强大的用户态和内核态调试工具。相比较于 Visual Studio，它是一个轻量级的调试工具，所谓轻量级指的是它的安装文件大小较小，但是其调试功能，却比 VS 更为强大。<br>它的另外一个用途是可以用来分析 Dump 数据。WinDbg 是 Microsoft 公司免费调试器调试集合中的 GUI 的调试器，支持 Source 和 Assembly 两种模式的调试。<br>WinDbg 不仅可以调试应用程序，还可以进行 Kernel Debug。结合 Microsoft 的 Symbol Server，可以获取系统符号文件，便于应用程序和内核的调试。<br>WinDbg 支持的平台包括 x86、IA64、AMD64。虽然 WinDbg 也提供图形界面操作，但它最强大的地方还是有着强大的调试命令，一般情况会结合 GUI 和命令行进行操作，常用的视图有：局部变量、全局变量、调用栈、线程、命令、寄存器、白板等。其中“命令”视图是默认打开的。</p>
+<h3 id="2、DebugDiag"><a href="#2、DebugDiag" class="headerlink" title="2、DebugDiag"></a>2、DebugDiag</h3><p>DebugDiag 最初是为了帮助分析 IIS 的性能问题而开发的，它同样可以用于任何其他的进程。DebugDiag 工具主要用于帮助解决如挂起、 速度慢、 内存泄漏或内存碎片，和任何用户模式进程崩溃等问题。<br>该工具包括附加调试脚本，侧重于互联网信息服务（IIS）应用程序、 Web 数据访问组件、 COM+ 和相关 Microsoft 技术、SharePoint 和 .NET。它提供可扩展对象模型中的 COM 对象的形式，并具有一个内置的报告框架提供的脚本主机。它由 3 部分组成，包括调试服务、 调试器主机和用户界面。</p>
+<h3 id="3、ProcDump"><a href="#3、ProcDump" class="headerlink" title="3、ProcDump"></a>3、ProcDump</h3><p>ProcDump 是 System Internal 提供的一个专门用来监测程序 CPU 高使用率从而生成进程 Dump 文件的工具。ProcDump 可以根据系统的 CPU 使用率或者指定的性能计数器来针对特定进程生成一系列的 Dump 文件，以便调试者对事故原因进行分析。</p>
+<h2 id="二，工具下载地址"><a href="#二，工具下载地址" class="headerlink" title="二，工具下载地址"></a>二，工具下载地址</h2><p>1、WinDbg 下载</p>
+<p>x86 位版本下载：<a target="_blank" rel="noopener" href="http://download.microsoft.com/download/A/6/A/A6AC035D-DA3F-4F0C-ADA4-37C8E5D34E3D/setup/WinSDKDebuggingTools/dbg_x86.msi">http://download.microsoft.com/download/A/6/A/A6AC035D-DA3F-4F0C-ADA4-37C8E5D34E3D/setup/WinSDKDebuggingTools/dbg_x86.msi</a></p>
+<p>x64 位版本下载：<a target="_blank" rel="noopener" href="http://download.microsoft.com/download/A/6/A/A6AC035D-DA3F-4F0C-ADA4-37C8E5D34E3D/setup/WinSDKDebuggingTools_amd64/dbg_amd64.msi">http://download.microsoft.com/download/A/6/A/A6AC035D-DA3F-4F0C-ADA4-37C8E5D34E3D/setup/WinSDKDebuggingTools_amd64/dbg_amd64.msi</a></p>
+<p>2、DebugDiag v2 Update 2 下载：<a target="_blank" rel="noopener" href="https://www.microsoft.com/en-us/download/details.aspx?id=49924">https://www.microsoft.com/en-us/download/details.aspx?id=49924</a></p>
+<p>3、ProcDump v9.0 下载：<a target="_blank" rel="noopener" href="https://download.sysinternals.com/files/Procdump.zip">https://download.sysinternals.com/files/Procdump.zip</a></p>
+<h2 id="三、获取异常进程的-Dump-文件"><a href="#三、获取异常进程的-Dump-文件" class="headerlink" title="三、获取异常进程的 Dump 文件"></a>三、获取异常进程的 Dump 文件</h2><p>以下四种方式获取 Dump 文件：</p>
+<h3 id="1、通过【任务管理器】获取-Dump-文件，这样获取的是-MinDump"><a href="#1、通过【任务管理器】获取-Dump-文件，这样获取的是-MinDump" class="headerlink" title="1、通过【任务管理器】获取 Dump 文件，这样获取的是 MinDump"></a>1、通过【任务管理器】获取 Dump 文件，这样获取的是 MinDump</h3><p><img src="/img/MinDump.png" alt="通过任务管理器"></p>
+<h3 id="2、利用-WinDbg-的-adplus-获取-Dump-文件，这样获取的是-FullDump"><a href="#2、利用-WinDbg-的-adplus-获取-Dump-文件，这样获取的是-FullDump" class="headerlink" title="2、利用 WinDbg 的 adplus 获取 Dump 文件，这样获取的是 FullDump"></a>2、利用 WinDbg 的 adplus 获取 Dump 文件，这样获取的是 FullDump</h3><p>C:\Program Files\Debugging Tools for Windows (x64)&gt;adplus -hang -pn explorer.exe<br> -o D:\dumps</p>
+<p><img src="/img/windbg-1.png" alt="WinDbg-1"></p>
+<h3 id="3、通过-DebugDiag-创建-NET-异常转储-Dump-文件"><a href="#3、通过-DebugDiag-创建-NET-异常转储-Dump-文件" class="headerlink" title="3、通过 DebugDiag 创建.NET 异常转储 Dump 文件"></a>3、通过 DebugDiag 创建.NET 异常转储 Dump 文件</h3><p><img src="/img/debugdiag-2.png" alt="debugdiag-2"></p>
+<h3 id="4、通过-ProcDump-抓取异常线程-Dump-文件。"><a href="#4、通过-ProcDump-抓取异常线程-Dump-文件。" class="headerlink" title="4、通过 ProcDump 抓取异常线程 Dump 文件。"></a>4、通过 ProcDump 抓取异常线程 Dump 文件。</h3><h4 id="4-1、命令行"><a href="#4-1、命令行" class="headerlink" title="4.1、命令行"></a>4.1、命令行</h4><p>进入ProcDump目录，运行命令行：</p>
+<figure class="highlight cmd"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">procdump [-a] [[-c|-cl CPU usage] [-u] [-s seconds]] [-n exceeds] </span><br><span class="line">[-e [<span class="number">1</span> [-b]] [-f &lt;filter,...&gt;] [-g] [-h] [-l] [-m|-ml commit usage] </span><br><span class="line">[-ma | -mp] [-o] [-p|-pl counter threshold] [-r] [-t] </span><br><span class="line">[-d &lt;callback DLL&gt;] [-<span class="number">64</span>] &lt;[-w] &lt;process name or service name or PID&gt;</span><br><span class="line">[dump file] | -i &lt;dump file&gt; | -u | -x &lt;dump file&gt; &lt;image file&gt; </span><br><span class="line">[arguments] &gt;] [-? [ -e]]</span><br></pre></td></tr></table></figure>
+
+<p>实例：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">procdump -c 70 -s 5 -ma -n 3 w3wp</span><br><span class="line">  - 当系统 CPU 使用率持续 5 秒超过 70% 时，连续抓 3 个 Full Dump。</span><br><span class="line">procdump outlook -p &quot;\Processor(_Total)\% Processor Time&quot; 80</span><br><span class="line">  - 当系统 CPU 使用率超过 80%，抓取 Outlook 进程的 Mini Dump。</span><br><span class="line">procdump -ma outlook -p &quot;\Process(Outlook)\Handle Count&quot; 10000</span><br><span class="line">  - 当 Outlook 进程 Handle 数超过 10000 时抓取 Full Dump</span><br><span class="line">procdump -ma 4572</span><br><span class="line">  - 直接生成进程号位 4572 的 Full Dump。</span><br></pre></td></tr></table></figure>
+
+<p>注意：</p>
+<ul>
+<li>ProcDump 需要进程已经启动，并且中途不能停止。比如需要抓取 IIS Worker Process 的 High CPU Dump，由于 IIS Worker Process 默认会</li>
+</ul>
+<p>配置 Idle Timeout = 20 min，即该进程在 20 分钟内没有任何请求的话就会自动结束，这种情况下 ProcDump 也会自动结束。需要重新运行命令。</p>
+<p>因此如果目标程序存在这样的配置，需要暂时将该配置取消。</p>
+<ul>
+<li><p>有些系统管理员希望能够运行该工具后退出用户 session，ProcDump 是做不到的，如果有这种需求可以考虑使用 DebugDiag。</p>
+</li>
+<li><p>在调试 High CPU 问题的时候经常用到的一个命令是!runaway，但是有些时候!runway 在 ProcDump 抓取 Dump 文件的过程中运行不出来，报错信息如下：</p>
+</li>
+</ul>
+<p>0:000&gt; !runaway ERROR: !runaway: extension exception 0x80004002. “Unable to get thread times - dumps may not have time information”</p>
+<p>解决方法是将 Debugging Tools for Windows (WinDbg) 安装目录下的 dbghelp.dll 拷贝到 procdump.exe 所在目录下，然后再运行命令抓取 Dump。</p>
+<h2 id="四、WinDbg-使用方法"><a href="#四、WinDbg-使用方法" class="headerlink" title="四、WinDbg 使用方法"></a>四、WinDbg 使用方法</h2><p>操作步骤如下：</p>
+<h3 id="1、抓取异常程序的-Dump-文件。"><a href="#1、抓取异常程序的-Dump-文件。" class="headerlink" title="1、抓取异常程序的 Dump 文件。"></a>1、抓取异常程序的 Dump 文件。</h3><h3 id="2、设置符号表"><a href="#2、设置符号表" class="headerlink" title="2、设置符号表"></a>2、设置符号表</h3><p>符号表是 WinDbg 关键的“数据库”，如果没有它，WinDbg 基本上就是个废物，无法分析更多问题。所以使用 WinDbg 设置符号表，是必须要走的一步。</p>
+<ul>
+<li><p>a、运行 WinDbg 软件，然后按【Ctrl+S】弹出符号表设置窗。</p>
+</li>
+<li><p>b、将符号表地址：SRV<em>C:\Symbols</em></p>
+</li>
+</ul>
+<p><a target="_blank" rel="noopener" href="http://msdl.microsoft.com/download/symbols">http://msdl.microsoft.com/download/symbols</a> 粘贴在输入框中（不能换行），点击确定即可。点击确定之前，请先确认红色字的文件夹是否已被新建。</p>
+<p>注：红色字<code>C:\Symbols</code>表示符号表本地存储路径，建议固定路径，可避免符号表重复下载。</p>
+<h3 id="3、学会打开第一个-Dump-文件！"><a href="#3、学会打开第一个-Dump-文件！" class="headerlink" title="3、学会打开第一个 Dump 文件！"></a>3、学会打开第一个 Dump 文件！</h3><p>使用【Ctrl+D】快捷键，或者点击 WinDbg 界面上的【File=&gt;Open Crash Dump…】按钮，来打开一个 Dump 文件。</p>
+<p>当你想打开第二个 Dump 文件时，可能因为上一个分析记录未清除，导致无法直接分析 Dump 文件，此时你可以使用快捷键【Shift+F5】来关闭上一个对 Dump 文件的分析记录。</p>
+<p>SOS does not support the current target architecture<br>这个错误的原因是用了32位的任务管理器抓的32位的dump文件。<br>需要用64位的任务管理器抓32位的dump文件（C:\Windows\SysWOW64\taskmgr.exe）</p>
+<h3 id="4、通过简单的几个命令学会分析-Dump-文件"><a href="#4、通过简单的几个命令学会分析-Dump-文件" class="headerlink" title="4、通过简单的几个命令学会分析 Dump 文件"></a>4、通过简单的几个命令学会分析 Dump 文件</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">.loadby sos clr     //首先加载sos</span><br><span class="line"></span><br><span class="line">// 或</span><br><span class="line"></span><br><span class="line">.load  C:\Windows\Microsoft.NET\Framework64\v4.0.30319\SOS.dll</span><br><span class="line"></span><br><span class="line">.chain  // 显示加载的扩展dll</span><br><span class="line"></span><br><span class="line">!runaway // 查看线程运行时间</span><br><span class="line"></span><br><span class="line">~22s // 进入线程 22</span><br><span class="line"></span><br><span class="line">!clrstack  // 查看当前线程堆栈变量值的信息</span><br><span class="line"></span><br><span class="line">!dso  // 把当前栈上所有的变量都显示出来</span><br></pre></td></tr></table></figure>
+
+<h4 id="调试dump步骤"><a href="#调试dump步骤" class="headerlink" title="调试dump步骤"></a>调试dump步骤</h4><p>将dump文件拖入windbg<br>执行.loadby sos clr或.loadby sos mscorwks加载模块<br>执行!analyze -v 进行异常分析</p>
+<h4 id="调试exe文件步骤"><a href="#调试exe文件步骤" class="headerlink" title="调试exe文件步骤"></a>调试exe文件步骤</h4><p>Open Executeable..<br>执行 sxe ld:clrjit<br>执行 g<br>执行.loadby sos clr</p>
+<h3 id="5、常用命令"><a href="#5、常用命令" class="headerlink" title="5、常用命令"></a>5、常用命令</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br></pre></td><td class="code"><pre><span class="line">.sympath  // 检查sympath是否正确</span><br><span class="line"></span><br><span class="line">.sympath srv*c:\Symbols*http://msdl.microsoft.com/download/symbols</span><br><span class="line"></span><br><span class="line">也可以在命令行执行</span><br><span class="line">.symfix d:\symbols</span><br><span class="line"></span><br><span class="line">!lmi truecrypt  // 查找相应的模块信息</span><br><span class="line"></span><br><span class="line">!sym noisy    // 检查符号表加载详细情况</span><br><span class="line"></span><br><span class="line">lm   // 列出模块</span><br><span class="line">lmf  // 指令列出当前进程中加载的所有DLL文件和对应的路径</span><br><span class="line">lmvm // 查看DLL/EXE文件信息，参数为某个dll文件名称</span><br><span class="line">.loadby sos mscorwks // 指令用于加载.Net 3.5版本及以下模块</span><br><span class="line">.loadby sos clr // 指令用于加载.Net 4.0版本及以上模块</span><br><span class="line"></span><br><span class="line">!help sos // 指令帮助</span><br><span class="line">!threads // 显示所有线程</span><br><span class="line">!address  // 内存使用情况</span><br><span class="line">!threadpool(!tp) // 显示程序池信息</span><br><span class="line">!ProcInfo  // 显示进程信息</span><br><span class="line">!address -summary // 内存概况</span><br><span class="line"></span><br><span class="line">!heap  // 查看进程堆</span><br><span class="line"></span><br><span class="line">!load wow64exts</span><br><span class="line"></span><br><span class="line">!sw</span><br><span class="line"></span><br><span class="line">.reload  // 重新加载</span><br><span class="line"></span><br><span class="line">.loadby sos mscorwks</span><br><span class="line"></span><br><span class="line">.symfix+ c:\symbols  //强制下载symbols</span><br><span class="line"></span><br><span class="line">.reload /f;  // Force reloading symbols 强制加载符号文件</span><br><span class="line"></span><br><span class="line">.cordll -ve -u –l   //重新加载调试DLL，这是加载DLL，不是符号</span><br><span class="line">!dumpheap  // 显示托管堆的信息</span><br><span class="line">!dumpheap -stat  //检查当前所有托管类型的统计信息</span><br><span class="line">!dumpheap -type Person –stat  // 在堆中查找指定类型（person）对象，注意大小写敏感</span><br><span class="line">!dumpheap -mt 00007ffdb9386948 -min 200 //查看200byte以上的string</span><br><span class="line">!dumpobj(!do)  // 显示一个对象的内容</span><br><span class="line">!DumpStackObjects(!dso) // 当前线程对象分配过程</span><br><span class="line">!do 0000021bcbaf5158 // 使用!do命令查看一个对象的内容</span><br><span class="line">!dumparray(!da) // 显示数组</span><br><span class="line">!syncblk  // 显示同步块</span><br><span class="line">!runaway  // 显示线程cpu时间</span><br><span class="line">!gcroot // 跟踪对象内存引用</span><br><span class="line">!gcroot 0000021bcbaf5158 //使用!gcroot 查看一个对象的gc根</span><br><span class="line"></span><br><span class="line">!DumpObj /d 0000021975972b48  //查看第对象</span><br><span class="line"></span><br><span class="line">.cordll -ve -u -l</span><br><span class="line"></span><br><span class="line">.chain  // 显示加载的扩展dll</span><br><span class="line"></span><br><span class="line">.unload C:\Windows\Microsoft.NET\Framework64\v4.0.30319\sos  // 卸载</span><br><span class="line"></span><br><span class="line">!threads -live  //查看托管线程</span><br><span class="line"></span><br><span class="line">!runaway  // 查看线程运行时间</span><br><span class="line"></span><br><span class="line">.loadby sos clr</span><br><span class="line"></span><br><span class="line">!eeversion</span><br><span class="line"></span><br><span class="line">!pe // 打印异常</span><br><span class="line">!ObjSize  // 查看对象大小　ObjSize 用于知道对象地址时，查看该对象的大小。</span><br><span class="line">~#s</span><br><span class="line"></span><br><span class="line">!clrstack //显示调用栈,只显示托管代码</span><br><span class="line"></span><br><span class="line">kb // 显示当前线程的callstack,只显示非托管代码</span><br><span class="line"></span><br><span class="line">~*e !clrstack // 所有线程的调用堆栈</span><br><span class="line">.cls // 清屏</span><br><span class="line"></span><br><span class="line">!EEStack -EE</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/57f0ab8702b5">Windbg常用命令</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/sheng-jie/p/9503650.html">https://www.cnblogs.com/sheng-jie/p/9503650.html</a></p>
+<p><a target="_blank" rel="noopener" href="http://mp.weixin.qq.com/s/R6TrIlxqJVgApFP-V2r0GA">http://mp.weixin.qq.com/s/R6TrIlxqJVgApFP-V2r0GA</a></p>
+<p><a target="_blank" rel="noopener" href="http://blog.csdn.net/beanjoy/article/details/39203259">http://blog.csdn.net/beanjoy/article/details/39203259</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/softfair/p/The_version_SOS_not_match_version_of_CLR_PDB_symbol_for_clr_dll_not_loaded.html">http://www.cnblogs.com/softfair/p/The_version_SOS_not_match_version_of_CLR_PDB_symbol_for_clr_dll_not_loaded.html</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/Clingingboy/archive/2013/03/26/2983166.html">http://www.cnblogs.com/Clingingboy/archive/2013/03/26/2983166.html</a></p>
+<p><a target="_blank" rel="noopener" href="http://blog.csdn.net/bcbobo21cn/article/details/51683137">http://blog.csdn.net/bcbobo21cn/article/details/51683137</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2017/11/30/CentOS7%E6%9F%A5%E7%9C%8B%E7%AB%AF%E5%8F%A3%E5%8D%A0%E7%94%A8/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +347,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 02:34:32" itemprop="dateModified" datetime="2021-06-29T02:34:32+00:00">2021-06-29</time>
+                <time title="修改时间：2021-06-29 06:59:09" itemprop="dateModified" datetime="2021-06-29T06:59:09+00:00">2021-06-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -305,7 +439,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 02:34:32" itemprop="dateModified" datetime="2021-06-29T02:34:32+00:00">2021-06-29</time>
+                <time title="修改时间：2021-06-29 06:59:09" itemprop="dateModified" datetime="2021-06-29T06:59:09+00:00">2021-06-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -387,7 +521,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 02:34:32" itemprop="dateModified" datetime="2021-06-29T02:34:32+00:00">2021-06-29</time>
+                <time title="修改时间：2021-06-29 06:59:09" itemprop="dateModified" datetime="2021-06-29T06:59:09+00:00">2021-06-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -512,7 +646,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 02:34:32" itemprop="dateModified" datetime="2021-06-29T02:34:32+00:00">2021-06-29</time>
+                <time title="修改时间：2021-06-29 06:59:09" itemprop="dateModified" datetime="2021-06-29T06:59:09+00:00">2021-06-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -589,7 +723,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 02:34:32" itemprop="dateModified" datetime="2021-06-29T02:34:32+00:00">2021-06-29</time>
+                <time title="修改时间：2021-06-29 06:59:09" itemprop="dateModified" datetime="2021-06-29T06:59:09+00:00">2021-06-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -720,7 +854,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 02:34:32" itemprop="dateModified" datetime="2021-06-29T02:34:32+00:00">2021-06-29</time>
+                <time title="修改时间：2021-06-29 06:59:09" itemprop="dateModified" datetime="2021-06-29T06:59:09+00:00">2021-06-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -883,7 +1017,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 02:34:32" itemprop="dateModified" datetime="2021-06-29T02:34:32+00:00">2021-06-29</time>
+                <time title="修改时间：2021-06-29 06:59:09" itemprop="dateModified" datetime="2021-06-29T06:59:09+00:00">2021-06-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1003,7 +1137,7 @@ ab -n 100 -H “Cookie: Key1=Value1; Key2=Value2” http://baidu.com/
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 02:34:32" itemprop="dateModified" datetime="2021-06-29T02:34:32+00:00">2021-06-29</time>
+                <time title="修改时间：2021-06-29 06:59:09" itemprop="dateModified" datetime="2021-06-29T06:59:09+00:00">2021-06-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1085,7 +1219,7 @@ ab -n 100 -H “Cookie: Key1=Value1; Key2=Value2” http://baidu.com/
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 02:34:32" itemprop="dateModified" datetime="2021-06-29T02:34:32+00:00">2021-06-29</time>
+                <time title="修改时间：2021-06-29 06:59:09" itemprop="dateModified" datetime="2021-06-29T06:59:09+00:00">2021-06-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1166,7 +1300,7 @@ ab -n 100 -H “Cookie: Key1=Value1; Key2=Value2” http://baidu.com/
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 02:34:32" itemprop="dateModified" datetime="2021-06-29T02:34:32+00:00">2021-06-29</time>
+                <time title="修改时间：2021-06-29 06:59:09" itemprop="dateModified" datetime="2021-06-29T06:59:09+00:00">2021-06-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1273,7 +1407,7 @@ ab -n 100 -H “Cookie: Key1=Value1; Key2=Value2” http://baidu.com/
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 02:34:32" itemprop="dateModified" datetime="2021-06-29T02:34:32+00:00">2021-06-29</time>
+                <time title="修改时间：2021-06-29 06:59:09" itemprop="dateModified" datetime="2021-06-29T06:59:09+00:00">2021-06-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1377,7 +1511,7 @@ ab -n 100 -H “Cookie: Key1=Value1; Key2=Value2” http://baidu.com/
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 02:34:32" itemprop="dateModified" datetime="2021-06-29T02:34:32+00:00">2021-06-29</time>
+                <time title="修改时间：2021-06-29 06:59:09" itemprop="dateModified" datetime="2021-06-29T06:59:09+00:00">2021-06-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1551,7 +1685,7 @@ ab -n 100 -H “Cookie: Key1=Value1; Key2=Value2” http://baidu.com/
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 02:34:32" itemprop="dateModified" datetime="2021-06-29T02:34:32+00:00">2021-06-29</time>
+                <time title="修改时间：2021-06-29 06:59:09" itemprop="dateModified" datetime="2021-06-29T06:59:09+00:00">2021-06-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1631,7 +1765,7 @@ ab -n 100 -H “Cookie: Key1=Value1; Key2=Value2” http://baidu.com/
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 02:34:32" itemprop="dateModified" datetime="2021-06-29T02:34:32+00:00">2021-06-29</time>
+                <time title="修改时间：2021-06-29 06:59:09" itemprop="dateModified" datetime="2021-06-29T06:59:09+00:00">2021-06-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1733,120 +1867,6 @@ ab -n 100 -H “Cookie: Key1=Value1; Key2=Value2” http://baidu.com/
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2017/05/02/CSharp-lock%E9%94%81%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/05/02/CSharp-lock%E9%94%81%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3/" class="post-title-link" itemprop="url">CSharp lock锁深入理解</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2017-05-02 10:41:19" itemprop="dateCreated datePublished" datetime="2017-05-02T10:41:19+00:00">2017-05-02</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-29 02:34:32" itemprop="dateModified" datetime="2021-06-29T02:34:32+00:00">2021-06-29</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/CSharp%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index"><span itemprop="name">CSharp基础</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="CSharp-lock锁深入理解"><a href="#CSharp-lock锁深入理解" class="headerlink" title="CSharp lock锁深入理解"></a>CSharp lock锁深入理解</h1><h2 id="定义"><a href="#定义" class="headerlink" title="定义"></a>定义</h2><h3 id="临界区（Critical-Section）"><a href="#临界区（Critical-Section）" class="headerlink" title="临界区（Critical Section）"></a>临界区（Critical Section）</h3><p>临界区是一段在同一时候只被一个线程进入/执行的代码块。</p>
-<h3 id="Lock关键字"><a href="#Lock关键字" class="headerlink" title="Lock关键字"></a>Lock关键字</h3><p>将语句块标记为临界区，方法是获取给定对象的互斥锁，执行语句，然后释放该锁。此语句的形式如下：</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Object thisLock = <span class="keyword">new</span> Object();</span><br><span class="line"></span><br><span class="line"><span class="keyword">lock</span> (thisLock)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// Critical code section</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>lock 确保当一个线程位于代码的临界区时，另一个线程不进入临界区。如果其他线程试图进入锁定的代码，则它将一直等待（即被阻止），直到该对象被释放。</li>
-</ul>
-<h3 id="Lock使用准则"><a href="#Lock使用准则" class="headerlink" title="Lock使用准则"></a>Lock使用准则</h3><p>Lock 调用块开始位置的 Enter 和块结束位置的 Exit。</p>
-<p>通常，应避免锁定 public 类型，否则实例将超出代码的控制范围。常见的结构 lock (this)、lock (typeof (MyType)) 和 lock (“myLock”) 违反此准则：</p>
-<ul>
-<li><p>如果实例可以被公共访问，将出现 lock (this) 问题。</p>
-</li>
-<li><p>如果 MyType 可以被公共访问，将出现 lock (typeof (MyType)) 问题。</p>
-</li>
-<li><p>由于进程中使用同一字符串的任何其他代码将共享同一个锁，所以出现lock(“myLock”) 问题。</p>
-</li>
-</ul>
-<p>最佳做法是定义 private 对象来锁定, 或 private static 对象变量来保护所有实例所共有的数据。</p>
-<p>针对上述三点原则我们用具体的代码来加深理解</p>
-<h4 id="为什么不要Lock值类型"><a href="#为什么不要Lock值类型" class="headerlink" title="为什么不要Lock值类型"></a>为什么不要Lock值类型</h4><p>为什么不能lock值类型，比如lock(1)呢？让我们对上面的实例代码进行修改,将lock(thisLock)改为Lock(1),编译器时会出现int不是Lock语句要求的引用对象</p>
-<p><img src="/img/lock1.png" alt="编译失败"></p>
-<p>lock本质上Monitor.Enter，Monitor.Enter会使值类型装箱，每次lock的是装箱后的对象。lock其实是类似编译器的语法糖，因此编译器直接限制住不能lock值类型。</p>
-<h4 id="不要使用lock-object-1"><a href="#不要使用lock-object-1" class="headerlink" title="不要使用lock((object)1)"></a>不要使用lock((object)1)</h4><p>经lock(thisLock)改为Lock((object)1)编译可以成功，说明代码块并没有锁.究其原因是因为Lock(对象)中,对象为引用类型,其是通过判断object.ReferenceEquals((object)1, (object)1)始终返回false（因为每次装箱后都是不同对象）,也就是说每次都会判断成未申请互斥锁，这样在同一时间，别的线程照样能够访问里面的代码，达不到同步的效果。</p>
-<h4 id="不要使用Lock-this"><a href="#不要使用Lock-this" class="headerlink" title="不要使用Lock(this)"></a>不要使用Lock(this)</h4><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Collections.Generic;</span><br><span class="line"><span class="keyword">using</span> System.Linq;</span><br><span class="line"><span class="keyword">using</span> System.Text;</span><br><span class="line"><span class="keyword">using</span> System.Threading;</span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">TestLock</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">class</span> <span class="title">TestLockThis</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">private</span> <span class="built_in">bool</span> deadlocked = <span class="literal">true</span>;</span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">readonly</span> <span class="built_in">object</span> lockobject = <span class="keyword">new</span> <span class="built_in">object</span>();</span><br><span class="line"></span><br><span class="line">        <span class="comment">//这个方法用到了lock，我们希望lock的代码在同一时刻只能由一个线程访问</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">LockMethod</span>(<span class="params"><span class="built_in">object</span> o</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="comment">//lock (this)</span></span><br><span class="line">            <span class="keyword">lock</span> (lockobject)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">while</span> (deadlocked)</span><br><span class="line">                &#123;</span><br><span class="line">                    deadlocked = (<span class="built_in">bool</span>)o;</span><br><span class="line">                    Console.WriteLine(<span class="string">&quot;I am locked &quot;</span>);</span><br><span class="line">                    Thread.Sleep(<span class="number">500</span>);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">//所有线程都可以同时访问的方法</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">NotLockMethod</span>(<span class="params"></span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;I am not locked &quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">        <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            TestLockThis TestLockThis = <span class="keyword">new</span> TestLockThis();</span><br><span class="line"></span><br><span class="line">            <span class="comment">//在t1线程中调用LockMe，并将deadlock设为true（将出现死锁）</span></span><br><span class="line">            Thread t1 = <span class="keyword">new</span> Thread(TestLockThis.LockMethod);</span><br><span class="line">            t1.Start(<span class="literal">true</span>);</span><br><span class="line">            Thread.Sleep(<span class="number">100</span>);</span><br><span class="line"></span><br><span class="line">            <span class="comment">//在主线程中lock c1</span></span><br><span class="line">            <span class="keyword">lock</span> (TestLockThis)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="comment">//调用没有被lock的方法</span></span><br><span class="line">                TestLockThis.NotLockMethod();</span><br><span class="line">                <span class="comment">//调用被lock的方法，并试图将deadlock解除</span></span><br><span class="line">                TestLockThis.LockMethod(<span class="literal">false</span>);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            Console.Read();</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
-
-<p>在t1线程中，LockMethod调用了lock(this), 也就是Main函数中的c1，这时候在主线程中调用lock(TestLockThis)时，因为TestLockThis已经被锁定，所以必须要等待t1中的lock块执行完毕之后才能访问锁定的代码，即lock块中的所有操作都无法完成，于是我们看到连TestLockThis.NotLockMethod()都没有执行。</p>
-<h4 id="Lock为什么不要Lock-null对象"><a href="#Lock为什么不要Lock-null对象" class="headerlink" title="Lock为什么不要Lock(null对象)"></a>Lock为什么不要Lock(null对象)</h4><p>使用Lock(null),会抛出异常</p>
-<h4 id="Lock-本质"><a href="#Lock-本质" class="headerlink" title="Lock 本质"></a>Lock 本质</h4><p>Lock 关键字就是用Monitor 类来实现的。例如：</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">lock</span>(x)</span><br><span class="line">&#123;</span><br><span class="line">  DoSomething();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>这等效于：</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">System.Object obj = (System.Object)x;</span><br><span class="line">System.Threading.Monitor.Enter(obj);</span><br><span class="line"><span class="keyword">try</span></span><br><span class="line">&#123;</span><br><span class="line">  DoSomething();</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">finally</span></span><br><span class="line">&#123;</span><br><span class="line">  System.Threading.Monitor.Exit(obj);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>使用 lock 关键字通常比直接使用 Monitor 类更可取，一方面是因为 lock 更简洁，另一方面是因为 lock 确保了即使受保护的代码引发异常，也可以释放监视器。这是通过 finally 关键字来实现的，无论是否引发异常它都执行关联的代码块。</p>
-<h4 id="Lock-对象推荐为只读静态对象"><a href="#Lock-对象推荐为只读静态对象" class="headerlink" title="Lock 对象推荐为只读静态对象"></a>Lock 对象推荐为只读静态对象</h4><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">readonly</span> <span class="built_in">object</span> obj = <span class="keyword">new</span> <span class="built_in">object</span>();</span><br></pre></td></tr></table></figure>
-
-<p>为什么要设置成只读的呢？这是因为如果在lock代码段中改变obj的值，其它线程就畅通无阻了，因为互斥锁的对象变了，object.ReferenceEquals必然返回false。</p>
-<p>更准确的说，如果lock(object），object是静态的。那么说要该类的实例请求的都是一个object，所有实例执行的lock的时候只有一个能running。其他都必须等等。<br>lock(this)则表示锁住当前实例，实例内的所有线程必须等待，同一类的其他实例则可以有一个线程runing.</p>
-<p>简单说lock(static objcet)在所有实例里锁住这段代码。<br>lock（this)锁住当前实例的这段代码。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/chengqscjh/archive/2010/12/12/1903784.html" title="深入理解CSharp Lock锁">http://www.cnblogs.com/chengqscjh/archive/2010/12/12/1903784.html</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1916,7 +1936,7 @@ ab -n 100 -H “Cookie: Key1=Value1; Key2=Value2” http://baidu.com/
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">458</span>
+          <span class="site-state-item-count">459</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
