@@ -24,6 +24,7 @@ categories: CPP
 
 c++ 有四种显示类型转换，分别为 `static_cast`, `dynamic_cast`, `const_cast`, `reinterpret_cast`。
 
+<!--more-->
 ### static_cast<type> (expr)
 
 `static_cast`:强制将一种数据类型转换为另一种数据类型。`static_cast` 可以实现C++中内置基本数据类型之间的相互转换。例如，将整型数据转换为浮点型数据。
