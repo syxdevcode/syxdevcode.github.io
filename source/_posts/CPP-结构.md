@@ -23,7 +23,7 @@ member_type3 member_name3;
 .
 } object_names;
 ```
-
+<!--more-->
 实例：
 
 ```cpp
