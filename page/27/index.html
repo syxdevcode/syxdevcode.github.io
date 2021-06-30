@@ -182,6 +182,416 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/04/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9001-%E5%80%BC%E7%B1%BB%E5%9E%8B%E4%B8%8E%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/12/04/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9001-%E5%80%BC%E7%B1%BB%E5%9E%8B%E4%B8%8E%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B/" class="post-title-link" itemprop="url">DotNet面试题解析01-值类型与引用类型</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-12-04 10:17:55" itemprop="dateCreated datePublished" datetime="2018-12-04T10:17:55+00:00">2018-12-04</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-06-30 06:51:31" itemprop="dateModified" datetime="2021-06-30T06:51:31+00:00">2021-06-30</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%90/" itemprop="url" rel="index"><span itemprop="name">DotNet面试题解析</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="基本概念"><a href="#基本概念" class="headerlink" title="基本概念"></a>基本概念</h2><p><code>CLR</code> 支持两种类型：<strong>引用类型</strong>和<strong>值类型</strong>。这是 <code>.NET</code> 语言的基础和关键，他们从类型定义、实例创建、参数传递，到内存分配都有所不同。</p>
+<p><img src="/img/typesystem.gif" alt="typesystem.gif"></p>
+<p>下图清晰了展示了 <code>.NET</code> 中类型分类，值类型主要是一些简单的、基础的数据类型，引用类型主要用于更丰富的、复杂的、复合的数据类型。</p>
+<p><img src="/img/2009020510331710.jpg" alt="2009020510331710.jpg"></p>
+<h3 id="使用值类型最佳实践"><a href="#使用值类型最佳实践" class="headerlink" title="使用值类型最佳实践"></a>使用值类型最佳实践</h3><ul>
+<li>对象很小，并且打算创建很多这样的对象</li>
+<li>需要高密度的内存集合</li>
+<li>在值类型中重写 <code>Equals</code> ,重载 <code>Equals</code> ,实现 <code>IEquatable&lt;T&gt;</code> ,以及重载操作符==和!=。</li>
+<li>在值类型中重写 <code>GetHashCode</code>。</li>
+<li>考虑将值类型实现为不可变的。</li>
+</ul>
+<h3 id="为什么要为值类型重定义相等性"><a href="#为什么要为值类型重定义相等性" class="headerlink" title="为什么要为值类型重定义相等性"></a>为什么要为值类型重定义相等性</h3><p>原因主要有以下几点：</p>
+<ul>
+<li>值类型默认无法使用 == 操作符，除非对它进行重写 ( <code>System.ValueType</code> 里面对 <code>object.Equals()</code> 方法的重写)</li>
+<li>性能原因，因为值类型默认的相等性比较会使用装箱和反射，所以性能很差</li>
+<li>根据业务需求，其实际相等性的意义和默认的比较结果可能会不同，但是这种情况可能不较少</li>
+</ul>
+<p><img src="/img/986268-20190413072415659-1667812156.png" alt="986268-20190413072415659-1667812156.png"></p>
+<p>值类型和 <code>string</code> 类型除外，因为所有值类型继承于 <code>System.ValueType()</code> ( <code>System.ValueType()</code> 同样继承于<code>Object</code>，但是 <code>System.ValueType()</code> 本身却是引用类型)，而 <code>System.ValueType()</code> 对 <code>Equals()</code> 和==操作符进行了重写，是逐字节比较的。而 <code>string</code> 类型是比较特殊的引用类型，所以 <code>string</code> 在很多地方都是特殊处理的。</p>
+<p>在值类型使用 <code>Equals()</code> 时，因为 <code>Equals()</code> 使用了反射，在比较时会影响效率。</p>
+<p>注意：</p>
+<p>如果要把引用类型做为 <code>Dictionary</code> 或 <code>HashTable</code> 的 <code>key</code> 使用时，必须重写这两个方法。</p>
+<p>原因：当我们把引用类型( <code>string</code> 除外)做为 <code>Dictionary</code> 或 <code>HashTable</code> 的key时，有可能永远无法根据 <code>Key</code> 获得 <code>value</code> 的值，或者说两个类型的 <code>HashCode</code> 永远不会相等。</p>
+<p>拿 <code>Dictionary</code> 来说，虽然我们存储的时候是键值对，但是 <code>CLR</code> 会先把 <code>key</code> 转成 <code>HashCode</code> 并且验证 <code>Equals</code> 后再做存储，根据 <code>key</code> 取值的时候也是把 <code>key</code> 转换成 <code>HashCode</code> 并且验证 <code>Equals</code> 后再取值。</p>
+<p>注意验证时 <code>HashCode</code> 和 <code>Equals</code> 的关系是并且( <code>&amp;&amp;</code> )的关系。也就是说，只要 <code>GetHashCode</code> 和 <code>Equlas</code> 中有一个方法没有重写，在验证时没有重写的那个方法会调用基类的默认实现，而这两个方法的默认实现都是根据内存地址判断的，也就是说，只重写一个方法的返回值永远会是 <code>false</code> 。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/xiaochen-vip8/p/5506478.html">聊一聊C#的Equals()和GetHashCode()方法</a></p>
+<h3 id="实现步骤"><a href="#实现步骤" class="headerlink" title="实现步骤"></a>实现步骤</h3><ul>
+<li>重写 <code>object.Equals()</code> 方法</li>
+<li>实现 <code>IEquatable&lt;T&gt;.Equals()</code> 接口方法</li>
+<li>重写 == 和 != 操作符</li>
+<li>重写 <code>object.GetHashCode()</code></li>
+</ul>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/cgzl/p/10699667.html">C# 为值类型重定义相等性</a></p>
+<h3 id="如何重写GetHashCode方法"><a href="#如何重写GetHashCode方法" class="headerlink" title="如何重写GetHashCode方法"></a>如何重写GetHashCode方法</h3><p><code>Object</code> 中 <code>GetHasCode</code> 的算法保证了同一对象返回同一 <code>HashCode</code>，而不同的对象返回不同的 <code>HashCode</code>，但对于值类型等，视内容相等的对象为相等对象的类型时，默认的 <code>GetHashCode</code> 算法并不正确。重写后的 <code>GetHashCode</code> 必须要保证同一对象无论何时都返回同一 <code>HashCode</code> 值，而相等的对象也必须返回相同的值。并且在此基础上，保证 <code>HashCode</code> 尽量随机地散列分布。</p>
+<h3 id="引用类型"><a href="#引用类型" class="headerlink" title="引用类型"></a>引用类型</h3><p>标准配置，引用对象的额外空间：<code>对象头字节（包括同步块索引）</code>和 <code>TypeHandle（或方法表指针，类型对象指针）</code></p>
+<p>方法表指针指向一个 <code>CLR</code> 内部数据结构–方法表（ <code>MT</code> ）。方法表指向另一个内部数据结构—<code>EEClass</code> (EE代表<code>Execution Engine</code>,执行引擎)。方法表和 <code>EEClass</code> 包含一些信息，可用来分发虚方法和接口方法调用，访问静态变量，确定对象的运行时类型，高效访问基类型方法等。</p>
+<h2 id="内存结构"><a href="#内存结构" class="headerlink" title="内存结构"></a>内存结构</h2><p><code>值类型</code> 和 <code>引用类型</code> 最根源的区别就是其内存分配的差异，在这之前首先要理解 <code>CLR</code> 的内存中两个重要的概念：</p>
+<p><strong>Stack 栈</strong>：线程栈，由操作系统管理，<strong>存放值类型、引用类型变量（就是引用对象在托管堆上的地址）</strong>。栈是基于线程的，也就是说一个线程会包含一个线程栈，线程栈中的值类型在对象作用域结束后会被清理，效率很高。</p>
+<p><strong>GC Heap托管堆</strong>：进程初始化后在进程地址空间上划分的内存空间，存储 <code>.NET</code> 运行过程中的对象，<strong>所有的引用类型都分配在托管堆上</strong>，托管堆上分配的对象是由 <code>GC</code> 来管理和释放的。托管堆是基于进程的，当然托管堆内部还有其他更为复杂的结构。</p>
+<p>结合下图理解，变量a及其值3都是存储在栈上面。变量b在栈上存储，其值指向字符串“123”的托管堆对象地址(字符串是引用类型，字符串对象是存储在托管堆上面。字符串是一个特殊的引用类型)</p>
+<p><img src="/img/151257-20160301092426314-1061559039.png" alt="151257-20160301092426314-1061559039.png"></p>
+<p><strong>值类型一直都存储在栈上面吗？所有的引用类型都存储在托管堆上面吗？</strong></p>
+<ul>
+<li>1.单独的值类型变量，如局部值类型变量都是存储在栈上面的；</li>
+<li>2.当值类型是自定义 <code>class</code> 的一个字段、属性时，它随引用类型存储在托管堆上，此时她是引用类型的一部分；</li>
+<li>4.所有的引用类型肯定都是存放在托管堆上的。</li>
+<li>5.结构体（值类型）中定义引用类型字段，结构体是存储在栈上，其引用变量字段只存储内存地址，指向堆中的引用实例。</li>
+</ul>
+<h2 id="对象的传递"><a href="#对象的传递" class="headerlink" title="对象的传递"></a>对象的传递</h2><p><font color=#0099ff size=4 face="黑体">将值类型的变量赋值给另一个变量（或者作为参数传递），会执行一次值复制。<br>将引用类型的变量赋值给另一个引用类型的变量，它复制的值是引用对象的内存地址，因此赋值后就会多个变量指向同一个引用对象实例。</font></p>
+<p>理解这一点非常重要，下面代码测试验证一下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">int v1 = 0;</span><br><span class="line">int v2 = v1;</span><br><span class="line">v2 = 100;</span><br><span class="line">Console.WriteLine(&quot;v1=&quot; + v1); //输出：v1=0</span><br><span class="line">Console.WriteLine(&quot;v2=&quot; + v2); //输出：v2=100</span><br><span class="line"></span><br><span class="line">User u1=new User();</span><br><span class="line">u1.Age = 0;</span><br><span class="line">User u2 = u1;</span><br><span class="line">u2.Age = 100;</span><br><span class="line">Console.WriteLine(&quot;u1.Age=&quot; + u1.Age); //输出：u1.Age=100</span><br><span class="line">Console.WriteLine(&quot;u2.Age=&quot; + u2.Age); //输出：u2.Age=100，因为u1/u2指向同一个对象</span><br></pre></td></tr></table></figure>
+
+<p>当把对象作为参数传递的时候，效果同上面一样，他们都称为按值传递，但因为值类型和引用类型的区别，导致其产生的效果也不同。</p>
+<h3 id="参数-按值传递："><a href="#参数-按值传递：" class="headerlink" title="参数-按值传递："></a>参数-按值传递：</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">DoTest</span>(<span class="params"><span class="built_in">int</span> a</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    a *= <span class="number">2</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">DoUserTest</span>(<span class="params">User user</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    user.Age *= <span class="number">2</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">[<span class="meta">NUnit.Framework.Test</span>]</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">DoParaTest</span>(<span class="params"></span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">int</span> a = <span class="number">10</span>;</span><br><span class="line">    DoTest(a);</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;a=&quot;</span> + a); <span class="comment">//输出：a=10</span></span><br><span class="line">    User user = <span class="keyword">new</span> User();</span><br><span class="line">    user.Age = <span class="number">10</span>;</span><br><span class="line">    DoUserTest(user);</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;user.Age=&quot;</span> + user.Age); <span class="comment">//输出：user.Age=20</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上面的代码示例，两个方法的参数，都是按值传递</p>
+<ul>
+<li>对于值类型( <code>int a</code>) ：传递的是变量a的值拷贝副本，因此原本的a值并没有改变。</li>
+<li>对于引用类型( <code>User user</code>) ：传递的是变量 <code>user</code> 的引用地址（ <code>User</code> 对象实例的内存地址）拷贝副本，因此他们操作都是同一个 <code>User</code> 对象实例。</li>
+</ul>
+<h3 id="参数-按引用传递："><a href="#参数-按引用传递：" class="headerlink" title="参数-按引用传递："></a>参数-按引用传递：</h3><font color=#0099ff size=4 face="黑体">
+按引用传递的两个主要关键字：out 和 ref不管值类型还是引用类型，按引用传递的效果是一样的，都不传递值副本，而是引用的引用（类似c++的指针的指针）。out 和 ref告诉编译器方法传递额是参数地址，而不是参数本身，理解这一点很重要。
+</font>
+
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">DoTest</span>(<span class="params"><span class="keyword">ref</span> <span class="built_in">int</span> a</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    a *= <span class="number">2</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">DoUserTest</span>(<span class="params"><span class="keyword">ref</span> User user</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    user.Age *= <span class="number">2</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">DoParaTest</span>(<span class="params"></span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">int</span> a = <span class="number">10</span>;</span><br><span class="line">    DoTest(<span class="keyword">ref</span> a);</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;a=&quot;</span> + a); <span class="comment">//输出：a=20 ,a的值改变了</span></span><br><span class="line">    User user = <span class="keyword">new</span> User();</span><br><span class="line">    user.Age = <span class="number">10</span>;</span><br><span class="line">    DoUserTest(<span class="keyword">ref</span> user);</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;user.Age=&quot;</span> + user.Age); <span class="comment">//输出：user.Age=20</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">int</span> m = <span class="number">0</span>;</span><br><span class="line">Console.WriteLine(RefValue(<span class="number">1</span>, <span class="keyword">ref</span> m)); <span class="comment">//输出 1</span></span><br><span class="line">Console.WriteLine(m);  <span class="comment">//输出 222</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">int</span> n;</span><br><span class="line">Console.WriteLine(OutValue(<span class="number">1</span>, <span class="keyword">out</span> n));  <span class="comment">//输出 223</span></span><br><span class="line">Console.WriteLine(n);  <span class="comment">//输出 222</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="built_in">int</span> <span class="title">RefValue</span>(<span class="params"><span class="built_in">int</span> i, <span class="keyword">ref</span> <span class="built_in">int</span> j</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">int</span> k = j;</span><br><span class="line">    j = <span class="number">222</span>;</span><br><span class="line">    <span class="keyword">return</span> i + k;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="built_in">int</span> <span class="title">OutValue</span>(<span class="params"><span class="built_in">int</span> i, <span class="keyword">out</span> <span class="built_in">int</span> j</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    j = <span class="number">222</span>;</span><br><span class="line">    <span class="keyword">return</span> i + j;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>out</code> 和 <code>ref</code>的主要异同:</p>
+<ul>
+<li><code>out</code> 和 <code>ref</code> 都指示编译器传递参数地址，在行为上是相同的；</li>
+<li>他们的使用机制稍有不同，ref 必须要求参数在使用之前要显式初始化，out 必须要在方法内部初始化；</li>
+<li>使用 ref 和 out 时，在方法的参数和执行方法时，都要加Ref或Out关键字，以满足匹配；</li>
+<li>out 适合用在需要 retrun 多个返回值的地方，而 ref 则用在需要被调用的方法修改调用者的引用的时候。</li>
+<li>out 和 ref 不可以重载，就是不能定义 <code>Method(ref int a)</code> 和 <code>Method(out int a)</code> 这样的重载，从编译角度看，二者的实质是相同的，只是使用时有区别；</li>
+<li>ref 是有进有出，而 out 是只出不进。</li>
+</ul>
+<font color=#ff0000 size=4 face="黑体">
+注：在C#中，方法的参数传递有四种类型：传值（by value），传址（by reference），输出参数（by output），数组参数（by array）。传值参数无需额外的修饰符，传址参数需要修饰符ref，输出参数需要修饰符out，数组参数需要修饰符params。</font>
+
+<h3 id="常见问题"><a href="#常见问题" class="headerlink" title="常见问题"></a>常见问题</h3><p><img src="/img/%E5%80%BC%E7%B1%BB%E5%9E%8B%E5%92%8C%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B%E5%8C%BA%E5%88%AB.jpg" alt="值类型和引用类型区别.jpg"></p>
+<h2 id="题目答案解析"><a href="#题目答案解析" class="headerlink" title="题目答案解析"></a>题目答案解析</h2><h3 id="1-值类型和引用类型的区别？"><a href="#1-值类型和引用类型的区别？" class="headerlink" title="1. 值类型和引用类型的区别？"></a>1. 值类型和引用类型的区别？</h3><p>值类型包括简单类型、结构体类型和枚举类型，引用类型包括自定义类、数组、接口、委托等。</p>
+<ul>
+<li>1、赋值方式：将一个值类型变量赋给另一个值类型变量时，将复制包含的值。这与引用类型变量的赋值不同，引用类型变量的赋值只复制对象的引用（即内存地址，类似 <code>C++</code> 中的指针），而不复制对象本身。</li>
+<li>2、继承：值类型不可能派生出新的类型，所有的值类型均隐式派生自 <code>System.ValueType</code>。但与引用类型相同的是，结构也可以实现接口。</li>
+<li>3、null：与引用类型不同，值类型不可能包含 null 值。然而，可空类型允许将 null 赋给值类型（他其实只是一种语法形式，在 <code>clr</code> 底层做了特殊处理）。</li>
+<li>4、每种值类型均有一个隐式的默认构造函数来初始化该类型的默认值，值类型初始会默认为0，引用类型默认为null。</li>
+<li>5、值类型存储在栈中，引用类型存储在托管堆中。</li>
+</ul>
+<h3 id="2-结构和类的区别？"><a href="#2-结构和类的区别？" class="headerlink" title="2. 结构和类的区别？"></a>2. 结构和类的区别？</h3><p>结构体是值类型，类是引用类型，主要区别如题1。其他的区别：</p>
+<ul>
+<li>结构不支持无惨构造函数，不支持析构函数，并且不能有 protected 修饰；</li>
+<li>结构常用于数据存储，类 class 多用于行为；</li>
+<li>class 需要用 new 关键字实例化对象，struct 可以不适用 new 关键字；</li>
+<li>class 可以为抽象类，struct 不支持抽象；</li>
+</ul>
+<h3 id="3-delegate是引用类型还是值类型？enum、int-和string呢？"><a href="#3-delegate是引用类型还是值类型？enum、int-和string呢？" class="headerlink" title="3. delegate是引用类型还是值类型？enum、int[]和string呢？"></a>3. delegate是引用类型还是值类型？enum、int[]和string呢？</h3><p>enum 枚举是值类型，其他都是引用类型。</p>
+<h3 id="4-堆和栈的区别？"><a href="#4-堆和栈的区别？" class="headerlink" title="4. 堆和栈的区别？"></a>4. 堆和栈的区别？</h3><p>线程堆栈：简称栈 Stack<br>托管堆： 简称堆 Heap</p>
+<ul>
+<li>值类型大多分配在栈上，引用类型都分配在堆上；</li>
+<li>栈由操作系统管理，栈上的变量在其作用域完成后就被释放，效率较高，但空间有限。堆受 CLR 的 GC 控制；</li>
+<li>栈是基于线程的，每个线程都有自己的线程栈，初始大小为1M。堆是基于进程的，一个进程分配一个堆，堆的大小由 GC 根据运行情况动态控制；</li>
+</ul>
+<h3 id="5-“结构”对象可能分配在堆上吗？什么情况下会发生，有什么需要注意的吗？"><a href="#5-“结构”对象可能分配在堆上吗？什么情况下会发生，有什么需要注意的吗？" class="headerlink" title="5.“结构”对象可能分配在堆上吗？什么情况下会发生，有什么需要注意的吗？"></a>5.“结构”对象可能分配在堆上吗？什么情况下会发生，有什么需要注意的吗？</h3><p>结构是值类型，有两种情况会分配在对上面：</p>
+<ul>
+<li>结构作为class的一个字段或属性，会随class一起分配在堆上面；</li>
+<li>装箱后会在堆中存储，尽量避免值类型的装箱，值类型的拆箱和装箱都有性能损失；</li>
+</ul>
+<h3 id="6-理解参数按值传递？以及按引用传递？"><a href="#6-理解参数按值传递？以及按引用传递？" class="headerlink" title="6. 理解参数按值传递？以及按引用传递？"></a>6. 理解参数按值传递？以及按引用传递？</h3><ul>
+<li>按值传递：对于值类型传递的它的值拷贝副本，而引用类型传递的是引用变量的内存地址，他们还是指向的同一个对象。</li>
+<li>按引用传递：通过关键字 out 和 ref 传递参数的内存地址，值类型和引用类型的效果是相同的。</li>
+</ul>
+<h3 id="7-out-和-ref的区别与相同点？"><a href="#7-out-和-ref的区别与相同点？" class="headerlink" title="7. out 和 ref的区别与相同点？"></a>7. <code>out</code> 和 <code>ref</code>的区别与相同点？</h3><ul>
+<li><code>out</code> 和 <code>ref</code> 都指示编译器传递参数地址，在行为上是相同的；</li>
+<li>他们的使用机制稍有不同，ref 要求参数在使用之前要显式初始化，out 要在方法内部初始化；</li>
+<li><code>out</code> 和 <code>ref</code> 不可以重载，就是不能定义 Method(ref int a) 和 Method(out int a) 这样的重载，从编译角度看，二者的实质是相同的，只是使用时有区别；</li>
+</ul>
+<h3 id="8-C-支持哪几个预定义的值类型？C-支持哪些预定义的引用类型？"><a href="#8-C-支持哪几个预定义的值类型？C-支持哪些预定义的引用类型？" class="headerlink" title="8. C#支持哪几个预定义的值类型？C#支持哪些预定义的引用类型？"></a>8. C#支持哪几个预定义的值类型？C#支持哪些预定义的引用类型？</h3><p>值类型：整数、浮点数、字符、bool 和 decimal</p>
+<p>引用类型：Object，String</p>
+<h3 id="9-有几种方法可以判定值类型和引用类型？"><a href="#9-有几种方法可以判定值类型和引用类型？" class="headerlink" title="9. 有几种方法可以判定值类型和引用类型？"></a>9. 有几种方法可以判定值类型和引用类型？</h3><p>简单来说，继承自 System.ValueType 的是值类型，反之是引用类型。</p>
+<h3 id="10-说说值类型和引用类型的生命周期？"><a href="#10-说说值类型和引用类型的生命周期？" class="headerlink" title="10. 说说值类型和引用类型的生命周期？"></a>10. 说说值类型和引用类型的生命周期？</h3><p>值类型在作用域结束后释放。</p>
+<p>引用类型由 GC 垃圾回收期回收。</p>
+<h3 id="11-如果结构体中定义引用类型，对象在内存中是如何存储的？例如下面结构体中的class类-User对象是存储在栈上，还是堆上？"><a href="#11-如果结构体中定义引用类型，对象在内存中是如何存储的？例如下面结构体中的class类-User对象是存储在栈上，还是堆上？" class="headerlink" title="11. 如果结构体中定义引用类型，对象在内存中是如何存储的？例如下面结构体中的class类 User对象是存储在栈上，还是堆上？"></a>11. 如果结构体中定义引用类型，对象在内存中是如何存储的？例如下面结构体中的class类 User对象是存储在栈上，还是堆上？</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">public struct MyStruct</span><br><span class="line">&#123;</span><br><span class="line">    public int Index;</span><br><span class="line">    public User User;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>MyStruct 存储在栈中，其字段 User 的实例存储在堆中，MyStruct.User 字段存储指向 User 对象的内存地址。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/anding/p/5229756.html">.NET面试题解析(01)-值类型与引用类型</a></p>
+<p><a target="_blank" rel="noopener" href="https://phodal.github.io/2md/">2md</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/gjahead/archive/2008/02/28/1084871.html">C#基础：ref和out的区别</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/11/14/CSharp%E4%B8%AD%E8%BF%AD%E4%BB%A3%E5%99%A8-yield-return%E7%94%A8%E6%B3%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/11/14/CSharp%E4%B8%AD%E8%BF%AD%E4%BB%A3%E5%99%A8-yield-return%E7%94%A8%E6%B3%95/" class="post-title-link" itemprop="url">CSharp中迭代器-yield-return用法</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-11-14 10:59:41" itemprop="dateCreated datePublished" datetime="2018-11-14T10:59:41+00:00">2018-11-14</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-06-30 06:51:31" itemprop="dateModified" datetime="2021-06-30T06:51:31+00:00">2021-06-30</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/CSharp%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index"><span itemprop="name">CSharp基础</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="CSharp中迭代器yield-return用法"><a href="#CSharp中迭代器yield-return用法" class="headerlink" title="CSharp中迭代器yield-return用法"></a>CSharp中迭代器yield-return用法</h1><h2 id="迭代器方法"><a href="#迭代器方法" class="headerlink" title="迭代器方法"></a>迭代器方法</h2><p>迭代器方法有一个重要限制：在同一方法中不能同时使用 return 语句和 yield return 语句。</p>
+<p>此限制通常不是问题。 可以选择在整个方法中使用 yield return，或选择将原始方法分成多个方法，一些使用 return，另一些使用 yield return。</p>
+<p>使用 yield return 上下文关键字定义迭代器方法。</p>
+<p>yield关键字用于遍历循环中，<code>yield return</code>用于返回<code>IEnumerable&lt;T&gt;</code>；<br><code>yield break</code>用于终止循环遍历。</p>
+<h2 id="简单理解"><a href="#简单理解" class="headerlink" title="简单理解"></a>简单理解</h2><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="built_in">bool</span> onOff = <span class="literal">false</span>;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> IEnumerable <span class="title">ForExample</span>(<span class="params"></span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">yield</span> <span class="keyword">return</span> <span class="string">&quot;1&quot;</span>;  <span class="comment">// 第一次调用时执行  </span></span><br><span class="line">    <span class="keyword">yield</span> <span class="keyword">return</span> <span class="string">&quot;2&quot;</span>;  <span class="comment">// 第二次调用时执行  </span></span><br><span class="line">    <span class="keyword">if</span> (onOff)         <span class="comment">// 第三次调用时执行  </span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// 执行 yield break 之后不再执行下面语句  </span></span><br><span class="line">        <span class="keyword">yield</span> <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 否则,onOff为 false  </span></span><br><span class="line">    <span class="keyword">yield</span> <span class="keyword">return</span> <span class="string">&quot;3&quot;</span>;  <span class="comment">// 第四次调用时执行  </span></span><br><span class="line">    <span class="keyword">yield</span> <span class="keyword">return</span> <span class="string">&quot;4&quot;</span>;  <span class="comment">// 第五次调用时执行  </span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="实例"><a href="#实例" class="headerlink" title="实例"></a>实例</h2><p>以下int类型的集合，需要打印出所有值大于2的元素。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> List&lt;<span class="built_in">int</span>&gt; <span class="title">GetInitialData</span>(<span class="params"></span>)</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">new</span> List&lt;<span class="built_in">int</span>&gt;()&#123;<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">4</span>&#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="不使用yield-return的实现"><a href="#不使用yield-return的实现" class="headerlink" title="不使用yield return的实现"></a>不使用yield return的实现</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> IEnumerable&lt;<span class="built_in">int</span>&gt; <span class="title">FilterWithoutYield</span>(<span class="params"></span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    List&lt;<span class="built_in">int</span>&gt; result = <span class="keyword">new</span> List&lt;<span class="built_in">int</span>&gt;();</span><br><span class="line">    <span class="keyword">foreach</span> (<span class="function"><span class="built_in">int</span> i <span class="keyword">in</span> <span class="title">GetInitialData</span>(<span class="params"></span>))</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (i &gt; <span class="number">2</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            result.Add(i);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>客户端调用：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">foreach</span> (<span class="function"><span class="keyword">var</span> item <span class="keyword">in</span> <span class="title">FilterWithoutYield</span>(<span class="params"></span>))</span></span><br><span class="line">&#123;</span><br><span class="line">    Console.WriteLine(item);</span><br><span class="line">&#125;</span><br><span class="line">Console.ReadKey();</span><br></pre></td></tr></table></figure>
+
+<p>结果：3，4</p>
+<h3 id="使用yeild-return实现"><a href="#使用yeild-return实现" class="headerlink" title="使用yeild return实现"></a>使用yeild return实现</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> IEnumerable&lt;<span class="built_in">int</span>&gt; <span class="title">FilterWithYield</span>(<span class="params"></span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">foreach</span> (<span class="function"><span class="built_in">int</span> i <span class="keyword">in</span> <span class="title">GetInitialData</span>(<span class="params"></span>))</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (i &gt; <span class="number">2</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">yield</span> <span class="keyword">return</span> i;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">yield</span> <span class="keyword">break</span>; <span class="comment">// 执行 yield break 之后不再执行下面语句</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;这里的代码不执行&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">foreach</span> (<span class="function"><span class="keyword">var</span> item <span class="keyword">in</span> <span class="title">FilterWithYield</span>(<span class="params"></span>))</span></span><br><span class="line">&#123;</span><br><span class="line">    Console.WriteLine(item);</span><br><span class="line">&#125;</span><br><span class="line">Console.ReadKey();</span><br></pre></td></tr></table></figure>
+
+<p>结果：3，4</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>第一种方法（不使用yield），是把结果集全部加载到内存中再遍历；</p>
+<p>第二种方法（使用yield），客户端每调用一次，yield return就返回一个值给客户端，是”按需供给”。</p>
+<p>使用yield return为什么能保证每次循环遍历的时候从前一次停止的地方开始执行呢？</p>
+<p>–因为，编译器会生成一个状态机来维护迭代器的状态。</p>
+<p>简单地说，当希望获取一个<code>IEnumerable&lt;T&gt;</code>类型的集合，而不想把数据一次性加载到内存，就可以考虑使用yield return实现”按需供给”。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/csharp/iterators">https://docs.microsoft.com/zh-cn/dotnet/csharp/iterators</a></p>
+<p><a target="_blank" rel="noopener" href="http://phpstudy.php.cn/b.php/97674.html">C#中yield return用法分析</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/Golden_Shadow/article/details/7204226">C#中 yield return 与 yield break</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/08/24/MongoDB-%E5%AE%89%E5%85%A8%E8%AE%A4%E8%AF%81/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/08/24/MongoDB-%E5%AE%89%E5%85%A8%E8%AE%A4%E8%AF%81/" class="post-title-link" itemprop="url">MongoDB 安全认证</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-08-24 11:37:04" itemprop="dateCreated datePublished" datetime="2018-08-24T11:37:04+00:00">2018-08-24</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-06-30 06:51:31" itemprop="dateModified" datetime="2021-06-30T06:51:31+00:00">2021-06-30</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/MongoDB/" itemprop="url" rel="index"><span itemprop="name">MongoDB</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="MongoDB权限介绍"><a href="#MongoDB权限介绍" class="headerlink" title="MongoDB权限介绍"></a>MongoDB权限介绍</h2><ul>
+<li><p>1.MongoDB安装时不添加任何参数,默认是没有权限验证的,登录的用户可以对数据库任意操作而且可以远程访问数据库，需以 <code>--auth</code> 参数启动。</p>
+</li>
+<li><p>2.在刚安装完毕的时候 <code>MongoDB</code> 都默认有一个 <code>admin</code> 数据库,此时admin数据库是空的,没有记录权限相关的信息。当 <code>admin.system.users</code> 一个用户都没有时，即使 <code>mongod</code> 启动时添加了 <code>--auth</code> 参数,如果没有在 <code>admin</code> 数据库中添加用户,此时不进行任何认证还是可以做任何操作(不管是否是以 <code>--auth</code> 参数启动),直到在 <code>admin.system.users</code> 中添加了一个用户。</p>
+</li>
+<li><p>3.MongoDB的访问分为连接和权限验证，即使以 <code>--auth</code> 参数启动还是可以不使用用户名连接数据库，但是不会有任何的权限进行任何操作</p>
+</li>
+<li><p>4.<code>admin</code> 数据库中的用户名可以管理所有数据库，其他数据库中的用户只能管理其所在的数据库。</p>
+</li>
+</ul>
+<h2 id="MongoDB中用户的角色说明"><a href="#MongoDB中用户的角色说明" class="headerlink" title="MongoDB中用户的角色说明"></a>MongoDB中用户的角色说明</h2><ul>
+<li>read角色：数据库的只读权限</li>
+<li>readWrite角色：数据库的读写权限</li>
+<li>dbAdmin角色：数据库的管理权限，不具备读写权限</li>
+<li>userAdmin角色：数据库的用户管理权限</li>
+<li>clusterAdmin角色：集群管理权限(副本集、分片、主从等相关管理)</li>
+<li>readAnyDatabase角色：任何数据库的只读权限(和read相似)</li>
+<li>readWriteAnyDatabase角色：任何数据库的读写权限(和readWrite相似)</li>
+<li>userAdminAnyDatabase角色：任何数据库用户的管理权限(和userAdmin相似)</li>
+<li>dbAdminAnyDatabase角色：任何数据库的管理权限(dbAdmin相似)</li>
+</ul>
+<h2 id="启用访问控制和强制认证"><a href="#启用访问控制和强制认证" class="headerlink" title="启用访问控制和强制认证"></a>启用访问控制和强制认证</h2><h3 id="在admin数据库中，创建一个admin-用户"><a href="#在admin数据库中，创建一个admin-用户" class="headerlink" title="在admin数据库中，创建一个admin 用户"></a>在admin数据库中，创建一个admin 用户</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">use admin</span><br><span class="line">db.createUser(&#123;</span><br><span class="line">    user:<span class="string">&quot;admin&quot;</span>,</span><br><span class="line">    <span class="built_in">pwd</span>:<span class="string">&quot;admin&quot;</span>,</span><br><span class="line">    roles:[&#123;</span><br><span class="line">        role:<span class="string">&quot;root&quot;</span>,</span><br><span class="line">        db:<span class="string">&quot;admin&quot;</span></span><br><span class="line">    &#125;]</span><br><span class="line">&#125;)</span><br><span class="line">db.auth(<span class="string">&quot;admin&quot;</span>, <span class="string">&quot;admin&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<h3 id="对具体的库进行授权"><a href="#对具体的库进行授权" class="headerlink" title="对具体的库进行授权"></a>对具体的库进行授权</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">use mydb</span><br><span class="line">db.createUser(&#123;</span><br><span class="line">    user:<span class="string">&quot;mydbuser1&quot;</span>,</span><br><span class="line">    <span class="built_in">pwd</span>:<span class="string">&quot;123456&quot;</span>,</span><br><span class="line">    roles:[&#123;</span><br><span class="line">        role:<span class="string">&quot;dbAdmin&quot;</span>,</span><br><span class="line">        db:<span class="string">&quot;mydb&quot;</span></span><br><span class="line">    &#125;,&#123;</span><br><span class="line">        role:<span class="string">&quot;readWrite&quot;</span>,</span><br><span class="line">        db:<span class="string">&quot;mydb&quot;</span></span><br><span class="line">    &#125;]</span><br><span class="line">&#125;)</span><br><span class="line">db.auth(<span class="string">&quot;mydbuser1&quot;</span>, <span class="string">&quot;123456&quot;</span>)</span><br></pre></td></tr></table></figure>
+
+<h2 id="常用命令"><a href="#常用命令" class="headerlink" title="常用命令"></a>常用命令</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">// 添加用户</span><br><span class="line">use admin</span><br><span class="line">db.addUser(<span class="string">&quot;test&quot;</span>,<span class="string">&quot;test&quot;</span>)</span><br><span class="line"></span><br><span class="line">// 显示所有数据库</span><br><span class="line">show dbs</span><br><span class="line"></span><br><span class="line">// 使用某个数据库</span><br><span class="line">use mydb</span><br><span class="line"></span><br><span class="line">// 连接数据库</span><br><span class="line">mongo <span class="built_in">test</span> -uroot -p123456</span><br><span class="line"></span><br><span class="line">// 添加用户认证</span><br><span class="line">db.auth(<span class="string">&quot;username&quot;</span>,<span class="string">&quot;password&quot;</span>)</span><br><span class="line"></span><br><span class="line">// 查看用户</span><br><span class="line">db.system.users.find()</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://wps2015.org/drops/drops/MongoDB%E5%AE%89%E5%85%A8%E9%85%8D%E7%BD%AE.html">MongoDB安全配置</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/zZ_life/article/details/78664794">MongoDB 3.4.2 添加用户、设置权限</a></p>
+<p><a target="_blank" rel="noopener" href="https://docs.mongodb.com/manual/tutorial/enable-authentication/">https://docs.mongodb.com/manual/tutorial/enable-authentication/</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/08/21/Docker%E5%AE%89%E8%A3%85MongoDB4-1%E7%BE%A4%E9%9B%86/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +623,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 05:38:05" itemprop="dateModified" datetime="2021-06-30T05:38:05+00:00">2021-06-30</time>
+                <time title="修改时间：2021-06-30 06:51:31" itemprop="dateModified" datetime="2021-06-30T06:51:31+00:00">2021-06-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -353,7 +763,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 05:38:05" itemprop="dateModified" datetime="2021-06-30T05:38:05+00:00">2021-06-30</time>
+                <time title="修改时间：2021-06-30 06:51:31" itemprop="dateModified" datetime="2021-06-30T06:51:31+00:00">2021-06-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -454,7 +864,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 05:38:05" itemprop="dateModified" datetime="2021-06-30T05:38:05+00:00">2021-06-30</time>
+                <time title="修改时间：2021-06-30 06:51:31" itemprop="dateModified" datetime="2021-06-30T06:51:31+00:00">2021-06-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -556,7 +966,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 05:38:05" itemprop="dateModified" datetime="2021-06-30T05:38:05+00:00">2021-06-30</time>
+                <time title="修改时间：2021-06-30 06:51:31" itemprop="dateModified" datetime="2021-06-30T06:51:31+00:00">2021-06-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -690,7 +1100,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 05:38:05" itemprop="dateModified" datetime="2021-06-30T05:38:05+00:00">2021-06-30</time>
+                <time title="修改时间：2021-06-30 06:51:31" itemprop="dateModified" datetime="2021-06-30T06:51:31+00:00">2021-06-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -771,7 +1181,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 05:38:05" itemprop="dateModified" datetime="2021-06-30T05:38:05+00:00">2021-06-30</time>
+                <time title="修改时间：2021-06-30 06:51:31" itemprop="dateModified" datetime="2021-06-30T06:51:31+00:00">2021-06-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -856,7 +1266,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 05:38:05" itemprop="dateModified" datetime="2021-06-30T05:38:05+00:00">2021-06-30</time>
+                <time title="修改时间：2021-06-30 06:51:31" itemprop="dateModified" datetime="2021-06-30T06:51:31+00:00">2021-06-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -966,7 +1376,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 05:38:05" itemprop="dateModified" datetime="2021-06-30T05:38:05+00:00">2021-06-30</time>
+                <time title="修改时间：2021-06-30 06:51:31" itemprop="dateModified" datetime="2021-06-30T06:51:31+00:00">2021-06-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1115,7 +1525,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 05:38:05" itemprop="dateModified" datetime="2021-06-30T05:38:05+00:00">2021-06-30</time>
+                <time title="修改时间：2021-06-30 06:51:31" itemprop="dateModified" datetime="2021-06-30T06:51:31+00:00">2021-06-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1200,7 +1610,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 05:38:05" itemprop="dateModified" datetime="2021-06-30T05:38:05+00:00">2021-06-30</time>
+                <time title="修改时间：2021-06-30 06:51:31" itemprop="dateModified" datetime="2021-06-30T06:51:31+00:00">2021-06-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1279,7 +1689,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 05:38:05" itemprop="dateModified" datetime="2021-06-30T05:38:05+00:00">2021-06-30</time>
+                <time title="修改时间：2021-06-30 06:51:31" itemprop="dateModified" datetime="2021-06-30T06:51:31+00:00">2021-06-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1360,7 +1770,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 05:38:05" itemprop="dateModified" datetime="2021-06-30T05:38:05+00:00">2021-06-30</time>
+                <time title="修改时间：2021-06-30 06:51:31" itemprop="dateModified" datetime="2021-06-30T06:51:31+00:00">2021-06-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1516,451 +1926,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/07/09/SSL-TLS%E5%8D%8F%E8%AE%AE/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/07/09/SSL-TLS%E5%8D%8F%E8%AE%AE/" class="post-title-link" itemprop="url">SSL/TLS协议</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-07-09 11:07:56" itemprop="dateCreated datePublished" datetime="2018-07-09T11:07:56+00:00">2018-07-09</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 05:38:05" itemprop="dateModified" datetime="2021-06-30T05:38:05+00:00">2021-06-30</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/SSL-TLS/" itemprop="url" rel="index"><span itemprop="name">SSL/TLS</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="SSL-TLS协议"><a href="#SSL-TLS协议" class="headerlink" title="SSL/TLS协议"></a>SSL/TLS协议</h1><p>查看系统支持的SSL/TLS版本：</p>
-<p>需要安装openssl.</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">openssl ciphers -v | awk <span class="string">&#x27;&#123;print $2&#125;&#x27;</span> | sort | uniq</span><br></pre></td></tr></table></figure>
-
-<h2 id="HTTPS"><a href="#HTTPS" class="headerlink" title="HTTPS"></a>HTTPS</h2><p>HTTPS（Hyper Text Transfer Protocol Secure），即超文本传输安全协议，也称为http over tls等，是一种网络安全传输协议，其也相当于工作在七层的http，只不过是在会话层和表示层利用ssl/tls来加密了数据包，访问时以<code>https://</code>开头，默认443端口，同时需要证书，学习https的原理其实就是在学习ssl/tls的原理。</p>
-<h2 id="SSL"><a href="#SSL" class="headerlink" title="SSL"></a>SSL</h2><p>SSL：（Secure Socket Layer，安全套接字层），位于可靠的面向连接的网络层协议和应用层协议之间的一种协议层。目的是为互联网通信提供安全及数据完整性保障，使用X.509认证，网景公司（Netscape）在1994年推出HTTPS协议，以SSL进行加密，这是SSL的起源。IETF将SSL进行标准化，1999年公布第一版TLS标准文件。SSL通过互相认证、使用数字签名确保完整性、使用加密确保私密性，以实现客户端和服务器之间的安全通讯。该协议由两层组成：SSL记录协议和SSL握手协议。SSL目前有三个版本，SSL1.0、SSL2.0、SSL3.0，因其存在严重的安全问题，大多数公司目前均已不在使用了。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E5%82%B3%E8%BC%B8%E5%B1%A4%E5%AE%89%E5%85%A8%E6%80%A7%E5%8D%94%E5%AE%9A">传输层安全性协议</a></p>
-<h2 id="TLS"><a href="#TLS" class="headerlink" title="TLS"></a>TLS</h2><p>TLS：(Transport Layer Security，传输层安全协议)，用于两个应用程序之间提供保密性和数据完整性。该协议由两层组成：TLS记录协议和TLS握手协议。TLS建立在SSL 3.0协议规范之上，是SSL 3.0的后续版本。两者差别极小，可以理解为SSL 3.1，它是写入了RFC的。TLS 1.0包括可以降级到SSL 3.0的实现，这削弱了连接的安全性。</p>
-<p>版本：TLS 1.0，TLS 1.1，TLS 1.2，TLS 1.3（2018.3.21）。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://kb.cnblogs.com/page/197396/">SSL与TLS的区别以及介绍</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/07/06/%E6%95%B0%E5%AD%97%E8%AF%81%E4%B9%A6%EF%BC%8CCA%EF%BC%8CCA%E8%AF%81%E4%B9%A6%EF%BC%8C%E8%AF%81%E4%B9%A6%E9%93%BE/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/07/06/%E6%95%B0%E5%AD%97%E8%AF%81%E4%B9%A6%EF%BC%8CCA%EF%BC%8CCA%E8%AF%81%E4%B9%A6%EF%BC%8C%E8%AF%81%E4%B9%A6%E9%93%BE/" class="post-title-link" itemprop="url">数字证书，CA，CA证书，证书链</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-07-06 09:02:07" itemprop="dateCreated datePublished" datetime="2018-07-06T09:02:07+00:00">2018-07-06</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 05:38:05" itemprop="dateModified" datetime="2021-06-30T05:38:05+00:00">2021-06-30</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/SSL-TLS/" itemprop="url" rel="index"><span itemprop="name">SSL/TLS</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="数字证书"><a href="#数字证书" class="headerlink" title="数字证书"></a>数字证书</h2><p>数字证书就是互联网通讯中标志通讯各方身份信息的一串数字，提供了一种在互联网上验证通信实体身份的方式。</p>
-<p>数字证书不是数字身份证，而是身份认证机构盖在数字身份证上的一个章或印（或者说加在数字身份证上的一个签名）。其作用类似于现实生活中司机的驾驶执照或日常生活中的身份证。</p>
-<p><img src="/img/v2-4d300bf691c9046b815c1d97fb1ee74d_hd.jpg" alt="v2-4d300bf691c9046b815c1d97fb1ee74d_hd.jpg"></p>
-<h2 id="CA"><a href="#CA" class="headerlink" title="CA"></a>CA</h2><p>数字证书就是CA发行的，CA是Certificate Authority的缩写，也叫“证书授权中心”。它是负责管理和签发证书（即服务器证书，由域名、公司信息、序列号和签名信息组成）的第三方机构，作用是检查证书持有者身份的合法性，并签发证书，以防证书被伪造或篡改。任何个体/组织都可以扮演 CA 的角色，只不过难以得到客户端的信任，能够受浏览器默认信任的 CA 大厂商有很多，其中 TOP5 是 Symantec、Comodo、Godaddy、GolbalSign 和 Digicert。</p>
-<p>所以，CA实际上是一个机构，负责“证件”印制核发。就像负责颁发身份证的公安局、负责发放行驶证、驾驶证的车管所。</p>
-<h2 id="CA证书"><a href="#CA证书" class="headerlink" title="CA证书"></a>CA证书</h2><p>CA 证书就是CA颁发的证书。 CA证书也就我们常说的数字证书，包含证书拥有者的身份信息，CA机构的签名，公钥和私钥。身份信息用于证明证书持有者的身份；CA签名用于保证身份的真实性；公钥和私钥用于通信过程中加解密，从而保证通讯信息的安全性。</p>
-<p>CA是权威可信的第三方机构，是“发证机关”。CA证书是CA发的“证件”，用于证明自身身份，就像身份证和驾驶证。</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180706093157.png" alt="QQ截图20180706093157.png"></p>
-<p><strong>流程介绍</strong></p>
-<ul>
-<li>a、服务方S向第三方机构CA提交公钥、组织信息、个人信息(域名)等信息并申请认证;</li>
-<li>b、CA通过线上、线下等多种手段验证申请者提供信息的真实性，如组织是否存在、企业是否合法，是否拥有域名的所有权等;</li>
-<li>c、如信息审核通过，CA会向申请者签发认证文件-证书。证书包含以下信息：申请者公钥、申请者的组织信息和个人信息、签发机构 CA的信息、有效时间、证书序列号等信息的明文，同时包含一个签名;签名的产生算法：首先，使用散列函数计算公开的明文信息的信息摘要，然后，采用 CA的私钥对信息摘要进行加密，密文即签名;</li>
-<li>d、客户端 C 向服务器 S 发出请求时，S 返回证书文件;</li>
-<li>e、客户端 C读取证书中的相关的明文信息，采用相同的散列函数计算得到信息摘要，然后，利用对应 CA的公钥解密签名数据，对比证书的信息摘要，如果一致，则可以确认证书的合法性，即公钥合法;</li>
-<li>f、客户端然后验证证书相关的域名信息、有效时间等信息;</li>
-<li>g、客户端会内置信任CA的证书信息(包含公钥)，如果CA不被信任，则找不到对应 CA的证书，证书也会被判定非法。</li>
-</ul>
-<p><strong>注意</strong></p>
-<p>1、申请证书不需要提供私钥，确保私钥永远只能服务器掌握;<br>2、证书的合法性仍然依赖于非对称加密算法，证书主要是增加了服务器信息以及签名;<br>3、内置 CA 对应的证书称为根证书，颁发者和使用者相同，自己为自己签名，即自签名证书<br>4、证书=公钥+申请者与颁发者信息+签名;</p>
-<p><strong>服务器证书分类</strong></p>
-<p>可以通过两个维度来分类，一个是商业角度，一个是业务角度。</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180706091807.png" alt="QQ截图20180706091807.png"></p>
-<p>需要强调的是，不论是 DV、OV 还是 EV 证书，其加密效果都是一样的！ 它们的区别在于：</p>
-<ul>
-<li>DV（Domain Validation），面向个体用户，安全体系相对较弱，验证方式就是向 whois 信息中的邮箱发送邮件，按照邮件内容进行验证即可通过；</li>
-<li>OV（Organization Validation），面向企业用户，证书在 DV 证书验证的基础上，还需要公司的授权，CA 通过拨打信息库中公司的电话来确认；</li>
-<li>EV（Extended Validation），打开 Github 的网页，你会看到 URL 地址栏展示了注册公司的信息，这会让用户产生更大的信任，这类证书的申请除了以上两个确认外，还需要公司提供金融机构的开户许可证，要求十分严格。</li>
-</ul>
-<h2 id="RSA密钥交换算法"><a href="#RSA密钥交换算法" class="headerlink" title="RSA密钥交换算法"></a>RSA密钥交换算法</h2><p>客户端使用服务器端<code>RSA</code>公钥加密 <code>Pre Master</code> 发给服务器。服务器使用自己的<code>RSA</code>私钥尝试解密，解密成功即得到 <code>Pre Master</code>。于是客户端、服务器端分享了一个秘密，这个秘密就是 <code>Pre Master</code>。</p>
-<p>这个秘密只有双方知道，任何第三方都无法知道。所以双方可以以此秘密推导出加密/解密的Key，用于保证http的安全。</p>
-<p><strong>客户端为何要相信对方扔过来RSA公钥就是服务器的</strong></p>
-<p>客户端使用CA的公钥就可以将数字签名解密，得到摘要。看看得到的摘要与自己计算证书的摘要是不是相同，相同就说明一个事实，证书确实是CA颁发的。</p>
-<h2 id="证书链"><a href="#证书链" class="headerlink" title="证书链"></a>证书链</h2><p>CA根证书和服务器证书中间增加一级证书机构，即中间证书，证书的产生和验证原理不变，只是增加一层验证，只要最后能够被任何信任的CA根证书验证合法即可。</p>
-<ul>
-<li>a.服务器证书 server.pem 的签发者为中间证书机构 inter，inter 根据证书 inter.pem 验证 server.pem 确实为自己签发的有效证书;</li>
-<li>b.中间证书 inter.pem 的签发 CA 为 root，root 根据证书 root.pem 验证 inter.pem 为自己签发的合法证书;</li>
-<li>c.客户端内置信任 CA 的 root.pem 证书，因此服务器证书 server.pem 的被信任。</li>
-</ul>
-<p><strong>二级证书结构存在的优势：</strong></p>
-<ul>
-<li>a.减少根证书结构的管理工作量，可以更高效的进行证书的审核与签发;</li>
-<li>b.根证书一般内置在客户端中，私钥一般离线存储，一旦私钥泄露，则吊销过程非常困难，无法及时补救;</li>
-<li>c.中间证书结构的私钥泄露，则可以快速在线吊销，并重新为用户签发新的证书;</li>
-<li>d.证书链四级以内一般不会对 HTTPS 的性能造成明显影响。</li>
-</ul>
-<p><strong>证书链有以下特点：</strong></p>
-<ul>
-<li>a.同一本服务器证书可能存在多条合法的证书链。因为证书的生成和验证基础是公钥和私钥对，如果采用相同的公钥和私钥生成不同的中间证书，针对被签发者而言，该签发机构都是合法的 CA，不同的是中间证书的签发机构不同;</li>
-<li>b.不同证书链的层级不一定相同，可能二级、三级或四级证书链。中间证书的签发机构可能是根证书机构也可能是另一个中间证书机构，所以证书链层级不一定相同。</li>
-</ul>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/26859843">数字证书、CA、CA证书，傻傻分不清楚？这一篇看懂！</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/32e51b9ecab4">CA证书介绍</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.barretlee.com/blog/2016/04/24/detail-about-ca-and-certs/">细说 CA 和证书</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/07/06/Openssl%E7%94%9F%E6%88%90SSL-TLS%E8%AF%81%E4%B9%A6/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/07/06/Openssl%E7%94%9F%E6%88%90SSL-TLS%E8%AF%81%E4%B9%A6/" class="post-title-link" itemprop="url">Openssl生成SSL/TLS证书</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-07-06 08:42:38" itemprop="dateCreated datePublished" datetime="2018-07-06T08:42:38+00:00">2018-07-06</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 05:38:05" itemprop="dateModified" datetime="2021-06-30T05:38:05+00:00">2021-06-30</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Openssl/" itemprop="url" rel="index"><span itemprop="name">Openssl</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="openssl生成SSL-TLS证书"><a href="#openssl生成SSL-TLS证书" class="headerlink" title="openssl生成SSL/TLS证书"></a>openssl生成SSL/TLS证书</h1><p>官网：<a target="_blank" rel="noopener" href="https://www.openssl.org/">https://www.openssl.org/</a></p>
-<p>github:<a target="_blank" rel="noopener" href="https://github.com/openssl/openssl">https://github.com/openssl/openssl</a></p>
-<p>文档：<a target="_blank" rel="noopener" href="https://www.openssl.org/docs/manmaster/man1/">https://www.openssl.org/docs/manmaster/man1/</a></p>
-<h2 id="证书相关概念"><a href="#证书相关概念" class="headerlink" title="证书相关概念"></a>证书相关概念</h2><h3 id="CA根证书"><a href="#CA根证书" class="headerlink" title="CA根证书"></a>CA根证书</h3><p>首先要有一个CA根证书，然后用CA根证书来签发用户证书。<br>用户进行证书申请：一般先生成一个私钥，然后用私钥生成证书请求(证书请求里应含有公钥信息)，再利用证书服务器的CA根证书来签发证书。</p>
-<p><strong>特别说明:</strong></p>
-<ul>
-<li>（1）自签名证书(一般用于顶级证书、根证书): 证书的名称和认证机构的名称相同.</li>
-<li>（2）根证书：根证书是CA认证中心给自己颁发的证书,是信任链的起始点。任何安装CA根证书的服务器都意味着对这个CA认证中心是信任的。</li>
-</ul>
-<p>数字证书则是由证书认证机构（CA）对证书申请者真实身份验证之后，用CA的根证书对申请人的一些基本信息以及申请人的公钥进行签名（相当于加盖发证书机构的公章）后形成的一个数字文件。数字证书包含证书中所标识的实体的公钥（就是说你的证书里有你的公钥），由于证书将公钥与特定的个人匹配，并且该证书的真实性由颁发机构保证（就是说可以让大家相信你的证书是真的），因此，数字证书为如何找到用户的公钥并知道它是否有效这一问题提供了解决方案。</p>
-<h3 id="PKCS的15个标准"><a href="#PKCS的15个标准" class="headerlink" title="PKCS的15个标准"></a>PKCS的15个标准</h3><p>PKCS 全称是 Public-Key Cryptography Standards ，是由 RSA 实验室与其它安全系统开发商为促进公钥密码的发展而制订的一系列标准。</p>
-<ul>
-<li><p><strong>PKCS#1</strong>：RSA加密标准。PKCS#1定义了RSA公钥函数的基本格式标准，特别是数字签名。它定义了数字签名如何计算，包括待签名数据和签名本身的格式；它也定义了PSA公/私钥的语法。</p>
-</li>
-<li><p><strong>PKCS#2</strong>：涉及了RSA的消息摘要加密，这已被并入PKCS#1中。</p>
-</li>
-<li><p><strong>PKCS#3</strong>：Diffie-Hellman密钥协议标准。PKCS#3描述了一种实现Diffie- Hellman密钥协议的方法。</p>
-</li>
-<li><p><strong>PKCS#4</strong>：最初是规定RSA密钥语法的，现已经被包含进PKCS#1中。</p>
-</li>
-<li><p><strong>PKCS#5</strong>：基于口令的加密标准。PKCS#5描述了使用由口令生成的密钥来加密8位位组串并产生一个加密的8位位组串的方法。PKCS#5可以用于加密私钥，以便于密钥的安全传输（这在PKCS#8中描述）。</p>
-</li>
-<li><p><strong>PKCS#6</strong>：扩展证书语法标准。PKCS#6定义了提供附加实体信息的X.509证书属性扩展的语法（当PKCS#6第一次发布时，X.509还不支持扩展。这些扩展因此被包括在X.509中）。</p>
-</li>
-<li><p><strong>PKCS#7</strong>：密码消息语法标准。PKCS#7为使用密码算法的数据规定了通用语法，比如数字签名和数字信封。PKCS#7提供了许多格式选项，包括未加密或签名的格式化消息、已封装（加密）消息、已签名消息和既经过签名又经过加密的消息。</p>
-</li>
-<li><p><strong>PKCS#8</strong>：私钥信息语法标准。PKCS#8定义了私钥信息语法和加密私钥语法，其中私钥加密使用了PKCS#5标准。</p>
-</li>
-<li><p><strong>PKCS#9</strong>：可选属性类型。PKCS#9定义了PKCS#6扩展证书、PKCS#7数字签名消息、PKCS#8私钥信息和PKCS#10证书签名请求中要用到的可选属性类型。已定义的证书属性包括E-mail地址、无格式姓名、内容类型、消息摘要、签名时间、签名副本（counter signature）、质询口令字和扩展证书属性。</p>
-</li>
-<li><p><strong>PKCS#10</strong>：证书请求语法标准。PKCS#10定义了证书请求的语法。证书请求包含了一个唯一识别名、公钥和可选的一组属性，它们一起被请求证书的实体签名（证书管理协议中的PKIX证书请求消息就是一个PKCS#10）。</p>
-</li>
-<li><p><strong>PKCS#11</strong>：密码令牌接口标准。PKCS#11或“Cryptoki”为拥有密码信息（如加密密钥和证书）和执行密码学函数的单用户设备定义了一个应用程序接口（API）。智能卡就是实现Cryptoki的典型设备。注意：Cryptoki定义了密码函数接口，但并未指明设备具体如何实现这些函数。而且Cryptoki只说明了密码接口，并未定义对设备来说可能有用的其他接口，如访问设备的文件系统接口。</p>
-</li>
-<li><p><strong>PKCS#12</strong>：个人信息交换语法标准。PKCS#12定义了个人身份信息（包括私钥、证书、各种秘密和扩展字段）的格式。PKCS#12有助于传输证书及对应的私钥，于是用户可以在不同设备间移动他们的个人身份信息。</p>
-</li>
-<li><p><strong>PDCS#13</strong>：椭圆曲线密码标准。PKCS#13标准当前正在完善之中。它包括椭圆曲线参数的生成和验证、密钥生成和验证、数字签名和公钥加密，还有密钥协定，以及参数、密钥和方案标识的ASN.1语法。</p>
-</li>
-<li><p><strong>PKCS#14</strong>：伪随机数产生标准。PKCS#14标准当前正在完善之中。为什么随机数生成也需要建立自己的标准呢？PKI中用到的许多基本的密码学函数，如密钥生成和Diffie-Hellman共享密钥协商，都需要使用随机数。然而，如果“随机数”不是随机的，而是取自一个可预测的取值集合，那么密码学函数就不再是绝对安全了，因为它的取值被限于一个缩小了的值域中。因此，安全伪随机数的生成对于PKI的安全极为关键。</p>
-</li>
-<li><p><strong>PKCS#15</strong>：密码令牌信息语法标准。PKCS#15通过定义令牌上存储的密码对象的通用格式来增进密码令牌的互操作性。在实现PKCS#15的设备上存储的数据对于使用该设备的所有应用程序来说都是一样的，尽管实际上在内部实现时可能所用的格式不同。PKCS#15的实现扮演了翻译家的角色，它在卡的内部格式与应用程序支持的数据格式间进行转换。</p>
-</li>
-</ul>
-<p><strong>注意</strong> net,ios中rsa加解密使用的是<code>pkcs1</code>，而java使用的是<code>pkcs8</code>。</p>
-<p>以上参考：<a target="_blank" rel="noopener" href="http://falchion.iteye.com/blog/1472453">PKCS 发布的15 个标准</a></p>
-<h3 id="x509证书"><a href="#x509证书" class="headerlink" title="x509证书"></a>x509证书</h3><h4 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h4><p>X.509 是密码学里公钥证书的格式标准。 X.509 证书己应用在包括TLS/SSL（WWW万维网安全浏览的基石）在内的众多 Intenet协议里.同时它也用在很多非在线应用场景里，比如电子签名服务。X.509证书里含有公钥、身份信息(比如网络主机名，组织的名称或个体名称等)和签名信息（可以是证书签发机构CA的签名，也可以是自签名）。对于一份经由可信的证书签发机构签名或者可以通过其它方式验证的证书，证书的拥有者就可以用证书及相应的私钥来创建安全的通信，对文档进行数字签名.X.509还附带了证书吊销列表和用于从最终对证书进行签名的证书签发机构直到最终可信点为止的证书合法性验证算法。</p>
-<p>当前使用的版本是X.509 V3，它加入了扩展字段支持，这极大地增进了证书的灵活性。X.509 V3证书包括一组按预定义顺序排列的强制字段，还有可选扩展字段，即使在强制字段中，X.509证书也允许很大的灵活性，因为它为大多数字段提供了多种编码方案.</p>
-<p>x509证书一般会用到三类文件，key，csr，crt。<br>Key是私用密钥，openssl格式，通常是rsa算法。<br>csr是证书请求文件，用于申请证书。在制作csr文件的时候，必须使用自己的私钥来签署申请，还可以设定一个密钥。<br>crt是CA认证后的证书文件（windows下面的csr，其实是crt），签署人用自己的key给你签署的凭证。</p>
-<h4 id="编码格式-也用作扩展"><a href="#编码格式-也用作扩展" class="headerlink" title="编码格式(也用作扩展)"></a>编码格式(也用作扩展)</h4><ul>
-<li><p><strong>.PEM</strong>- PEM扩展名用于不同类型的X.509v3文件,全称Privacy Enhanced Mail,打开看文本格式,以”—–BEGIN…”开头, “—–END…”结尾,内容是ASCII(BASE64)编码.</p>
-<p>  查看PEM格式证书的信息: <code>openssl x509 -in certificate.pem -text -noout</code></p>
-<p>  Apache和*NIX服务器偏向于使用这种编码格式.</p>
-</li>
-<li><p><strong>.DER</strong> - DER扩展用于二进制DER编码证书,全称Distinguished Encoding Rules,打开看是二进制格式,不可读,这些文件也可能带有CER或CRT扩展名.</p>
-<p>  查看DER格式证书的信息: <code>openssl x509 -in certificate.der -inform der -text -noout</code></p>
-<p>  Java和Windows服务器偏向于使用这种编码格式.</p>
-</li>
-</ul>
-<p>例如：</p>
-<p>密钥pem格式：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">-----BEGIN RSA PRIVATE KEY-----</span><br><span class="line">-----END RSA PRIVATE KEY-----</span><br></pre></td></tr></table></figure>
-
-<p>证书pem格式：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">-----BEGIN CERTIFICATE-----</span><br><span class="line">-----END CERTIFICATE-----</span><br></pre></td></tr></table></figure>
-
-<h4 id="文件扩展名"><a href="#文件扩展名" class="headerlink" title="文件扩展名"></a>文件扩展名</h4><ul>
-<li><p><strong>.key格式</strong>：通常用来存放一个公钥或者私钥,默认PKCS＃1,并非X.509证书,可能是PEM,也可能是DER</p>
-</li>
-<li><p><strong>.csr/.p10格式</strong>：证书签名请求（证书请求文件），含有公钥信息，certificate signing request的缩写,PKCS#10标准定义</p>
-</li>
-<li><p><strong>.crt格式</strong>：证书文件，certificate的缩写,CRT扩展名用于证书，只有公钥没有私钥。证书可以编码为二进制DER或ASCII PEM。CER和CRT扩展几乎是同义词</p>
-</li>
-<li><p><strong>.cer格式</strong>：证书文件,常见于Windows系统，certificate缩写，只有公钥没有私钥,可能是PEM编码,也可能是DER编码,大多数应该是DER编码,crt文件和cer文件只有在使用相同编码的时候才可以安全地相互替代。</p>
-</li>
-<li><p><strong>.crl格式</strong>：证书吊销列表，Certificate Revocation List的缩写</p>
-</li>
-<li><p><strong>.pem格式</strong>：用于导出，导入证书时候的证书的格式，用于不同类型的X.509v3文件，有证书开头，结尾的格式</p>
-</li>
-<li><p><strong>.p7b/.p7r格式</strong>： 以树状展示证书链(certificate chain)，同时也支持单个证书，不含私钥,PKCS#7标准定义</p>
-</li>
-<li><p><strong>.p7c/.p7m/.p7s格式</strong>：PKCS#7证书格式，仅仅包含证书和CRL列表信息，没有私钥。</p>
-</li>
-<li><p><strong>.pfx/p12格式</strong>：由Public Key Cryptography Standards #12，PKCS#12标准定义，包含了公钥和私钥的二进制格式的证书形式，以pfx作为证书文件后缀名。PFX（也称为PKCS＃12）支持证书，私钥和证书路径中的所有证书的安全存储。PKCS＃12格式是唯一可用于导出证书及其私钥的文件格式。</p>
-</li>
-</ul>
-<h2 id="证书生成"><a href="#证书生成" class="headerlink" title="证书生成"></a>证书生成</h2><h3 id="openssl基本命令"><a href="#openssl基本命令" class="headerlink" title="openssl基本命令"></a>openssl基本命令</h3><p>公钥负责加密，私钥负责解密</p>
-<p>私钥负责签名，公钥负责验证</p>
-<h4 id="修改openssl-cnf配置文件"><a href="#修改openssl-cnf配置文件" class="headerlink" title="修改openssl.cnf配置文件"></a>修改openssl.cnf配置文件</h4><p>首先需要定位openssl.cnf文件：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">locate openssl.cnf</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/etc/pki/tls/openssl.cnf</span><br><span class="line">/usr/share/man/man5/openssl.cnf.5ssl.gz</span><br></pre></td></tr></table></figure>
-
-<p>修改配置文件，修改其中的dir变量,重新设置SSL的工作目录</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/pki/tls/openssl.cnf</span><br></pre></td></tr></table></figure>
-
-<h4 id="生成私钥"><a href="#生成私钥" class="headerlink" title="生成私钥"></a>生成私钥</h4><p>命令：<code>openssl genrsa</code></p>
-<p>查看帮助：<code>openssl genrsa -h</code></p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">-des           生成的私钥采用DES算法加密</span><br><span class="line">-des3          生成的私钥采用DES3算法加密 (168 bit key)</span><br><span class="line">-seed          encrypt PEM output with cbc seed</span><br><span class="line">-aes128, -aes192, -aes256</span><br><span class="line">-out file       私钥输出位置</span><br><span class="line">-passout arg    输出文件的密码，如果我们指定了对称加密算法，也可以不带此参数，会有命令行提示你输入密码</span><br></pre></td></tr></table></figure>
-
-<p>生成一个私钥：<br>默认长度512,PKCS1格式</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">openssl genrsa -out ca.key 2048</span><br><span class="line"><span class="comment">## 或者</span></span><br><span class="line">openssl genrsa -des3 -passout pass:123456 -out RSA.pem</span><br></pre></td></tr></table></figure>
-
-<p>查看：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">cat ca.key</span><br><span class="line">-----BEGIN RSA PRIVATE KEY-----</span><br><span class="line">MIIEpAIBAAKCAQE..................</span><br><span class="line">-----END RSA PRIVATE KEY-----</span><br></pre></td></tr></table></figure>
-
-<h4 id="生成公钥"><a href="#生成公钥" class="headerlink" title="生成公钥"></a>生成公钥</h4><p>命令：<code>openssl rsa</code></p>
-<p>查看帮助：<code>openssl rsa -h</code></p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">-inform arg     输入文件编码格式，只有pem和der两种</span><br><span class="line">-outform arg    输出文件编码格式，只有pem和der两种</span><br><span class="line">-<span class="keyword">in</span> arg         input file  输入文件</span><br><span class="line">-sgckey         Use IIS SGC key format</span><br><span class="line">-passin arg     如果输入文件被对称加密过，需要指定输入文件的密码</span><br><span class="line">-out arg        输出文件位置</span><br><span class="line">-passout arg    如果输出文件也需要被对称加密，需要指定输出文件的密码</span><br><span class="line"></span><br><span class="line">-des            对输出结果采用对称加密 des算法</span><br><span class="line">-des3           对输出结果采用对称加密 des3算法</span><br><span class="line">-seed</span><br><span class="line">-aes128, -aes192, -aes256</span><br><span class="line"></span><br><span class="line">以上几个都是对称加密算法的指定，生成私钥的时候一般会用到，我们不让私钥明文保存</span><br><span class="line"></span><br><span class="line">-text           以明文形式输出各个参数值</span><br><span class="line">-noout          不输出密钥到任何文件</span><br><span class="line">-modulus        输出模数值</span><br><span class="line">-check          检查输入密钥的正确性和一致性</span><br><span class="line">-pubin          指定输入文件是公钥</span><br><span class="line">-pubout         指定输出文件是公钥</span><br><span class="line">-engine e       指定三方加密库或者硬件</span><br></pre></td></tr></table></figure>
-
-<p>使用刚刚生成的私钥，以生成公钥：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">openssl rsa -<span class="keyword">in</span> ca.key -pubout -out ca_pub.key</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">## 为RSA密钥增加口令保护</span></span><br><span class="line">openssl rsa -<span class="keyword">in</span> RSA.pem -des3 -passout pass:123456 -out E_RSA.pem</span><br><span class="line"></span><br><span class="line"><span class="comment">##为RSA密钥去除口令保护</span></span><br><span class="line">openssl rsa -<span class="keyword">in</span> E_RSA.pem -passin pass:123456 -out P_RSA.pem</span><br><span class="line"></span><br><span class="line"><span class="comment">## 比较</span></span><br><span class="line">diff RSA.pem P_RSA.pem</span><br><span class="line"></span><br><span class="line"><span class="comment">##修改加密算法为aes128，口令是123456</span></span><br><span class="line">openssl rsa -<span class="keyword">in</span> RSA.pem -passin pass:123456 -aes128 -passout pass:123456 -out E_RSA.pem</span><br><span class="line"></span><br><span class="line"><span class="comment">## 查看密钥对中的各个参数</span></span><br><span class="line">openssl rsa -<span class="keyword">in</span> RSA.pem -des -passin pass:123456 -text -noout</span><br><span class="line"></span><br><span class="line"><span class="comment">## 提取密钥中的公钥并打印模数值</span></span><br><span class="line"><span class="comment">## 提取公钥，用pubout参数指定输出为公钥</span></span><br><span class="line">openssl rsa -<span class="keyword">in</span> RSA.pem -passin pass:123456 -pubout -out pub.pem</span><br><span class="line"></span><br><span class="line"><span class="comment">##打印公钥中模数值</span></span><br><span class="line">$ openssl rsa -<span class="keyword">in</span> pub.pem -pubin -modulus -noout</span><br><span class="line"></span><br><span class="line">Modulus=C2B..........3ED</span><br><span class="line"></span><br><span class="line"><span class="comment">##把pem格式转化成der格式，使用outform指定der格式</span></span><br><span class="line">openssl rsa -<span class="keyword">in</span> RSA.pem -passin pass:123456 -des -passout pass:123456 -outform der -out rsa.der</span><br><span class="line"></span><br><span class="line"><span class="comment">##把der格式转化成pem格式，使用inform指定der格式</span></span><br><span class="line">openssl rsa -<span class="keyword">in</span> rsa.der -inform der -passin pass:123456 -out rsa.pem</span><br></pre></td></tr></table></figure>
-
-<h4 id="加解密-签名验证"><a href="#加解密-签名验证" class="headerlink" title="加解密/签名验证"></a>加解密/签名验证</h4><p>命令：<code>openssl rsautl</code></p>
-<p>注意：无论是使用公钥加密还是私钥加密，RSA每次能够加密的数据长度不能超过RSA密钥长度，并且根据具体的补齐方式不同输入的加密数据最大长度也不一样，而输出长度则总是跟RSA密钥长度相等。</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180706152021.png" alt="QQ截图20180706152021.png"></p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">openssl rsautl -h</span><br><span class="line">Usage: rsautl [options]</span><br><span class="line">-<span class="keyword">in</span> file        input file                                           //输入文件</span><br><span class="line">-out file       output file                                          //输出文件</span><br><span class="line">-inkey file     input key                                            //输入的密钥</span><br><span class="line">-keyform arg    private key format - default PEM                     //指定密钥格式</span><br><span class="line">-pubin          input is an RSA public                               //指定输入的是RSA公钥</span><br><span class="line">-certin         input is a certificate carrying an RSA public key    //指定输入的是证书文件</span><br><span class="line">-ssl            use SSL v2 padding                                   //使用SSLv23的填充方式</span><br><span class="line">-raw            use no padding                                       //不进行填充</span><br><span class="line">-pkcs           use PKCS<span class="comment">#1 v1.5 padding (default)                    //使用V1.5的填充方式</span></span><br><span class="line">-oaep           use PKCS<span class="comment">#1 OAEP                                      //使用OAEP的填充方式</span></span><br><span class="line">-sign           sign with private key                                //使用私钥做签名</span><br><span class="line">-verify         verify with public key                               //使用公钥认证签名</span><br><span class="line">-encrypt        encrypt with public key                              //使用公钥加密</span><br><span class="line">-decrypt        decrypt with private key                             //使用私钥解密</span><br><span class="line">-hexdump        hex dump output                                      //以16进制dump输出</span><br><span class="line">-engine e       use engine e, possibly a hardware device.            //指定三方库或者硬件设备</span><br><span class="line">-passin arg    pass phrase <span class="built_in">source</span>                                    //指定输入的密码</span><br></pre></td></tr></table></figure>
-
-<h5 id="加密和解密"><a href="#加密和解密" class="headerlink" title="加密和解密"></a>加密和解密</h5><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">##生成RSA密钥</span></span><br><span class="line">openssl genrsa -des3 -passout pass:123456 -out RSA.pem</span><br><span class="line"></span><br><span class="line"><span class="comment">##提取公钥</span></span><br><span class="line">openssl rsa -<span class="keyword">in</span> RSA.pem -passin pass:123456 -pubout -out pub.pem</span><br><span class="line"></span><br><span class="line"><span class="comment">##使用RSA作为密钥进行加密，实际上使用其中的公钥进行加密</span></span><br><span class="line">openssl rsautl -encrypt -<span class="keyword">in</span> plain.txt -inkey RSA.pem -passin pass:123456 -out enc.txt</span><br><span class="line"></span><br><span class="line"><span class="comment">##使用RSA作为密钥进行解密，实际上使用其中的私钥进行解密</span></span><br><span class="line">openssl rsautl -decrypt -<span class="keyword">in</span> enc.txt -inkey RSA.pem -passin pass:123456 -out replain.txt</span><br><span class="line"></span><br><span class="line"><span class="comment">##比较原始文件和解密后文件</span></span><br><span class="line">diff plain.txt replain.txt</span><br><span class="line"></span><br><span class="line"><span class="comment">##使用公钥进行加密</span></span><br><span class="line">openssl rsautl -encrypt -<span class="keyword">in</span> plain.txt -inkey pub.pem -pubin -out enc1.txt</span><br><span class="line"></span><br><span class="line"><span class="comment">##私钥进行解密</span></span><br><span class="line">openssl rsautl -decrypt -<span class="keyword">in</span> enc1.txt -inkey RSA.pem -passin pass:123456 -out replain1.txt</span><br><span class="line"></span><br><span class="line"><span class="comment">##比较原始文件和解密后文件</span></span><br><span class="line">diff plain.txt replain1.txt</span><br></pre></td></tr></table></figure>
-
-<h5 id="签名与验证"><a href="#签名与验证" class="headerlink" title="签名与验证"></a>签名与验证</h5><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">##使用RSA密钥进行签名，实际上使用私钥进行签名</span></span><br><span class="line">openssl rsautl -sign -<span class="keyword">in</span> plain.txt -inkey RSA.pem -passin pass:123456 -out sign.txt</span><br><span class="line"></span><br><span class="line"><span class="comment">##使使用RSA密钥进行验证，实际上使用公钥进行验证</span></span><br><span class="line">openssl rsautl -verify -<span class="keyword">in</span> sign.txt -inkey RSA.pem -passin pass:123456 -out replain.txt</span><br><span class="line"></span><br><span class="line"><span class="comment">##对比原始文件和签名解密后的文件</span></span><br><span class="line">diff plain.txt replain.txt</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">##提取PCKS8格式的私钥</span></span><br><span class="line">openssl pkcs8 -topk8 -<span class="keyword">in</span> RSA.pem -passin pass:123456 -out pri.pem -nocrypt</span><br><span class="line"></span><br><span class="line"><span class="comment">##使用私钥进行签名</span></span><br><span class="line">openssl rsautl -sign -<span class="keyword">in</span> plain.txt -inkey pri.pem  -out sign1.txt</span><br><span class="line"></span><br><span class="line"><span class="comment">##使用公钥进行验证</span></span><br><span class="line">openssl rsautl -verify -<span class="keyword">in</span> sign1.txt -inkey pub.pem -pubin -out replain1.txt</span><br><span class="line"></span><br><span class="line"><span class="comment">##对比原始文件和签名解密后的文件</span></span><br><span class="line">diff plain.txt replain1.txt</span><br></pre></td></tr></table></figure>
-
-<h3 id="CA证书生成"><a href="#CA证书生成" class="headerlink" title="CA证书生成"></a>CA证书生成</h3><p>生成CA私钥（.key）–&gt;生成CA证书请求（.csr）–&gt;自签名得到根证书（.crt）（CA给自已颁发的证书）。</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Generate CA private key</span></span><br><span class="line">openssl genrsa -out ca.key 2048</span><br><span class="line"><span class="comment"># Generate CSR</span></span><br><span class="line">openssl req -new -key ca.key -out ca.csr <span class="comment">## 需要手动输入回车</span></span><br><span class="line"><span class="comment"># Generate Self Signed certificate（CA 根证书）</span></span><br><span class="line">openssl x509 -req -days 365 -<span class="keyword">in</span> ca.csr -signkey ca.key -out ca.crt</span><br><span class="line"></span><br><span class="line"><span class="comment">##或者</span></span><br><span class="line"><span class="comment"># Generate CA private key</span></span><br><span class="line">openssl genrsa -out ca.key 2048</span><br><span class="line"></span><br><span class="line">openssl req -passin pass:1111 -new -x509 -days 365 -key ca.key -out ca.crt -subj <span class="string">&quot;/C=CN/ST=JS/L=ZJ/O=zx/OU=test/CN=root&quot;</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="用户证书"><a href="#用户证书" class="headerlink" title="用户证书"></a>用户证书</h3><p>生成私钥（.key）–&gt;生成证书请求（.csr）–&gt;用CA根证书签名得到证书（.crt）</p>
-<h4 id="服务器端证书"><a href="#服务器端证书" class="headerlink" title="服务器端证书"></a>服务器端证书</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">openssl genrsa -passout pass:1111 -des3 -out server.key 2048</span><br><span class="line">openssl req -passin pass:1111 -new -key server.key -out server.csr -subj <span class="string">&quot;/C=CN/ST=JS/L=ZJ/O=zx/OU=test/CN=www.shiyx.top:5673&quot;</span></span><br><span class="line">openssl x509 -req -passin pass:1111 -days 365 -<span class="keyword">in</span> server.csr -CA ca.crt -CAkey ca.key -set_serial 01 -out server.crt</span><br><span class="line">openssl rsa -passin pass:1111 -<span class="keyword">in</span> server.key -out server.key <span class="comment">## 移除密码</span></span><br><span class="line"><span class="comment">## 生成pfx格式证书，需要输入密码，或使用 -passin pass:1111</span></span><br><span class="line">openssl pkcs12 -<span class="built_in">export</span> -out server.pfx -inkey server.key -<span class="keyword">in</span> server.crt -certfile ca.crt</span><br></pre></td></tr></table></figure>
-
-<h4 id="客户端证书"><a href="#客户端证书" class="headerlink" title="客户端证书"></a>客户端证书</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">openssl genrsa -passout pass:1111 -des3 -out client.key 2048</span><br><span class="line">openssl req -passin pass:1111 -new -key client.key -out client.csr -subj <span class="string">&quot;/C=CN/ST=JS/L=ZJ/O=zx/OU=test/CN=www.shiyx.top:5673&quot;</span></span><br><span class="line">openssl x509 -passin pass:1111 -req -days 365 -<span class="keyword">in</span> client.csr -CA ca.crt -CAkey ca.key -set_serial 01 -out client.crt</span><br><span class="line">openssl rsa -passin pass:1111 -<span class="keyword">in</span> client.key -out client.key <span class="comment">## 移除密码</span></span><br></pre></td></tr></table></figure>
-
-<h4 id="PKCS＃12-pfx-p12-证书生成"><a href="#PKCS＃12-pfx-p12-证书生成" class="headerlink" title="PKCS＃12(.pfx .p12)证书生成"></a>PKCS＃12(.pfx .p12)证书生成</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">##将PEM证书文件和私钥转换为PKCS＃12(.pfx .p12)</span></span><br><span class="line"><span class="comment">## 需要输入密码</span></span><br><span class="line">openssl pkcs12 -<span class="built_in">export</span> -out server.pfx -inkey server.key -<span class="keyword">in</span> server.crt -certfile ca.crt</span><br></pre></td></tr></table></figure>
-
-<h4 id="生成pem格式证书"><a href="#生成pem格式证书" class="headerlink" title="生成pem格式证书"></a>生成pem格式证书</h4><p>有时需要用到pem格式的证书，可以用以下方式合并证书文件（crt）和私钥文件（key）来生成</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$cat</span> client.crt client.key&gt; client.pem</span><br><span class="line"><span class="variable">$cat</span> server.crt server.key &gt; server.pem</span><br><span class="line">$ cat server.crt server.key|tee server.pem <span class="comment"># 将私钥和证书合并到一个文件中</span></span><br></pre></td></tr></table></figure>
-
-<p>tee：定向输出到server.pem</p>
-<h4 id="证书转换"><a href="#证书转换" class="headerlink" title="证书转换"></a>证书转换</h4><p>可以使用以下命令：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">openssl x509 <span class="comment">## 必须为证书文件， .key文件非证书文件</span></span><br><span class="line"></span><br><span class="line">openssl rsa  <span class="comment">## 必须为密钥文件。</span></span><br></pre></td></tr></table></figure>
-
-<p>依赖命令中参数：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">-inform pem|der : 输入文件格式</span><br><span class="line">-outform der|pem: 输出文件格式</span><br></pre></td></tr></table></figure>
-
-<p>例如：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">## crt转换为pem</span></span><br><span class="line">openssl x509 -<span class="keyword">in</span> server.crt -out server.pem <span class="comment">## -outform der :从pem格式转成der格式</span></span><br><span class="line"></span><br><span class="line"><span class="comment">## pem转换为crt</span></span><br><span class="line">openssl x509 -<span class="keyword">in</span> server.pem -out server1.crt <span class="comment">## -outform der :从der格式转成pem格式</span></span><br><span class="line"></span><br><span class="line"><span class="comment">## 比较</span></span><br><span class="line">diff server.crt server1.crt</span><br><span class="line"></span><br><span class="line"><span class="comment">## der格式转成pem格式</span></span><br><span class="line">openssl x509 -<span class="keyword">in</span> ca.crt -outform der -out ca.der</span><br><span class="line">openssl rsa -<span class="keyword">in</span> ca.key -outform der -out ca1.der</span><br><span class="line"></span><br><span class="line"><span class="comment">## pem格式转成crt格式 需要指定 -inform der</span></span><br><span class="line">openssl x509 -<span class="keyword">in</span> ca.der -inform der -outform pem -out ca.pem</span><br><span class="line">diff ca.pem ca.crt</span><br><span class="line"></span><br><span class="line"><span class="comment">##将PEM证书文件和私钥转换为PKCS＃12(.pfx .p12)</span></span><br><span class="line"><span class="comment">## 需要输入密码</span></span><br><span class="line">openssl pkcs12 -<span class="built_in">export</span> -out server.pfx -inkey server.key -<span class="keyword">in</span> server.crt -certfile ca.crt</span><br><span class="line"></span><br><span class="line"><span class="comment">##将包含私钥和证书的PKCS＃12文件(.pfx .p12)转换为PEM</span></span><br><span class="line"><span class="comment">## 需要输入密码</span></span><br><span class="line">openssl pkcs12 -<span class="keyword">in</span> server.pfx -out server1.pem -nodes</span><br><span class="line">diff server.pem server.crt</span><br><span class="line"></span><br><span class="line">openssl pkcs12 -<span class="keyword">in</span> server.pfx -out server.cer -nodes</span><br></pre></td></tr></table></figure>
-
-<h4 id="pkcs1与pkcs8格式RSA私钥互相转换"><a href="#pkcs1与pkcs8格式RSA私钥互相转换" class="headerlink" title="pkcs1与pkcs8格式RSA私钥互相转换"></a>pkcs1与pkcs8格式RSA私钥互相转换</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">openssl pkcs8 -topk8 -inform PEM -<span class="keyword">in</span> server.key -outform pem -nocrypt -out pkcs8.pem</span><br><span class="line"><span class="comment">## openssl pkcs8 -in pkcs8.pem -nocrypt -out server2.key ## 失效</span></span><br><span class="line">openssl rsa -<span class="keyword">in</span> pkcs8.pem -out pkcs1.pem</span><br><span class="line">diff server.key pkcs1.pem</span><br></pre></td></tr></table></figure>
-
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/liuchunming033/article/details/48470575">openssl生成SSL证书的流程</a></p>
-<p><a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/X.509">X.509</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/guogangj/p/4118605.html">那些证书相关的玩意儿(SSL,X.509,PEM,DER,CRT,CER,KEY,CSR,P12等)</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/15b1d935a44b">OpenSSL加解密使用</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/f-ck-need-u/p/7115871.html">openssl ca(签署和自建CA)</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/08e41304edab">pkcs1与pkcs8格式RSA私钥互相转换</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/yaozhenfa/p/gRpc_with_ssl.html">http://www.cnblogs.com/yaozhenfa/p/gRpc_with_ssl.html</a></p>
-<p><a target="_blank" rel="noopener" href="https://vimsky.com/article/3608.html">https://vimsky.com/article/3608.html</a></p>
-<p><a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/13732826/convert-pem-to-crt-and-key?answertab=votes">https://stackoverflow.com/questions/13732826/convert-pem-to-crt-and-key?answertab=votes</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -2030,7 +1995,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">467</span>
+          <span class="site-state-item-count">470</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
