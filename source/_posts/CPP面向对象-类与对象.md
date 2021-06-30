@@ -19,6 +19,7 @@ C++ 在 C 语言的基础上增加了面向对象编程，C++ 支持面向对象
 
 ![cpp-classes-objects-2020-12-10-11.png](/img/cpp-classes-objects-2020-12-10-11.png)
 
+<!--more-->
 实例：
 
 ```cpp
