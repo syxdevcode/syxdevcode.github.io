@@ -182,6 +182,234 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/03/21/DotNet-%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/03/21/DotNet-%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F/" class="post-title-link" itemprop="url">DotNet 单例模式</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-03-21 08:33:10" itemprop="dateCreated datePublished" datetime="2019-03-21T08:33:10+00:00">2019-03-21</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-07-01 06:03:44" itemprop="dateModified" datetime="2021-07-01T06:03:44+00:00">2021-07-01</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" itemprop="url" rel="index"><span itemprop="name">设计模式</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="DotNet-单例模式"><a href="#DotNet-单例模式" class="headerlink" title="DotNet 单例模式"></a>DotNet 单例模式</h1><p>单例模式涉及到的基础知识，包括静态构造函数，私有构造函数，锁，延时创建对象, readonly/const等等。</p>
+<p>单例的优点：<br>1.保证了所有的对象访问的都是同一个实例<br>2.由于类是由自己类控制实例化的，所以有相应的伸缩性</p>
+<p>单例的缺点：<br>1.额外的系统开销，因为每次使用类的实例的时候，都要检查实例是否存在，可以通过静态实例该解决。<br>2.无法销毁对象，单例模式的特性决定了只有他自己才能销毁对象实例，但是一般情况下我们都没做这个事情。</p>
+<h2 id="版本1"><a href="#版本1" class="headerlink" title="版本1"></a>版本1</h2><p>主要问题，就是线程安全的问题，当2个请求同时方式这个类的实例的时候，可以会在同一时间点上都创建一个实例。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">sealed</span> <span class="keyword">class</span> <span class="title">Singleton</span></span><br><span class="line">&#123;</span><br><span class="line">   <span class="keyword">private</span> <span class="keyword">static</span> Singleton instance;</span><br><span class="line"></span><br><span class="line">   <span class="comment">// 私有构造函数，确保用户在外部不能实例化新的实例</span></span><br><span class="line">   <span class="function"><span class="keyword">private</span> <span class="title">Singleton</span>(<span class="params"></span>)</span> &#123;&#125;</span><br><span class="line"></span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> Singleton Instance</span><br><span class="line">   &#123;</span><br><span class="line">      <span class="keyword">get</span></span><br><span class="line">      &#123;</span><br><span class="line">         <span class="keyword">if</span> (instance == <span class="literal">null</span>)</span><br><span class="line">         &#123;</span><br><span class="line">            instance = <span class="keyword">new</span> Singleton();</span><br><span class="line">         &#125;</span><br><span class="line">         <span class="keyword">return</span> instance;</span><br><span class="line">      &#125;</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="版本2"><a href="#版本2" class="headerlink" title="版本2"></a>版本2</h2><p>标记类为sealed是好的，可以防止被集成;<br>在首次访问静态成员之前以及在调用构造函数（如果有）之前，会初始化静态成员。</p>
+<p>静态私有字段上通过new的形式，来保证在该类第一次被调用的时候创建实例,但是，C#其实并不保证实例创建的时机，因为C#规范只是在IL里标记该静态字段是<code>BeforeFieldInit</code>，也就是说静态字段可能在第一次被使用的时候创建，也可能你没使用了，它也帮你创建了。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">sealed</span> <span class="keyword">class</span> <span class="title">Singleton</span></span><br><span class="line">&#123;</span><br><span class="line">   <span class="comment">// 在静态私有字段上声明单例</span></span><br><span class="line">   <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">readonly</span> Singleton instance = <span class="keyword">new</span> Singleton();</span><br><span class="line"></span><br><span class="line">   <span class="comment">// 私有构造函数，确保用户在外部不能实例化新的实例</span></span><br><span class="line">   <span class="function"><span class="keyword">private</span> <span class="title">Singleton</span>(<span class="params"></span>)</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">   <span class="comment">// 只读属性返回静态字段</span></span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> Singleton Instance</span><br><span class="line">   &#123;</span><br><span class="line">      <span class="keyword">get</span></span><br><span class="line">      &#123;</span><br><span class="line">         <span class="keyword">return</span> instance;</span><br><span class="line">      &#125;</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="版本3"><a href="#版本3" class="headerlink" title="版本3"></a>版本3</h2><p>volatile 关键字表示字段可能被多个并发执行线程修改。声明为 <code>volatile</code> 的字段不受编译器优化（假定由单个线程访问）的限制。这样可以确保该字段在任何时间呈现的都是最新的值。</p>
+<p><font color=#ff0000 size=4 face="黑体">常见的实现方法，推荐使用</font></p>
+<p>每个线程都会对线程辅助对象locker加锁之后再判断实例是否存在，对于这个操作完全没有必要的，因为当第一个线程创建了该类的实例之后，后面的线程此时只需要直接判断（instance==null）为假，此时完全没必要对线程辅助对象加锁之后再去判断，所以上面的实现方式增加了额外的开销，损失了性能，为了改进上面实现方式的缺陷，我们只需要在lock语句前面加一句（instance==null）的判断就可以避免锁所增加的额外开销，这种实现方式我们就叫它 “双重锁定”。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">sealed</span> <span class="keyword">class</span> <span class="title">Singleton</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">volatile</span> Singleton instance = <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Lock对象，线程安全所用</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="built_in">object</span> syncRoot = <span class="keyword">new</span> Object();</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">Singleton</span>(<span class="params"></span>)</span> &#123; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> Singleton Instance</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (instance == <span class="literal">null</span>)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">lock</span> (syncRoot)</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="keyword">if</span> (instance == <span class="literal">null</span>)</span><br><span class="line">                        instance = <span class="keyword">new</span> Singleton();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">return</span> instance;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="版本4"><a href="#版本4" class="headerlink" title="版本4"></a>版本4</h2><p>通过加静态构造函数，确保是个延迟初始化的单例。</p>
+<p>静态构造函数：用于初始化任何静态数据，或执行仅需执行一次的特定操作。<br><font color=#ff0000 size=4 face="黑体">在创建第一个实例或引用任何静态成员之前自动调用静态构造函数。</font></p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Singleton</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 因为下面声明了静态构造函数，所以在第一次访问该类之前，new Singleton()语句不会执行</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">readonly</span> Singleton _instance = <span class="keyword">new</span> Singleton();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> Singleton Instance</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span> &#123; <span class="keyword">return</span> _instance; &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">Singleton</span>(<span class="params"></span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 声明静态构造函数就是为了删除IL里的BeforeFieldInit标记</span></span><br><span class="line">    <span class="comment">// 以掉静态字段在使用之前被初始化</span></span><br><span class="line">    <span class="function"><span class="keyword">static</span> <span class="title">Singleton</span>(<span class="params"></span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="版本5"><a href="#版本5" class="headerlink" title="版本5"></a>版本5</h2><p>版本4的变体</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">sealed</span> <span class="keyword">class</span> <span class="title">Singleton</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">Singleton</span>(<span class="params"></span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> Singleton Instance &#123; <span class="keyword">get</span> &#123; <span class="keyword">return</span> Nested._instance; &#125; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">class</span> <span class="title">Nested</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">static</span> <span class="title">Nested</span>(<span class="params"></span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">internal</span> <span class="keyword">static</span> <span class="keyword">readonly</span> Singleton _instance = <span class="keyword">new</span> Singleton();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="版本6"><a href="#版本6" class="headerlink" title="版本6"></a>版本6</h2><p><code>Lazy&lt;T&gt;</code>默认的设置就是线程安全。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Singleton</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 因为构造函数是私有的，所以需要使用lambda</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">readonly</span> Lazy&lt;Singleton&gt; _instance =</span><br><span class="line">        <span class="keyword">new</span> Lazy&lt;Singleton&gt;(() =&gt; <span class="keyword">new</span> Singleton());</span><br><span class="line">    <span class="comment">// new Lazy&lt;Singleton&gt;(() =&gt; new Singleton(), LazyThreadSafetyMode.ExecutionAndPublication);</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">Singleton</span>(<span class="params"></span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> Singleton Instance</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> _instance.Value;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="泛型单例"><a href="#泛型单例" class="headerlink" title="泛型单例"></a>泛型单例</h2><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title">Singleton</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">readonly</span> Lazy&lt;T&gt; _instance</span><br><span class="line">      = <span class="keyword">new</span> Lazy&lt;T&gt;(() =&gt;</span><br><span class="line">      &#123;</span><br><span class="line">          <span class="keyword">var</span> ctors = <span class="keyword">typeof</span>(T).GetConstructors(</span><br><span class="line">              BindingFlags.Instance</span><br><span class="line">              | BindingFlags.NonPublic</span><br><span class="line">              | BindingFlags.Public);</span><br><span class="line">          <span class="keyword">if</span> (ctors.Count() != <span class="number">1</span>)</span><br><span class="line">              <span class="keyword">throw</span> <span class="keyword">new</span> InvalidOperationException(String.Format(<span class="string">&quot;Type &#123;0&#125; must have exactly one constructor.&quot;</span>, <span class="keyword">typeof</span>(T)));</span><br><span class="line">          <span class="keyword">var</span> ctor = ctors.SingleOrDefault(c =&gt; c.GetParameters().Count() == <span class="number">0</span> &amp;&amp; c.IsPrivate);</span><br><span class="line">          <span class="keyword">if</span> (ctor == <span class="literal">null</span>)</span><br><span class="line">              <span class="keyword">throw</span> <span class="keyword">new</span> InvalidOperationException(String.Format(<span class="string">&quot;The constructor for &#123;0&#125; must be private and take no parameters.&quot;</span>, <span class="keyword">typeof</span>(T)));</span><br><span class="line">          <span class="keyword">return</span> (T)ctor.Invoke(<span class="literal">null</span>);</span><br><span class="line">      &#125;);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> T Instance</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span> &#123; <span class="keyword">return</span> _instance.Value; &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>泛型单例类的实现：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title">MySingleton</span> : <span class="title">Singleton</span>&lt;<span class="title">MySingleton</span>&gt;</span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">int</span> _counter;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">int</span> Counter</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span> &#123; <span class="keyword">return</span> _counter; &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">MySingleton</span>(<span class="params"></span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        _counter = <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">IncrementCounter</span>(<span class="params"></span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        ++_counter;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 线程安全</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">IncrementCounterLock</span>(<span class="params"></span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        Interlocked.Increment(<span class="keyword">ref</span> _counter);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>泛型版本的代码使用的<code>Lazy&lt;T&gt;</code>能确保我们在创建单例实例的时候是线程安全的，但是不意味着单例本身是线程安全的，例如：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    Parallel.For(<span class="number">0</span>, <span class="number">100</span>, i =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="built_in">int</span> j = <span class="number">0</span>; j &lt; <span class="number">1000</span>; ++j)</span><br><span class="line">            MySingleton.Instance.IncrementCounter();</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Counter的结果是小于100000的</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Counter=&#123;0&#125;.&quot;</span>, MySingleton.Instance.Counter);</span><br><span class="line">    Console.ReadLine();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/TomXu/archive/2011/12/19/2291448.html">大叔手记（10）：别再让面试官问你单例（暨6种实现方式让你堵住面试官的嘴）</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/daguanjia11/article/details/74612674">.NET线程同步之Volatile构造</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/03/19/OpenID-Connect-%E5%8D%8F%E8%AE%AE/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/03/19/OpenID-Connect-%E5%8D%8F%E8%AE%AE/" class="post-title-link" itemprop="url">OpenID Connect 协议</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-03-19 10:52:32" itemprop="dateCreated datePublished" datetime="2019-03-19T10:52:32+00:00">2019-03-19</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-07-01 06:03:44" itemprop="dateModified" datetime="2021-07-01T06:03:44+00:00">2021-07-01</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/OAuth2-0/" itemprop="url" rel="index"><span itemprop="name">OAuth2.0</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="OpenID-Connect-协议"><a href="#OpenID-Connect-协议" class="headerlink" title="OpenID Connect 协议"></a>OpenID Connect 协议</h1><h2 id="OpenID-Connect简介"><a href="#OpenID-Connect简介" class="headerlink" title="OpenID Connect简介"></a>OpenID Connect简介</h2><p><code>OpenID Connect</code>是由OpenID基金会于2014年发布的一个开放标准，简称OIDC, 它使用OAuth2.0来进行身份认证,<code>OpenID Connect</code>是OpenID的第三代技术。 <code>OpenID Connect</code>直接构建于OAuth2.0的基础之上,添加了一些组件来提供身份认证的能力与其兼容。 通常<code>OpenID Connect</code>是和OAuth2一同部署来使用的。</p>
+<p><font color=#ff0000 size=4 face="黑体">OpenID Connect是更高级的协议, 它扩展并替代了OAuth2.0 尽管现在我们经常说我们在使用OAuth2.0来保护API, 其实更准确的说, 大多数情况下, 我们使用的是OpenID Connect.</font></p>
+<p>身份认证(Authentication)<br>授权(Authorization)</p>
+<h2 id="名词定义"><a href="#名词定义" class="headerlink" title="名词定义"></a>名词定义</h2><ul>
+<li><p>EU：End User，用户。</p>
+</li>
+<li><p>RP：Relying Party ，用来代指OAuth2中的受信任的客户端，身份认证和授权信息的消费方；</p>
+</li>
+<li><p>OP：OpenID Provider，有能力提供EU身份认证的服务方（比如OAuth2中的授权服务），用来为RP提供EU的身份认证信息；</p>
+</li>
+<li><p>ID-Token：JWT格式的数据，包含EU身份认证的信息。</p>
+</li>
+<li><p>UserInfo Endpoint：用户信息接口（受OAuth2保护），当RP使用ID-Token访问时，返回授权用户的信息，此接口必须使用HTTPS。</p>
+</li>
+</ul>
+<h2 id="OIDC基础"><a href="#OIDC基础" class="headerlink" title="OIDC基础"></a>OIDC基础</h2><p>OpenID是 <code>Authentication</code>，即认证，对用户的身份进行认证，判断其身份是否有效，也就是让网站知道“你是你所声称的那个用户”；</p>
+<p>OAuth是 <code>Authorization</code>，即授权，在已知用户身份合法的情况下，经用户授权来允许某些操作，也就是让网站知道“你能被允许做那些事情”。</p>
+<p>由此可知，授权要在认证之后进行，只有确定用户身份才能授权。<br><font color=#ff0000 size=4 face="黑体">(身份验证)+ OAuth 2.0 = OpenID Connect</font></p>
+<p><code>OpenID Connect</code>是“认证”和“授权”的结合，因为其基于OAuth协议，所以<code>OpenID Connect</code>协议中也包含了<code>client_id</code>、<code>client_secret</code>还有<code>redirect_uri</code>等字段标识。这些信息被保存在<code>身份认证服务器</code>，以确保特定的客户端收到的信息只来自于合法的应用平台。这样做是目的是为了防止<code>client_id</code>泄露而造成的恶意网站发起的OIDC流程。</p>
+<p>在OAuth中的<code>scope</code>，<code>OpenID Connect</code>也有自己特殊的<code>scope--openid</code> ,它必须在第一次请求“身份鉴别服务器”（Identity Provider,简称IDP）时发送过去。</p>
+<h2 id="OIDC流程"><a href="#OIDC流程" class="headerlink" title="OIDC流程"></a>OIDC流程</h2><p>OIDC基于OAuth2，所以OIDC的认证流程主要是由OAuth2的几种授权流程延伸而来的，有以下3种：</p>
+<ul>
+<li>Authorization Code Flow：使用OAuth2的授权码来换取<code>Id_Token</code>和<code>Access_Token</code>。</li>
+<li>Implicit Flow：使用OAuth2的Implicit流程获取<code>Id_Toke</code>n和<code>Access_Token</code>。</li>
+<li>Hybrid Flow：混合<code>Authorization Code Flow</code>+<code>Implici Flow</code>。</li>
+</ul>
+<p>OpenID Connect抽象流程：</p>
+<p><img src="/img/986268-20180627101906559-326862209.png" alt="986268-20180627101906559-326862209.png"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">1. 依赖发(RP)发送请求到OpenID提供商(OP, 也就是身份提供商).</span><br><span class="line">2. OpenID提供商验证最终用户的身份, 并获得了用户委派的授权</span><br><span class="line">3. OpenID提供商返回响应, 里面带着ID_Token, 也通常带着Access_Token.</span><br><span class="line">4. 依赖方现在可以使用Access_Token发送请求到用户信息的端点.</span><br><span class="line">5. 用户信息端点返回用户的声明(claims, 相当于是用户的信息).</span><br></pre></td></tr></table></figure>
+
+<p>OpenID Connect身份认证有三个路径(三个流程, flow): <code>Authorization Code</code>, <code>Implicit</code>，<code>Hybrid</code>。</p>
+<h3 id="Authorization-Code-授权码"><a href="#Authorization-Code-授权码" class="headerlink" title="Authorization Code(授权码)"></a>Authorization Code(授权码)</h3><p>要求客户端应用可以安全的在它和授权服务器之间维护客户端的<code>secret</code>,也就是说只适合这样的客户端应用。它还适合于长时间的访问(通过refresh token)。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">1，客户端准备身份认证请求, 请求里包含所需的参数</span><br><span class="line">2，客户端发送请求到授权服务器</span><br><span class="line">3，授权服务器对最终用户进行身份认证</span><br><span class="line">4，授权服务器获得最终用户的同意/授权</span><br><span class="line">5，授权服务器把最终用户发送回客户端, 同时带着授权码</span><br><span class="line">6，客户端使用授权码向Token端点请求一个响应</span><br><span class="line">7，客户端接收到响应, 响应的body里面包含着ID_Token 和 Access_Token</span><br><span class="line">8，客户端验证ID_Token, 并获得用户的一些身份信息.</span><br></pre></td></tr></table></figure>
+
+<h3 id="Implicit-简化"><a href="#Implicit-简化" class="headerlink" title="Implicit(简化)"></a>Implicit(简化)</h3><p>不适合于长时间访问。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">1，客户端准备身份认证请求, 请求里包含所需的参数</span><br><span class="line">2，客户端发送请求到授权服务器</span><br><span class="line">3，授权服务器对最终用户进行身份认证</span><br><span class="line">4，授权服务器获得最终用户的同意/授权</span><br><span class="line">5，授权服务器把最终用户发送回客户端, 同时带着ID_Token.</span><br><span class="line">  如果也请求了Access_Token的话, 那么Access_Token也会一同返回.</span><br><span class="line">6，客户端验证ID_Token, 并获得用户的一些身份信息.</span><br></pre></td></tr></table></figure>
+
+<h3 id="Hybrid-Flow-混合"><a href="#Hybrid-Flow-混合" class="headerlink" title="Hybrid Flow(混合)"></a>Hybrid Flow(混合)</h3><p>适合于长时间的访问。</p>
+<p>要求客户端应用可以安全的维护<code>secret</code>。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">1，客户端准备身份认证请求, 请求里包含所需的参数</span><br><span class="line">2，客户端发送请求到授权服务器</span><br><span class="line">3，授权服务器对最终用户进行身份认证</span><br><span class="line">4，授权服务器获得最终用户的同意/授权</span><br><span class="line">5，授权服务器把最终用户发送回客户端, 同时带着授权码,</span><br><span class="line">   根据响应类型的不同, 也可能还带着一个或者多个其它的参数.</span><br><span class="line">6，客户端使用授权码向Token端点请求一个响应</span><br><span class="line">7，客户端接收到响应, 响应的body里面包含着ID_Token 和 Access_Token</span><br><span class="line">8，客户端验证ID_Token, 并获得用户的一些身份信息.</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/be7cc032a4e9">OpenID Connect 协议入门指南</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/cgzl/p/9231219.html">Identity Server 4 预备知识 – OpenID Connect 简介</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/cgzl/p/9221488.html">Identity Server 4 预备知识 – OAuth 2.0 简介</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/linianhui/p/openid-connect-core.html">[认证授权] 4.OIDC（OpenId Connect）身份认证（核心部分）</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/03/18/RESTful-API-%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E8%B7%B5/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +441,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 08:55:39" itemprop="dateModified" datetime="2021-06-30T08:55:39+00:00">2021-06-30</time>
+                <time title="修改时间：2021-07-01 06:03:44" itemprop="dateModified" datetime="2021-07-01T06:03:44+00:00">2021-07-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -374,7 +602,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 08:55:39" itemprop="dateModified" datetime="2021-06-30T08:55:39+00:00">2021-06-30</time>
+                <time title="修改时间：2021-07-01 06:03:44" itemprop="dateModified" datetime="2021-07-01T06:03:44+00:00">2021-07-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -459,7 +687,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 08:55:39" itemprop="dateModified" datetime="2021-06-30T08:55:39+00:00">2021-06-30</time>
+                <time title="修改时间：2021-07-01 06:03:44" itemprop="dateModified" datetime="2021-07-01T06:03:44+00:00">2021-07-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -674,7 +902,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 08:55:39" itemprop="dateModified" datetime="2021-06-30T08:55:39+00:00">2021-06-30</time>
+                <time title="修改时间：2021-07-01 06:03:44" itemprop="dateModified" datetime="2021-07-01T06:03:44+00:00">2021-07-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -776,7 +1004,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 08:55:39" itemprop="dateModified" datetime="2021-06-30T08:55:39+00:00">2021-06-30</time>
+                <time title="修改时间：2021-07-01 06:03:44" itemprop="dateModified" datetime="2021-07-01T06:03:44+00:00">2021-07-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -857,7 +1085,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 08:55:39" itemprop="dateModified" datetime="2021-06-30T08:55:39+00:00">2021-06-30</time>
+                <time title="修改时间：2021-07-01 06:03:44" itemprop="dateModified" datetime="2021-07-01T06:03:44+00:00">2021-07-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -938,7 +1166,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 08:55:39" itemprop="dateModified" datetime="2021-06-30T08:55:39+00:00">2021-06-30</time>
+                <time title="修改时间：2021-07-01 06:03:44" itemprop="dateModified" datetime="2021-07-01T06:03:44+00:00">2021-07-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1019,7 +1247,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 08:55:39" itemprop="dateModified" datetime="2021-06-30T08:55:39+00:00">2021-06-30</time>
+                <time title="修改时间：2021-07-01 06:03:44" itemprop="dateModified" datetime="2021-07-01T06:03:44+00:00">2021-07-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1184,7 +1412,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 08:55:39" itemprop="dateModified" datetime="2021-06-30T08:55:39+00:00">2021-06-30</time>
+                <time title="修改时间：2021-07-01 06:03:44" itemprop="dateModified" datetime="2021-07-01T06:03:44+00:00">2021-07-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1277,7 +1505,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 08:55:39" itemprop="dateModified" datetime="2021-06-30T08:55:39+00:00">2021-06-30</time>
+                <time title="修改时间：2021-07-01 06:03:44" itemprop="dateModified" datetime="2021-07-01T06:03:44+00:00">2021-07-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1358,7 +1586,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 08:55:39" itemprop="dateModified" datetime="2021-06-30T08:55:39+00:00">2021-06-30</time>
+                <time title="修改时间：2021-07-01 06:03:44" itemprop="dateModified" datetime="2021-07-01T06:03:44+00:00">2021-07-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1458,7 +1686,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 08:55:39" itemprop="dateModified" datetime="2021-06-30T08:55:39+00:00">2021-06-30</time>
+                <time title="修改时间：2021-07-01 06:03:44" itemprop="dateModified" datetime="2021-07-01T06:03:44+00:00">2021-07-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1539,7 +1767,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 08:55:39" itemprop="dateModified" datetime="2021-06-30T08:55:39+00:00">2021-06-30</time>
+                <time title="修改时间：2021-07-01 06:03:44" itemprop="dateModified" datetime="2021-07-01T06:03:44+00:00">2021-07-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1571,254 +1799,6 @@
             </div>
           <!--/noindex-->
         
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/02/19/ASP-NET-MVC-%E9%A1%B5%E9%9D%A2%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/02/19/ASP-NET-MVC-%E9%A1%B5%E9%9D%A2%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/" class="post-title-link" itemprop="url">ASP.NET MVC 页面生命周期</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-02-19 15:10:11" itemprop="dateCreated datePublished" datetime="2019-02-19T15:10:11+00:00">2019-02-19</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 08:55:39" itemprop="dateModified" datetime="2021-06-30T08:55:39+00:00">2021-06-30</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/MVC-Web-API/" itemprop="url" rel="index"><span itemprop="name">MVC/Web API</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="ASP-NET-MVC-页面生命周期"><a href="#ASP-NET-MVC-页面生命周期" class="headerlink" title="ASP.NET MVC 页面生命周期"></a>ASP.NET MVC 页面生命周期</h1><p>整个ASP.NET MVC框架是通过自定义的 <code>HttpModule</code> 和 <code>HttpHandler</code> 对ASP.NET 进行扩展构建起来的。</p>
-<ul>
-<li>自定义的 <code>HttpModule</code> : <code>UrlRoutingModule</code></li>
-<li>自定义的 <code>HttpHandler</code>: <code>MvcHandler</code></li>
-</ul>
-<p><img src="/img/1458860-5d9e4724f9e32ccb.png" alt="1458860-5d9e4724f9e32ccb.png"></p>
-<p><img src="/img/190104561291113.png" alt="190104561291113.png"></p>
-<h2 id="HttpApplication与HttpModule"><a href="#HttpApplication与HttpModule" class="headerlink" title="HttpApplication与HttpModule"></a>HttpApplication与HttpModule</h2><p>HTTP请求由ASP.NET运行时接管之后，<code>HttpRuntime</code> 会利用 <code>HttpApplicationFactory</code> 创建或从 <code>HttpApplication</code>对象池中取出一个<code>HttpApplication</code>对象，同时ASP.NET会根据配置文件来初始化注册的<code>HttpModule</code>，<code>HttpModule</code>在初始化时会订阅<code>HttpApplication</code>中的事件来实现对HTTP请求的处理。</p>
-<p><img src="/img/190047183794497.png" alt="190047183794497.png"></p>
-<p><font color=#ff0000 size=4 face="黑体">ASP.NET MVC的入口在<code>UrlRoutingModule</code>,它订阅了<code>HttpApplication</code>的第7个管道事件<code>PostResolveRequestCahce</code>，并且在<code>HtttpApplication</code>的第7个管道事件处对请求进行了拦截。</font></p>
-<h2 id="UrlRoutingModule"><a href="#UrlRoutingModule" class="headerlink" title="UrlRoutingModule"></a>UrlRoutingModule</h2><p>通过在全局Web.Config中注册 <code>System.Web.Routing.UrlRoutingModule</code>，IIS请求处理管道接到请求后，就会加载 <code>UrlRoutingModule</code>类型的Init()方法，第7个管道事件 <code>PostResolveRequestCahce</code> 对请求进行了拦截。</p>
-<p>当请求到达 <code>UrlRoutingModule</code> 的时候，<code>UrlRoutingModule</code> 取出请求中的 Controller、Action等RouteData信息，与路由表中的所有规则进行匹配，若匹配，把请求交给 <code>IRouteHandler</code>，即 <code>MVCRouteHandler</code>。</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//通过RouteCollection的静态方法GetRouteData获取到封装路由信息的RouteData实例</span></span><br><span class="line">RouteData routeData = <span class="keyword">this</span>.RouteCollection.GetRouteData(context);</span><br><span class="line"></span><br><span class="line"><span class="comment">//再从RouteData中获取MVCRouteHandler</span></span><br><span class="line">IRouteHandler routeHandler = routeData.RouteHandler;</span><br></pre></td></tr></table></figure>
-
-<h2 id="MVCRouteHadnler"><a href="#MVCRouteHadnler" class="headerlink" title="MVCRouteHadnler"></a>MVCRouteHadnler</h2><p><code>MvcRouteHandler</code> 在HttpApplication的第一个管道事件，使用 <code>MapRoute()</code> 方法注册路由的时候，通过<code>Route</code>类的构造函数把<code>MVCRouteHandler</code>注入到路由中。</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Route <span class="title">MapRoute</span>(<span class="params"><span class="keyword">this</span> RouteCollection routes, <span class="built_in">string</span> name, <span class="built_in">string</span> url, <span class="built_in">object</span> defaults, <span class="built_in">object</span> constraints, <span class="built_in">string</span>[] namespaces</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">if</span> (routes == <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentNullException(<span class="string">&quot;routes&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (url == <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentNullException(<span class="string">&quot;url&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// MvcRouteHandler</span></span><br><span class="line">    Route route = <span class="keyword">new</span> Route(url, <span class="keyword">new</span> MvcRouteHandler()) &#123;</span><br><span class="line">        Defaults = <span class="keyword">new</span> RouteValueDictionary(defaults),</span><br><span class="line">        Constraints = <span class="keyword">new</span> RouteValueDictionary(constraints),</span><br><span class="line">        DataTokens = <span class="keyword">new</span> RouteValueDictionary()</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> ((namespaces != <span class="literal">null</span>) &amp;&amp; (namespaces.Length &gt; <span class="number">0</span>)) &#123;</span><br><span class="line">        route.DataTokens[<span class="string">&quot;Namespaces&quot;</span>] = namespaces;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    routes.Add(name, route);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> route;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p><code>MVCRouteHandler</code>是用来生成实现<code>IHttpHandler</code>接口的<code>MvcHandler</code>。</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">namespace</span> <span class="title">System.Web.Routing</span></span><br><span class="line">&#123;  </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">interface</span> <span class="title">IRouteHandler</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function">IHttpHandler <span class="title">GetHttpHandler</span>(<span class="params">RequestContext requestContext</span>)</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="MvcHandler"><a href="#MvcHandler" class="headerlink" title="MvcHandler"></a>MvcHandler</h2><p>第7个事件生成了 <code>MvcHandler</code>。</p>
-<p>第11和第12个事件之间调用了<code>MvcHandler</code>的<code>ProcessRequest</code>方法。</p>
-<p>通过<code>RouteHandler</code>的 <code>GetHttpHandler()</code>方法获取到实现了<code>IHttpHandler</code>接口的<code>MVCHandler</code>。</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">IHttpHandler httpHandler = routeHandler.GetHttpHandler(requestContext);</span><br><span class="line">context.RemapHandler(httpHandler);</span><br></pre></td></tr></table></figure>
-
-<p><code>MvcHandler</code> 部分源码:</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">MvcHandler</span> : <span class="title">IHttpAsyncHandler</span>, <span class="title">IHttpHandler</span>, <span class="title">IRequiresSessionState</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="keyword">internal</span> <span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">ProcessRequest</span>(<span class="params">HttpContextBase httpContext</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        SecurityUtil.ProcessInApplicationTrust(() =&gt;</span><br><span class="line">        &#123;</span><br><span class="line">            IController controller;</span><br><span class="line">            IControllerFactory factory;</span><br><span class="line">            ProcessRequestInit(httpContext, <span class="keyword">out</span> controller, <span class="keyword">out</span> factory);<span class="comment">//初始化了ControllerFactory</span></span><br><span class="line">            <span class="keyword">try</span></span><br><span class="line">            &#123;</span><br><span class="line">                controller.Execute(RequestContext);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">finally</span></span><br><span class="line">            &#123;</span><br><span class="line">                factory.ReleaseController(controller);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">     <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">ProcessRequestInit</span>(<span class="params">HttpContextBase httpContext, <span class="keyword">out</span> IController controller, <span class="keyword">out</span> IControllerFactory factory</span>)</span> &#123;</span><br><span class="line">        <span class="built_in">bool</span>? isRequestValidationEnabled = ValidationUtility.IsValidationEnabled(HttpContext.Current);</span><br><span class="line">        <span class="keyword">if</span> (isRequestValidationEnabled == <span class="literal">true</span>) &#123;</span><br><span class="line">            ValidationUtility.EnableDynamicValidation(HttpContext.Current);</span><br><span class="line">        &#125;</span><br><span class="line">        AddVersionHeader(httpContext);</span><br><span class="line">        RemoveOptionalRoutingParameters();</span><br><span class="line">        <span class="built_in">string</span> controllerName = RequestContext.RouteData.GetRequiredString(<span class="string">&quot;controller&quot;</span>);</span><br><span class="line">        factory = ControllerBuilder.GetControllerFactory();</span><br><span class="line">        controller = factory.CreateController(RequestContext, controllerName);</span><br><span class="line">        <span class="keyword">if</span> (controller == <span class="literal">null</span>) &#123;</span><br><span class="line">          <span class="keyword">throw</span> <span class="keyword">new</span> InvalidOperationException(String.Format(CultureInfo.CurrentCulture,MvcResources.ControllerBuilder_FactoryReturnedNull,factory.GetType(),controllerName));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="ControllerFactory"><a href="#ControllerFactory" class="headerlink" title="ControllerFactory"></a>ControllerFactory</h2><p>通过<code>ControllerBuilder</code>的静态方法<code>GetControllerFactory</code>获取到实现<code>IControllerFactory</code>接口的<code>ControllerFactory</code>。通过<code>ControllerFactory</code>来创建指定名称的控制器，最后将控制器作为out参数传递出去。</p>
-<h2 id="ActionInvoker"><a href="#ActionInvoker" class="headerlink" title="ActionInvoker"></a>ActionInvoker</h2><p>ActionInvoker实现了IActionInvoker接口：</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title">IActionInvoker</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="function"><span class="built_in">bool</span> <span class="title">InvokeAction</span>(<span class="params">ControllerContext controllerContext, <span class="built_in">string</span> actionName</span>)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>MVC默认的ActionInvoker是ControllerActionInvoker。</p>
-<p>ActionInvoker在执行InvokeAction()方法时会需要有关Controller和Action的相关信息，实际上，Controller信息(比如Controller的名称、类型、包含的Action等)被封装在ControllerDescriptor这个类中，Action信息(比如Action的名称、参数、属性、过滤器等)被封装在ActionDescriptor中。ActionDescriptor还提供了一个FindAction()方法，用来找到需要被执行的Action。</p>
-<h2 id="Filters"><a href="#Filters" class="headerlink" title="Filters"></a>Filters</h2><p>Filter-&gt;Action-&gt;Filter-&gt;Result</p>
-<p>在ASP.NET MVC5中有常用的过滤器有5个：<code>IAuthenticationFilter</code>、<code>IAuthorizationFilter</code>、<code>IActionFilter</code>、<code>IResultFilter</code>、<code>IExceptionFilter</code>。<br>在ASP.NET MVC中所有的过滤器最终都会被封装为Filter对象，该对象中FilterScope类型的属性Scope和int类型属性Order用于决定过滤器执行的先后顺序，具体规则如下：</p>
-<ul>
-<li>Order和FilterScope的数值越小，过滤器的执行优先级越高；</li>
-<li>Order比FilterScope具有更高的优先级，在Order属性值相同时FilterScope才会被考虑</li>
-</ul>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//数值越小，执行优先级越高</span></span><br><span class="line"><span class="keyword">public</span> <span class="built_in">enum</span> FilterScope</span><br><span class="line">&#123;</span><br><span class="line">    Action= <span class="number">30</span>,</span><br><span class="line">    Controller= <span class="number">20</span>,</span><br><span class="line">    First= <span class="number">0</span>,</span><br><span class="line">    Global= <span class="number">10</span>,</span><br><span class="line">    Last= <span class="number">100</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="ActionResult"><a href="#ActionResult" class="headerlink" title="ActionResult"></a>ActionResult</h2><p>ActionResult是一个抽象类：</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title">ActionResult</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">void</span> <span class="title">ExecuteResult</span>(<span class="params">ControllerContext context</span>)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>如果ActionResult是非ViewResult，比如JsonResult, ContentResult，这些内容将直接被输送到Response响应流中，显示给客户端；如果是ViewResult，就会进入下一个渲染视图环节。</p>
-<h2 id="ViewEngine"><a href="#ViewEngine" class="headerlink" title="ViewEngine"></a>ViewEngine</h2><p>默认的有<code>Razor View Engine</code>和<code>Web Form View Engine</code>，实现IViewEngine接口。</p>
-<p>IViewEngine接口方法：</p>
-<ul>
-<li>FindPartialView</li>
-<li>FindView</li>
-<li>ReleaseView</li>
-</ul>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/Cwj-XFH/p/6752177.html">ASP.NET MVC5请求管道和生命周期</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/edisonchou/p/4226558.html">ASP.Net请求处理机制初步探索之旅 - Part 5 ASP.Net MVC请求处理流程</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/darrenji/p/3795690.html">ASP.NET MVC请求处理管道生命周期的19个关键环节(13-19)</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/artech/archive/2012/04/10/how-mvc-works.html">How ASP.NET MVC Works?</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/artech/archive/2012/08/06/action-filter.html">ASP.NET MVC中的ActionFilter是如何执行的？</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/artech/archive/2012/07/02/AuthorizationFilter.html">认识ASP.NET MVC的5种AuthorizationFilter</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/artech/archive/2012/08/22/view-engine-01.html">ASP.NET MVC的View是如何被呈现出来的？[设计篇]</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/artech/archive/2012/08/23/view-engine-02.html">ASP.NET MVC的View是如何呈现出来的[实例篇]</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/02/19/WebForm%E4%B9%8BViewState%E4%B8%8EUpdatePannel%E8%AF%A6%E8%A7%A3/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/02/19/WebForm%E4%B9%8BViewState%E4%B8%8EUpdatePannel%E8%AF%A6%E8%A7%A3/" class="post-title-link" itemprop="url">WebForm之ViewState与UpdatePannel详解</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-02-19 14:16:35" itemprop="dateCreated datePublished" datetime="2019-02-19T14:16:35+00:00">2019-02-19</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-30 08:55:39" itemprop="dateModified" datetime="2021-06-30T08:55:39+00:00">2021-06-30</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/WebForm/" itemprop="url" rel="index"><span itemprop="name">WebForm</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="WebForm之ViewState与UpdatePannel详解"><a href="#WebForm之ViewState与UpdatePannel详解" class="headerlink" title="WebForm之ViewState与UpdatePannel详解"></a>WebForm之ViewState与UpdatePannel详解</h1><h2 id="ViewState"><a href="#ViewState" class="headerlink" title="ViewState"></a>ViewState</h2><h3 id="ViewState简介"><a href="#ViewState简介" class="headerlink" title="ViewState简介"></a>ViewState简介</h3><p>1,类似于Dictionary的一种数据结构</p>
-<p>ViewState通过String类型的数据作为索引。ViewState对应项中的值可以存储任何类型的值（参数是Object类型），任何类型的值存储到ViewState中都会被装箱为Object类型。</p>
-<p>注：ViewState不能存储所有的数据类型，仅支持以下的这几种：<br>String、Integer、Boolean、Array、ArrayList、Hashtable以及一些自定义类型。</p>
-<p>2，ViewState存储在浏览器的页面之中</p>
-<p>ViewState的作用域是页面，消耗服务器资源相对较少。</p>
-<p>服务器在向浏览器返回html之前，对ViewState中的内容进行了Base64的加密编码。VIEWSTATE适用于同一个页面在不关闭的情况下多次与服务器交互（PostBack）</p>
-<p>当用户点击页面中的某个按钮提交表单时，浏览器会将这个_VIEWSTATE的隐藏域也一起提交到服务端；服务器端在解析请求时，会将浏览器提交过来的ViewState进行反序列化后填充到ViewState属性中；再根据业务处理需要，从这个属性中根据索引找到具体的Value值并对其进行操作；操作完成后，再将ViewState进行Base64编码再次返回给浏览器端；</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;input type=<span class="string">&quot;hidden&quot;</span> name=<span class="string">&quot;__VIEWSTATE&quot;</span> id=<span class="string">&quot;__VIEWSTATE&quot;</span> <span class="keyword">value</span>=<span class="string">&quot;/wEPDwUKLTg4NTU3NzYwOGRkbQwtdx3+TX000hqmVYIcP3+P3zcihvV0deiDjaSgFRQ=&quot;</span> /&gt;</span><br></pre></td></tr></table></figure>
-
-<h3 id="ViewState存在的问题"><a href="#ViewState存在的问题" class="headerlink" title="ViewState存在的问题"></a>ViewState存在的问题</h3><p>当 <code>Repeater</code>等控件使用时，存储较大的值，用户请求显示页面的速度会减慢。</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;input type=<span class="string">&quot;hidden&quot;</span> name=<span class="string">&quot;__VIEWSTATE&quot;</span> id=<span class="string">&quot;__VIEWSTATE&quot;</span> <span class="keyword">value</span>=<span class="string">&quot;/wEPDwUJLTQ2OTExMTk1D2QWAgIBD2QWBAIBDxAPFgYeDkRhdGFWYWx1ZUZpZWxkBQJJRB4NRGF0YVRleHRGaWVsZAUETmFtZR4LXyFEYXRhQm91vZflubPop4Lpn7PooZfmsp/pgJoxMDDljoUn5LqR5Y2X6L+q5L+h6YCa572X5bmz6LSi5a+M5rKf6YCaMTAw5Y6FKuS6keWNl+i/quS/oUCBTExNDczBTExNDczZAIDDw8WAh8FBQUxMTQ3M2RkAgUPDxYCHwUFCzE4Mzg4MDM4MTY1ZGQCBQ8PFgIeC1JlY29yZGNvdW50AvIDZGRkmmJuzxcRIKhlTny8ibiHOR92G/JYSgGwzO69sFxoLV8=&quot;</span> /&gt;</span><br></pre></td></tr></table></figure>
-
-<h3 id="禁用ViewState"><a href="#禁用ViewState" class="headerlink" title="禁用ViewState"></a>禁用ViewState</h3><p>1,页面级禁用，在Page指令集中添加EnableViewState=”false”。</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&lt;%@ Page Language=<span class="string">&quot;C#&quot;</span> AutoEventWireup=<span class="string">&quot;true&quot;</span> CodeBehind=<span class="string">&quot;RepeaterViewState.aspx.cs&quot;</span></span><br><span class="line">    Inherits=<span class="string">&quot;WebForm1.RepeaterViewState&quot;</span> EnableViewState=<span class="string">&quot;false&quot;</span> %&gt;</span><br></pre></td></tr></table></figure>
-
-<p>注：禁用之后页面依然存在ViewState，但数据量已经减小。</p>
-<p>2，控件级禁用ViewState</p>
-<p>控件设置一个属性EnableViewState=”false”。</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&lt;asp:Repeater ID=<span class="string">&quot;repeaterProducts&quot;</span> runat=<span class="string">&quot;server&quot;</span> EnableViewState=<span class="string">&quot;false&quot;</span>&gt;</span><br><span class="line">&lt;/asp:Repeater&gt;</span><br></pre></td></tr></table></figure>
-
-<p>3,全局级禁用ViewState</p>
-<p>Web.config的system.web中增加一句配置</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;pages enableViewState=<span class="string">&quot;false&quot;</span> /&gt;</span><br></pre></td></tr></table></figure>
-
-<p>4,单独控制禁用与启用</p>
-<p>ASP.NET4.0之前，控件的视图只有在 Page 的 ViewState 启用的前提下才可以单独控制。</p>
-<p>ASP.NET4.0供了一个叫做 ViewStateMode 的新属性，这个属性可以单独设置控件的视图状态。即使页面的 <code>ViewState</code> 没有启用，控件依然可以启用视图状态。</p>
-<p>ViewStateMode 属性有三种取值：</p>
-<ul>
-<li>Inherit：视图状态从父控件继承；</li>
-<li>Enabled：即使父控件的视图状态没有启用，也启用该控件的视图状态；</li>
-<li>Disabled：即使父控件的视图状态启用了，也禁用此控件的视图状态。</li>
-</ul>
-<h2 id="UpdatePanel控件"><a href="#UpdatePanel控件" class="headerlink" title="UpdatePanel控件"></a>UpdatePanel控件</h2><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"> &lt;form id=<span class="string">&quot;form1&quot;</span> runat=<span class="string">&quot;server&quot;</span>&gt;</span><br><span class="line">    &lt;div align=<span class="string">&quot;center&quot;</span>&gt;</span><br><span class="line">        &lt;asp:ScriptManager ID=<span class="string">&quot;scriptManager&quot;</span> runat=<span class="string">&quot;server&quot;</span>&gt;</span><br><span class="line">        &lt;/asp:ScriptManager&gt;</span><br><span class="line">        &lt;asp:UpdatePanel ID=<span class="string">&quot;updatePanel&quot;</span> runat=<span class="string">&quot;server&quot;</span>&gt;</span><br><span class="line">            &lt;ContentTemplate&gt;</span><br><span class="line">                &lt;asp:TextBox ID=<span class="string">&quot;txtNumber1&quot;</span> runat=<span class="string">&quot;server&quot;</span>&gt;&lt;/asp:TextBox&gt;</span><br><span class="line">                &lt;asp:DropDownList ID=<span class="string">&quot;ddlFunc&quot;</span> runat=<span class="string">&quot;server&quot;</span>&gt;</span><br><span class="line">                    &lt;asp:ListItem Value=<span class="string">&quot;0&quot;</span>&gt;+&lt;/asp:ListItem&gt;</span><br><span class="line">                    &lt;asp:ListItem Value=<span class="string">&quot;1&quot;</span>&gt;-&lt;/asp:ListItem&gt;</span><br><span class="line">                    &lt;asp:ListItem Value=<span class="string">&quot;2&quot;</span>&gt;*&lt;/asp:ListItem&gt;</span><br><span class="line">                    &lt;asp:ListItem Value=<span class="string">&quot;3&quot;</span>&gt;/&lt;/asp:ListItem&gt;</span><br><span class="line">                &lt;/asp:DropDownList&gt;</span><br><span class="line">                &lt;asp:TextBox ID=<span class="string">&quot;txtNumber2&quot;</span> runat=<span class="string">&quot;server&quot;</span>&gt;&lt;/asp:TextBox&gt;</span><br><span class="line">                &lt;asp:Button ID=<span class="string">&quot;btnGetResult&quot;</span> runat=<span class="string">&quot;server&quot;</span> Text=<span class="string">&quot;=&quot;</span> Width=<span class="string">&quot;50&quot;</span> OnClick=<span class="string">&quot;btnGetResult_Click&quot;</span> /&gt;</span><br><span class="line">                &lt;asp:Label ID=<span class="string">&quot;lblResult&quot;</span> runat=<span class="string">&quot;server&quot;</span> Text=<span class="string">&quot;&quot;</span> Font-Bold=<span class="string">&quot;true&quot;</span>&gt;&lt;/asp:Label&gt;</span><br><span class="line">            &lt;/ContentTemplate&gt;</span><br><span class="line">        &lt;/asp:UpdatePanel&gt;</span><br><span class="line">    &lt;/div&gt;</span><br><span class="line">&lt;/form&gt;</span><br></pre></td></tr></table></figure>
-
-<p>UpdatePanel本质封装了以XmlHttpRequest为核心的一系列方法帮我们将CodeBehind中的同步事件变为了异步操作，并通过DOM更新指定的HTML内容，使得我们可以方便地实现AJAX效果。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/edisonchou/p/3901559.html">ASP.Net WebForm温故知新学习笔记：二、ViewState与UpdatePanel探秘</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/freeflying/archive/2009/12/28/1634229.html">禁掉VIEWSTATE之后（一）</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/yukaizhao/archive/2010/05/22/asp-net-new-feature-pure-html.html">Asp.Net 4.0 新特性，输出更纯净的Html代码 ClientIDMode，ViewStateMode等</a></p>
-
       
     </div>
 
@@ -1902,7 +1882,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">471</span>
+          <span class="site-state-item-count">473</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
