@@ -32,9 +32,9 @@ public class User
 }
 ```
 
-40字节内存空间。
+44字节内存空间。
 
-详细信息参考：[DotNet基础-GC与内存管理](https://syxdevcode.github.io/2018/12/14/DotNet%E5%9F%BA%E7%A1%80-GC%E4%B8%8E%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/)
+详细信息参考：{% post_link 'DotNet基础-GC与内存管理' %}
 
 ### 3. 什么是垃圾？
 
