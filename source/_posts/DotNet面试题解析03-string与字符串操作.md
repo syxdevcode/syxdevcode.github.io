@@ -287,20 +287,20 @@ Console.WriteLine(System.Object.ReferenceEquals(a, sa));
 
 输出结果全是 True，因为他们都指向同一个字符串实例，使用 object 声明和 string 声明在这里并没有区别（string是引用类型）。
 
-### 8.C#中string.Empty、""和null 之间的区别
+### 8.C#中string.Empty、`""`和null 之间的区别
 
 实际上 Empty 是 string 类中的一个静态的只读字段，他的定义是这样的：
 
-public static readonly String Empty = "";
+`public static readonly String Empty = "";`
 
-也就是说 string.Empty 的内部实现是等于""的。
+也就是说 `string.Empty` 的内部实现是等于`""`的。
 
-引用类型是将对象是实际数据保存在堆上, 将对象在堆上的地址保存在栈上。因此 string.Empty 与 "" 都会在栈上保存一个地址这个地址占4字节，指向内存堆中的某个长度为0的空间，这个空间保存的是 string.Empty 的实际值
+引用类型是将对象是实际数据保存在堆上, 将对象在堆上的地址保存在栈上。因此 string.Empty 与 `""` 都会在栈上保存一个地址这个地址占4字节，指向内存堆中的某个长度为0的空间，这个空间保存的是 string.Empty 的实际值
 
-"" 是通过 CLR 进行优化的,CLR 会维护一个字符串池,以防在堆中创建重复的字符串。
-而 string.Empty 是一种 c# 语法级别的优化，是在 C# 编译器将代码编译为 IL (即 MSIL )时进行了优化，即所有对 string 类的静态字段 Empty 的访问都会被指向同一引用，以节省内存空间。也就是说，"" 与 string.Empty 在用法与性能上基本没区别。string.Empty 是在语法级别对 "" 的优化。
+`""` 是通过 CLR 进行优化的,CLR 会维护一个字符串池,以防在堆中创建重复的字符串。
+而 `string.Empty` 是一种 c# 语法级别的优化，是在 C# 编译器将代码编译为 IL (即 MSIL )时进行了优化，即所有对 string 类的静态字段 Empty 的访问都会被指向同一引用，以节省内存空间。也就是说，`""` 与 `string.Empty` 在用法与性能上基本没区别。string.Empty 是在语法级别对 `""` 的优化。
 
-那就是 string.Empty 会在堆上占用一个长度为0的空间，而null不会。具体内容如下：
+那就是 `string.Empty` 会在堆上占用一个长度为0的空间，而`null`不会。具体内容如下：
 
 ```csharp
 string str1="";
@@ -309,7 +309,7 @@ string str2=null;
 
 如刚才所说 str1 会在栈上保存一个地址,这个地址占4字节，指向内存堆中的某个长度为0的空间，这个空间保存的是 str1 的实际值。
 
-str2 同样会在栈上保存一个地址,这个地址也占4字节，但是这个地址是没有明确指向的，它哪也不指，其内容为 0x00000000。
+str2 同样会在栈上保存一个地址,这个地址也占4字节，但是这个地址是没有明确指向的，它哪也不指，其内容为 `0x00000000`。
 
 参考：
 
