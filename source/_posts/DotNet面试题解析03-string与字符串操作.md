@@ -43,7 +43,7 @@ private void SetStringValue(string aa)
 
 ```csharp
 if（str1.ToLower()==str2.ToLower()） //这种方式会产生新的字符串，不推荐
-if（string. Compare(str1,str2,true)） //这种方式性能更好
+if（string.Compare(str1,str2,true)） //这种方式性能更好
 ```
 
 ### String的驻留性
