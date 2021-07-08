@@ -157,7 +157,8 @@ static async Task Test(){
 
 `async/await` 本质上只是一个语法糖，它并不产生线程，只是在编译时把语句的执行逻辑改了，相当于过去我们用`callback`，这里编译器自动实现了。
 
-线程的转换是通过`SynchronizationContext`来实现，如果做了`Task.ConfigureAwait(false)`操作，运行`MoveNext`时就只是在线程池中拿个空闲线程出来执行；如果 `Task.ConfigureAwait(true)`-(默认)，则会在异步操作前`Capture`当前线程的`SynchronizationContext`，异步操作之后运行`MoveNext`时通过`SynchronizationContext`转到目标之前的线程。
+线程的转换是通过`SynchronizationContext`来实现，如果做了`Task.ConfigureAwait(false)`操作，运行`MoveNext`时就只是在线程池中拿个空闲线程出来执行；
+如果 `Task.ConfigureAwait(true)`-(默认)，则会在异步操作前`Capture`当前线程的`SynchronizationContext`，异步操作之后运行`MoveNext`时通过`SynchronizationContext`转到目标之前的线程。
 
 一般是想更新UI则需要用到 `SynchronizationContext`，如果异步操作完成还需要做大量运算，则可以考虑`Task.ConfigureAwait(false)`把计算放到后台算，防止UI卡死。
 
