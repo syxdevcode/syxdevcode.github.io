@@ -5,8 +5,9 @@ tags:
 - CSharp
 - 程序集
 - 应用程序域
+- AppDomain
 categories: 
-- 应用程序域
+- AppDomain
 ---
 
 ## AppDomain介绍
