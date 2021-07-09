@@ -1,5 +1,5 @@
 ---
-title: Nginx上使用Let’s Encrypt加密(HTTPS)&自动续期
+title: Nginx上使用Lets Encrypt加密(HTTPS)&自动续期
 date: 2018-04-25 15:36:54
 tags:
 - Linux
