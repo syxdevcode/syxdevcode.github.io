@@ -22,12 +22,12 @@ RabbitMQ的官网：[http://www.rabbitmq.com](http://www.rabbitmq.com)
 
 RabbitMQ 投递过程:
 
-* ** 1.** 客户端连接到消息队列服务器，打开一个 channel。
-* ** 2.** 客户端声明一个 exchange，并设置相关属性。
-* ** 3.** 客户端声明一个 queue，并设置相关属性。
-* ** 4.** 客户端使用 routing key，在 exchange 和 queue 之间建立好绑定关系。
-* ** 5.** 客户端Producer投递消息到 exchange。
-* ** 6.** 客户端Consumer从指定的 queue 中消费信息。
+* 1.客户端连接到消息队列服务器，打开一个 channel。
+* 2.客户端声明一个 exchange，并设置相关属性。
+* 3.客户端声明一个 queue，并设置相关属性。
+* 4.客户端使用 routing key，在 exchange 和 queue 之间建立好绑定关系。
+* 5.客户端Producer投递消息到 exchange。
+* 6.客户端Consumer从指定的 queue 中消费信息。
 
 ## AMQP 简介
 
@@ -35,15 +35,15 @@ AMQP，是应用层协议的一个开放标准，为面向消息的中间件设�
 
 ## RabbitMQ 概念
 
-* ** Exchange** : 消息交换机，它指定消息按什么规则，路由到哪个队列
-* ** Queue** : 消息队列，每个消息都会被投入到一个或多个队列
-* ** Routing Key** : 路由关键字，exchange根据这个关键字进行消息投递。
-* ** Binding Key** : 绑定，它的作用就是把 exchange 和 queue 按照路由规则绑定起来
-* ** Vhost** : 虚拟主机，可以开设多个 vhost，用作不同用户的权限分离
-* ** Producer** : 消息生产者，投递消息的程序，简写 ：P
-* ** Consumer** : 消息消费者，接受消息的程序，简写 : C
-* ** Broker** ：消息队列的服务器实体。
-* ** Channel** : 消息通道，在客户端的每个连接里，可建立多个 channel，每个 channel 代表一个会话任务
+* **Exchange** : 消息交换机，它指定消息按什么规则，路由到哪个队列
+* **Queue** : 消息队列，每个消息都会被投入到一个或多个队列
+* **Routing Key** : 路由关键字，exchange根据这个关键字进行消息投递。
+* **Binding Key** : 绑定，它的作用就是把 exchange 和 queue 按照路由规则绑定起来
+* **Vhost** : 虚拟主机，可以开设多个 vhost，用作不同用户的权限分离
+* **Producer** : 消息生产者，投递消息的程序，简写 ：P
+* **Consumer** : 消息消费者，接受消息的程序，简写 : C
+* **Broker** ：消息队列的服务器实体。
+* **Channel** : 消息通道，在客户端的每个连接里，可建立多个 channel，每个 channel 代表一个会话任务
 
 ## 消息发送原理
 
@@ -198,7 +198,7 @@ static void Main(string[] args)
 ![QQ截图20180712135714.png](/img/QQ截图20180712135714.png)
 
 从图中可知，发送的信息，被两个消息接收端按顺序循环分配。
-默认情况下，RabbitMQ将按顺序将每条消息发送给下一个消费者。平均每个消费者将获得相同数量的消息。这种分发消息的方式叫做** 循环（round-robin）**。
+默认情况下，RabbitMQ将按顺序将每条消息发送给下一个消费者。平均每个消费者将获得相同数量的消息。这种分发消息的方式叫做**循环（round-robin）**。
 
 ### 消息确认
 
@@ -381,12 +381,12 @@ RabbitMQ提供了Exchange，它类似于路由器的功能，它用于对消息�
 
 RabbitMQ的Exchange（交换器）分为四类：
 
-* ** direct**：默认；明确的路由规则：消费端绑定的队列名称必须和消息发布时指定的路由名称一致
-* ** fanout**： 消息广播，将消息分发到exchange上绑定的所有队列上
-* ** topic**：模式匹配的路由规则：支持通配符
-* ** headers**：不常用，允许你匹配AMQP消息的header而非路由键，除此之外headers交换器和direct交换器完全一致，但性能却很差，几乎用不到
+* **direct**：默认；明确的路由规则：消费端绑定的队列名称必须和消息发布时指定的路由名称一致
+* **fanout**： 消息广播，将消息分发到exchange上绑定的所有队列上
+* **topic**：模式匹配的路由规则：支持通配符
+* **headers**：不常用，允许你匹配AMQP消息的header而非路由键，除此之外headers交换器和direct交换器完全一致，但性能却很差，几乎用不到
 
-** 注意：** fanout、topic交换器是没有历史数据的，也就是说对于中途创建的队列，获取不到之前的消息。
+**注意：** fanout、topic交换器是没有历史数据的，也就是说对于中途创建的队列，获取不到之前的消息。
 
 #### 1，direct
 
