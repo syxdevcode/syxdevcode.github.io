@@ -6,10 +6,10 @@ tags:
 - Ubuntu
 - AWS
 - Nginx
-- Let’s Encrypt
+- Lets Encrypt
 - https
 categories:
-- Let’s Encrypt
+- Lets Encrypt
 ---
 # Nginx上使用Let’s Encrypt加密(HTTPS)&自动续期
 
