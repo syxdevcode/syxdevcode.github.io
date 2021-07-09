@@ -213,7 +213,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-07-09 08:09:15" itemprop="dateModified" datetime="2021-07-09T08:09:15+00:00">2021-07-09</time>
+                <time title="修改时间：2021-07-09 08:27:37" itemprop="dateModified" datetime="2021-07-09T08:27:37+00:00">2021-07-09</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -292,7 +292,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-07-09 08:09:15" itemprop="dateModified" datetime="2021-07-09T08:09:15+00:00">2021-07-09</time>
+                <time title="修改时间：2021-07-09 08:27:37" itemprop="dateModified" datetime="2021-07-09T08:27:37+00:00">2021-07-09</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -373,7 +373,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-07-09 08:09:15" itemprop="dateModified" datetime="2021-07-09T08:09:15+00:00">2021-07-09</time>
+                <time title="修改时间：2021-07-09 08:27:37" itemprop="dateModified" datetime="2021-07-09T08:27:37+00:00">2021-07-09</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -507,6 +507,39 @@
 <p>项目：<a target="_blank" rel="noopener" href="https://github.com/syxdevcode/RabbitMqDemo.git">https://github.com/syxdevcode/RabbitMqDemo.git</a></p>
 <p>参考官网：</p>
 <p><a target="_blank" rel="noopener" href="http://www.rabbitmq.com/tutorials/tutorial-six-dotnet.html">http://www.rabbitmq.com/tutorials/tutorial-six-dotnet.html</a></p>
+<h2 id="死信队列"><a href="#死信队列" class="headerlink" title="死信队列"></a>死信队列</h2><p>为了保证订单业务的消息数据不丢失，需要使用到RabbitMQ的死信队列机制，当消息消费发生异常时，将消息投入死信队列中。</p>
+<p>死信，在官网中对应的单词为 <code>Dead Letter</code>，死信 是RabbitMQ中的一种消息机制，当你在消费消息时，如果队列里的消息出现以下情况，该消息将成为死信：</p>
+<ul>
+<li>消息被否定确认，使用 <code>channel.basicNack</code> 或 <code>channel.basicReject</code> ，并且此时<code>requeue</code> 属性被设置为<code>false</code>。</li>
+<li>消息在队列的存活时间超过设置的TTL时间。</li>
+<li>消息队列的消息数量已经超过最大队列长度。</li>
+</ul>
+<p>死信消息会被RabbitMQ进行特殊处理，如果配置了死信队列信息，那么该消息将会被丢进死信队列中，如果没有配置，则该消息将会被丢弃。</p>
+<h3 id="配置死信队列"><a href="#配置死信队列" class="headerlink" title="配置死信队列"></a>配置死信队列</h3><p>步骤：</p>
+<ul>
+<li>1，配置业务队列，绑定到业务交换机上</li>
+<li>2，为业务队列配置死信交换机和路由key</li>
+<li>3，为死信交换机配置死信队列</li>
+</ul>
+<p>注意，并不是直接声明一个公共的死信队列，然后所以死信消息就自己跑到死信队列里去了。而是为每个需要使用死信的业务队列配置一个死信交换机，这里同一个项目的死信交换机可以共用一个，然后为每个业务队列分配一个单独的路由key。</p>
+<p>有了死信交换机和路由key后，接下来，就像配置业务队列一样，配置死信队列，然后绑定在死信交换机上。也就是说，死信队列并不是什么特殊的队列，只不过是绑定在死信交换机上的队列。</p>
+<p>死信交换机也不是什么特殊的交换机，只不过是用来接受死信的交换机，所以可以为任何类型【Direct、Fanout、Topic】。</p>
+<p>一般来说，会为每个业务队列分配一个独有的路由key，并对应的配置一个死信队列进行监听，也就是说，一般会为每个重要的业务队列配置一个死信队列。</p>
+<h3 id="死信消息的变化"><a href="#死信消息的变化" class="headerlink" title="死信消息的变化"></a>死信消息的变化</h3><p>那么死信被丢到死信队列中后，会发生什么变化呢？</p>
+<p>如果队列配置了参数 <code>x-dead-letter-routing-key</code> 的话，死信的路由key将会被替换成该参数对应的值。如果没有设置，则保留该消息原有的路由key。</p>
+<p>举个栗子：</p>
+<p>如果原有消息的路由key是testA，被发送到业务Exchage中，然后被投递到业务队列QueueA中，如果该队列没有配置参数<code>x-dead-letter-routing-key</code>，则该消息成为死信后，将保留原有的路由keytestA，如果配置了该参数，并且值设置为testB，那么该消息成为死信后，路由key将会被替换为testB，然后被抛到死信交换机中。</p>
+<p>另外，由于被抛到了死信交换机，所以消息的Exchange Name也会被替换为死信交换机的名称。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>死信队列其实并没有什么神秘的地方，不过是绑定在死信交换机上的普通队列，而死信交换机也只是一个普通的交换机，不过是用来专门处理死信的交换机。</p>
+<p>总结一下死信消息的生命周期：</p>
+<ul>
+<li>业务消息被投入业务队列</li>
+<li>消费者消费业务队列的消息，由于处理过程中发生异常，于是进行了nck或者reject操作</li>
+<li>被nck或reject的消息由RabbitMQ投递到死信交换机中</li>
+<li>死信交换机将消息投入相应的死信队列</li>
+<li>死信队列的消费者消费死信消息</li>
+</ul>
+<p>死信消息是RabbitMQ为我们做的一层保证，其实我们也可以不使用死信队列，而是在消息消费异常时，将消息主动投递到另一个交换机中，当你明白了这些之后，这些Exchange和Queue想怎样配合就能怎么配合。比如从死信队列拉取消息，然后发送邮件、短信、钉钉通知来通知开发人员关注。或者将消息重新投递到一个队列然后设置过期时间，来进行延时消费。</p>
 <p>参考：</p>
 <p><a target="_blank" rel="noopener" href="http://www.rabbitmq.com/getstarted.html">RabbitMQ Tutorials</a></p>
 <p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/zhangweizhong/p/5687457.html">RabbitMQ学习系列（一）: 介绍</a></p>
@@ -514,6 +547,7 @@
 <p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/sheng-jie/p/7192690.html">RabbitMQ知多少</a></p>
 <p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/vipstone/p/9275256.html">深入解读RabbitMQ工作原理及简单使用</a></p>
 <p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/vipstone/p/9295625.html">RabbitMQ交换器Exchange介绍与实践</a></p>
+<p><a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/1463065">【RabbitMQ】一文带你搞定RabbitMQ死信队列</a></p>
 
       
     </div>
@@ -564,7 +598,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-07-09 08:09:15" itemprop="dateModified" datetime="2021-07-09T08:09:15+00:00">2021-07-09</time>
+                <time title="修改时间：2021-07-09 08:27:37" itemprop="dateModified" datetime="2021-07-09T08:27:37+00:00">2021-07-09</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -649,7 +683,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-07-09 08:09:15" itemprop="dateModified" datetime="2021-07-09T08:09:15+00:00">2021-07-09</time>
+                <time title="修改时间：2021-07-09 08:27:37" itemprop="dateModified" datetime="2021-07-09T08:27:37+00:00">2021-07-09</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -777,7 +811,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-07-09 08:09:15" itemprop="dateModified" datetime="2021-07-09T08:09:15+00:00">2021-07-09</time>
+                <time title="修改时间：2021-07-09 08:27:37" itemprop="dateModified" datetime="2021-07-09T08:27:37+00:00">2021-07-09</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1009,7 +1043,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-07-09 08:09:15" itemprop="dateModified" datetime="2021-07-09T08:09:15+00:00">2021-07-09</time>
+                <time title="修改时间：2021-07-09 08:27:37" itemprop="dateModified" datetime="2021-07-09T08:27:37+00:00">2021-07-09</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1210,7 +1244,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-07-09 08:09:15" itemprop="dateModified" datetime="2021-07-09T08:09:15+00:00">2021-07-09</time>
+                <time title="修改时间：2021-07-09 08:27:37" itemprop="dateModified" datetime="2021-07-09T08:27:37+00:00">2021-07-09</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1314,7 +1348,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-07-09 08:09:15" itemprop="dateModified" datetime="2021-07-09T08:09:15+00:00">2021-07-09</time>
+                <time title="修改时间：2021-07-09 08:27:37" itemprop="dateModified" datetime="2021-07-09T08:27:37+00:00">2021-07-09</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1397,7 +1431,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-07-09 08:09:15" itemprop="dateModified" datetime="2021-07-09T08:09:15+00:00">2021-07-09</time>
+                <time title="修改时间：2021-07-09 08:27:37" itemprop="dateModified" datetime="2021-07-09T08:27:37+00:00">2021-07-09</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1557,7 +1591,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-07-09 08:09:15" itemprop="dateModified" datetime="2021-07-09T08:09:15+00:00">2021-07-09</time>
+                <time title="修改时间：2021-07-09 08:27:37" itemprop="dateModified" datetime="2021-07-09T08:27:37+00:00">2021-07-09</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1710,7 +1744,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-07-09 08:09:15" itemprop="dateModified" datetime="2021-07-09T08:09:15+00:00">2021-07-09</time>
+                <time title="修改时间：2021-07-09 08:27:37" itemprop="dateModified" datetime="2021-07-09T08:27:37+00:00">2021-07-09</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1880,7 +1914,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-07-09 08:09:15" itemprop="dateModified" datetime="2021-07-09T08:09:15+00:00">2021-07-09</time>
+                <time title="修改时间：2021-07-09 08:27:37" itemprop="dateModified" datetime="2021-07-09T08:27:37+00:00">2021-07-09</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2135,7 +2169,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-07-09 08:09:15" itemprop="dateModified" datetime="2021-07-09T08:09:15+00:00">2021-07-09</time>
+                <time title="修改时间：2021-07-09 08:27:37" itemprop="dateModified" datetime="2021-07-09T08:27:37+00:00">2021-07-09</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2224,7 +2258,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-07-09 08:09:15" itemprop="dateModified" datetime="2021-07-09T08:09:15+00:00">2021-07-09</time>
+                <time title="修改时间：2021-07-09 08:27:37" itemprop="dateModified" datetime="2021-07-09T08:27:37+00:00">2021-07-09</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
