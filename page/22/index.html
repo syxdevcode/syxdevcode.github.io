@@ -182,6 +182,240 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/07/24/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%8814%EF%BC%89-%20Auditing%E7%9A%84%E5%AE%9E%E7%8E%B0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/07/24/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%8814%EF%BC%89-%20Auditing%E7%9A%84%E5%AE%9E%E7%8E%B0/" class="post-title-link" itemprop="url">ABP框架学习记录（14）- Auditing的实现</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-07-24 09:23:27" itemprop="dateCreated datePublished" datetime="2019-07-24T09:23:27+00:00">2019-07-24</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ABP/" itemprop="url" rel="index"><span itemprop="name">ABP</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="ABP框架学习记录（14）-Auditing的实现"><a href="#ABP框架学习记录（14）-Auditing的实现" class="headerlink" title="ABP框架学习记录（14）- Auditing的实现"></a>ABP框架学习记录（14）- Auditing的实现</h1><p><strong>Auditing</strong>：<font color=#ff0000 size=4 face="黑体">审计跟踪（也叫审计日志）是与安全相关的信息按照时间顺序的记录，它们提供了活动序列的文档证据，这些活动序列可以在任何时间影响一个特定的操作。</font></p>
+<p>Auditing 在 ABP 项目中的位置：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190727141502.png" alt="QQ截图20190727141502.png"></p>
+<h2 id="基础定义"><a href="#基础定义" class="headerlink" title="基础定义"></a>基础定义</h2><p><code>AuditInfo</code>：定义需要被审计信息实体类；</p>
+<p><code>AuditedAttribute</code>：用于标识一个方法或一个类的所有方法都需要启用Auditing功能。</p>
+<p><code>DisableAuditingAttribute</code>：用于标识一个方法或一个类的所有方法都需要关闭Auditing功能。</p>
+<p><code>IAuditSerializer</code>：提供审计序列化接口；</p>
+<p><code>JsonNetAuditSerializer</code>：<code>IAuditSerializer</code> 接口的默认实现，提供序列化方法；</p>
+<p><code>IAuditInfoProvider</code>：提供 <code>Fill</code> 方法，完善 <code>AuditInfo</code> 信息。</p>
+<p><code>DefaultAuditInfoProvider</code>：<code>IAuditInfoProvider</code> 的默认实现；</p>
+<p><code>IClientInfoProvider</code>：提供客户端信息的接口；</p>
+<p><code>NullClientInfoProvider</code>：<code>IClientInfoProvider</code> 接口的默认实现；</p>
+<p><code>IAuditingStore</code>：审计信息持久化接口，应由上层提供商实现；</p>
+<p><code>SimpleLogAuditingStore</code>：<code>IAuditingStore</code> 接口的默认实现；</p>
+<h2 id="入口"><a href="#入口" class="headerlink" title="入口"></a>入口</h2><p><code>AbpBootstrapper</code> 提供统一的拦截器注入入口：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190727150235.png" alt="QQ截图20190727150235.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190727150303.png" alt="QQ截图20190727150303.png"></p>
+<p><code>AuditingInterceptorRegistrar</code>：审计拦截器注册类，如下图：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190727150506.png" alt="QQ截图20190727150506.png"></p>
+<p><code>AuditingInterceptor</code>：审计拦截器,提供对同步方法和异步方法的拦截操作，如下图：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190727152548.png" alt="QQ截图20190727152548.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190727153054.png" alt="QQ截图20190727153054.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190727153419.png" alt="QQ截图20190727153419.png"></p>
+<p><code>IAuditingHelper</code>：记录审计信息帮助类；</p>
+<p><code>AuditingHelper</code>：<code>IAuditingHelper</code> 接口的实现，提供 <code>ShouldSaveAudit</code>，<code>CreateAuditInfo</code>，<code>Save</code>等方法，如下图：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190727152907.png" alt="QQ截图20190727152907.png"></p>
+<p><code>IAuditingConfiguration</code>：定义用于配置审计的接口；</p>
+<p><code>AuditingConfiguration</code>：<code>IAuditingConfiguration</code> 的默认实现，如下图：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190727151604.png" alt="QQ截图20190727151604.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190727153811.png" alt="QQ截图20190727153811.png"></p>
+<p><code>AbpKernelModule</code> 的预初始化方法 <code>PreInitialize</code> 中调用，如下图：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190727151740.png" alt="QQ截图20190727151740.png"></p>
+<p><code>IAuditingSelectorList</code>：用于选择要审计的类/接口的选择器函数列表。</p>
+<p><code>AuditingSelectorList</code>：<code>IAuditingSelectorList</code>接口的默认实现；</p>
+<p><code>NamedTypeSelector</code>：类型选择器，这个对象的核心属性是一个以Type为输入参数，返回Bool类型的委托 Predicate；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190727153936.png" alt="QQ截图20190727153936.png"></p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/1zhk/p/5342947.html">ABP源码分析十九：Auditing</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/07/22/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%8813%EF%BC%89-%20Entity%E8%A7%A3%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/07/22/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%8813%EF%BC%89-%20Entity%E8%A7%A3%E6%9E%90/" class="post-title-link" itemprop="url">ABP框架学习记录（13）- Entity解析</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-07-22 11:19:17" itemprop="dateCreated datePublished" datetime="2019-07-22T11:19:17+00:00">2019-07-22</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ABP/" itemprop="url" rel="index"><span itemprop="name">ABP</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="ABP框架学习记录（13）-Entity解析"><a href="#ABP框架学习记录（13）-Entity解析" class="headerlink" title="ABP框架学习记录（13）- Entity解析"></a>ABP框架学习记录（13）- Entity解析</h1><p><code>Entity</code> 在ABP项目中的目录位置：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190722112057.png" alt="QQ截图20190722112057.png"></p>
+<h2 id="Entity"><a href="#Entity" class="headerlink" title="Entity"></a>Entity</h2><p><code>IEntity&lt;TPrimaryKey&gt;</code>：封装了PrimaryKey：Id,这是一个泛型类型，所有的实体都必须实现此接口；</p>
+<p><code>IEntity</code>: 继承 <code>IEntity&lt;int&gt;</code> 泛型接口；</p>
+<p><code>Entity&lt;TPrimaryKey&gt;</code>：继承 <code>IEntity&lt;TPrimaryKey&gt;</code> 接口的基础实现，支持主键是泛型的实体，该类重写了<code>Equals</code>,<code>GetHashCode</code>,<code>ToString</code> 方法和<code>==</code>,<code>!=</code> 运算符。</p>
+<p><code>Entity</code>：主键是int类型的Entity;</p>
+<p><code>IEntityTranslation</code>:实体语言转化；</p>
+<p><code>IEntityTranslation&lt;TEntity, TPrimaryKeyOfMultiLingualEntity&gt;</code>: 实体语言转换泛型类，<code>TPrimaryKeyOfMultiLingualEntity</code> 为主键类型；</p>
+<p><code>IEntityTranslation&lt;TEntity&gt;</code>：实体语言转换泛型类，继承 <code>IEntityTranslation&lt;TEntity, int&gt;</code> 接口；</p>
+<p><code>IMultiLingualEntity&lt;TTranslation&gt; </code>：多语言实体，其中 <code>TTranslation</code> 类型约束为 <code>IEntityTranslation</code>；</p>
+<p><code>IEntityTranslation&lt;&gt;</code> 接口的实现，表明当前实体可以被翻译：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190722150243.png" alt="QQ截图20190722150243.png"></p>
+<p><code>IMultiLingualEntity&lt;&gt;</code> 接口的实现，表示有多语言的实现：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190722150428.png" alt="QQ截图20190722150428.png"></p>
+<p>使用：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190722150703.png" alt="QQ截图20190722150703.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190722150813.png" alt="QQ截图20190722150813.png"></p>
+<p><code>IExtendableObject</code>：使用 Json 格式的字符串属性，以扩展对象/实体。</p>
+<p><code>ExtendableObjectExtensions</code>：针对扩展字段属性的扩展类；</p>
+<p><code>IAggregateRoot</code>：聚合根接口</p>
+<p><code>AggregateRoot</code>：聚合根实现</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190722153654.png" alt="QQ截图20190722153654.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190722153720.png" alt="QQ截图20190722153720.png"></p>
+<p><code>IMayHaveTenant</code>：为可能选择具有TenantId的实体实现此接口。</p>
+<p><code>IMustHaveTenant</code>：为必须具有TenantId的实体实现此接口。</p>
+<p><code>IPassivable</code>：此接口用于使实体主动/被动。</p>
+<p><code>ISoftDelete</code>：用于标准化软删除实体。</p>
+<h2 id="EntityCache"><a href="#EntityCache" class="headerlink" title="EntityCache"></a>EntityCache</h2><p><code>IEntityCache&lt;TCacheItem, TPrimaryKey&gt;</code>：定义实体缓存接口，此接口为泛型类型；</p>
+<p><code>IEntityCache&lt;TCacheItem&gt;</code>：继承 <code>IEntityCache&lt;TCacheItem, int&gt;</code> 接口；</p>
+<p><code>EntityCache&lt;TEntity, TCacheItem, TPrimaryKey&gt;</code>：实体缓存类；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190722171203.png" alt="QQ截图20190722171203.png"></p>
+<h2 id="Auditing"><a href="#Auditing" class="headerlink" title="Auditing"></a>Auditing</h2><p><code>IAudited</code>：定义实体的审计接口，保存/更新时自动设置相关属性</p>
+<p><code>IAudited&lt;TUser&gt;</code>：审计接口。</p>
+<p><code>ICreationAudited</code>： 审计创建者接口，保存到数据库时，会自动设置创建时间和创建者用户。</p>
+<p><code>IDeletionAudited</code>: 删除时审计信息</p>
+<p><code>IFullAudited</code>：完全审核信息。</p>
+<p><code>IHasCreationTime</code>：如果必须存储实体，则可以实现此接口，自动设置；</p>
+<p><code>IHasDeletionTime</code>：如果必须删除实体，则可以实现此接口，自动设置；</p>
+<p><code>IHasModificationTime</code>：更新实体时间；</p>
+<p><code>IModificationAudited</code>：实体更新人信息；</p>
+<p><code>AuditedEntity</code>：审计实体；</p>
+<p><code>CreationAuditedEntity</code>：创建者审计实体；</p>
+<p><code>FullAuditedEntity</code>：全部审计信息实体；</p>
+<p><code>AuditedAggregateRoot</code>：审计聚合根</p>
+<p><code>CreationAuditedAggregateRoot</code>：创建者审计 聚合根；</p>
+<p><code>FullAuditedAggregateRoot</code>：全部审计信息 聚合根；</p>
+<p><code>EntityAuditingHelper</code>：实体审计帮助类；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190722174813.png" alt="QQ截图20190722174813.png"></p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/1zhk/p/5329393.html">ABP源码分析十四：Entity的设计</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/07/02/CSharp%20-%20%E5%9F%BA%E5%85%83%E7%B1%BB%E5%9E%8B(primitive)/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +447,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -303,7 +537,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -342,7 +576,7 @@
 <h2 id="FCL"><a href="#FCL" class="headerlink" title="FCL"></a>FCL</h2><p><font color=#ff0000 size=4 face="黑体">FCL：框架类库(Framework Class Library,FCL)；</font></p>
 <p>FCL提供了大粒度的编程框架，它是针对不同应用设计的框架 ，FCL大部分实现都引用了BCL，例如我们常说的开发框架：ASP.NET、MVC、WCF和WPF等等，提供了针对不同层面的编程框架 。</p>
 <p>FCL框架类库可以划分为三层：</p>
-<p>** 最内一层<strong>：由BCL的大部分组成，主要作用是对.NET框架，.NET运行时以及CIL语言本身进行支持，例如基元类型，集合类型，线程处理，应用程序域，运行时，安全性，互操作等。<br>** 中间一层</strong>：包含了对操作系统功能的封装，例如文件系统，网络连接，图形图像，XML操作等。<br>** 最外一层**：包含各种类型的应用程序，例如 Window Forms，Asp.NET，WPF，WCF，WF等。</p>
+<p>** 最内一层<strong>：由BCL的大部分组成，主要作用是对.NET框架，.NET运行时以及CIL语言本身进行支持，例如基元类型，集合类型，线程处理，应用程序域，运行时，安全性，互操作等。<br>** 中间一层</strong>：包含了对操作系统功能的封装，例如文件系统，网络连接，图形图像，XML操作等。<br>** 最外一层**：包含各种类型的应用程序，例如 Window Forms，Asp.NET，WPF，WCF，WF等。</p>
 <h2 id="BCL"><a href="#BCL" class="headerlink" title="BCL"></a>BCL</h2><p><font color=#ff0000 size=4 face="黑体">BCL：基类库(Base Class Library，BCL)；</font></p>
 <p>BCL是一个公共编程框架，称为基类库，所有语言的开发者都能利用它。是CLI（Common Language Infrastructure，公共语言基础结构）的规范之一，主要包括：执行网络操作，执行I/O操作，安全管理，文本操作，数据库操作，XML操作，与事件日志交互，跟踪和一些诊断操作，使用非托管代码，创建与调用动态代码等，粒度相对较小，为所有框架提供基础支持。</p>
 <h2 id="CLS"><a href="#CLS" class="headerlink" title="CLS"></a>CLS</h2><p><font color=#ff0000 size=4 face="黑体">CLS：公共语言规范(Common Language Specification，CLS);</font></p>
@@ -405,7 +639,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -493,7 +727,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -606,7 +840,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -719,7 +953,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -810,7 +1044,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -886,7 +1120,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -966,7 +1200,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1064,7 +1298,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1173,7 +1407,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1320,7 +1554,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1435,7 +1669,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1471,226 +1705,6 @@
 <p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190507110701.png" alt="QQ截图20190507110701.png"></p>
 <p>参考：</p>
 <p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/1zhk/p/5294466.html">ABP源码分析八：Logger集成</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/05/06/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%885%EF%BC%89-%20Setting%E8%A7%A3%E6%9E%90/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/05/06/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%885%EF%BC%89-%20Setting%E8%A7%A3%E6%9E%90/" class="post-title-link" itemprop="url">ABP框架学习记录（5）- Setting解析</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-05-06 13:30:09" itemprop="dateCreated datePublished" datetime="2019-05-06T13:30:09+00:00">2019-05-06</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/ABP/" itemprop="url" rel="index"><span itemprop="name">ABP</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="ABP框架学习记录（5）-Setting解析"><a href="#ABP框架学习记录（5）-Setting解析" class="headerlink" title="ABP框架学习记录（5）- Setting解析"></a>ABP框架学习记录（5）- Setting解析</h1><p>ABP中的 <code>Setting</code> 和 <code>Configuration</code>：</p>
-<p>Setting一般用于需要通过外部配置文件（或数据库）设置的简单类型数据（一般就是字符串）。</p>
-<p>Configuration一般只需要通过内部代码完成的配置，一般用于设置复杂类型的数据。</p>
-<h2 id="Setting的实现"><a href="#Setting的实现" class="headerlink" title="Setting的实现"></a>Setting的实现</h2><p><code>SettingDefinition</code>：用于定义Setting。</p>
-<p><code>SettingDefinitionGroup</code>：用于给<code>SettingDefinition</code>分组。</p>
-<p><code>SettingsConfiguration</code> / <code>ISettingsConfiguration</code>：用于集中化设置和管理 <code>SettingProvider</code> 的对象。其封装了一个<code>ITypeList&lt;SettingProvider&gt; Providers</code>的集合类。可以通过<code>Configuration.Setting</code>来获取<code>ISettingsConfiguration</code>实例，然后将自定义的 <code>SettingProvider</code> 添加到 <code>SettingsConfiguration</code> 对象中，下图：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506162020.png" alt="QQ截图20190506162020.png"></p>
-<p><code>SettingDefinitionManager</code>：主要完成注册到ABP中的 <code>SettingDefinition</code> 初始化，通过 <code>ISettingsConfiguration</code> 实例获取 <code>setting providers</code> 集合，然后在 <code>Initialize</code> 方法中通过 <code>setting providers</code> 获取 <code>SettingDefinition</code> 的数组。并将其保存在 <code>Dictionary</code> 中，其key就是 <code>SettingDefinition</code> 的Name，下图：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506162528.png" alt="QQ截图20190506162528.png"></p>
-<p><code>SettingDefinitionManager</code> 继承 <code>ISingletonDependency</code>接口，将在<code>BasicConventionalRegistrar</code>类中实现约定规则的注入：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506163107.png" alt="QQ截图20190506163107.png"></p>
-<p><code>AbpKernelModule</code> 中 <code>PostInitialize</code> 调用 <code>SettingDefinitionManager</code>的 <code>Initialize</code>方法：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506173110.png" alt="QQ截图20190506173110.png"></p>
-<p><code>SettingDefinitionProviderContext</code>：用于对 <code>ISettingDefinitionManager</code> 的封装：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506162348.png" alt="QQ截图20190506162348.png"></p>
-<p><code>SettingScopes</code>：标注了Flags特性的枚举类型，表示setting的应用范围：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506162316.png" alt="QQ截图20190506162316.png"></p>
-<p><code>SettingProvider</code>：为具体的功能模块所需的设置定义 <code>SettingDefinition</code>，并且以数组的形式返回：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506170342.png" alt="QQ截图20190506170342.png"></p>
-<p><code>SettingManager</code> / <code>ISettingManager</code> ：用户获取配置详情。</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506172935.png" alt="QQ截图20190506172935.png"></p>
-<p>公共方法：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506173541.png" alt="QQ截图20190506173541.png"></p>
-<h2 id="以mail的实现来使用Setting"><a href="#以mail的实现来使用Setting" class="headerlink" title="以mail的实现来使用Setting"></a>以mail的实现来使用Setting</h2><p>目录结构：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506173847.png" alt="QQ截图20190506173847.png"></p>
-<p><code>IEmailSenderConfiguration</code>/<code>EmailSenderConfiguration</code> 和 <code>ISmtpEmailSenderConfiguration</code>/<code>SmtpEmailSenderConfiguration</code>：定义配置。</p>
-<p><code>EmailSenderConfiguration</code>：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190509145449.png" alt="QQ截图20190509145449.png"></p>
-<p><code>SmtpEmailSenderConfiguration</code>：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190509145529.png" alt="QQ截图20190509145529.png"></p>
-<p><code>EmailSettingProvider</code>：继承自 <code>SettingProvider</code>, 将SMTP的各项设置封装成<code>SettingDefinition</code>，并以数组形式返回。</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190509145337.png" alt="QQ截图20190509145337.png"></p>
-<p><code>EmailSenderBase</code>/<code>IEmailSender</code> 和 <code>ISmtpEmailSender</code>/<code>SmtpEmailSender</code>：用户发送邮件。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/1zhk/p/5299469.html">ABP源码分析七：Setting 以及 Mail</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/05/05/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%884%EF%BC%89-%20Configuration%E8%A7%A3%E6%9E%90/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/05/05/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%884%EF%BC%89-%20Configuration%E8%A7%A3%E6%9E%90/" class="post-title-link" itemprop="url">ABP框架学习记录（4）- Configuration解析</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-05-05 17:26:31" itemprop="dateCreated datePublished" datetime="2019-05-05T17:26:31+00:00">2019-05-05</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/ABP/" itemprop="url" rel="index"><span itemprop="name">ABP</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="ABP框架学习记录（4）-Configuration解析"><a href="#ABP框架学习记录（4）-Configuration解析" class="headerlink" title="ABP框架学习记录（4）- Configuration解析"></a>ABP框架学习记录（4）- Configuration解析</h1><p>目录结构：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506094754.png" alt="QQ截图20190506094754.png"></p>
-<p>通过 <code>AbpStartupConfiguration</code>，Castle的依赖注入，<code>Dictionary</code> 对象和扩展方法实现了配置中心化。配置中心化是一个支持模块开发的框架必备功能。</p>
-<h2 id="核心模块配置"><a href="#核心模块配置" class="headerlink" title="核心模块配置"></a>核心模块配置</h2><h3 id="模块配置"><a href="#模块配置" class="headerlink" title="模块配置"></a>模块配置</h3><p>ABP中核心功能模块中的一些功能的运行时的行为依赖于一些外部配置。比如 <code>Localization</code> 这个功能模块，最基本Abp需要知道要做哪些语言的本地化。而这些具体的配置对于Abp底层框架来说是不可预知的，那么ABP底层框架就很有必要提供一种手段供外部模块自定义 <code>Congfiguration</code>。 这就是下文要分析的 <code>IAbpStartupConfiguration</code> 和各种<code>I***Configuration</code>。</p>
-<p>通过 <code>AbpBootstrapper</code> 的 <code>Initialize</code> 方法，注册 <code>AbpCoreInstaller</code>:</p>
-<p>具体请参考：<a target="_blank" rel="noopener" href="https://syxdevcode.github.io/2019/04/30/ABP框架学习记录（2）-%20ABP初始化/">ABP框架学习记录（2） - ABP初始化</a></p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506101758.png" alt="QQ截图20190506101758.png"></p>
-<p><code>AbpCoreInstaller</code>:</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506101856.png" alt="QQ截图20190506101856.png"></p>
-<p><code>IAbpStartupConfiguration</code>/<code>AbpStartupConfiguration</code> :  <code>Initialize</code> 方法，通过调用容器，获取基础配置实例。</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506102036.png" alt="QQ截图20190506102036.png"></p>
-<h3 id="调用配置"><a href="#调用配置" class="headerlink" title="调用配置"></a>调用配置</h3><p>抽象类 <code>AbpModule</code> 提供 <code>Configuration</code> 字段，继承 <code>AbpModule</code> 的子类，可以直接调用或修改某个组件的<code>Configuration</code> 。</p>
-<p><code>AbpModule</code>：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506102516.png" alt="QQ截图20190506102516.png"></p>
-<p>调用/修改：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506102855.png" alt="QQ截图20190506102855.png"></p>
-<h2 id="自定义模块配置"><a href="#自定义模块配置" class="headerlink" title="自定义模块配置"></a>自定义模块配置</h2><h3 id="注册"><a href="#注册" class="headerlink" title="注册"></a>注册</h3><p>以 <code>IAbpWebCommonModuleConfiguration</code> 为例：</p>
-<p>定义 <code>IAbpWebCommonModuleConfiguration</code> 接口：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506113226.png" alt="QQ截图20190506113226.png"></p>
-<p><code>AbpWebCommonModule</code> 中的 <code>PreInitialize</code> 方法注册实例：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506113321.png" alt="QQ截图20190506113321.png"></p>
-<h3 id="获取"><a href="#获取" class="headerlink" title="获取"></a>获取</h3><p><code>DictionaryBasedConfig</code> 定义的 <code>CustomSettings</code> 就是最终保存自定义的module的Configuration的地方。</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506111029.png" alt="QQ截图20190506111029.png"></p>
-<p><code>AbpStartupConfiguration</code> 继承 <code>DictionaryBasedConfig</code>：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506111449.png" alt="QQ截图20190506111449.png"></p>
-<p><code>IModuleConfigurations</code> 中定义 <code>IAbpStartupConfiguration</code>：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506111717.png" alt="QQ截图20190506111717.png"></p>
-<p><code>ModuleConfigurations</code> 的实现：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506113929.png" alt="QQ截图20190506113929.png"></p>
-<p><code>AbpWebConfigurationExtensions</code> 提供对 <code>IModuleConfigurations</code> 的扩展：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506112702.png" alt="QQ截图20190506112702.png"></p>
-<p><code>AbpStartupConfiguration</code> 获取配置方法：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506131005.png" alt="QQ截图20190506131005.png"></p>
-<p><code>DictionaryBasedConfig</code>中定义的方法：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506131238.png" alt="QQ截图20190506131238.png"></p>
-<p>使用 <code>AbpWebConfigurationExtensions</code>：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506113848.png" alt="QQ截图20190506113848.png"></p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/1zhk/p/5285623.html">ABP源码分析四：Configuration</a></p>
 
       
     </div>
@@ -1775,20 +1789,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">488</span>
+          <span class="site-state-item-count">490</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">124</span>
+        <span class="site-state-item-count">126</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">182</span>
+        <span class="site-state-item-count">187</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>

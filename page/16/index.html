@@ -182,6 +182,268 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/11/%E8%B7%A8%E5%9F%9F%E8%B5%84%E6%BA%90%E5%85%B1%E4%BA%ABCORS%E7%AC%94%E8%AE%B0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/11/%E8%B7%A8%E5%9F%9F%E8%B5%84%E6%BA%90%E5%85%B1%E4%BA%ABCORS%E7%AC%94%E8%AE%B0/" class="post-title-link" itemprop="url">跨域资源共享CORS笔记</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-08-11 14:01:20" itemprop="dateCreated datePublished" datetime="2020-08-11T14:01:20+00:00">2020-08-11</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
+              </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>转载：</p>
+<p><a target="_blank" rel="noopener" href="http://www.ruanyifeng.com/blog/2016/04/cors.html">跨域资源共享 CORS 详解</a></p>
+<h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>CORS是一个W3C标准，全称是”跨域资源共享”（Cross-origin resource sharing）。</p>
+<p>它允许浏览器向跨源服务器，发出XMLHttpRequest请求，从而克服了AJAX只能同源使用的限制。</p>
+<p>CORS需要浏览器和服务器同时支持。目前，所有浏览器都支持该功能，IE浏览器不能低于IE10。</p>
+<p>整个CORS通信过程，都是浏览器自动完成，不需要用户参与。对于开发者来说，CORS通信与同源的AJAX通信没有差别，代码完全一样。浏览器一旦发现AJAX请求跨源，就会自动添加一些附加的头信息，有时还会多出一次附加的请求，但用户不会有感觉。</p>
+<p>因此，实现CORS通信的关键是服务器。只要服务器实现了CORS接口，就可以跨源通信。</p>
+<h2 id="与JSONP的比较"><a href="#与JSONP的比较" class="headerlink" title="与JSONP的比较"></a>与JSONP的比较</h2><p><code>CORS</code> 与 <code>JSONP</code> 的使用目的相同，但是比 <code>JSONP</code> 更强大。</p>
+<p><code>JSONP</code> 只支持 <code>GET</code> 请求，<code>CORS</code> 支持所有类型的 <code>HTTP</code> 请求。<code>JSONP</code> 的优势在于支持老式浏览器，以及可以向不支持 <code>CORS</code> 的网站请求数据。</p>
+<h2 id="两种请求"><a href="#两种请求" class="headerlink" title="两种请求"></a>两种请求</h2><p>浏览器将 <code>CORS</code> 请求分成两类：</p>
+<p>简单请求（simple request）和 非简单请求（not-so-simple request）。</p>
+<p>只要同时满足以下两大条件，就属于简单请求。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">2.请求方法是以下三种方法之一：</span><br><span class="line">HEAD</span><br><span class="line">GET</span><br><span class="line">POST</span><br><span class="line"></span><br><span class="line">2.HTTP的头信息不超出以下几种字段：</span><br><span class="line">Accept</span><br><span class="line">Accept-Language</span><br><span class="line">Content-Language</span><br><span class="line">Last-Event-ID</span><br><span class="line">Content-Type：只限于三个值application/x-www-form-urlencoded、multipart/form-data、text/plain</span><br></pre></td></tr></table></figure>
+
+<p>这是为了兼容表单（form），因为历史上表单一直可以发出跨域请求。<code>AJAX</code> 的跨域设计就是，只要表单可以发，<code>AJAX</code> 就可以直接发。</p>
+<p>凡是不同时满足上面两个条件，就属于非简单请求。</p>
+<p>浏览器对这两种请求的处理，是不一样的。</p>
+<h3 id="简单请求"><a href="#简单请求" class="headerlink" title="简单请求"></a>简单请求</h3><p>浏览器直接发出 <code>CORS</code> 请求。具体来说，就是在头信息之中，增加一个 <code>Origin</code> 字段。</p>
+<p>下面是一个例子，浏览器发现这次跨源 <code>AJAX</code> 请求是简单请求，就自动在头信息之中，添加一个Origin字段。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">GET /cors HTTP/<span class="number">1.1</span></span><br><span class="line"><span class="attr">Origin</span>: http:<span class="comment">//api.bob.com</span></span><br><span class="line">Host: api.alice.com</span><br><span class="line">Accept-Language: en-US</span><br><span class="line"><span class="attr">Connection</span>: keep-alive</span><br><span class="line">User-Agent: Mozilla/<span class="number">5.0</span>...</span><br></pre></td></tr></table></figure>
+
+<p><code>Origin</code> 字段用来说明，本次请求来自哪个源（协议 + 域名 + 端口）。服务器根据这个值，决定是否同意这次请求。</p>
+<p>如果Origin指定的源，不在许可范围内，服务器会返回一个正常的HTTP回应。浏览器发现，这个回应的头信息没有包含 <code>Access-Control-Allow-Origin</code> 字段，就知道出错了，从而抛出一个错误，被 <code>XMLHttpRequest</code> 的onerror回调函数捕获。注意，这种错误无法通过状态码识别，因为HTTP回应的状态码有可能是200。</p>
+<p>如果Origin指定的域名在许可范围内，服务器返回的响应，会多出几个头信息字段，都以 <code>Access-Control-</code> 开头。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Access-Control-Allow-Origin: http:<span class="comment">//api.bob.com</span></span><br><span class="line">Access-Control-Allow-Credentials: <span class="literal">true</span></span><br><span class="line">Access-Control-Expose-Headers: FooBar</span><br><span class="line">Content-Type: text/html; charset=utf-<span class="number">8</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>Access-Control-Allow-Origin</strong></p>
+<p>该字段是必须的。它的值要么是请求时 <code>Origin</code> 字段的值，要么是一个*，表示接受任意域名的请求。</p>
+<p><strong>Access-Control-Allow-Credentials</strong></p>
+<p>该字段可选。它的值是一个布尔值，表示是否允许发送Cookie。默认情况下，Cookie不包括在CORS请求之中。设为true，即表示服务器明确许可，Cookie可以包含在请求中，一起发给服务器。这个值也只能设为true，如果服务器不要浏览器发送Cookie，删除该字段即可。</p>
+<p><strong>Access-Control-Expose-Headers</strong></p>
+<p>该字段可选。CORS请求时，<code>XMLHttpRequest</code> 对象的getResponseHeader()方法只能拿到6个基本字段：<code>Cache-Control</code>、<code>Content-Language</code>、<code>Content-Type</code>、<code>Expires</code>、<code>Last-Modified</code>、<code>Pragma</code>。如果想拿到其他字段，就必须在 <code>Access-Control-Expose-Headers</code> 里面指定。上面的例子指定，getResponseHeader(‘FooBar’)可以返回FooBar字段的值。</p>
+<p><strong>withCredentials 属性</strong></p>
+<p>CORS请求默认不发送Cookie和HTTP认证信息。如果要把Cookie发到服务器，一方面要服务器同意，指定</p>
+<p><code>Access-Control-Allow-Credentials</code> 字段。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Access-Control-Allow-Credentials: <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+
+<p>另一方面，开发者必须在AJAX请求中打开 <code>withCredentials</code> 属性。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> xhr = <span class="keyword">new</span> XMLHttpRequest();</span><br><span class="line">xhr.withCredentials = <span class="literal">true</span>;</span><br></pre></td></tr></table></figure>
+
+<p>否则，即使服务器同意发送Cookie，浏览器也不会发送。或者，服务器要求设置Cookie，浏览器也不会处理。</p>
+<p>但是，如果省略 <code>withCredentials</code> 设置，有的浏览器还是会一起发送Cookie。这时，可以显式关闭 <code>withCredentials</code>。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">xhr.withCredentials = <span class="literal">false</span>;</span><br></pre></td></tr></table></figure>
+
+<p>需要注意的是，如果要发送Cookie，<code>Access-Control-Allow-Origin</code> 就不能设为星号，必须指定明确的、与请求网页一致的域名。同时，Cookie依然遵循同源政策，只有用服务器域名设置的Cookie才会上传，其他域名的Cookie并不会上传，且（跨源）原网页代码中的document.cookie也无法读取服务器域名下的Cookie。</p>
+<h3 id="非简单请求"><a href="#非简单请求" class="headerlink" title="非简单请求"></a>非简单请求</h3><h4 id="预检请求"><a href="#预检请求" class="headerlink" title="预检请求"></a>预检请求</h4><p>非简单请求是那种对服务器有特殊要求的请求，比如请求方法是 <code>PUT</code> 或 <code>DELETE</code> ，或者 <code>Content-Type</code> 字段的类型是 <code>application/json</code>。</p>
+<p>非简单请求的CORS请求，会在正式通信之前，增加一次HTTP查询请求，称为”预检”请求（preflight）。</p>
+<p>浏览器先询问服务器，当前网页所在的域名是否在服务器的许可名单之中，以及可以使用哪些HTTP动词和头信息字段。只有得到肯定答复，浏览器才会发出正式的 <code>XMLHttpRequest</code> 请求，否则就报错。</p>
+<p>下面是一段浏览器的JavaScript脚本。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> url = <span class="string">&#x27;http://api.alice.com/cors&#x27;</span>;</span><br><span class="line"><span class="keyword">var</span> xhr = <span class="keyword">new</span> XMLHttpRequest();</span><br><span class="line">xhr.open(<span class="string">&#x27;PUT&#x27;</span>, url, <span class="literal">true</span>);</span><br><span class="line">xhr.setRequestHeader(<span class="string">&#x27;X-Custom-Header&#x27;</span>, <span class="string">&#x27;value&#x27;</span>);</span><br><span class="line">xhr.send();</span><br></pre></td></tr></table></figure>
+
+<p>上面代码中，HTTP请求的方法是PUT，并且发送一个自定义头信息 <code>X-Custom-Header</code>。</p>
+<p>浏览器发现，这是一个非简单请求，就自动发出一个”预检”请求，要求服务器确认可以这样请求。下面是这个”预检”请求的HTTP头信息。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">OPTIONS /cors HTTP/<span class="number">1.1</span></span><br><span class="line"><span class="attr">Origin</span>: http:<span class="comment">//api.bob.com</span></span><br><span class="line">Access-Control-Request-Method: PUT</span><br><span class="line">Access-Control-Request-Headers: X-Custom-Header</span><br><span class="line"><span class="attr">Host</span>: api.alice.com</span><br><span class="line">Accept-Language: en-US</span><br><span class="line"><span class="attr">Connection</span>: keep-alive</span><br><span class="line">User-Agent: Mozilla/<span class="number">5.0</span>...</span><br></pre></td></tr></table></figure>
+
+<p>“预检”请求用的请求方法是 <code>OPTIONS</code>，表示这个请求是用来询问的。头信息里面，关键字段是Origin，表示请求来自哪个源。</p>
+<p>除了 <code>Origin</code> 字段，”预检”请求的头信息包括两个特殊字段。</p>
+<p><strong>Access-Control-Request-Method</strong></p>
+<p>该字段是必须的，用来列出浏览器的 <code>CORS</code> 请求会用到哪些HTTP方法，上例是PUT。</p>
+<p><strong>Access-Control-Request-Headers</strong></p>
+<p>该字段是一个逗号分隔的字符串，指定浏览器CORS请求会额外发送的头信息字段，上例是 <code>X-Custom-Header</code> 。</p>
+<h4 id="预检请求的回应"><a href="#预检请求的回应" class="headerlink" title="预检请求的回应"></a>预检请求的回应</h4><p>服务器收到”预检”请求以后，检查了 <code>Origin</code>、<code>Access-Control-Request-Method</code> 和 <code>Access-Control-Request-Headers</code> 字段以后，确认允许跨源请求，就可以做出回应。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">HTTP/<span class="number">1.1</span> <span class="number">200</span> OK</span><br><span class="line"><span class="attr">Date</span>: Mon, <span class="number">01</span> Dec <span class="number">2008</span> <span class="number">01</span>:<span class="number">15</span>:<span class="number">39</span> GMT</span><br><span class="line"><span class="attr">Server</span>: Apache/<span class="number">2.0</span><span class="number">.61</span> (Unix)</span><br><span class="line">Access-Control-Allow-Origin: http:<span class="comment">//api.bob.com</span></span><br><span class="line">Access-Control-Allow-Methods: GET, POST, PUT</span><br><span class="line">Access-Control-Allow-Headers: X-Custom-Header</span><br><span class="line">Content-Type: text/html; charset=utf-<span class="number">8</span></span><br><span class="line">Content-Encoding: gzip</span><br><span class="line">Content-Length: <span class="number">0</span></span><br><span class="line">Keep-Alive: timeout=<span class="number">2</span>, max=<span class="number">100</span></span><br><span class="line"><span class="attr">Connection</span>: Keep-Alive</span><br><span class="line">Content-Type: text/plain</span><br></pre></td></tr></table></figure>
+
+<p>上面的HTTP回应中，关键的是 <code>Access-Control-Allow-Origin</code> 字段，表示 <code>http://api.bob.com</code> 可以请求数据。该字段也可以设为星号，表示同意任意跨源请求。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Access-Control-Allow-Origin: *</span><br></pre></td></tr></table></figure>
+
+<p>如果服务器否定了”预检”请求，会返回一个正常的HTTP回应，但是没有任何 <code>CORS</code> 相关的头信息字段。这时，浏览器就会认定，服务器不同意预检请求，因此触发一个错误，被 <code>XMLHttpRequest</code> 对象的 <code>onerror</code> 回调函数捕获。控制台会打印出如下的报错信息。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">XMLHttpRequest cannot load http:<span class="comment">//api.alice.com.</span></span><br><span class="line">Origin http:<span class="comment">//api.bob.com is not allowed by Access-Control-Allow-Origin.</span></span><br></pre></td></tr></table></figure>
+
+<p>服务器回应的其他 <code>CORS</code> 相关字段如下。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Access-Control-Allow-Methods: GET, POST, PUT</span><br><span class="line">Access-Control-Allow-Headers: X-Custom-Header</span><br><span class="line">Access-Control-Allow-Credentials: <span class="literal">true</span></span><br><span class="line">Access-Control-Max-Age: <span class="number">1728000</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>Access-Control-Allow-Methods</strong></p>
+<p>该字段必需，它的值是逗号分隔的一个字符串，表明服务器支持的所有跨域请求的方法。注意，返回的是所有支持的方法，而不单是浏览器请求的那个方法。这是为了避免多次”预检”请求。</p>
+<p><strong>Access-Control-Allow-Headers</strong></p>
+<p>如果浏览器请求包括 <code>Access-Control-Request-Headers</code> 字段，则 <code>Access-Control-Allow-Headers</code> 字段是必需的。它也是一个逗号分隔的字符串，表明服务器支持的所有头信息字段，不限于浏览器在”预检”中请求的字段。</p>
+<p><strong>Access-Control-Allow-Credentials</strong></p>
+<p>该字段与简单请求时的含义相同。</p>
+<p><strong>Access-Control-Max-Age</strong></p>
+<p>该字段可选，用来指定本次预检请求的有效期，单位为秒。上面结果中，有效期是20天（1728000秒），即允许缓存该条回应1728000秒（即20天），在此期间，不用发出另一条预检请求。</p>
+<h4 id="浏览器的正常请求和回应"><a href="#浏览器的正常请求和回应" class="headerlink" title="浏览器的正常请求和回应"></a>浏览器的正常请求和回应</h4><p>一旦服务器通过了”预检”请求，以后每次浏览器正常的CORS请求，就都跟简单请求一样，会有一个 <code>Origin</code> 头信息字段。服务器的回应，也都会有一个 <code>Access-Control-Allow-Origin</code> 头信息字段。</p>
+<p>下面是”预检”请求之后，浏览器的正常CORS请求。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">PUT /cors HTTP/<span class="number">1.1</span></span><br><span class="line"><span class="attr">Origin</span>: http:<span class="comment">//api.bob.com</span></span><br><span class="line">Host: api.alice.com</span><br><span class="line">X-Custom-Header: value</span><br><span class="line">Accept-Language: en-US</span><br><span class="line"><span class="attr">Connection</span>: keep-alive</span><br><span class="line">User-Agent: Mozilla/<span class="number">5.0</span>...</span><br></pre></td></tr></table></figure>
+
+<p>上面头信息的Origin字段是浏览器自动添加的。</p>
+<p>下面是服务器正常的回应。</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Access-Control-Allow-Origin: http:<span class="comment">//api.bob.com</span></span><br><span class="line">Content-Type: text/html; charset=utf-<span class="number">8</span></span><br></pre></td></tr></table></figure>
+
+<p>上面头信息中，<code>Access-Control-Allow-Origin</code> 字段是每次回应都必定包含的。</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/06/Linux%20Crontab%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E8%AF%A6%E8%A7%A3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/06/Linux%20Crontab%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E8%AF%A6%E8%A7%A3/" class="post-title-link" itemprop="url">Linux Crontab定时任务详解</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-08-06 17:38:28" itemprop="dateCreated datePublished" datetime="2020-08-06T17:38:28+00:00">2020-08-06</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Crontab/" itemprop="url" rel="index"><span itemprop="name">Crontab</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="Linux-crontab简介"><a href="#Linux-crontab简介" class="headerlink" title="Linux crontab简介"></a>Linux crontab简介</h2><p>Linux crontab是用来定期执行程序的命令。<br>当安装完成操作系统之后，默认便会启动此任务调度命令。</p>
+<p>注意：新创建的 cron 任务，不会马上执行，至少要过 2 分钟后才可以，当然你可以重启 cron 来马上执行。</p>
+<p>crontab命令用于设置周期性被执行的指令。该命令从标准输入设备读取指令，并将其存放于 <code>/etc/crontab</code> 文件中，以供之后读取和执行。</p>
+<p>cron 系统调度进程。 可以使用它在每天的非高峰负荷时间段运行作业，或在一周或一月中的不同时段运行。cron是系统主要的调度进程，可以在无需人工干预的情况下运行作业。crontab命令允许用户提交、编辑或删除相应的作业。每一个用户都可以有一个crontab文件来保存调度信息。</p>
+<p>linux 任务调度的工作主要分为以下两类：</p>
+<p>1、系统执行的工作：系统周期性所要执行的工作，如备份系统数据、清理缓存<br>2、个人执行的工作：某个用户定期要做的工作，例如每隔10分钟检查邮件服务器是否有新信，这些工作可由每个用户自行设置</p>
+<h2 id="crontab-命令"><a href="#crontab-命令" class="headerlink" title="crontab 命令"></a>crontab 命令</h2><p>crontab命令是 <code>cron table</code> 的简写，它是 cron 的配置文件，也可以叫它作业列表，我们可以在以下文件夹内找到相关配置文件。</p>
+<p><code>/var/spool/cron/</code> 目录下存放的是每个用户包括root的crontab任务，每个任务以创建者的名字命名<br><code>/etc/crontab</code> 这个文件负责调度各种管理和维护任务。<br><code>/etc/cron.d/</code> 这个目录用来存放任何要执行的crontab文件或脚本。</p>
+<p><strong><code>/etc/crontab</code></strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">more /etc/crontab</span><br><span class="line">SHELL=/bin/bash</span><br><span class="line">PATH=/sbin:/bin:/usr/sbin:/usr/bin</span><br><span class="line">MAILTO=root</span><br><span class="line"></span><br><span class="line"><span class="comment"># For details see man 4 crontabs</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Example of job definition:</span></span><br><span class="line"><span class="comment"># .---------------- minute (0 - 59)</span></span><br><span class="line"><span class="comment"># |  .------------- hour (0 - 23)</span></span><br><span class="line"><span class="comment"># |  |  .---------- day of month (1 - 31)</span></span><br><span class="line"><span class="comment"># |  |  |  .------- month (1 - 12) OR jan,feb,mar,apr ...</span></span><br><span class="line"><span class="comment"># |  |  |  |  .---- day of week (0 - 6) (Sunday=0 or 7) OR sun,mon,tue,wed,thu,fri,sat</span></span><br><span class="line"><span class="comment"># |  |  |  |  |</span></span><br><span class="line"><span class="comment"># *  *  *  *  * user-name  command to be executed</span></span><br></pre></td></tr></table></figure>
+
+<p><strong><code>/var/spool/cron</code></strong></p>
+<p>每个用户都会生成一个自动生成一个自己的 <code>crontab</code> 文件，一般位于 <code>/var/spool/cron</code> 目录下</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /var/spool/cron</span><br></pre></td></tr></table></figure>
+
+<p>如果你用命令 <code>crontab -r</code> 就会删除当前用户的crontab文件，例如你切换到oracle账号下，执行了该命令，那么 <code>/var/spool/cron/oracle</code> 文件就会删除，如果要创建该文件只需要用 <code>crontab -e</code> 命令即可。注意，普通用户一般没有权限访问 <code>/var/spool/cron</code></p>
+<p>我们还可以把脚本放在 <code>/etc/cron.hourly</code>、<code>/etc/cron.daily</code>、<code>/etc/cron.weekly</code>、<code>/etc/cron.monthly</code> 目录中，让它每小时/天/星期、月执行一次。</p>
+<p>系统管理员可以通过 cron.deny 和 cron.allow 这两个文件来禁止或允许用户拥有自己的crontab文件。</p>
+<p><code>/etc/cron.deny</code> 表示不能使用 <code>crontab</code> 命令的用户</p>
+<p><code>/etc/cron.allow</code> 表示能使用 <code>crontab</code> 的用户。</p>
+<p>默认情况下，<code>cron.allow</code> 文件不存在。如果两个文件同时存在，那么 <code>/etc/cron.allow</code> 优先。如果两个文件都不存在，那么只有超级用户可以安排作业。</p>
+<p><strong><code>ls -lrt cron*</code></strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">ls -lrt cron*</span><br><span class="line">-rw-r--r--. 1 root root 451 6月  10 2014 crontab</span><br><span class="line">-rw-------. 1 root root   0 11月 20 2018 cron.deny</span><br><span class="line"></span><br><span class="line">cron.weekly:</span><br><span class="line">总用量 0</span><br><span class="line"></span><br><span class="line">cron.monthly:</span><br><span class="line">总用量 0</span><br><span class="line"></span><br><span class="line">cron.hourly:</span><br><span class="line">总用量 4</span><br><span class="line">-rwxr-xr-x. 1 root root 392 11月 20 2018 0anacron</span><br><span class="line"></span><br><span class="line">cron.daily:</span><br><span class="line">总用量 8</span><br><span class="line">-rwxr-xr-x. 1 root root 618 10月 30 2018 man-db.cron</span><br><span class="line">-rwx------. 1 root root 219 10月 31 2018 logrotate</span><br><span class="line"></span><br><span class="line">cron.d:</span><br><span class="line">总用量 4</span><br><span class="line">-rw-r--r--. 1 root root 128 11月 20 2018 0hourl</span><br></pre></td></tr></table></figure>
+
+<h2 id="CRONTAB在线手册"><a href="#CRONTAB在线手册" class="headerlink" title="CRONTAB在线手册"></a>CRONTAB在线手册</h2><p>注意：不同版本的Linux系统，可能crontab手册内容有所出入，请以实际版本为准。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">man crontab | more</span><br></pre></td></tr></table></figure>
+
+<h2 id="注意事项"><a href="#注意事项" class="headerlink" title="注意事项"></a>注意事项</h2><p>配置定时任务时，需要注意两个问题：</p>
+<p>1: 在SHELL中设置了必要的环境变量；例如一个shell脚本手工执行OK，但是配置成后台作业执行时，获取不到ORACLE的环境变量，这是因为crontab环境变量问题，Crontab的环境默认情况下并不包含系统中当前用户的环境。所以，你需要在shell脚本中添加必要的环境变量的设置</p>
+<p>2: 尽量所有的文件都采用完全路径方式，避免使用相对路径。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.jb51.net/article/98640.htm">Linux crontab定时任务配置方法(详解)</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.runoob.com/w3cnote/linux-crontab-tasks.html">Linux Crontab 定时任务</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.runoob.com/linux/linux-comm-crontab.html">Linux crontab 命令</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.linuxidc.com/Linux/2019-03/157851.htm">CentOS安装配置Crontab定时任务</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/06/%E4%BD%BF%E7%94%A8Linux%E8%87%AA%E5%B8%A6%E6%97%A5%E5%BF%97%E6%BB%9A%E5%8A%A8%E5%B7%A5%E5%85%B7logrotate%E6%BB%9A%E5%8A%A8redis%E6%97%A5%E5%BF%97%E7%A4%BA%E4%BE%8B/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +475,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -336,7 +598,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -418,7 +680,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -516,7 +778,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -614,7 +876,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -726,7 +988,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -809,7 +1071,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -833,7 +1095,7 @@
 
       
           <h2 id="pam简介"><a href="#pam简介" class="headerlink" title="pam简介"></a>pam简介</h2><p><strong>PAM：全称 Pluggable Authentication Modules，中文名 插入式认证模块。</strong></p>
-<p><strong>Linux-PAM (Linux可插入认证模块)</strong>：是一套适用于Linux的身份验证共享库系统，它为系统中的应用程序或服务提供动态身份验证模块支持。在Linux中，PAM是可动态配置的，本地系统管理员可以自由选择应用程序如何对用户进行身份验证。PAM应用在许多程序与服务上，比如登录程序(login、su)的PAM身份验证（口令认证、限制登录），passwd强制密码，用户进程实时管理，向用户分配系统资源等。</p>
+<p>**Linux-PAM (Linux可插入认证模块)**：是一套适用于Linux的身份验证共享库系统，它为系统中的应用程序或服务提供动态身份验证模块支持。在Linux中，PAM是可动态配置的，本地系统管理员可以自由选择应用程序如何对用户进行身份验证。PAM应用在许多程序与服务上，比如登录程序(login、su)的PAM身份验证（口令认证、限制登录），passwd强制密码，用户进程实时管理，向用户分配系统资源等。</p>
 <p>PAM的主要特征是认证的性质是可动态配置的。PAM的核心部分是库（libpam）和PAM模块的集合，它们是位于文件夹 <code>/lib/security/</code> 中的动态链接库(.so)文件，以及位于 <code>/etc/pam.d/</code> 目录中（或者是 <code>/etc/pam.conf</code> 配置文件，centos6之后，没有这个文件了）的各个PAM模块配置文件。</p>
 <p>使用如下命令判断程序是否使用了PAM：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@host-192-125-30-59 ~]<span class="comment"># ldd /usr/bin/passwd | grep libpam</span></span><br><span class="line">	libpam.so.0 =&gt; /lib64/libpam.so.0 (0x00007fb53bd17000)</span><br><span class="line">	libpam_misc.so.0 =&gt; /lib64/libpam_misc.so.0 (0x00007fb53bb13000)</span><br></pre></td></tr></table></figure>
@@ -910,7 +1172,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1154,7 +1416,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1319,7 +1581,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1436,8 +1698,12 @@
 <p>如果删除后，其它节点还看得到这个被删除的节点，则可通过FORGET命令解决，需要在所有还看得到的其它节点上执行：</p>
 <p>CLUSTER FORGET <code>&lt;node-id&gt;</code></p>
 <p>FORGET做两件事：</p>
-<p>1) 从节点表剔除节点；</p>
-<p>2) 在60秒的时间内，阻止相同ID的节点加进来。</p>
+<ol>
+<li><p>从节点表剔除节点；</p>
+</li>
+<li><p>在60秒的时间内，阻止相同ID的节点加进来。</p>
+</li>
+</ol>
 <h3 id="slots相关命令"><a href="#slots相关命令" class="headerlink" title="slots相关命令"></a>slots相关命令</h3><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">CLUSTER ADDSLOTS slot1 [slot2] ... [slotN]</span><br><span class="line">CLUSTER DELSLOTS slot1 [slot2] ... [slotN]</span><br><span class="line">CLUSTER SETSLOT slot NODE node</span><br><span class="line">CLUSTER SETSLOT slot MIGRATING node</span><br><span class="line">CLUSTER SETSLOT slot IMPORTING node</span><br></pre></td></tr></table></figure>
 
 <p>参考：</p>
@@ -1499,7 +1765,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1584,7 +1850,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1679,7 +1945,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1706,159 +1972,6 @@
 
 <p>示例：</p>
 <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">rpm -e --nodeps glib2</span><br><span class="line"></span><br><span class="line"><span class="comment"># 进入挂载的镜像内</span></span><br><span class="line"><span class="built_in">cd</span> /media/cdrom/</span><br><span class="line"><span class="built_in">cd</span> Packages/</span><br><span class="line">ls | grep glib2</span><br><span class="line"></span><br><span class="line">[root@host Packages]<span class="comment"># ls | grep glib2</span></span><br><span class="line">compat-libpackagekit-glib2-16-0.8.9-1.el7.x86_64.rpm</span><br><span class="line">glib2-2.54.2-2.el7.x86_64.rpm</span><br><span class="line">glib2-devel-2.54.2-2.el7.x86_64.rpm</span><br><span class="line">pulseaudio-libs-glib2-10.0-5.el7.x86_64.rpm</span><br><span class="line"></span><br><span class="line">[root@host Packages]<span class="comment"># rpm -ivh glib2-2.54.2-2.el7.x86_64.rpm </span></span><br></pre></td></tr></table></figure>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/07/20/java%E9%94%99%E8%AF%AF%EF%BC%9A%E6%89%BE%E4%B8%8D%E5%88%B0%E6%88%96%E6%97%A0%E6%B3%95%E5%8A%A0%E8%BD%BD%E4%B8%BB%E7%B1%BB/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/07/20/java%E9%94%99%E8%AF%AF%EF%BC%9A%E6%89%BE%E4%B8%8D%E5%88%B0%E6%88%96%E6%97%A0%E6%B3%95%E5%8A%A0%E8%BD%BD%E4%B8%BB%E7%B1%BB/" class="post-title-link" itemprop="url">java错误：找不到或无法加载主类</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-07-20 13:46:06" itemprop="dateCreated datePublished" datetime="2020-07-20T13:46:06+00:00">2020-07-20</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>1.编译的时候后缀带了.class：把后缀去掉；<br>2.删除java文件中的package包；（不推荐）<br>2.当java文件带了package包，但是还在java文件所在目录运行，这种情况会报错；</p>
-<p>正确做法：返回包的前一目录进行运行；</p>
-<p>正确示例：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">PS E:\java\javademo\src&gt; javac -encoding UTF-<span class="number">8</span> ServerSocketTest/GreetingServer.java</span><br><span class="line">PS E:\java\javademo\src&gt; java ServerSocketTest/GreetingServer</span><br></pre></td></tr></table></figure>
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/07/20/java%E9%94%99%E8%AF%AF%EF%BC%9A%E7%BC%96%E7%A0%81GBK%E7%9A%84%E4%B8%8D%E5%8F%AF%E6%98%A0%E5%B0%84%E5%AD%97%E7%AC%A6/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/07/20/java%E9%94%99%E8%AF%AF%EF%BC%9A%E7%BC%96%E7%A0%81GBK%E7%9A%84%E4%B8%8D%E5%8F%AF%E6%98%A0%E5%B0%84%E5%AD%97%E7%AC%A6/" class="post-title-link" itemprop="url">java错误：编码GBK的不可映射字符</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-07-20 13:43:37" itemprop="dateCreated datePublished" datetime="2020-07-20T13:43:37+00:00">2020-07-20</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>当Java源代码中包含中文字符时，我们在用javac编译时会出现“错误：编码GBK的不可映射字符”。</p>
-<p>由于JDK是国际版的，我们在用javac编译时，编译程序首先会获得我们操作系统默认采用的编码格式（GBK），然后JDK就把Java源文件从GBK编码格式转换为Java内部默认的Unicode格式放入内存中，然后javac把转换后的Unicode格式的文件编译成class类文件，此时，class文件是Unicode编码的，它暂存在内存中，紧接着，JDK将此以Unicode格式编码的class文件保存到操作系统中形成我们见到的class文件。当我们不加设置就编译时，相当于使用了参数：<code>javac -encoding GBK Test.java</code>，就会出现不兼容的情况。</p>
-<p>使用-encoding参数指明编码方式：<code>javac -encoding UTF-8 Test.java</code>，就可以了。</p>
-<p>转载：<a target="_blank" rel="noopener" href="https://www.cnblogs.com/lucky-zhangcd/p/8409810.html">错误：编码GBK的不可映射字符</a></p>
 
       
     </div>
@@ -1943,20 +2056,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">488</span>
+          <span class="site-state-item-count">490</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">124</span>
+        <span class="site-state-item-count">126</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">182</span>
+        <span class="site-state-item-count">187</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>

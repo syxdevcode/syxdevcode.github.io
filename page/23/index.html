@@ -182,6 +182,226 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/05/06/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%885%EF%BC%89-%20Setting%E8%A7%A3%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/05/06/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%885%EF%BC%89-%20Setting%E8%A7%A3%E6%9E%90/" class="post-title-link" itemprop="url">ABP框架学习记录（5）- Setting解析</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-05-06 13:30:09" itemprop="dateCreated datePublished" datetime="2019-05-06T13:30:09+00:00">2019-05-06</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ABP/" itemprop="url" rel="index"><span itemprop="name">ABP</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="ABP框架学习记录（5）-Setting解析"><a href="#ABP框架学习记录（5）-Setting解析" class="headerlink" title="ABP框架学习记录（5）- Setting解析"></a>ABP框架学习记录（5）- Setting解析</h1><p>ABP中的 <code>Setting</code> 和 <code>Configuration</code>：</p>
+<p>Setting一般用于需要通过外部配置文件（或数据库）设置的简单类型数据（一般就是字符串）。</p>
+<p>Configuration一般只需要通过内部代码完成的配置，一般用于设置复杂类型的数据。</p>
+<h2 id="Setting的实现"><a href="#Setting的实现" class="headerlink" title="Setting的实现"></a>Setting的实现</h2><p><code>SettingDefinition</code>：用于定义Setting。</p>
+<p><code>SettingDefinitionGroup</code>：用于给<code>SettingDefinition</code>分组。</p>
+<p><code>SettingsConfiguration</code> / <code>ISettingsConfiguration</code>：用于集中化设置和管理 <code>SettingProvider</code> 的对象。其封装了一个<code>ITypeList&lt;SettingProvider&gt; Providers</code>的集合类。可以通过<code>Configuration.Setting</code>来获取<code>ISettingsConfiguration</code>实例，然后将自定义的 <code>SettingProvider</code> 添加到 <code>SettingsConfiguration</code> 对象中，下图：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506162020.png" alt="QQ截图20190506162020.png"></p>
+<p><code>SettingDefinitionManager</code>：主要完成注册到ABP中的 <code>SettingDefinition</code> 初始化，通过 <code>ISettingsConfiguration</code> 实例获取 <code>setting providers</code> 集合，然后在 <code>Initialize</code> 方法中通过 <code>setting providers</code> 获取 <code>SettingDefinition</code> 的数组。并将其保存在 <code>Dictionary</code> 中，其key就是 <code>SettingDefinition</code> 的Name，下图：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506162528.png" alt="QQ截图20190506162528.png"></p>
+<p><code>SettingDefinitionManager</code> 继承 <code>ISingletonDependency</code>接口，将在<code>BasicConventionalRegistrar</code>类中实现约定规则的注入：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506163107.png" alt="QQ截图20190506163107.png"></p>
+<p><code>AbpKernelModule</code> 中 <code>PostInitialize</code> 调用 <code>SettingDefinitionManager</code>的 <code>Initialize</code>方法：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506173110.png" alt="QQ截图20190506173110.png"></p>
+<p><code>SettingDefinitionProviderContext</code>：用于对 <code>ISettingDefinitionManager</code> 的封装：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506162348.png" alt="QQ截图20190506162348.png"></p>
+<p><code>SettingScopes</code>：标注了Flags特性的枚举类型，表示setting的应用范围：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506162316.png" alt="QQ截图20190506162316.png"></p>
+<p><code>SettingProvider</code>：为具体的功能模块所需的设置定义 <code>SettingDefinition</code>，并且以数组的形式返回：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506170342.png" alt="QQ截图20190506170342.png"></p>
+<p><code>SettingManager</code> / <code>ISettingManager</code> ：用户获取配置详情。</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506172935.png" alt="QQ截图20190506172935.png"></p>
+<p>公共方法：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506173541.png" alt="QQ截图20190506173541.png"></p>
+<h2 id="以mail的实现来使用Setting"><a href="#以mail的实现来使用Setting" class="headerlink" title="以mail的实现来使用Setting"></a>以mail的实现来使用Setting</h2><p>目录结构：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506173847.png" alt="QQ截图20190506173847.png"></p>
+<p><code>IEmailSenderConfiguration</code>/<code>EmailSenderConfiguration</code> 和 <code>ISmtpEmailSenderConfiguration</code>/<code>SmtpEmailSenderConfiguration</code>：定义配置。</p>
+<p><code>EmailSenderConfiguration</code>：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190509145449.png" alt="QQ截图20190509145449.png"></p>
+<p><code>SmtpEmailSenderConfiguration</code>：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190509145529.png" alt="QQ截图20190509145529.png"></p>
+<p><code>EmailSettingProvider</code>：继承自 <code>SettingProvider</code>, 将SMTP的各项设置封装成<code>SettingDefinition</code>，并以数组形式返回。</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190509145337.png" alt="QQ截图20190509145337.png"></p>
+<p><code>EmailSenderBase</code>/<code>IEmailSender</code> 和 <code>ISmtpEmailSender</code>/<code>SmtpEmailSender</code>：用户发送邮件。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/1zhk/p/5299469.html">ABP源码分析七：Setting 以及 Mail</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/05/05/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%884%EF%BC%89-%20Configuration%E8%A7%A3%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/05/05/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%884%EF%BC%89-%20Configuration%E8%A7%A3%E6%9E%90/" class="post-title-link" itemprop="url">ABP框架学习记录（4）- Configuration解析</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-05-05 17:26:31" itemprop="dateCreated datePublished" datetime="2019-05-05T17:26:31+00:00">2019-05-05</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ABP/" itemprop="url" rel="index"><span itemprop="name">ABP</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="ABP框架学习记录（4）-Configuration解析"><a href="#ABP框架学习记录（4）-Configuration解析" class="headerlink" title="ABP框架学习记录（4）- Configuration解析"></a>ABP框架学习记录（4）- Configuration解析</h1><p>目录结构：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506094754.png" alt="QQ截图20190506094754.png"></p>
+<p>通过 <code>AbpStartupConfiguration</code>，Castle的依赖注入，<code>Dictionary</code> 对象和扩展方法实现了配置中心化。配置中心化是一个支持模块开发的框架必备功能。</p>
+<h2 id="核心模块配置"><a href="#核心模块配置" class="headerlink" title="核心模块配置"></a>核心模块配置</h2><h3 id="模块配置"><a href="#模块配置" class="headerlink" title="模块配置"></a>模块配置</h3><p>ABP中核心功能模块中的一些功能的运行时的行为依赖于一些外部配置。比如 <code>Localization</code> 这个功能模块，最基本Abp需要知道要做哪些语言的本地化。而这些具体的配置对于Abp底层框架来说是不可预知的，那么ABP底层框架就很有必要提供一种手段供外部模块自定义 <code>Congfiguration</code>。 这就是下文要分析的 <code>IAbpStartupConfiguration</code> 和各种<code>I***Configuration</code>。</p>
+<p>通过 <code>AbpBootstrapper</code> 的 <code>Initialize</code> 方法，注册 <code>AbpCoreInstaller</code>:</p>
+<p>具体请参考：<a target="_blank" rel="noopener" href="https://syxdevcode.github.io/2019/04/30/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%882%EF%BC%89-%20ABP%E5%88%9D%E5%A7%8B%E5%8C%96/">ABP框架学习记录（2） - ABP初始化</a></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506101758.png" alt="QQ截图20190506101758.png"></p>
+<p><code>AbpCoreInstaller</code>:</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506101856.png" alt="QQ截图20190506101856.png"></p>
+<p><code>IAbpStartupConfiguration</code>/<code>AbpStartupConfiguration</code> :  <code>Initialize</code> 方法，通过调用容器，获取基础配置实例。</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506102036.png" alt="QQ截图20190506102036.png"></p>
+<h3 id="调用配置"><a href="#调用配置" class="headerlink" title="调用配置"></a>调用配置</h3><p>抽象类 <code>AbpModule</code> 提供 <code>Configuration</code> 字段，继承 <code>AbpModule</code> 的子类，可以直接调用或修改某个组件的<code>Configuration</code> 。</p>
+<p><code>AbpModule</code>：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506102516.png" alt="QQ截图20190506102516.png"></p>
+<p>调用/修改：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506102855.png" alt="QQ截图20190506102855.png"></p>
+<h2 id="自定义模块配置"><a href="#自定义模块配置" class="headerlink" title="自定义模块配置"></a>自定义模块配置</h2><h3 id="注册"><a href="#注册" class="headerlink" title="注册"></a>注册</h3><p>以 <code>IAbpWebCommonModuleConfiguration</code> 为例：</p>
+<p>定义 <code>IAbpWebCommonModuleConfiguration</code> 接口：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506113226.png" alt="QQ截图20190506113226.png"></p>
+<p><code>AbpWebCommonModule</code> 中的 <code>PreInitialize</code> 方法注册实例：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506113321.png" alt="QQ截图20190506113321.png"></p>
+<h3 id="获取"><a href="#获取" class="headerlink" title="获取"></a>获取</h3><p><code>DictionaryBasedConfig</code> 定义的 <code>CustomSettings</code> 就是最终保存自定义的module的Configuration的地方。</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506111029.png" alt="QQ截图20190506111029.png"></p>
+<p><code>AbpStartupConfiguration</code> 继承 <code>DictionaryBasedConfig</code>：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506111449.png" alt="QQ截图20190506111449.png"></p>
+<p><code>IModuleConfigurations</code> 中定义 <code>IAbpStartupConfiguration</code>：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506111717.png" alt="QQ截图20190506111717.png"></p>
+<p><code>ModuleConfigurations</code> 的实现：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506113929.png" alt="QQ截图20190506113929.png"></p>
+<p><code>AbpWebConfigurationExtensions</code> 提供对 <code>IModuleConfigurations</code> 的扩展：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506112702.png" alt="QQ截图20190506112702.png"></p>
+<p><code>AbpStartupConfiguration</code> 获取配置方法：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506131005.png" alt="QQ截图20190506131005.png"></p>
+<p><code>DictionaryBasedConfig</code>中定义的方法：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506131238.png" alt="QQ截图20190506131238.png"></p>
+<p>使用 <code>AbpWebConfigurationExtensions</code>：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190506113848.png" alt="QQ截图20190506113848.png"></p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/1zhk/p/5285623.html">ABP源码分析四：Configuration</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/04/30/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%883%EF%BC%89-%20%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5%E8%A7%A3%E6%9E%90/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +433,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -318,7 +538,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -424,7 +644,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -516,7 +736,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -598,7 +818,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -676,7 +896,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -754,7 +974,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -843,7 +1063,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -941,7 +1161,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1061,7 +1281,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1141,7 +1361,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1222,7 +1442,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1353,7 +1573,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
+                <time title="修改时间：2021-08-18 10:29:32" itemprop="dateModified" datetime="2021-08-18T10:29:32+00:00">2021-08-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1462,196 +1682,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/03/21/CSharp%E7%AE%97%E6%B3%95%E5%AE%9E%E7%8E%B0-%E5%86%92%E6%B3%A1%E7%AE%97%E6%B3%95/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/03/21/CSharp%E7%AE%97%E6%B3%95%E5%AE%9E%E7%8E%B0-%E5%86%92%E6%B3%A1%E7%AE%97%E6%B3%95/" class="post-title-link" itemprop="url">CSharp算法实现-冒泡算法</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-03-21 14:01:03" itemprop="dateCreated datePublished" datetime="2019-03-21T14:01:03+00:00">2019-03-21</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E7%AE%97%E6%B3%95/" itemprop="url" rel="index"><span itemprop="name">算法</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>CSharp算法实现-冒泡算法的实现</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2019/03/21/CSharp%E7%AE%97%E6%B3%95%E5%AE%9E%E7%8E%B0-%E5%86%92%E6%B3%A1%E7%AE%97%E6%B3%95/">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/03/21/DotNet-%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/03/21/DotNet-%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F/" class="post-title-link" itemprop="url">DotNet 单例模式</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-03-21 08:33:10" itemprop="dateCreated datePublished" datetime="2019-03-21T08:33:10+00:00">2019-03-21</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-18 03:31:00" itemprop="dateModified" datetime="2021-08-18T03:31:00+00:00">2021-08-18</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" itemprop="url" rel="index"><span itemprop="name">设计模式</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="DotNet-单例模式"><a href="#DotNet-单例模式" class="headerlink" title="DotNet 单例模式"></a>DotNet 单例模式</h1><p>单例模式涉及到的基础知识，包括静态构造函数，私有构造函数，锁，延时创建对象, readonly/const等等。</p>
-<p>单例的优点：<br>1.保证了所有的对象访问的都是同一个实例<br>2.由于类是由自己类控制实例化的，所以有相应的伸缩性</p>
-<p>单例的缺点：<br>1.额外的系统开销，因为每次使用类的实例的时候，都要检查实例是否存在，可以通过静态实例该解决。<br>2.无法销毁对象，单例模式的特性决定了只有他自己才能销毁对象实例，但是一般情况下我们都没做这个事情。</p>
-<h2 id="版本1"><a href="#版本1" class="headerlink" title="版本1"></a>版本1</h2><p>主要问题，就是线程安全的问题，当2个请求同时方式这个类的实例的时候，可以会在同一时间点上都创建一个实例。</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">sealed</span> <span class="keyword">class</span> <span class="title">Singleton</span></span><br><span class="line">&#123;</span><br><span class="line">   <span class="keyword">private</span> <span class="keyword">static</span> Singleton instance;</span><br><span class="line"></span><br><span class="line">   <span class="comment">// 私有构造函数，确保用户在外部不能实例化新的实例</span></span><br><span class="line">   <span class="function"><span class="keyword">private</span> <span class="title">Singleton</span>(<span class="params"></span>)</span> &#123;&#125;</span><br><span class="line"></span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> Singleton Instance</span><br><span class="line">   &#123;</span><br><span class="line">      <span class="keyword">get</span></span><br><span class="line">      &#123;</span><br><span class="line">         <span class="keyword">if</span> (instance == <span class="literal">null</span>)</span><br><span class="line">         &#123;</span><br><span class="line">            instance = <span class="keyword">new</span> Singleton();</span><br><span class="line">         &#125;</span><br><span class="line">         <span class="keyword">return</span> instance;</span><br><span class="line">      &#125;</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="版本2"><a href="#版本2" class="headerlink" title="版本2"></a>版本2</h2><p>标记类为sealed是好的，可以防止被集成;<br>在首次访问静态成员之前以及在调用构造函数（如果有）之前，会初始化静态成员。</p>
-<p>静态私有字段上通过new的形式，来保证在该类第一次被调用的时候创建实例,但是，C#其实并不保证实例创建的时机，因为C#规范只是在IL里标记该静态字段是<code>BeforeFieldInit</code>，也就是说静态字段可能在第一次被使用的时候创建，也可能你没使用了，它也帮你创建了。</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">sealed</span> <span class="keyword">class</span> <span class="title">Singleton</span></span><br><span class="line">&#123;</span><br><span class="line">   <span class="comment">// 在静态私有字段上声明单例</span></span><br><span class="line">   <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">readonly</span> Singleton instance = <span class="keyword">new</span> Singleton();</span><br><span class="line"></span><br><span class="line">   <span class="comment">// 私有构造函数，确保用户在外部不能实例化新的实例</span></span><br><span class="line">   <span class="function"><span class="keyword">private</span> <span class="title">Singleton</span>(<span class="params"></span>)</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">   <span class="comment">// 只读属性返回静态字段</span></span><br><span class="line">   <span class="keyword">public</span> <span class="keyword">static</span> Singleton Instance</span><br><span class="line">   &#123;</span><br><span class="line">      <span class="keyword">get</span></span><br><span class="line">      &#123;</span><br><span class="line">         <span class="keyword">return</span> instance;</span><br><span class="line">      &#125;</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="版本3"><a href="#版本3" class="headerlink" title="版本3"></a>版本3</h2><p>volatile 关键字表示字段可能被多个并发执行线程修改。声明为 <code>volatile</code> 的字段不受编译器优化（假定由单个线程访问）的限制。这样可以确保该字段在任何时间呈现的都是最新的值。</p>
-<p><font color=#ff0000 size=4 face="黑体">常见的实现方法，推荐使用</font></p>
-<p>每个线程都会对线程辅助对象locker加锁之后再判断实例是否存在，对于这个操作完全没有必要的，因为当第一个线程创建了该类的实例之后，后面的线程此时只需要直接判断（instance==null）为假，此时完全没必要对线程辅助对象加锁之后再去判断，所以上面的实现方式增加了额外的开销，损失了性能，为了改进上面实现方式的缺陷，我们只需要在lock语句前面加一句（instance==null）的判断就可以避免锁所增加的额外开销，这种实现方式我们就叫它 “双重锁定”。</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">sealed</span> <span class="keyword">class</span> <span class="title">Singleton</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">volatile</span> Singleton instance = <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Lock对象，线程安全所用</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="built_in">object</span> syncRoot = <span class="keyword">new</span> Object();</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">Singleton</span>(<span class="params"></span>)</span> &#123; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> Singleton Instance</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (instance == <span class="literal">null</span>)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">lock</span> (syncRoot)</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="keyword">if</span> (instance == <span class="literal">null</span>)</span><br><span class="line">                        instance = <span class="keyword">new</span> Singleton();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">return</span> instance;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="版本4"><a href="#版本4" class="headerlink" title="版本4"></a>版本4</h2><p>通过加静态构造函数，确保是个延迟初始化的单例。</p>
-<p>静态构造函数：用于初始化任何静态数据，或执行仅需执行一次的特定操作。<br><font color=#ff0000 size=4 face="黑体">在创建第一个实例或引用任何静态成员之前自动调用静态构造函数。</font></p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Singleton</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 因为下面声明了静态构造函数，所以在第一次访问该类之前，new Singleton()语句不会执行</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">readonly</span> Singleton _instance = <span class="keyword">new</span> Singleton();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> Singleton Instance</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span> &#123; <span class="keyword">return</span> _instance; &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">Singleton</span>(<span class="params"></span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 声明静态构造函数就是为了删除IL里的BeforeFieldInit标记</span></span><br><span class="line">    <span class="comment">// 以掉静态字段在使用之前被初始化</span></span><br><span class="line">    <span class="function"><span class="keyword">static</span> <span class="title">Singleton</span>(<span class="params"></span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="版本5"><a href="#版本5" class="headerlink" title="版本5"></a>版本5</h2><p>版本4的变体</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">sealed</span> <span class="keyword">class</span> <span class="title">Singleton</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">Singleton</span>(<span class="params"></span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> Singleton Instance &#123; <span class="keyword">get</span> &#123; <span class="keyword">return</span> Nested._instance; &#125; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">class</span> <span class="title">Nested</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">static</span> <span class="title">Nested</span>(<span class="params"></span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">internal</span> <span class="keyword">static</span> <span class="keyword">readonly</span> Singleton _instance = <span class="keyword">new</span> Singleton();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="版本6"><a href="#版本6" class="headerlink" title="版本6"></a>版本6</h2><p><code>Lazy&lt;T&gt;</code>默认的设置就是线程安全。</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Singleton</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 因为构造函数是私有的，所以需要使用lambda</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">readonly</span> Lazy&lt;Singleton&gt; _instance =</span><br><span class="line">        <span class="keyword">new</span> Lazy&lt;Singleton&gt;(() =&gt; <span class="keyword">new</span> Singleton());</span><br><span class="line">    <span class="comment">// new Lazy&lt;Singleton&gt;(() =&gt; new Singleton(), LazyThreadSafetyMode.ExecutionAndPublication);</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">Singleton</span>(<span class="params"></span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> Singleton Instance</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> _instance.Value;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="泛型单例"><a href="#泛型单例" class="headerlink" title="泛型单例"></a>泛型单例</h2><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title">Singleton</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">readonly</span> Lazy&lt;T&gt; _instance</span><br><span class="line">      = <span class="keyword">new</span> Lazy&lt;T&gt;(() =&gt;</span><br><span class="line">      &#123;</span><br><span class="line">          <span class="keyword">var</span> ctors = <span class="keyword">typeof</span>(T).GetConstructors(</span><br><span class="line">              BindingFlags.Instance</span><br><span class="line">              | BindingFlags.NonPublic</span><br><span class="line">              | BindingFlags.Public);</span><br><span class="line">          <span class="keyword">if</span> (ctors.Count() != <span class="number">1</span>)</span><br><span class="line">              <span class="keyword">throw</span> <span class="keyword">new</span> InvalidOperationException(String.Format(<span class="string">&quot;Type &#123;0&#125; must have exactly one constructor.&quot;</span>, <span class="keyword">typeof</span>(T)));</span><br><span class="line">          <span class="keyword">var</span> ctor = ctors.SingleOrDefault(c =&gt; c.GetParameters().Count() == <span class="number">0</span> &amp;&amp; c.IsPrivate);</span><br><span class="line">          <span class="keyword">if</span> (ctor == <span class="literal">null</span>)</span><br><span class="line">              <span class="keyword">throw</span> <span class="keyword">new</span> InvalidOperationException(String.Format(<span class="string">&quot;The constructor for &#123;0&#125; must be private and take no parameters.&quot;</span>, <span class="keyword">typeof</span>(T)));</span><br><span class="line">          <span class="keyword">return</span> (T)ctor.Invoke(<span class="literal">null</span>);</span><br><span class="line">      &#125;);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> T Instance</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span> &#123; <span class="keyword">return</span> _instance.Value; &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>泛型单例类的实现：</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title">MySingleton</span> : <span class="title">Singleton</span>&lt;<span class="title">MySingleton</span>&gt;</span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">int</span> _counter;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">int</span> Counter</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span> &#123; <span class="keyword">return</span> _counter; &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">MySingleton</span>(<span class="params"></span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        _counter = <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">IncrementCounter</span>(<span class="params"></span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        ++_counter;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 线程安全</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">IncrementCounterLock</span>(<span class="params"></span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        Interlocked.Increment(<span class="keyword">ref</span> _counter);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>泛型版本的代码使用的<code>Lazy&lt;T&gt;</code>能确保我们在创建单例实例的时候是线程安全的，但是不意味着单例本身是线程安全的，例如：</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    Parallel.For(<span class="number">0</span>, <span class="number">100</span>, i =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="built_in">int</span> j = <span class="number">0</span>; j &lt; <span class="number">1000</span>; ++j)</span><br><span class="line">            MySingleton.Instance.IncrementCounter();</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Counter的结果是小于100000的</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Counter=&#123;0&#125;.&quot;</span>, MySingleton.Instance.Counter);</span><br><span class="line">    Console.ReadLine();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/TomXu/archive/2011/12/19/2291448.html">大叔手记（10）：别再让面试官问你单例（暨6种实现方式让你堵住面试官的嘴）</a></p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/daguanjia11/article/details/74612674">.NET线程同步之Volatile构造</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1721,20 +1751,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">488</span>
+          <span class="site-state-item-count">490</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">124</span>
+        <span class="site-state-item-count">126</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">182</span>
+        <span class="site-state-item-count">187</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
