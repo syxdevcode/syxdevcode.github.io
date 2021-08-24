@@ -121,7 +121,7 @@ services:
      - "443:443"
 ```
 
-** docker.web下Dockerfile:**
+**docker.web下Dockerfile:**
 
 ```docker
 FROM microsoft/dotnet:latest
@@ -133,16 +133,16 @@ ENV ASPNETCORE_URLS http://*:5000
 ENTRYPOINT ["dotnet","run"]
 ```
 
-** nginx下Dockerfile**
+**nginx下Dockerfile**
 
-```docker
+```sh
 FROM nginx
 COPY nginx.conf /etc/nginx/nginx.conf
 ```
 
-** nginx下nginx.conf配置**
+**nginx下nginx.conf配置**
 
-```nginx
+```conf
 user  nginx;
 worker_processes  1;
 
@@ -237,13 +237,13 @@ http {
 
 ## 启动compose
 
-```docker
+```sh
 docker-compose up -d --build
 ```
 
 运行结果：
 
-```bash
+```sh
 ubuntu@ip-172-31-16-20:~/dotnet$ docker-compose up -d --build
 Creating network "dotnet_default" with the default driver
 Building dockerwebapp
@@ -288,13 +288,13 @@ Creating dockerwebapp        ... done
 
 验证启动的服务：
 
-```docker
+```sh
 sudo docker-compose ps
 ```
 
 显示结果：
 
-```docker
+```sh
 ubuntu@ip-172-31-16-20:~/dotnet$ docker-compose ps
        Name                 Command          State              Ports
 --------------------------------------------------------------------------------
@@ -303,15 +303,15 @@ reverse-proxy-nginx   nginx -g daemon off;   Up      0.0.0.0:443->443/tcp,
                                                      0.0.0.0:80->80/tcp
 ```
 
-** remove-orphans**
+**remove-orphans**
 
-``` docker
+```sh
 docker-compose down --rmi local --remove-orphans
 ```
 
 ## 删除tag为none镜像
 
-``` docker
+```sh
 docker images -a|grep none|awk '{print $3}'|xargs docker rmi
 ## 显示依赖关系
 docker image inspect --format='{{.RepoTags}} {{.Id}} {{.Parent}}' $(docker image ls -q --filter since=b64089162379)

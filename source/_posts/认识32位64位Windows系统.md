@@ -2,11 +2,11 @@
 title: 认识32位64位Windows系统
 date: 2019-12-25 18:15:04
 tags:
-- Windows系统
+- Windows
 - 计算机基础
 - 程序集
 categories: 
-- Windows系统
+- Windows
 ---
 ## Wow64
 

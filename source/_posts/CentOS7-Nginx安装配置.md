@@ -13,7 +13,7 @@ categories:
 
 ### Yum安装方式
 
-````linux
+````sh
 [root@localhost /]# yum install epel-release
 [root@localhost /]# yum install nginx
 [root@localhost /]# systemctl start nginx #启动
@@ -23,20 +23,20 @@ Created symlink from /etc/systemd/system/multi-user.target.wants/nginx.service t
 
 将nginx 设置为启动系统自动启动nginx
 
-````linux
+````sh
 [root@localhost /]# echo "/usr/local/nginx/sbin/nginx" >> /etc/rc.local
 ````
 
 ### nginx.conf配置文件
 
-```linux
+```conf
 [root@localhost /]# cd /etc/nginx #定位到nginx安装目录
 [root@localhost nginx]# vim nginx.conf #通过vim打开nginx.conf配置文件进行配置
 ```
 
 在http节点中，添加配置
 
-```linux
+```conf
 #设定负载均衡的服务器列表
 upstream load_balance_server {
     #weigth参数表示权值，权值越高被分配到的几率越大
@@ -48,7 +48,7 @@ upstream load_balance_server {
 
 在http->server节点中添加配置：
 
-```linux
+```conf
 location / {
     root   html;
     index  index.aspx index.html index.htm;
@@ -65,7 +65,7 @@ location / {
 
 nginx 启动失败
 
-```linux
+```sh
 [root@localhost nginx]# service nginx restart
 Redirecting to /bin/systemctl restart  nginx.service
 Job for nginx.service failed because the control process exited with error code. See "systemctl status nginx.service" and "journalctl -xe" for details.
@@ -89,27 +89,28 @@ May 18 09:34:41 localhost.localdomain systemd[1]: nginx.service failed.
 
 权限拒绝，经检查发现是开启selinux 导致的。 直接关闭
 
-getenforce   这个命令可以查看当前是否开启了selinux 如果输出 disabled 或 permissive 那就是关闭了
+`getenforce`   这个命令可以查看当前是否开启了selinux 如果输出 disabled 或 permissive 那就是关闭了
 
 如果输出 enforcing 那就是开启了 selinux
 
 1、临时关闭selinux
 
-setenforce 0            ##设置SELinux 成为permissive模式
-
+```sh
+setenforce 0    ##设置SELinux 成为permissive模式
 setenforce 1    ##设置SELinux 成为enforcing模式
+```
 
 2、永久关闭selinux,
 
-修改/etc/selinux/config 文件
+修改 `/etc/selinux/config` 文件
 
-将SELINUX=enforcing改为SELINUX=disabled
+将 `SELINUX=enforcing` 改为 `SELINUX=disabled`
 
 重启机器即可
 
 ### 重启nginx服务
 
-```linux
+```sh
 service nginx restart
 ```
 
