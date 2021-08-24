@@ -182,6 +182,353 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/05/17/Docker-Docker-Compose-Nginx-%E9%83%A8%E7%BD%B2DotNetCore%E9%A1%B9%E7%9B%AE/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/05/17/Docker-Docker-Compose-Nginx-%E9%83%A8%E7%BD%B2DotNetCore%E9%A1%B9%E7%9B%AE/" class="post-title-link" itemprop="url">Docker & Docker Compose & Nginx 部署DotNetCore项目</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-05-17 08:51:19" itemprop="dateCreated datePublished" datetime="2018-05-17T08:51:19+00:00">2018-05-17</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Docker-Compose/" itemprop="url" rel="index"><span itemprop="name">Docker Compose</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="Docker-amp-Docker-Compose-amp-Nginx-部署DotNetCore项目"><a href="#Docker-amp-Docker-Compose-amp-Nginx-部署DotNetCore项目" class="headerlink" title="Docker &amp; Docker Compose &amp; Nginx 部署DotNetCore项目"></a>Docker &amp; Docker Compose &amp; Nginx 部署DotNetCore项目</h1><h2 id="Docker-Compose简介"><a href="#Docker-Compose简介" class="headerlink" title="Docker Compose简介"></a>Docker Compose简介</h2><p>文档：<a target="_blank" rel="noopener" href="https://docs.docker.com/compose/">https://docs.docker.com/compose/</a></p>
+<p><code>Compose</code> 项目是 Docker 官方的开源项目，负责实现对 <code>Docker</code> 容器集群的快速编排。从功能上看，跟 <code>OpenStack</code> 中的 <code>Heat</code> 十分类似。</p>
+<p>其代码目前在 <a target="_blank" rel="noopener" href="https://github.com/docker/compose">https://github.com/docker/compose</a> 上开源。</p>
+<p><code>Compose</code> 定位是 「定义和运行多个 Docker 容器的应用（Defining and running multi-container Docker applications）」，其前身是开源项目 Fig。</p>
+<p>通过第一部分中的介绍，我们知道使用一个 <code>Dockerfile</code> 模板文件，可以让用户很方便的定义一个单独的应用容器。然而，在日常工作中，经常会碰到需要多个容器相互配合来完成某项任务的情况。例如要实现一个 Web 项目，除了 Web 服务容器本身，往往还需要再加上后端的数据库服务容器，甚至还包括负载均衡容器等。</p>
+<p><code>Compose</code> 恰好满足了这样的需求。它允许用户通过一个单独的 <code>docker-compose.yml</code> 模板文件（YAML 格式）来定义一组相关联的应用容器为一个项目（project）。</p>
+<p><code>Compose</code> 中有两个重要的概念：</p>
+<p><code>服务 (service)</code>：一个应用的容器，实际上可以包括若干运行相同镜像的容器实例。</p>
+<p><code>项目 (project)</code>：由一组关联的应用容器组成的一个完整业务单元，在 <code>docker-compose.yml</code> 文件中定义。</p>
+<p><code>Compose</code> 的默认管理对象是项目，通过子命令对项目中的一组容器进行便捷地生命周期管理。</p>
+<p><code>Compose</code> 项目由 Python 编写，实现上调用了 Docker 服务提供的 API 来对容器进行管理。因此，只要所操作的平台支持 Docker API，就可以在其上利用 Compose 来进行编排管理。</p>
+<h2 id="Docker-Compose安装"><a href="#Docker-Compose安装" class="headerlink" title="Docker Compose安装"></a>Docker Compose安装</h2><p><a target="_blank" rel="noopener" href="https://docs.docker.com/compose/install/#install-compose">https://docs.docker.com/compose/install/#install-compose</a></p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo curl -L https://github.com/docker/compose/releases/download/<span class="number">1.21</span>.<span class="number">2</span>/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose</span><br><span class="line">sudo chmod +x /usr/local/bin/docker-compose</span><br><span class="line">docker-compose --version</span><br><span class="line">docker-compose version <span class="number">1.21</span>.<span class="number">2</span>, build a133471</span><br></pre></td></tr></table></figure>
+
+<h2 id="常用命令"><a href="#常用命令" class="headerlink" title="常用命令"></a>常用命令</h2><h3 id="YAML配置命令"><a href="#YAML配置命令" class="headerlink" title="YAML配置命令"></a>YAML配置命令</h3><table>
+<thead>
+<tr>
+<th>配置</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>build</td>
+<td>指定 Dockerfile 所在的目录地址，用于构建镜像，并使用此镜像创建容器，比如上面配置的 <code>build: .</code></td>
+</tr>
+<tr>
+<td>command</td>
+<td>容器的执行命令</td>
+</tr>
+<tr>
+<td>dns</td>
+<td>自定义 dns 服务器</td>
+</tr>
+<tr>
+<td>expose</td>
+<td>暴露端口配置，但不映射到宿主机，只被连接的服务访问</td>
+</tr>
+<tr>
+<td>extends</td>
+<td>对<code>docker-compose.yml</code>的扩展，配置在服务中</td>
+</tr>
+<tr>
+<td>image</td>
+<td>使用的镜像名称或镜像 ID</td>
+</tr>
+<tr>
+<td>links</td>
+<td>链接到其它服务中的容器（一般桥接网络模式使用）</td>
+</tr>
+<tr>
+<td>net</td>
+<td>设置容器的网络模式（四种：<code>bridge</code>, <code>none</code>, <code>container:[name or id]</code>和<code>host</code>）</td>
+</tr>
+<tr>
+<td>ports</td>
+<td>暴露端口信息，主机和容器的端口映射</td>
+</tr>
+<tr>
+<td>volumes</td>
+<td>数据卷所挂载路径设置</td>
+</tr>
+</tbody></table>
+<h3 id="Docker-Compose-常用命令"><a href="#Docker-Compose-常用命令" class="headerlink" title="Docker Compose 常用命令"></a>Docker Compose 常用命令</h3><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>docker-compose build</td>
+<td>构建项目中的镜像，–force-rm：删除构建过程中的临时容器；–no-cache：不使用缓存构建；–pull：获取最新版本的镜像</td>
+</tr>
+<tr>
+<td>docker-compose up -d</td>
+<td>构建镜像、创建服务和启动项目，-d表示后台运行</td>
+</tr>
+<tr>
+<td>docker-compose run ubuntu ls -d</td>
+<td>指定服务上运行一个命令，-d表示后台运行</td>
+</tr>
+<tr>
+<td>docker-compose logs</td>
+<td>查看服务容器输出日志</td>
+</tr>
+<tr>
+<td>docker-compose ps</td>
+<td>列出项目中所有的容器</td>
+</tr>
+<tr>
+<td>docker-compose pause [service_name]</td>
+<td>暂停一个服务容器</td>
+</tr>
+<tr>
+<td>docker-compose unpause [service_name]</td>
+<td>恢复已暂停的一个服务容器</td>
+</tr>
+<tr>
+<td>docker-compose restart</td>
+<td>重启项目中的所有服务容器（也可以指定具体的服务）</td>
+</tr>
+<tr>
+<td>docker-compose stop</td>
+<td>停止运行项目中的所有服务容器（也可以指定具体的服务）</td>
+</tr>
+<tr>
+<td>docker-compose start</td>
+<td>启动已经停止项目中的所有服务容器（也可以指定具体的服务）</td>
+</tr>
+<tr>
+<td>docker-compose rm</td>
+<td>删除项目中的所有服务容器（也可以指定具体的服务），-f：强制删除（包含运行的）</td>
+</tr>
+<tr>
+<td>docker-compose kill</td>
+<td>强制停止项目中的所有服务容器（也可以指定具体的服务）</td>
+</tr>
+</tbody></table>
+<h2 id="编写一个docker-compose-yml"><a href="#编写一个docker-compose-yml" class="headerlink" title="编写一个docker-compose.yml"></a>编写一个docker-compose.yml</h2><p><code>dockers-compose.yml</code>文件要定义在我们项目的文件夹下。</p>
+<p>整体目录结构：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">|-- docker.web</span><br><span class="line">  |--Dockerfile</span><br><span class="line">|-- nginx</span><br><span class="line">  |--nginx.conf</span><br><span class="line">  |--Dockerfile</span><br><span class="line">|--docker-compose.yml</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">version: <span class="string">&#x27;3&#x27;</span></span><br><span class="line"></span><br><span class="line">services:</span><br><span class="line">  dockerwebapp:</span><br><span class="line">    container_name:dockerwebapp</span><br><span class="line">    build:</span><br><span class="line">      context: ./docker.web</span><br><span class="line">      dockerfile: Dockerfile</span><br><span class="line">    <span class="keyword">expose</span>:</span><br><span class="line">      - <span class="string">&quot;5000&quot;</span></span><br><span class="line">    ports:</span><br><span class="line">     - <span class="string">&quot;5000:5000&quot;</span></span><br><span class="line">  reverse-proxy:</span><br><span class="line">    container_name: reverse-proxy-nginx</span><br><span class="line">    build:</span><br><span class="line">      context: ./nginx</span><br><span class="line">    volumes:</span><br><span class="line">        - /etc/letsencrypt:/etc/letsencrypt/</span><br><span class="line">    ports:</span><br><span class="line">     - <span class="string">&quot;80:80&quot;</span></span><br><span class="line">     - <span class="string">&quot;443:443&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>docker.web下Dockerfile:</strong></p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">FROM</span> microsoft/dotnet:latest</span><br><span class="line"><span class="keyword">WORKDIR</span><span class="bash"> /app</span></span><br><span class="line"><span class="keyword">COPY</span><span class="bash"> . /app</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> dotnet restore</span></span><br><span class="line"><span class="keyword">EXPOSE</span> <span class="number">5000</span></span><br><span class="line"><span class="keyword">ENV</span> ASPNETCORE_URLS http://*:<span class="number">5000</span></span><br><span class="line"><span class="keyword">ENTRYPOINT</span><span class="bash"> [<span class="string">&quot;dotnet&quot;</span>,<span class="string">&quot;run&quot;</span>]</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>nginx下Dockerfile</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">FROM nginx</span><br><span class="line">COPY nginx.conf /etc/nginx/nginx.conf</span><br></pre></td></tr></table></figure>
+
+<p><strong>nginx下nginx.conf配置</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br></pre></td><td class="code"><pre><span class="line">user  nginx;</span><br><span class="line">worker_processes  1;</span><br><span class="line"></span><br><span class="line">error_log  /var/log/nginx/error.log warn;</span><br><span class="line">pid        /var/run/nginx.pid;</span><br><span class="line"></span><br><span class="line">events &#123;</span><br><span class="line">    worker_connections  1024;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">http &#123;</span><br><span class="line">    include       /etc/nginx/mime.types;</span><br><span class="line">    default_type  application/octet-stream;</span><br><span class="line"></span><br><span class="line">    log_format  main  &#x27;$remote_addr - $remote_user [$time_local] &quot;$request&quot; &#x27;</span><br><span class="line">                      &#x27;$status $body_bytes_sent &quot;$http_referer&quot; &#x27;</span><br><span class="line">                      &#x27;&quot;$http_user_agent&quot; &quot;$http_x_forwarded_for&quot;&#x27;;</span><br><span class="line"></span><br><span class="line">    access_log  /var/log/nginx/access.log  main;</span><br><span class="line"></span><br><span class="line">    sendfile        on;</span><br><span class="line">    #tcp_nopush     on;</span><br><span class="line"></span><br><span class="line">    keepalive_timeout  65;</span><br><span class="line"></span><br><span class="line">    #gzip  on;</span><br><span class="line"></span><br><span class="line">    server &#123;</span><br><span class="line">        listen 80;</span><br><span class="line">        server_name www.shiyx.top;</span><br><span class="line">        return 301 https://www.shiyx.top$request_uri;</span><br><span class="line">        server_tokens off;</span><br><span class="line">    &#125;</span><br><span class="line">    upstream app_servers &#123;</span><br><span class="line">        server dockerwebapp:5000;</span><br><span class="line">    &#125;</span><br><span class="line">    server &#123;</span><br><span class="line">        listen 443 ssl http2;</span><br><span class="line">        ssl on;</span><br><span class="line">        server_name www.shiyx.top;</span><br><span class="line">        #$host该变量的值等于请求头中Host的值。如果Host无效时，那么就是处理该请求的server的名称。</span><br><span class="line">        #permanent: 永久性重定向。请求日志中的状态码为301</span><br><span class="line">        #nginx 对文档检测比较严格，所以if ( $host != &#x27;www.csdn.com&#x27; ) 这些代码之间需要有空格隔开，不然会</span><br><span class="line">        #报错：unknown directive “if($host!=”</span><br><span class="line">        if ($host != &#x27;www.shiyx.top&#x27; )&#123;</span><br><span class="line">                rewrite ^/(.*)$ https://www.shiyx.top/$1 permanent;</span><br><span class="line">        &#125;</span><br><span class="line">        ssl_certificate /etc/letsencrypt/live/shiyx.top/fullchain.pem;</span><br><span class="line"></span><br><span class="line">        ssl_certificate_key /etc/letsencrypt/live/shiyx.top/privkey.pem;</span><br><span class="line"></span><br><span class="line">        #禁止在header中出现服务器版本，防止黑客利用版本漏洞攻击</span><br><span class="line">        server_tokens off;</span><br><span class="line">        # 设置ssl/tls会话缓存的类型和大小。如果设置了这个参数一般是shared，buildin可能会参数内存碎片，默认是none，</span><br><span class="line">        #和off差不多，停用缓存。如shared:SSL:10m表示我&gt;所有的nginx工作进程共享ssl会话缓存，</span><br><span class="line">        #网介绍说1M可以存放约4000个sessions。</span><br><span class="line">        ssl_session_cache    shared:SSL:1m;</span><br><span class="line"></span><br><span class="line">        # 客户端可以重用会话缓存中ssl参数的过期时间，内网系统默认5分钟太短了，可以设成30m即30分钟甚至4h。</span><br><span class="line">        ssl_session_timeout  5m;</span><br><span class="line"></span><br><span class="line">        ssl_protocols SSLv3 TLSv1 TLSv1.1 TLSv1.2;</span><br><span class="line"></span><br><span class="line">        # 选择加密套件，不同的浏览器所支持的套件（和顺序）可能会不同。</span><br><span class="line">        # 这里指定的是OpenSSL库能够识别的写法，你可以通过 openssl -v cipher &#x27;RC4:HIGH:!aNULL:!MD5&#x27;</span><br><span class="line">        #（后面是你所指定的套件加密算法） 来看所支持算法。</span><br><span class="line">        ssl_ciphers  HIGH:!aNULL:!MD5;</span><br><span class="line"></span><br><span class="line">        # 设置协商加密算法时，优先使用我们服务端的加密套件，而不是客户端浏览器的加密套件。</span><br><span class="line">        ssl_prefer_server_ciphers  on;</span><br><span class="line"></span><br><span class="line">        # 查看代理程序的ip</span><br><span class="line">        # sudo docker inspect --format &#x27;&#123;&#123; .NetworkSettings.IPAddress &#125;&#125;&#x27; &lt;container-ID&gt;</span><br><span class="line">        location / &#123;</span><br><span class="line">            proxy_pass http://app_servers;</span><br><span class="line">            proxy_set_header   Upgrade $http_upgrade;</span><br><span class="line">            proxy_set_header   Connection keep-alive;</span><br><span class="line">            proxy_set_header   Host $http_host;</span><br><span class="line">            proxy_set_header   X-Real-IP $remote_addr;</span><br><span class="line">            proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;</span><br><span class="line">            proxy_set_header   X-Forwarded-Host $server_name;</span><br><span class="line">            proxy_cache_bypass $http_upgrade;</span><br><span class="line">        &#125;</span><br><span class="line">        location ~ /.well-known&#123;</span><br><span class="line">                allow all;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中要注意反向代理的配置：<code>server dockerwebapp:5000;</code>，其中ip部分直接指定的是docker-compose.yml中定义的第一个服务的名称dockerwebapp</p>
+<h2 id="启动compose"><a href="#启动compose" class="headerlink" title="启动compose"></a>启动compose</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker-compose up -d --build</span><br></pre></td></tr></table></figure>
+
+<p>运行结果：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line">ubuntu@ip-172-31-16-20:~/dotnet$ docker-compose up -d --build</span><br><span class="line">Creating network <span class="string">&quot;dotnet_default&quot;</span> with the default driver</span><br><span class="line">Building dockerwebapp</span><br><span class="line">Step 1/7 : FROM microsoft/dotnet:latest</span><br><span class="line"> ---&gt; 2ac9a416f201</span><br><span class="line">Step 2/7 : WORKDIR /app</span><br><span class="line"> ---&gt; Using cache</span><br><span class="line"> ---&gt; 9449738bc5a1</span><br><span class="line">Step 3/7 : COPY . /app</span><br><span class="line"> ---&gt; 63468e7420e1</span><br><span class="line">Step 4/7 : RUN dotnet restore</span><br><span class="line"> ---&gt; Running <span class="keyword">in</span> 24ecd554e076</span><br><span class="line">  Restore completed <span class="keyword">in</span> 75.73 ms <span class="keyword">for</span> /app/docker.web.csproj.</span><br><span class="line">  Restoring packages <span class="keyword">for</span> /app/docker.web.csproj...</span><br><span class="line">  Restore completed <span class="keyword">in</span> 464.93 ms <span class="keyword">for</span> /app/docker.web.csproj.</span><br><span class="line">Removing intermediate container 24ecd554e076</span><br><span class="line"> ---&gt; cdc5f195aa36</span><br><span class="line">Step 5/7 : EXPOSE 5000</span><br><span class="line"> ---&gt; Running <span class="keyword">in</span> af5717cc39b8</span><br><span class="line">Removing intermediate container af5717cc39b8</span><br><span class="line"> ---&gt; afe466d24f6d</span><br><span class="line">Step 6/7 : ENV ASPNETCORE_URLS http://*:5000</span><br><span class="line"> ---&gt; Running <span class="keyword">in</span> d151cad8058d</span><br><span class="line">Removing intermediate container d151cad8058d</span><br><span class="line"> ---&gt; d4e8dadfe89c</span><br><span class="line">Step 7/7 : ENTRYPOINT [<span class="string">&quot;dotnet&quot;</span>,<span class="string">&quot;run&quot;</span>]</span><br><span class="line"> ---&gt; Running <span class="keyword">in</span> de41a97d97a8</span><br><span class="line">Removing intermediate container de41a97d97a8</span><br><span class="line"> ---&gt; 05c1f1c48653</span><br><span class="line">Successfully built 05c1f1c48653</span><br><span class="line">Successfully tagged dotnet_dockerwebapp:latest</span><br><span class="line">Building reverse-proxy</span><br><span class="line">Step 1/2 : FROM nginx</span><br><span class="line"> ---&gt; ae513a47849c</span><br><span class="line">Step 2/2 : COPY nginx.conf /etc/nginx/nginx.conf</span><br><span class="line"> ---&gt; 458d9128600f</span><br><span class="line">Successfully built 458d9128600f</span><br><span class="line">Successfully tagged dotnet_reverse-proxy:latest</span><br><span class="line">Creating reverse-proxy-nginx ... <span class="keyword">done</span></span><br><span class="line">Creating dockerwebapp        ... <span class="keyword">done</span></span><br></pre></td></tr></table></figure>
+
+<p>验证启动的服务：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo docker-compose ps</span><br></pre></td></tr></table></figure>
+
+<p>显示结果：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">ubuntu@ip-172-31-16-20:~/dotnet$ docker-compose ps</span><br><span class="line">       Name                 Command          State              Ports</span><br><span class="line">--------------------------------------------------------------------------------</span><br><span class="line">dockerwebapp          dotnet run             Up      5000/tcp</span><br><span class="line">reverse-proxy-nginx   nginx -g daemon off;   Up      0.0.0.0:443-&gt;443/tcp,</span><br><span class="line">                                                     0.0.0.0:80-&gt;80/tcp</span><br></pre></td></tr></table></figure>
+
+<p><strong>remove-orphans</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker-compose down --rmi <span class="built_in">local</span> --remove-orphans</span><br></pre></td></tr></table></figure>
+
+<h2 id="删除tag为none镜像"><a href="#删除tag为none镜像" class="headerlink" title="删除tag为none镜像"></a>删除tag为none镜像</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">docker images -a|grep none|awk <span class="string">&#x27;&#123;print $3&#125;&#x27;</span>|xargs docker rmi</span><br><span class="line"><span class="comment">## 显示依赖关系</span></span><br><span class="line">docker image inspect --format=<span class="string">&#x27;&#123;&#123;.RepoTags&#125;&#125; &#123;&#123;.Id&#125;&#125; &#123;&#123;.Parent&#125;&#125;&#x27;</span> $(docker image ls -q --filter since=b64089162379)</span><br></pre></td></tr></table></figure>
+
+<p>其中b64089162379为镜像ID。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://yeasy.gitbooks.io/docker_practice/content/compose/introduction.html">https://yeasy.gitbooks.io/docker_practice/content/compose/introduction.html</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.sep.com/sep-blog/2017/02/27/nginx-reverse-proxy-to-asp-net-core-separate-docker-containers/">https://www.sep.com/sep-blog/2017/02/27/nginx-reverse-proxy-to-asp-net-core-separate-docker-containers/</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/sheng-jie/p/8116276.html">https://www.cnblogs.com/sheng-jie/p/8116276.html</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/xishuai/p/docker-compose.html">http://www.cnblogs.com/xishuai/p/docker-compose.html</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/lsxqw2004/p/6709766.html">http://www.cnblogs.com/lsxqw2004/p/6709766.html</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/05/16/%E8%8E%B7%E5%8F%96docker%E5%AE%B9%E5%99%A8%EF%BC%88container%EF%BC%89ip%E5%9C%B0%E5%9D%80/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/05/16/%E8%8E%B7%E5%8F%96docker%E5%AE%B9%E5%99%A8%EF%BC%88container%EF%BC%89ip%E5%9C%B0%E5%9D%80/" class="post-title-link" itemprop="url">获取docker容器（container）ip地址</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-05-16 14:40:11" itemprop="dateCreated datePublished" datetime="2018-05-16T14:40:11+00:00">2018-05-16</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Docker/" itemprop="url" rel="index"><span itemprop="name">Docker</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="获取docker容器（container）ip地址"><a href="#获取docker容器（container）ip地址" class="headerlink" title="获取docker容器（container）ip地址"></a>获取docker容器（container）ip地址</h1><h2 id="使用命令方式"><a href="#使用命令方式" class="headerlink" title="使用命令方式"></a>使用命令方式</h2><ul>
+<li>命令</li>
+</ul>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo docker inspect --format <span class="string">&#x27;&#123;&#123; .NetworkSettings.IPAddress &#125;&#125;&#x27;</span> &lt;container-ID&gt;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>命令2</li>
+</ul>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo docker inspect &lt;container id&gt;</span><br><span class="line"></span><br><span class="line">sudo docker inspect -f <span class="string">&#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27;</span> &lt;container_name_or_id&gt;</span><br></pre></td></tr></table></figure>
+
+<h2 id="进入容器内"><a href="#进入容器内" class="headerlink" title="进入容器内"></a>进入容器内</h2><p>命令：</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo docker exec -it mynginx /bin/bash</span><br><span class="line">cat /etc/hosts</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">ubuntu@ip-<span class="number">172</span>-<span class="number">31</span>-<span class="number">16</span>-<span class="number">20</span>:~/dotnet$ sudo docker exec -it mynginx /bin/bash</span><br><span class="line">root@<span class="number">70</span>e571d3bcab:/<span class="comment"># cat /etc/hosts</span></span><br><span class="line"><span class="number">127.0</span>.<span class="number">0.1</span>       localhost</span><br><span class="line">::<span class="number">1</span>     localhost ip6-localhost ip6-loopback</span><br><span class="line">fe00::<span class="number">0</span> ip6-localnet</span><br><span class="line">ff00::<span class="number">0</span> ip6-mcastprefix</span><br><span class="line">ff02::<span class="number">1</span> ip6-allnodes</span><br><span class="line">ff02::<span class="number">2</span> ip6-allrouters</span><br><span class="line"><span class="number">172.17</span>.<span class="number">0.4</span>      <span class="number">70</span>e571d3bcab</span><br></pre></td></tr></table></figure>
+
+<h2 id="在-bashrc-中写一个-bash-函数"><a href="#在-bashrc-中写一个-bash-函数" class="headerlink" title="在 ~/.bashrc 中写一个 bash 函数"></a>在 ~/.bashrc 中写一个 bash 函数</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vim ~/.bashrc</span><br></pre></td></tr></table></figure>
+
+<p>添加如下内容：</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">function docker_ip() &#123;</span><br><span class="line">    sudo docker inspect --format <span class="string">&#x27;&#123;&#123; .NetworkSettings.IPAddress &#125;&#125;&#x27;</span> $<span class="number">1</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后执行：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">source</span> ~/.bashrc</span><br></pre></td></tr></table></figure>
+
+<p>最后调用函数：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker_ip mynginx</span><br></pre></td></tr></table></figure>
+
+<h2 id="所有容器名称及其IP地址"><a href="#所有容器名称及其IP地址" class="headerlink" title="所有容器名称及其IP地址"></a>所有容器名称及其IP地址</h2><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo docker inspect -f <span class="string">&#x27;&#123;&#123;.Name&#125;&#125; - &#123;&#123;.NetworkSettings.IPAddress &#125;&#125;&#x27;</span> $(docker ps -aq)</span><br></pre></td></tr></table></figure>
+
+<p>如果使用docker-compose命令将是:</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker inspect -f <span class="string">&#x27;&#123;&#123;.Name&#125;&#125; - &#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27;</span> $(docker ps -aq)</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo docker inspect --format=<span class="string">&#x27;&#123;&#123;.Name&#125;&#125; - &#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27;</span> $(docker ps -aq)</span><br></pre></td></tr></table></figure>
+
+<p>可能遇到的问题：</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">ubuntu@ip-<span class="number">172</span>-<span class="number">31</span>-<span class="number">16</span>-<span class="number">20</span>:~/dotnet$ sudo docker inspect -f <span class="string">&#x27;&#123;&#123;.Name&#125;&#125; - &#123;&#123;.NetworkSettings.IPAddress &#125;&#125;&#x27;</span> $(docker ps -aq)</span><br><span class="line">Got permission denied while trying to connect to the Docker daemon socket at unix:///var/<span class="keyword">run</span><span class="bash">/docker.sock: Get http://%2Fvar%2Frun%2Fdocker.sock/v1.37/containers/json?all=1: dial unix /var/run/docker.sock: connect: permission denied</span></span><br><span class="line"><span class="string">&quot;docker inspect&quot;</span> requires at least <span class="number">1</span> argument.</span><br><span class="line">See <span class="string">&#x27;docker inspect --help&#x27;</span>.</span><br><span class="line"></span><br><span class="line">Usage:  docker inspect [OPTIONS] NAME|ID [NAME|ID...] [flags]</span><br><span class="line"></span><br><span class="line">Return low-level information on Docker objects</span><br></pre></td></tr></table></figure>
+
+<p>执行以下命令,将当前用户添加 docker 组：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo usermod -a -G docker <span class="variable">$USER</span></span><br><span class="line">或</span><br><span class="line">sudo usermod -aG docker <span class="variable">$USER</span></span><br></pre></td></tr></table></figure>
+
+<p>注销，重新登录:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">logout</span></span><br></pre></td></tr></table></figure>
+
+<p>注意：注销并重新登录是必需的，因为除非您的会话关闭，否则组更改不会生效。</p>
+<p>参考：<br><a target="_blank" rel="noopener" href="https://blog.csdn.net/sannerlittle/article/details/77063800">https://blog.csdn.net/sannerlittle/article/details/77063800</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/05/15/Nginx&Docker%E9%83%A8%E7%BD%B2NetCore%E9%A1%B9%E7%9B%AE/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +560,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-23 10:34:47" itemprop="dateModified" datetime="2021-08-23T10:34:47+00:00">2021-08-23</time>
+                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -332,7 +679,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-23 10:34:46" itemprop="dateModified" datetime="2021-08-23T10:34:46+00:00">2021-08-23</time>
+                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -454,7 +801,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-23 10:34:46" itemprop="dateModified" datetime="2021-08-23T10:34:46+00:00">2021-08-23</time>
+                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -864,7 +1211,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-23 10:34:47" itemprop="dateModified" datetime="2021-08-23T10:34:47+00:00">2021-08-23</time>
+                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
               </span>
 
           
@@ -928,7 +1275,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-23 10:34:47" itemprop="dateModified" datetime="2021-08-23T10:34:47+00:00">2021-08-23</time>
+                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1092,7 +1439,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-23 10:34:46" itemprop="dateModified" datetime="2021-08-23T10:34:46+00:00">2021-08-23</time>
+                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1169,7 +1516,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-23 10:34:46" itemprop="dateModified" datetime="2021-08-23T10:34:46+00:00">2021-08-23</time>
+                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1294,7 +1641,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-23 10:34:46" itemprop="dateModified" datetime="2021-08-23T10:34:46+00:00">2021-08-23</time>
+                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1384,7 +1731,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-23 10:34:47" itemprop="dateModified" datetime="2021-08-23T10:34:47+00:00">2021-08-23</time>
+                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1472,7 +1819,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-23 10:34:46" itemprop="dateModified" datetime="2021-08-23T10:34:46+00:00">2021-08-23</time>
+                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1639,7 +1986,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-23 10:34:46" itemprop="dateModified" datetime="2021-08-23T10:34:46+00:00">2021-08-23</time>
+                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1752,7 +2099,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-23 10:34:47" itemprop="dateModified" datetime="2021-08-23T10:34:47+00:00">2021-08-23</time>
+                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1832,7 +2179,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-23 10:34:46" itemprop="dateModified" datetime="2021-08-23T10:34:46+00:00">2021-08-23</time>
+                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1864,292 +2211,6 @@
 
 <p>参考：</p>
 <p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/xhyan/p/6593075.html">https://www.cnblogs.com/xhyan/p/6593075.html</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/04/28/CentOS7%E6%B7%BB%E5%8A%A0-%E5%88%A0%E9%99%A4%E7%94%A8%E6%88%B7%E5%92%8C%E7%94%A8%E6%88%B7%E7%BB%84/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/04/28/CentOS7%E6%B7%BB%E5%8A%A0-%E5%88%A0%E9%99%A4%E7%94%A8%E6%88%B7%E5%92%8C%E7%94%A8%E6%88%B7%E7%BB%84/" class="post-title-link" itemprop="url">CentOS7添加/删除用户和用户组</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-04-28 11:43:40" itemprop="dateCreated datePublished" datetime="2018-04-28T11:43:40+00:00">2018-04-28</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-23 10:34:46" itemprop="dateModified" datetime="2021-08-23T10:34:46+00:00">2021-08-23</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/CentOS7/" itemprop="url" rel="index"><span itemprop="name">CentOS7</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="CentOS7添加-删除用户和用户组"><a href="#CentOS7添加-删除用户和用户组" class="headerlink" title="CentOS7添加/删除用户和用户组"></a>CentOS7添加/删除用户和用户组</h1><h2 id="新建用户"><a href="#新建用户" class="headerlink" title="新建用户"></a>新建用户</h2><p>注：root下操作</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">adduser testuser #新建testuser 用户</span><br><span class="line">passwd testuser  #设置密码</span><br></pre></td></tr></table></figure>
-
-<h2 id="授权"><a href="#授权" class="headerlink" title="授权"></a>授权</h2><p>新创建的用户并不能使用sudo命令，需要给他添加授权。</p>
-<p>sudo命令的授权管理是在sudoers文件里的。可以看看sudoers</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost Desktop]# sudoers</span><br><span class="line">bash: sudoers: 未找到命令...</span><br><span class="line">[root@localhost Desktop]# whereis sudoers</span><br><span class="line">sudoers: /etc/sudoers /etc/sudoers.d /usr/libexec/sudoers.so /usr/share/man/man5/sudoers.5.gz</span><br></pre></td></tr></table></figure>
-
-<p>找到这个文件位置之后再查看权限：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost Desktop]# ls -l /etc/sudoers</span><br><span class="line">-r--r-----. 1 root root 4000 3月   6 2015 /etc/sudoers</span><br></pre></td></tr></table></figure>
-
-<p>只有只读的权限，如果想要修改的话，需要先添加w权限：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost Desktop]# chmod -v u+w /etc/sudoers</span><br><span class="line">mode of &quot;/etc/sudoers&quot; changed from 0440 (r--r-----) to 0640 (rw-r-----)</span><br></pre></td></tr></table></figure>
-
-<p>然后就可以添加内容了，在下面的一行下追加新增的用户：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">## Allow root to run any commands anywhere</span><br><span class="line">root    ALL=(ALL)       ALL</span><br><span class="line">toor    ALL=(ALL)       ALL #新增的用户</span><br></pre></td></tr></table></figure>
-
-<p>wq保存退出，这时候要记得将写权限收回：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost Desktop]# chmod -v u-w /etc/sudoers</span><br><span class="line">mode of &quot;/etc/sudoers&quot; changed from 0640 (rw-r-----) to 0440 (r--r-----)</span><br></pre></td></tr></table></figure>
-
-<p>这时候使用新用户登录，使用sudo</p>
-<h2 id="新建工作组"><a href="#新建工作组" class="headerlink" title="新建工作组"></a>新建工作组</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">groupadd testgroup</span><br></pre></td></tr></table></figure>
-
-<h2 id="新建用户同时增加工作组"><a href="#新建用户同时增加工作组" class="headerlink" title="新建用户同时增加工作组"></a>新建用户同时增加工作组</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">useradd -g testgroup testuser</span><br></pre></td></tr></table></figure>
-
-<p>注：：-g 所属组</p>
-<h2 id="给已有的用户增加工作组"><a href="#给已有的用户增加工作组" class="headerlink" title="给已有的用户增加工作组"></a>给已有的用户增加工作组</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">usermod -G groupname username</span><br></pre></td></tr></table></figure>
-
-<h2 id="永久删除用户帐号"><a href="#永久删除用户帐号" class="headerlink" title="永久删除用户帐号"></a>永久删除用户帐号</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">userdel testuser</span><br><span class="line">groupdel testgroup</span><br><span class="line">usermod -G testgroup testuser #强制删除该用户的主目录和主目录下的所有文件和子目录</span><br></pre></td></tr></table></figure>
-
-<p>用户列表文件：<code>/etc/passwd</code><br>用户组列表文件：<code>/etc/group</code></p>
-<p>查看系统中有哪些用户：<code>cut -d : -f 1 /etc/passwd</code><br>查看可以登录系统的用户：<code>cat /etc/passwd | grep -v /sbin/nologin | cut -d : -f 1</code><br>查看用户操作：w命令(需要root权限)<br>查看某一用户：w 用户名<br>查看登录用户：<code>who</code><br>查看用户登录历史记录：<code>last</code></p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://www.linuxidc.com/Linux/2016-11/137549.htm">https://www.linuxidc.com/Linux/2016-11/137549.htm</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.jb51.net/article/123444.htm">http://www.jb51.net/article/123444.htm</a></p>
-<p><a target="_blank" rel="noopener" href="http://blog.51cto.com/risingair/1861641">http://blog.51cto.com/risingair/1861641</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/04/27/Docker-Dockerfile%E8%AF%A6%E8%A7%A3/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/04/27/Docker-Dockerfile%E8%AF%A6%E8%A7%A3/" class="post-title-link" itemprop="url">Docker Dockerfile详解</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-04-27 15:01:22" itemprop="dateCreated datePublished" datetime="2018-04-27T15:01:22+00:00">2018-04-27</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-23 10:34:46" itemprop="dateModified" datetime="2021-08-23T10:34:46+00:00">2021-08-23</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Docker/" itemprop="url" rel="index"><span itemprop="name">Docker</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="Docker-Dockerfile详解"><a href="#Docker-Dockerfile详解" class="headerlink" title="Docker Dockerfile详解"></a>Docker Dockerfile详解</h1><p><a target="_blank" rel="noopener" href="https://docs.docker.com/engine/reference/builder/#dockerfile-examples">官网</a></p>
-<h2 id="Docker简介"><a href="#Docker简介" class="headerlink" title="Docker简介"></a>Docker简介</h2><p>Docker项目提供了构建在Linux内核功能之上，协同在一起的的高级工具。其目标是帮助开发和运维人员更容易地跨系统跨主机交付应用程序和他们的依赖。Docker通过Docker容器，一个安全的，基于轻量级容器的环境，来实现这个目标。这些容器由镜像创建，而镜像可以通过命令行手工创建或 者通过Dockerfile自动创建。</p>
-<h2 id="Dockerfile简介"><a href="#Dockerfile简介" class="headerlink" title="Dockerfile简介"></a>Dockerfile简介</h2><p>Dockerfile是由一系列命令和参数构成的脚本，这些命令应用于基础镜像并最终创建一个新的镜像。它们简化了从头到尾的流程并极大的简化了部署工作。Dockerfile从FROM命令开始，紧接着跟随者各种方法，命令和参数。其产出为一个新的可以用于创建容器的镜像。</p>
-<h2 id="基本结构"><a href="#基本结构" class="headerlink" title="基本结构"></a>基本结构</h2><p>一般而言，Dockerfile 的内容分为四个部分：基础镜像信息、维护者信息、镜像操作指令和容器启动时执行指令。</p>
-<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># This dockerfile uses the Ubuntu image</span></span><br><span class="line"><span class="comment"># VERSION 2</span></span><br><span class="line"><span class="comment"># Author: docker_user</span></span><br><span class="line"><span class="comment"># Command format: Instruction [arguments / command] …</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 第一行必须指定基于的容器镜像</span></span><br><span class="line"><span class="attribute">FROM</span> ubuntu</span><br><span class="line"></span><br><span class="line"><span class="comment"># 维护者信息</span></span><br><span class="line">MAINTAINER docker_user docker_user@email.com</span><br><span class="line"></span><br><span class="line"><span class="comment"># 镜像的操作指令</span></span><br><span class="line">RUN echo “deb http://archive.ubuntu.com/ubuntu/ raring main universe” &gt;&gt; /etc/apt/sources.list</span><br><span class="line">RUN apt-get update &amp;&amp; apt-get install -y nginx</span><br><span class="line">RUN echo “\ndaemon <span class="literal">off</span>;” &gt;&gt; /etc/nginx/nginx.<span class="attribute">conf</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 容器启动时执行指令</span></span><br><span class="line">CMD /usr/sbin/nginx</span><br></pre></td></tr></table></figure>
-
-<h2 id="Dockerfile-命令"><a href="#Dockerfile-命令" class="headerlink" title="Dockerfile 命令"></a>Dockerfile 命令</h2><h3 id="FROM"><a href="#FROM" class="headerlink" title="FROM"></a>FROM</h3><p>FROM命令可能是最重要的Dockerfile命令。该命令定义了使用哪个基础镜像启动构建流程。基础镜像可以为任意镜像。如果基础镜像没有被发现，Docker将试图从Docker image index来查找该镜像。FROM命令必须是Dockerfile的首个命令。</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Usage: FROM [image name]</span></span><br><span class="line"><span class="keyword">FROM</span> ubuntu</span><br></pre></td></tr></table></figure>
-
-<h3 id="MAINTAINER"><a href="#MAINTAINER" class="headerlink" title="MAINTAINER"></a>MAINTAINER</h3><p>声明作者;这个命令放在Dockerfile的起始部分，虽然理论上它可以放置于Dockerfile的任意位置。这个命令用于声明作者，并应该放在FROM的后面。</p>
-<p>注意：MAINTAINER 指令已经被抛弃，建议使用 LABEL 指令。</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Usage: MAINTAINER [name]</span></span><br><span class="line"><span class="keyword">MAINTAINER</span> authors_name</span><br></pre></td></tr></table></figure>
-
-<h3 id="LABEL"><a href="#LABEL" class="headerlink" title="LABEL"></a>LABEL</h3><p>格式为:</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">LABEL</span><span class="bash"> &lt;key&gt;=&lt;value&gt; &lt;key&gt;=&lt;value&gt; &lt;key&gt;=&lt;value&gt; ...</span></span><br></pre></td></tr></table></figure>
-
-<p>LABEL 指令为镜像添加标签。一个 LABEL 就是一个键值对。</p>
-<p>下面是一些例子:</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">LABEL</span><span class="bash"> <span class="string">&quot;com.example.vendor&quot;</span>=<span class="string">&quot;ACME Incorporated&quot;</span></span></span><br><span class="line"><span class="keyword">LABEL</span><span class="bash"> com.example.label-with-value=<span class="string">&quot;foo&quot;</span></span></span><br><span class="line"><span class="keyword">LABEL</span><span class="bash"> version=<span class="string">&quot;1.0&quot;</span></span></span><br><span class="line"><span class="keyword">LABEL</span><span class="bash"> description=<span class="string">&quot;This text illustrates \that label-values can span multiple lines.&quot;</span></span></span><br></pre></td></tr></table></figure>
-
-<p>我们可以给镜像添加多个 LABEL，需要注意的是，每条 LABEL 指令都会生成一个新的层。所以最好是把添加的多个 LABEL 合并为一条命令：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">LABEL</span><span class="bash"> multi.label1=<span class="string">&quot;value1&quot;</span> multi.label2=<span class="string">&quot;value2&quot;</span> other=<span class="string">&quot;value3&quot;</span></span></span><br></pre></td></tr></table></figure>
-
-<p>也可以写成这样：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">LABEL</span><span class="bash"> multi.label1=<span class="string">&quot;value1&quot;</span> \</span></span><br><span class="line"><span class="bash">      multi.label2=<span class="string">&quot;value2&quot;</span> \</span></span><br><span class="line"><span class="bash">      other=<span class="string">&quot;value3&quot;</span></span></span><br></pre></td></tr></table></figure>
-
-<p>如果新添加的 LABEL 和已有的 LABEL 同名，则新值会覆盖掉旧值。<br>我们可以使用 docker inspect 命令查看镜像的 LABEL 信息。</p>
-<h3 id="RUN"><a href="#RUN" class="headerlink" title="RUN"></a>RUN</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">有两种格式，分别为：</span><br><span class="line"></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> &lt;<span class="built_in">command</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> [“executable”, “param1”, “param2”]。</span></span><br></pre></td></tr></table></figure>
-
-<p>RUN命令是Dockerfile执行命令的核心部分。它接受命令作为参数并用于创建镜像。不像CMD命令，RUN命令用于创建镜像（在之前commit的层之上形成新的层）。<br>前者将在 shell 终端中运行命令，即 /bin/sh -c，后者则使用 exec 执行。指定使用其他终端可以通过第二种方式实现，例如 RUN  [“/bin/bash”, “-c”, “echo hello”]。<br>每条 RUN 指令将在当前镜像的基础上执行指定命令，并提交为新的镜像。当命令较长时可以使用 \ 来换行。</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Usage: RUN [command]</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> aptitude install -y riak</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="CMD"><a href="#CMD" class="headerlink" title="CMD"></a>CMD</h3><p>支持三种格式：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CMD</span><span class="bash"> [“executable”, “param1”, “param2”] 使用 <span class="built_in">exec</span> 执行，推荐方式。</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">CMD</span><span class="bash"> <span class="built_in">command</span> param1 param2 在 /bin/sh 中执行，提供给需要交互的应用。</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">CMD</span><span class="bash"> [“param1”, “param2”] 提供给 ENTRYPOINT 的默认参数。</span></span><br></pre></td></tr></table></figure>
-
-<p>指定启动容器时执行的命令，每个 Dockerfile 只能有一条 CMD 命令。如果指定了多条 CMD 命令，只有最后一条会被执行。如果用户在启动容器时指定了要运行的命令，则会覆盖掉 CMD 指定的命令。</p>
-<p>和RUN命令相似，CMD可以用于执行特定的命令。和RUN不同的是，这些命令不是在镜像构建的过程中执行的，而是在用镜像构建容器后被调用。</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Usage 1: CMD application &quot;argument&quot;, &quot;argument&quot;, ..</span></span><br><span class="line"><span class="keyword">CMD</span><span class="bash"> <span class="string">&quot;echo&quot;</span> <span class="string">&quot;Hello docker!&quot;</span></span></span><br></pre></td></tr></table></figure>
-
-<h3 id="EXPOSE"><a href="#EXPOSE" class="headerlink" title="EXPOSE"></a>EXPOSE</h3><p>格式为：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">EXPOSE</span> &lt;port&gt; [&lt;port&gt;…]</span><br></pre></td></tr></table></figure>
-
-<p>告诉 Docker 服务，容器需要暴露的端口号，供互联系统使用。在启动容器时需要通过 -P 参数让 Docker 主机分配一个端口转发到指定的端口。使用 -p 参数则可以具体指定主机上哪个端口映射过来。</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Usage: EXPOSE [port]</span></span><br><span class="line"><span class="keyword">EXPOSE</span> <span class="number">8080</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="ENV"><a href="#ENV" class="headerlink" title="ENV"></a>ENV</h3><p>ENV命令用于设置环境变量。这些变量以”key=value”的形式存在，并可以在容器内被脚本或者程序调用。这个机制给在容器中运行应用带来了极大的便利。</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Usage: ENV key value</span></span><br><span class="line"><span class="keyword">ENV</span> SERVER_WORKS <span class="number">4</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="ADD"><a href="#ADD" class="headerlink" title="ADD"></a>ADD</h3><p>格式为：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">ADD</span><span class="bash"> &lt;src&gt; &lt;dest&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p>ADD命令有两个参数，源和目标。它的基本作用是从源系统的文件系统上复制文件到目标容器的文件系统。如果源是一个URL，那该URL的内容将被下载并复制到容器中。其中 <code>&lt;src&gt;</code> 可以是 Dockerfile 所在目录的一个相对路径(文件或目录)；也可以是一个 URL；还可以是一个 tar 文件(自动解压为目录)。</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Usage: ADD [source directory or URL] [destination directory]</span></span><br><span class="line"><span class="keyword">ADD</span><span class="bash"> /my_app_folder /my_app_folder</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="COPY"><a href="#COPY" class="headerlink" title="COPY"></a>COPY</h3><p>格式：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">COPY</span><span class="bash"> &lt;src&gt; &lt;dest&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p>复制本地主机的 <code>&lt;src&gt;</code> (为 Dockerfile 所在目录的相对路径，文件或目录) 为容器中的 <code>&lt;dest&gt;</code>。目标路径不存在时，会自动创建。当使用本地目录为源目录时，推荐使用 COPY。</p>
-<h3 id="ENTRYPOINT"><a href="#ENTRYPOINT" class="headerlink" title="ENTRYPOINT"></a>ENTRYPOINT</h3><p>有两种格式：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">ENTRYPOINT</span><span class="bash"> [“executable”, “param1”, “param2”]</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">ENTRYPOINT</span><span class="bash"> <span class="built_in">command</span> param1 param2 (shell 中执行)</span></span><br></pre></td></tr></table></figure>
-
-<p>配置容器启动后执行的命令，并且不可被 docker run 提供的参数覆盖。</p>
-<p>每个 Dockerfile 中只能有一个 ENTRYPOINT，当指定多个时，只有最后一个起效。</p>
-<p>ENTRYPOINT 帮助你配置一个容器使之可执行化，如果你结合CMD命令和ENTRYPOINT命令，你可以从CMD命令中移除“application”而仅仅保留参数，参数将传递给ENTRYPOINT命令。</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Usage: ENTRYPOINT application &quot;argument&quot;, &quot;argument&quot;, ..</span></span><br><span class="line"><span class="comment"># Remember: arguments are optional. They can be provided by CMD</span></span><br><span class="line"><span class="comment"># or during the creation of a container.</span></span><br><span class="line"><span class="keyword">ENTRYPOINT</span><span class="bash"> <span class="built_in">echo</span></span></span><br><span class="line"><span class="comment"># Usage example with CMD:</span></span><br><span class="line"><span class="comment"># Arguments set with CMD can be overridden during *run*</span></span><br><span class="line"><span class="keyword">CMD</span><span class="bash"> <span class="string">&quot;Hello docker!&quot;</span></span></span><br><span class="line"><span class="keyword">ENTRYPOINT</span><span class="bash"> <span class="built_in">echo</span></span></span><br></pre></td></tr></table></figure>
-
-<h3 id="VOLUME"><a href="#VOLUME" class="headerlink" title="VOLUME"></a>VOLUME</h3><p>格式为：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">VOLUME</span><span class="bash"> [<span class="string">&quot;/data&quot;</span>]</span></span><br></pre></td></tr></table></figure>
-
-<p>也可以使用 VOLUME 指令添加多个数据卷：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">VOLUME</span><span class="bash"> [<span class="string">&quot;/data1&quot;</span>, <span class="string">&quot;/data2&quot;</span>]</span></span><br></pre></td></tr></table></figure>
-
-<p>创建一个可以从本地或其他容器挂载的挂载点，一般用来存放数据库和需要保持的数据等。<br>VOLUME命令用于让你的容器访问宿主机上的目录。</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Usage: VOLUME [&quot;/dir_1&quot;, &quot;/dir_2&quot; ..]</span></span><br><span class="line"><span class="keyword">VOLUME</span><span class="bash"> [<span class="string">&quot;/my_files&quot;</span>]</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="USER"><a href="#USER" class="headerlink" title="USER"></a>USER</h3><p>指定运行容器时的用户名或 UID，后续的 RUN 也会使用指定用户。当服务不需要管理员权限时，可以通过该命令指定运行用户。并且可以在之前创建所需要的用户，例如：RUN groupadd -r postgres &amp;&amp; useradd -r -g postgres postgres。</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Usage: USER [UID]</span></span><br><span class="line"><span class="keyword">USER</span> <span class="number">751</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="WORKDIR"><a href="#WORKDIR" class="headerlink" title="WORKDIR"></a>WORKDIR</h3><p>格式为：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">WORKDIR</span><span class="bash"> /path/to/workdir</span></span><br></pre></td></tr></table></figure>
-
-<p>为后续的 RUN、CMD、ENTRYPOINT 指令配置工作目录。可以使用多个 WORKDIR 指令，后续命令如果参数是相对路径，则会基于之前命令指定的路径。例如：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Usage: WORKDIR /path</span></span><br><span class="line"><span class="keyword">WORKDIR</span><span class="bash"> ~/</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="ONBUILD"><a href="#ONBUILD" class="headerlink" title="ONBUILD"></a>ONBUILD</h3><p>格式为：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">ONBUILD</span> [INSTRUCTION]</span><br></pre></td></tr></table></figure>
-
-<p>配置当所创建的镜像作为其他新创建镜像的基础镜像时，所执行的操作指令。例如，Dockerfile 使用如下的内容创建了镜像 image-A。</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">ONBUILD</span> <span class="keyword">ADD</span><span class="bash"> . /app/src</span></span><br><span class="line"><span class="keyword">ONBUILD</span> <span class="keyword">RUN</span><span class="bash"> /usr/<span class="built_in">local</span>/bin/python-build –dir /app/src</span></span><br></pre></td></tr></table></figure>
-
-<p>如果基于 image-A 创建新的镜像时，新的 Dockerfile 中使用 FROM image-A 指定基础镜像时，会自动执行 ONBUILD 指令内容，等价于在后面添加了两条指令。</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">FROM</span> image-A</span><br><span class="line"><span class="comment">#automatically run the following</span></span><br><span class="line"><span class="keyword">ADD</span><span class="bash"> . /app/src</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> /usr/<span class="built_in">local</span>/bin/python-build –dir /app/src</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="如何使用Dockerfiles"><a href="#如何使用Dockerfiles" class="headerlink" title="如何使用Dockerfiles"></a>如何使用Dockerfiles</h3><p>编写完成 Dockerfile 之后，可以通过 docker build 命令来创建镜像。</p>
-<p>使用Dockerfiles和手工使用Docker Daemon运行命令一样简单。脚本运行后输出为新的镜像ID。</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Build an image using the Dockerfile at current location</span></span><br><span class="line"><span class="comment"># Example: sudo docker build -t [name] .</span></span><br><span class="line">sudo docker build -t my_mongodb .</span><br></pre></td></tr></table></figure>
-
-<p>基本的格式为 docker build [选项] 路径，该命令将读取指定路径下(包括子目录)的 Dockerfile ，并将该路径下所有内容发送给 docker 服务端，由服务端来创建镜像。因此一般建议放置 Dockerfile 的目录为空目录。</p>
-<p>另外，可以通过 .dockerignore 文件来让 docker 忽略路径下的目录和文件。 要指定镜像的标签信息，可以通过 -t 选项来实现。<br>例如，指定 Dockerfile 所在路径为 /tmp/docker_builder/，并且希望生成镜像标签为 build_repo/first_image，可以使用下面的命令：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo docker build -t build_repo/first_image /tmp/docker_builder/</span><br></pre></td></tr></table></figure>
-
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/sparkdev/p/6357614.html">http://www.cnblogs.com/sparkdev/p/6357614.html</a></p>
-<p><a target="_blank" rel="noopener" href="https://yeasy.gitbooks.io/docker_practice/content/introduction/what.html">https://yeasy.gitbooks.io/docker_practice/content/introduction/what.html</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/boshen-hzb/p/6400272.html" title="参考">https://www.cnblogs.com/boshen-hzb/p/6400272.html</a></p>
 
       
     </div>
@@ -2234,7 +2295,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">493</span>
+          <span class="site-state-item-count">495</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -2247,7 +2308,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">190</span>
+        <span class="site-state-item-count">191</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
