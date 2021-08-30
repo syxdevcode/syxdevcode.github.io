@@ -182,6 +182,208 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/13/DotNet%E8%A7%A3%E5%86%B3%E4%BA%8B%E4%BB%B6-Event-%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E9%80%9A%E7%94%A8%E6%96%B9%E6%B3%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/12/13/DotNet%E8%A7%A3%E5%86%B3%E4%BA%8B%E4%BB%B6-Event-%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F%E9%80%9A%E7%94%A8%E6%96%B9%E6%B3%95/" class="post-title-link" itemprop="url">DotNet解决事件(Event)内存泄漏通用方法</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-12-13 15:05:14" itemprop="dateCreated datePublished" datetime="2018-12-13T15:05:14+00:00">2018-12-13</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F/" itemprop="url" rel="index"><span itemprop="name">内存泄漏</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="DotNet解决事件-Event-内存泄漏通用方法"><a href="#DotNet解决事件-Event-内存泄漏通用方法" class="headerlink" title="DotNet解决事件(Event)内存泄漏通用方法"></a>DotNet解决事件(Event)内存泄漏通用方法</h1><p>&emsp;&emsp;一个生命周期较短的对象（对象A）注册到一个生命周期较长（对象B）的某个事件（Event）上，两者便无形之间建立一个引用关系（B引用A）。这种引用关系导致GC在进行垃圾回收的时候不会将A是为垃圾对象，最终使其常驻内存（或者说将A捆绑到B上，具有了和B一样的生命周期）。这种让无用的对象不能被GC垃圾回收的现象，在托管环境下就是一种典型的内存泄漏问题。</p>
+<p><a target="_blank" rel="noopener" href="https://pan.baidu.com/s/1_zrGMRwiyB6Kky8t5kgFlA">代码下载</a><br>提取码：xazz</p>
+<p><font color=#0099ff size=4 face="黑体">事实上，.NET内存泄漏的最普遍原因是静态变量引用了对象。</font></p>
+<h2 id="造成事件-Event-内存泄漏的原因"><a href="#造成事件-Event-内存泄漏的原因" class="headerlink" title="造成事件(Event)内存泄漏的原因"></a>造成事件(Event)内存泄漏的原因</h2><p>事件本质上就是一个System.Delegate对象。<br>Delegate分解成两个部分：委托的事情和委托的对象。与之相似地，.NET的Delegate对象同样可以分解成两个部分：委托的功能（Method）和目标对象（Target），这可以直接从Delegate的定义就可以看出来：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title">Delegate</span> : <span class="title">ICloneable</span>, <span class="title">ISerializable</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// Others</span></span><br><span class="line">    <span class="keyword">public</span> MethodInfo Method &#123; <span class="keyword">get</span>; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">object</span> Target &#123; <span class="keyword">get</span>; &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>常用的事件处理类型<code>EventHandler</code>和<code>EventHandler&lt;TEventArgs&gt;</code>本质上就是一个Delegate。</p>
+<p>他们继承自<code>System.MulticastDelegate</code>，<code>MulticastDelegate</code>派生于<code>Delegate</code>。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[<span class="meta">Serializable, ComVisible(true)</span>]</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="built_in">delegate</span> <span class="keyword">void</span> <span class="title">EventHandler</span>(<span class="params"><span class="built_in">object</span> sender, EventArgs e</span>)</span>;</span><br><span class="line"></span><br><span class="line">[<span class="meta">Serializable</span>]</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="built_in">delegate</span> <span class="keyword">void</span> <span class="title">EventHandler</span>&lt;<span class="title">TEventArgs</span>&gt;(<span class="params"><span class="built_in">object</span> sender, TEventArgs e</span>) <span class="keyword">where</span> TEventArgs: EventArgs</span>;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;经过简单一句事件注册代码就通过一个EventHandler（EventHandler<TodoListArgs>）事件的源（TodoListManager）和事件的监听者（TodoListForm）两着关联起来，三者之间的关系如下图所示。从这张图中我们可以看到：TodoListForm实际上是通过注册的EventHandler的Target属性被TodoListManager间接引用着的。所以才会导致TodoListForm在关闭之后，永远不能拿成为垃圾对象，因为TodoListManager是一个基于static属性定义的Singleton对象，永远是GC的根。</p>
+<p><img src="/img/image_thumb_2.png" alt="image_thumb_2.png"></p>
+<h2 id="解决方法"><a href="#解决方法" class="headerlink" title="解决方法"></a>解决方法</h2><p>&emsp;&emsp;当对象A注册到B的某个事件上，A并不受到B的“强制引用”。既然不能“强引用（Strong Reference）”，那就只能是“弱引用（Weak Reference）”。通过<code>System.WeakReference</code>来解决这个问题。</p>
+<p>方法：采取某种机制，让事件源（Event Source）的EventHandler通过WeakReference的方式与事件监听者建立关系。只有在这种情况下，事件监听者没有了事件源的强制引用，在我们不用的时候才能及时成为垃圾对象，等待GC对它的清理。</p>
+<p><img src="/img/image_thumb_3.png" alt="image_thumb_3.png"></p>
+<p>&emsp;&emsp;通过传入<code>EventHandler&lt;TEventArgs&gt;</code>对象构造WeakReferenceHandler，在EventHandler<TEventArgs>的Target属性基础上建立WeakReference对象，在执行处理事件的时候通过该WeakReference找到真正的目标对象，如果找得到则通过反射在其基础上调用相应的方法；反之，如果通过不能得到Target，那么表明该事件的监听对象已经被GC当作垃圾对象回收掉了。为了在注册事件的时候方遍，特定义了一个隐式的类型转换：WeakReferenceHandler转换成EventHandler<TEventArgs>。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Reflection;</span><br><span class="line"><span class="keyword">namespace</span> <span class="title">Artech.MemLeakByEvents</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">class</span> <span class="title">WeakEventHandler</span>&lt;<span class="title">TEventArgs</span>&gt; <span class="keyword">where</span> <span class="title">TEventArgs</span> : <span class="title">EventArgs</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">public</span> WeakReference Reference</span><br><span class="line">        &#123; <span class="keyword">get</span>; <span class="keyword">private</span> <span class="keyword">set</span>; &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">public</span> MethodInfo Method</span><br><span class="line">        &#123; <span class="keyword">get</span>; <span class="keyword">private</span> <span class="keyword">set</span>; &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">public</span> EventHandler&lt;TEventArgs&gt; Handler</span><br><span class="line">         &#123; <span class="keyword">get</span>; <span class="keyword">private</span> <span class="keyword">set</span>; &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="title">WeakEventHandler</span>(<span class="params">EventHandler&lt;TEventArgs&gt; eventHandler</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            Reference = <span class="keyword">new</span> WeakReference(eventHandler.Target);</span><br><span class="line">            Method = eventHandler.Method;</span><br><span class="line">            Handler = Invoke;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">Invoke</span>(<span class="params"><span class="built_in">object</span> sender, TEventArgs e</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">object</span> target = Reference.Target;</span><br><span class="line">            <span class="keyword">if</span> (<span class="literal">null</span> != target)</span><br><span class="line">            &#123;</span><br><span class="line">                Method.Invoke(target, <span class="keyword">new</span> <span class="built_in">object</span>[] &#123; sender, e &#125;);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;summary&gt;</span></span></span><br><span class="line">        <span class="comment"><span class="doctag">///</span> 隐式转换</span></span><br><span class="line">        <span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;/summary&gt;</span></span></span><br><span class="line">        <span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;param name=&quot;weakHandler&quot;&gt;</span><span class="doctag">&lt;/param&gt;</span></span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">implicit</span> <span class="keyword">operator</span> <span class="title">EventHandler</span>&lt;<span class="title">TEventArgs</span>&gt;(<span class="params">WeakEventHandler&lt;TEventArgs&gt; weakHandler</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> weakHandler.Handler;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>实际进行事件注册:</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">TodoListForm_Load</span>(<span class="params"><span class="built_in">object</span> sender, EventArgs e</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    SynchronizationContext = SynchronizationContext.Current;</span><br><span class="line">    TodoListManager.Instance.TodoListChanged += <span class="keyword">new</span> WeakEventHandler&lt;TodoListEventArgs&gt;(TodoListManager_TodoListChanged);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/artech/archive/2009/12/06/1618239.html">事件(Event)，绝大多数内存泄漏（Memory Leak）的元凶[下篇] （提供Source Code下载）</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/13/DotNet%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F-Memory-Leak-%E4%BA%8B%E4%BB%B6-Event/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/12/13/DotNet%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F-Memory-Leak-%E4%BA%8B%E4%BB%B6-Event/" class="post-title-link" itemprop="url">DotNet内存泄漏(Memory Leak)-事件(Event)</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-12-13 11:06:53" itemprop="dateCreated datePublished" datetime="2018-12-13T11:06:53+00:00">2018-12-13</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%A7%94%E6%89%98%E4%B8%8E%E4%BA%8B%E4%BB%B6/" itemprop="url" rel="index"><span itemprop="name">委托与事件</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="DotNet内存泄漏-Memory-Leak-事件-Event"><a href="#DotNet内存泄漏-Memory-Leak-事件-Event" class="headerlink" title="DotNet内存泄漏(Memory Leak)-事件(Event)"></a>DotNet内存泄漏(Memory Leak)-事件(Event)</h1><p>通过<a target="_blank" rel="noopener" href="http://www.cnblogs.com/artech/archive/2009/12/03/1616507.html">事件(Event)，绝大多数内存泄漏（Memory Leak）的元凶[上篇]</a>这篇文章的实例，学习内存泄漏。</p>
+<p><a target="_blank" rel="noopener" href="https://pan.baidu.com/s/1_zrGMRwiyB6Kky8t5kgFlA">代码下载</a><br>提取码：xazz</p>
+<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20181213135838.png" alt="微信截图_20181213135838.png"></p>
+<p>&emsp;&emsp;我们这个应用程序叫做TodoListManager，因为通过它可以实时查看属于用户的“待办事宜（Todolist）”。这是一个GUI的应用，有两个Windows Form组成：左侧的窗体是一个程序的主界面（为了简单起见，我甚至没有将其做成MDI窗体），点击Todo List菜单项，右面的Form被显示出来：所有的代码事宜将会全部列出，为了保证记录的实时显示，每隔5秒钟数据自动刷新一次。</p>
+<p>&emsp;&emsp;首先定义表示每一项TotoList Item定义了一个相应的类型：MyEvent（不是我们谈到的导致内存泄漏的事件）。Event仅仅包含简单的属性：主题（Subject），截至日期（DueDate）和相应的描述性文字（Description），Event定义如下：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">namespace</span> <span class="title">WindowsFormsApp1</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">class</span> <span class="title">MyEvent</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="built_in">string</span> Subject &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">        <span class="keyword">public</span> DateTime DueDate &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">        <span class="keyword">public</span> <span class="built_in">string</span> Description &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="title">MyEvent</span>(<span class="params"><span class="built_in">string</span> subject, DateTime dueDate, <span class="built_in">string</span> desc</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (<span class="built_in">string</span>.IsNullOrEmpty(subject))</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentNullException(<span class="string">&quot;subject&quot;</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">this</span>.Subject = subject;</span><br><span class="line">            <span class="keyword">this</span>.DueDate = dueDate;</span><br><span class="line">            <span class="keyword">this</span>.Description = desc ?? <span class="built_in">string</span>.Empty;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;然后将所有逻辑（实际上仅仅是定期获取TodoList列表而已）定义在下面一个叫做TodoListManager的类型中。将其定义成Singleton的形式，并采用<code>System.Threading.Timer</code>实现定时地获取Todo List的操作。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">namespace</span> <span class="title">WindowsFormsApp1</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">class</span> <span class="title">TodoListManager</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">readonly</span> TodoListManager instance = <span class="keyword">new</span> TodoListManager();</span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">event</span> EventHandler&lt;TodoListEventArgs&gt; TodoListChanged;</span><br><span class="line">        <span class="keyword">private</span> Timer todoListRefreshSchedler;</span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="title">TodoListManager</span>(<span class="params"></span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            todoListRefreshSchedler = <span class="keyword">new</span> Timer</span><br><span class="line">            (</span><br><span class="line">                state =&gt;</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="keyword">if</span> (<span class="literal">null</span> == TodoListChanged)</span><br><span class="line">                    &#123;</span><br><span class="line">                        <span class="keyword">return</span>;</span><br><span class="line">                    &#125;</span><br><span class="line"></span><br><span class="line">                    TodoListChanged(<span class="literal">null</span>, <span class="keyword">new</span> TodoListEventArgs(GetTodolist()));</span><br><span class="line">                &#125;</span><br><span class="line">           , <span class="literal">null</span>, <span class="number">0</span>, <span class="number">5000</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">static</span> TodoListManager Instance</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">get</span></span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">return</span> instance;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="function"><span class="keyword">private</span> List&lt;MyEvent&gt; <span class="title">GetTodolist</span>(<span class="params"></span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">var</span> list = <span class="keyword">new</span> List&lt;MyEvent&gt;();</span><br><span class="line">            list.Add(<span class="keyword">new</span> MyEvent(<span class="string">&quot;Meeting with Testing Team&quot;</span>, DateTime.Today.AddDays(<span class="number">2</span>), <span class="string">&quot;NIL&quot;</span>));</span><br><span class="line">            list.Add(<span class="keyword">new</span> MyEvent(<span class="string">&quot;Deliver progress report to manager &quot;</span>, DateTime.Today.AddDays(<span class="number">7</span>), <span class="string">&quot;NIL&quot;</span>));</span><br><span class="line">            <span class="keyword">return</span> list;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;对于Timer的每一个轮询，都会处触发一个类型为<code>EventHandler&lt;TodoListEventArgs&gt;</code>的事件，通过注册这个事件，可以通过类型为TodoListEventArgs的事件参数得到最新的TodoList的列表，TodoListEventArgs定义如下：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">TodoListEventArgs</span> : <span class="title">EventArgs</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> IEnumerable&lt;MyEvent&gt; TodoList</span><br><span class="line">    &#123; <span class="keyword">get</span>; <span class="keyword">private</span> <span class="keyword">set</span>; &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">TodoListEventArgs</span>(<span class="params">IEnumerable&lt;MyEvent&gt; todoList</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="literal">null</span> == todoList)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentNullException(<span class="string">&quot;todoList&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">this</span>.TodoList = todoList;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;在窗体Load的时候注册TodoListManager的TodoListChanged事件，并将获取到的TodoList列表绑定到DataGridView上面。由于TodoListManager异步工作的原因，借助了SynchronizationContext这么一个对象实现对数据的绑定。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Threading;</span><br><span class="line"><span class="keyword">using</span> System.Windows.Forms;</span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">WindowsFormsApp1</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">partial</span> <span class="keyword">class</span> <span class="title">ToDoListForm</span> : <span class="title">Form</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">static</span> SynchronizationContext SynchronizationContext &#123; <span class="keyword">get</span>; <span class="keyword">private</span> <span class="keyword">set</span>; &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="title">ToDoListForm</span>(<span class="params"></span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            InitializeComponent();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">ToDoListForm_Load</span>(<span class="params"><span class="built_in">object</span> sender, EventArgs e</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            SynchronizationContext = SynchronizationContext.Current;</span><br><span class="line">            TodoListManager.Instance.TodoListChanged += TodoListManager_TodoListChanged;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">TodoListManager_TodoListChanged</span>(<span class="params"><span class="built_in">object</span> sender, TodoListEventArgs e</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            SynchronizationContext.Post(</span><br><span class="line">                state =&gt;</span><br><span class="line">                &#123;</span><br><span class="line">                    BindingSource bindingSource = <span class="keyword">new</span> BindingSource();</span><br><span class="line">                    bindingSource.DataSource = e.TodoList;</span><br><span class="line">                    <span class="keyword">this</span>.dataGridViewTodoList.DataSource = bindingSource;</span><br><span class="line">                &#125;, <span class="literal">null</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在整个应用级别定义了一个静态的System.Threading.Timer，让它每隔半秒调用一次GC.Collect()。</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Windows.Forms;</span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">WindowsFormsApp1</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">internal</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">private</span> <span class="keyword">static</span> System.Threading.Timer gcScheduler = <span class="keyword">new</span> System.Threading.Timer</span><br><span class="line">            (state =&gt; GC.Collect(), <span class="literal">null</span>, <span class="number">0</span>, <span class="number">500</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;summary&gt;</span></span></span><br><span class="line">        <span class="comment"><span class="doctag">///</span> 应用程序的主入口点。</span></span><br><span class="line">        <span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;/summary&gt;</span></span></span><br><span class="line">        [<span class="meta">STAThread</span>]</span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"></span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            Application.EnableVisualStyles();</span><br><span class="line">            Application.SetCompatibleTextRenderingDefault(<span class="literal">false</span>);</span><br><span class="line">            Application.Run(<span class="keyword">new</span> MainForm());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>查看内存泄漏，需要借助响应的Memory Profiling工具:</p>
+<p>JetBrains的<code>dotTrace</code>（免费），<br>RedGate的<code>ANTS Memory Profiler</code>(收费)</p>
+<p>&emsp;&emsp;ANTS Memory Profiler通过这样的原理来确定你的应用程序是否有泄漏问题：如果你怀疑某个操作会导致应该被GC回收的对象没有被回收，那么你在之前对内存分配情况拍一张快照（Snapshot），然后执行该操作，在操作完成并确定GC完成相应的回收操作后，在拍一张快照。通过对比，找出多余的对象，并根据具体的情况分析该对象是否应该被GC回收，如果是的，怎意味着你的程序存在着内存泄漏问题。</p>
+<p>通过ANTS Memory Profiler启动我们的应用程序后，在一开始的时候我们拍摄一张反映程序初始状态的内存快照，然后选择File\Todo List打开TodoListForm，等待一定的时间，再将TodoListForm关闭。为了让GC有充分的时间进行垃圾回收，不妨再作相应的等待，然后拍下第二张快照。在Class List视图中，你会发现原本应该被垃圾回收的TodoListForm窗体对象还存在于内存之中。</p>
+<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20181213144749.png" alt="微信截图_20181213144749.png"></p>
+<p>&emsp;&emsp;通过上图可以看得，该对象被TodoListManager的一个类型为<code>EventHandler&lt;TodoListEventArgs&gt;</code>的事件引用，这个对象实际上是一个Delegate对象，而TodoListForm作为这个Delegate对象的Target。通过上面给出的代码，我们不难想出是由于在TodoListForm实现了对TodoListManager的TotoListChanged事件注册导致了TodoListManager不能被垃圾回收。</p>
+<p>&emsp;&emsp;对于GUI应用可视化树形结构来说，一个窗体被关闭，照例说它应该成为垃圾对象，GC在执行垃圾回收的时候就可以将其清楚的。但是，由于该对象注册了一个事件到一个生命周期很长的对象（在本例中，TodoManager是一个Singletone对象，具有和整个应用程序一样的生命周期），它就是被这么一个对象长期引用，进而阻止 GC对其的回收工作。</p>
+<p>&emsp;&emsp;短暂生命周期注册事件到长期生命周期对象上，在该对象被Dispose的时候，应该解除事件的注册。你可以通过实现System.IDisposable接口，将解除事件注册的操作放在Dispose方法中。对于本里来说，你可以将相应的操作注册到Form的Closing、Closed或者Disposed事件中。比如在下面代码中，我为TodoListForm添加了如下一个Closing事件处理程序：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Threading;</span><br><span class="line"><span class="keyword">using</span> System.Windows.Forms;</span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">WindowsFormsApp1</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">partial</span> <span class="keyword">class</span> <span class="title">ToDoListForm</span> : <span class="title">Form</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">static</span> SynchronizationContext SynchronizationContext &#123; <span class="keyword">get</span>; <span class="keyword">private</span> <span class="keyword">set</span>; &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="title">ToDoListForm</span>(<span class="params"></span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            InitializeComponent();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">ToDoListForm_Load</span>(<span class="params"><span class="built_in">object</span> sender, EventArgs e</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            SynchronizationContext = SynchronizationContext.Current;</span><br><span class="line">            TodoListManager.Instance.TodoListChanged += TodoListManager_TodoListChanged;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">TodoListManager_TodoListChanged</span>(<span class="params"><span class="built_in">object</span> sender, TodoListEventArgs e</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            SynchronizationContext.Post(</span><br><span class="line">                state =&gt;</span><br><span class="line">                &#123;</span><br><span class="line">                    BindingSource bindingSource = <span class="keyword">new</span> BindingSource();</span><br><span class="line">                    bindingSource.DataSource = e.TodoList;</span><br><span class="line">                    <span class="keyword">this</span>.dataGridViewTodoList.DataSource = bindingSource;</span><br><span class="line">                &#125;, <span class="literal">null</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">ToDoListForm_FormClosing</span>(<span class="params"><span class="built_in">object</span> sender, FormClosingEventArgs e</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            TodoListManager.Instance.TodoListChanged -= TodoListManager_TodoListChanged;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>修改之后，按照上面的流程利用<code>ANTS Memory Profiler</code>在第二个快照中，你将再也看不到TodoListForm的身影（如下图）。</p>
+<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20181213145711.png" alt="微信截图_20181213145711.png"></p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/artech/archive/2009/12/03/1616507.html">事件(Event)，绝大多数内存泄漏（Memory Leak）的元凶[上篇]</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/12/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9006-%E5%A7%94%E6%89%98/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +415,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -310,7 +512,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -510,7 +712,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -603,7 +805,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -710,7 +912,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1697,7 +1899,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1823,7 +2025,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2003,7 +2205,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2208,7 +2410,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2394,7 +2596,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2523,7 +2725,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2727,7 +2929,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2829,7 +3031,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2898,251 +3100,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/08/21/Docker%E5%AE%89%E8%A3%85MongoDB4-1%E7%BE%A4%E9%9B%86/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/08/21/Docker%E5%AE%89%E8%A3%85MongoDB4-1%E7%BE%A4%E9%9B%86/" class="post-title-link" itemprop="url">Docker安装MongoDB4.1群集</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-08-21 10:37:53" itemprop="dateCreated datePublished" datetime="2018-08-21T10:37:53+00:00">2018-08-21</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/MongoDB/" itemprop="url" rel="index"><span itemprop="name">MongoDB</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="docker安装mongodb4-1群集"><a href="#docker安装mongodb4-1群集" class="headerlink" title="docker安装mongodb4.1群集"></a>docker安装mongodb4.1群集</h1><p>官网：<a target="_blank" rel="noopener" href="https://www.mongodb.com/">https://www.mongodb.com</a></p>
-<p>镜像：<a target="_blank" rel="noopener" href="https://hub.docker.com/_/mongo/">https://hub.docker.com/_/mongo/</a></p>
-<p>github: <a target="_blank" rel="noopener" href="https://github.com/docker-library/mongo/blob/4958ee0a8a6b1ac1c3734b161db67371720b31b5/4.1/Dockerfile">Dockerfile</a></p>
-<h2 id="相关概念"><a href="#相关概念" class="headerlink" title="相关概念"></a>相关概念</h2><p><img src="/img/sharded-cluster-production-architecture.bakedsvg.svg" alt="sharded-cluster-production-architecture.bakedsvg.svg"></p>
-<p>路由，分片、副本集、配置服务器</p>
-<p>四个组件：<code>mongos</code>、<code>config server</code>、<code>shard</code>、<code>replica set</code>。</p>
-<ul>
-<li><p><code>mongos</code>，数据库集群请求的入口，所有的请求都通过 <code>mongos</code> 进行协调，不需要在应用程序添加一个路由选择器，<code>mongos</code> 自己就是一个请求分发中心，它负责把对应的数据请求请求转发到对应的 <code>shard</code> 服务器上。在生产环境通常有多 <code>mongos</code> 作为请求的入口，防止其中一个挂掉所有的 <code>mongodb</code> 请求都没有办法操作。</p>
-</li>
-<li><p><code>config server</code>，顾名思义为配置服务器，存储所有数据库元信息（路由、分片）的配置。<code>mongos</code> 本身没有物理存储分片服务器和数据路由信息，只是缓存在内存里，配置服务器则实际存储这些数据。<code>mongos</code> 第一次启动或者关掉重启就会从 <code>config server</code> 加载配置信息，以后如果配置服务器信息变化会通知到所有的 <code>mongos</code> 更新自己的状态，这样 <code>mongos</code> 就能继续准确路由。在生产环境通常有多个 <code>config server</code> 配置服务器，因为它存储了分片路由的元数据，防止数据丢失！</p>
-</li>
-<li><p><code>shard</code>，分片（<code>sharding</code>）是指将数据库拆分，将其分散在不同的机器上的过程。将数据分散到不同的机器上，不需要功能强大的服务器就可以存储更多的数据和处理更大的负载。基本思想就是将集合切成小块，这些块分散到若干片里，每个片只负责总数据的一部分，最后通过一个均衡器来对各个分片进行均衡（数据迁移）。</p>
-</li>
-<li><p><code>replica set</code>，中文翻译 <code>副本集</code>，其实就是 <code>shard</code> 的备份，防止 <code>shard</code> 挂掉之后数据丢失。复制提供了数据的冗余备份，并在多个服务器上存储数据副本，提高了数据的可用性， 并可以保证数据的安全性。</p>
-</li>
-</ul>
-<p><code>仲裁者（Arbiter）</code>，是复制集中的一个 <code>MongoDB</code> 实例，它并不保存数据。仲裁节点使用最小的资源并且不要求硬件设备，不能将 <code>Arbiter</code> 部署在同一个数据集节点中，可以部署在其他应用服务器或者监视服务器中，也可部署在单独的虚拟机中。为了确保复制集中有奇数的投票成员（包括 <code>primary</code> ），需要添加仲裁节点做为投票，否则 <code>primary</code> 不能运行时不会自动切换 <code>primary</code>。</p>
-<p>注：<code>mongodb3.4</code> 以后要求配置服务器也创建副本集，不然集群搭建不成功。</p>
-<h2 id="部署"><a href="#部署" class="headerlink" title="部署"></a>部署</h2><p>目录结构：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mongodb</span><br><span class="line"> |--docker-compose.yml</span><br><span class="line"> |- mongodbtest</span><br></pre></td></tr></table></figure>
-
-<p>创建2个路由服务（<code>mongos</code>） 命令：<code>configdb</code></p>
-<p>创建3个配置服务（<code>configsvr</code> ）</p>
-<p>创建2个分片服务（<code>shardsvr</code>），每个 <code>shardsvr</code> 包含3个副本，其中1个主节点，1个从节点，1个仲裁节点。</p>
-<h3 id="创建目录"><a href="#创建目录" class="headerlink" title="创建目录"></a>创建目录</h3><p>在 <code>mongodb</code> 目录运行以下命令生成目录：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">mkdir -p /home/toor/Documents/mongodb/mongodbtest/mongos1 <span class="comment"># mongos1</span></span><br><span class="line">mkdir -p /home/toor/Documents/mongodb/mongodbtest/mongos2 <span class="comment"># mongos2</span></span><br><span class="line">mkdir -p /home/toor/Documents/mongodb/mongodbtest/cs/rs1 /home/toor/Documents/mongodb/mongodbtest/cs/rs2 /home/toor/Documents/mongodb/mongodbtest/cs/rs3 <span class="comment"># config server replset</span></span><br><span class="line">mkdir -p /home/toor/Documents/mongodb/mongodbtest/sh1/rs1 /home/toor/Documents/mongodb/mongodbtest/sh1/rs2 /home/toor/Documents/mongodb/mongodbtest/sh1/rs3 <span class="comment"># sharding</span></span><br><span class="line">mkdir -p /home/toor/Documents/mongodb/mongodbtest/sh2/rs1 /home/toor/Documents/mongodb/mongodbtest/sh2/rs2 /home/toor/Documents/mongodb/mongodbtest/sh2/rs3 <span class="comment"># sharding</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="创建docker-compose"><a href="#创建docker-compose" class="headerlink" title="创建docker-compose"></a>创建docker-compose</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">touch docker-compose.yml</span><br><span class="line">vim docker-compose.yml</span><br></pre></td></tr></table></figure>
-
-<p>docker-compose.yml内容：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line">version: <span class="string">&#x27;3&#x27;</span></span><br><span class="line">services:</span><br><span class="line">  csrs1:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/cs/rs1:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongod --noauth --configsvr --replSet csrs --dbpath /data/db</span><br><span class="line">  csrs2:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/cs/rs2:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongod --noauth --configsvr --replSet csrs --dbpath /data/db</span><br><span class="line">  csrs3:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/cs/rs3:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongod --noauth --configsvr --replSet csrs --dbpath /data/db</span><br><span class="line">  mongos1:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/mongos1:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongos --noauth --configdb csrs/csrs1:27019,csrs2:27019,csrs3:27019</span><br><span class="line">  mongos2:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/mongos2:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongos --noauth --configdb csrs/csrs1:27019,csrs2:27019,csrs3:27019</span><br><span class="line">  sh1rs1:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/sh1/rs1:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongod --noauth --dbpath /data/db --shardsvr --replSet shrs1</span><br><span class="line">  sh1rs2:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/sh1/rs2:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongod --noauth --dbpath /data/db --shardsvr --replSet shrs1</span><br><span class="line">  sh1rs3:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/sh1/rs3:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongod --noauth --dbpath /data/db --shardsvr --replSet shrs1</span><br><span class="line">  sh2rs1:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/sh2/rs1:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongod --noauth --dbpath /data/db --shardsvr --replSet shrs2</span><br><span class="line">  sh2rs2:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/sh2/rs2:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongod --noauth --dbpath /data/db --shardsvr --replSet shrs2</span><br><span class="line">  sh2rs3:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/sh2/rs3:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongod --noauth --dbpath /data/db --shardsvr --replSet shrs2</span><br></pre></td></tr></table></figure>
-
-<p>注：</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">--noauth 不进行身份认证</span><br><span class="line">--auth 进行身份认证</span><br><span class="line"></span><br><span class="line"><span class="comment"># 不加会有一个28017的端口监听，可以通过网页管理mongodb，不需要请去掉</span></span><br><span class="line">--nohttpinterface</span><br><span class="line"></span><br><span class="line"><span class="comment"># 这两个参数的作用就是改变启动端口</span></span><br><span class="line">--shardsvr</span><br><span class="line">--configsvr</span><br><span class="line"></span><br><span class="line"><span class="comment"># 副本集设置</span></span><br><span class="line">--replSet</span><br><span class="line"></span><br><span class="line"><span class="comment"># 这一项是用来指定chunk的大小的，单位是MB，默认大小为200MB</span></span><br><span class="line">--chunkSize</span><br><span class="line"></span><br><span class="line"><span class="comment"># 可以限制访问的ip</span></span><br><span class="line">--bind_ip</span><br><span class="line"></span><br><span class="line"><span class="comment"># 可以重新制定端口，默认为27017</span></span><br><span class="line">--port</span><br></pre></td></tr></table></figure>
-
-<h3 id="初始化-配置服务-副本集-Config-Server"><a href="#初始化-配置服务-副本集-Config-Server" class="headerlink" title="初始化[配置服务]副本集(Config Server)"></a>初始化[配置服务]副本集(Config Server)</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">docker-compose <span class="built_in">exec</span> csrs1 mongo --port 27019</span><br><span class="line">rs.initiate()</span><br><span class="line">rs.add(<span class="string">&#x27;csrs2:27019&#x27;</span>)</span><br><span class="line">rs.add(<span class="string">&#x27;csrs3:27019&#x27;</span>)</span><br><span class="line">rs.status() //查看状态</span><br><span class="line">quit() // 退出 或 <span class="built_in">exit</span></span><br></pre></td></tr></table></figure>
-
-<p>注：<code>config server</code> 默认端口为 27019</p>
-<h3 id="初始化分片"><a href="#初始化分片" class="headerlink" title="初始化分片"></a>初始化分片</h3><p>注：<code>shard server</code> 默认端口号为 27018</p>
-<h4 id="shrs1副本集"><a href="#shrs1副本集" class="headerlink" title="shrs1副本集"></a>shrs1副本集</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">docker-compose <span class="built_in">exec</span> sh1rs1 mongo --port 27018</span><br><span class="line">rs.initiate()</span><br><span class="line">var cfg = rs.conf()</span><br><span class="line">cfg.members[0].host = <span class="string">&#x27;sh1rs1:27018&#x27;</span></span><br><span class="line">rs.reconfig(cfg)</span><br><span class="line">rs.add(<span class="string">&#x27;sh1rs2:27018&#x27;</span>)</span><br><span class="line">rs.add(&#123;host:<span class="string">&quot;sh1rs3:27018&quot;</span>, arbiterOnly:<span class="literal">true</span>&#125;) // 仲裁</span><br><span class="line">quit()</span><br></pre></td></tr></table></figure>
-
-<h4 id="shrs2副本集"><a href="#shrs2副本集" class="headerlink" title="shrs2副本集"></a>shrs2副本集</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">docker-compose <span class="built_in">exec</span> sh2rs1 mongo --port 27018</span><br><span class="line">rs.initiate()</span><br><span class="line">var cfg = rs.conf()</span><br><span class="line">cfg.members[0].host = <span class="string">&#x27;sh2rs1:27018&#x27;</span></span><br><span class="line">rs.reconfig(cfg)</span><br><span class="line">rs.add(<span class="string">&#x27;sh2rs2:27018&#x27;</span>)</span><br><span class="line">rs.add(&#123;host:<span class="string">&quot;sh2rs3:27018&quot;</span>, arbiterOnly:<span class="literal">true</span>&#125;)</span><br><span class="line">quit()</span><br></pre></td></tr></table></figure>
-
-<h3 id="通过mongos添加分片关系到configsvr"><a href="#通过mongos添加分片关系到configsvr" class="headerlink" title="通过mongos添加分片关系到configsvr"></a>通过mongos添加分片关系到configsvr</h3><p>mongos1:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">docker-compose <span class="built_in">exec</span> mongos1 mongo</span><br><span class="line">sh.addShard(<span class="string">&#x27;shrs1/sh1rs1:27018,sh1rs2:27018,sh1rs3:27018&#x27;</span>)</span><br><span class="line">sh.addShard(<span class="string">&#x27;shrs2/sh2rs1:27018,sh2rs2:27018,sh2rs3:27018&#x27;</span>)</span><br><span class="line">sh.status() //查看状态</span><br></pre></td></tr></table></figure>
-
-<p>mongos2:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">docker-compose <span class="built_in">exec</span> mongos2 mongo</span><br><span class="line">sh.addShard(<span class="string">&#x27;shrs1/sh1rs1:27018,sh1rs2:27018,sh1rs3:27018&#x27;</span>)</span><br><span class="line">sh.addShard(<span class="string">&#x27;shrs2/sh2rs1:27018,sh2rs2:27018,sh2rs3:27018&#x27;</span>)</span><br><span class="line">sh.status() //查看状态</span><br></pre></td></tr></table></figure>
-
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180824094655.png" alt="QQ截图20180824094655.png"></p>
-<h2 id="启用分片"><a href="#启用分片" class="headerlink" title="启用分片"></a>启用分片</h2><h3 id="设置分片chunk大小"><a href="#设置分片chunk大小" class="headerlink" title="设置分片chunk大小"></a>设置分片chunk大小</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">use config</span><br><span class="line">db.settings.save(&#123;<span class="string">&quot;_id&quot;</span>:<span class="string">&quot;chunksize&quot;</span>,<span class="string">&quot;value&quot;</span>:1&#125;) // //设置块大小为1M是方便实验，不然就需要插入海量数据</span><br></pre></td></tr></table></figure>
-
-<h3 id="启用数据库分片"><a href="#启用数据库分片" class="headerlink" title="启用数据库分片"></a>启用数据库分片</h3><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#  数据库分片就有针对性，可以自定义需要分片的库或者表，毕竟也不是所有数据都是需要分片操作的</span></span><br><span class="line">sh.enableSharding(<span class="string">&quot;python&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">#  为表创建的索引,以”id“为索引</span></span><br><span class="line">db.user.createIndex(&#123;<span class="string">&quot;id&quot;</span>:1&#125;)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 启用表分片</span></span><br><span class="line">sh.shardCollection(<span class="string">&quot;python.user&quot;</span>,&#123;<span class="string">&quot;id&quot;</span>:1&#125;)</span><br><span class="line">sh.status()</span><br></pre></td></tr></table></figure>
-
-<h3 id="模拟写入数据"><a href="#模拟写入数据" class="headerlink" title="模拟写入数据"></a>模拟写入数据</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">use python</span><br><span class="line"><span class="keyword">for</span>(i=1;i&lt;=50000;i++)&#123;db.user.insert(&#123;<span class="string">&quot;id&quot;</span>:i,<span class="string">&quot;name&quot;</span>:<span class="string">&quot;jack&quot;</span>+i&#125;)&#125;</span><br><span class="line">sh.status()</span><br><span class="line">db.user.stats()</span><br><span class="line">db.user.count()</span><br><span class="line">show dbs</span><br></pre></td></tr></table></figure>
-
-<h2 id="后期运维"><a href="#后期运维" class="headerlink" title="后期运维"></a>后期运维</h2><p>mongodb 的启动顺序是，先启动配置服务器，在启动分片，最后启动 mongos.</p>
-<p>关闭时，直接 <code>killall</code> 杀掉所有进程</p>
-<p>例：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">killall mongod</span><br><span class="line">killall mongos</span><br></pre></td></tr></table></figure>
-
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://www.ityouknow.com/mongodb/2017/08/05/mongodb-cluster-setup.html">mongodb 3.4 集群搭建：分片+副本集</a></p>
-<p><a target="_blank" rel="noopener" href="http://blog.51cto.com/13643643/2148825">MongoDB(4.0)分片——大数据的处理之道</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/ityouknow/p/7566682.html">mongodb 3.4 集群搭建升级版 五台集群</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/4d86e9c33e0d">docker 搭建 mongo 集群</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/hehexiaoxia/p/6192796.html">[原创]在Docker上部署mongodb分片副本集群</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/08/14/CentOS7%E5%AE%89%E8%A3%85MariaDB/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/08/14/CentOS7%E5%AE%89%E8%A3%85MariaDB/" class="post-title-link" itemprop="url">CentOS7安装MariaDB</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-08-14 15:08:05" itemprop="dateCreated datePublished" datetime="2018-08-14T15:08:05+00:00">2018-08-14</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/MariaDB/" itemprop="url" rel="index"><span itemprop="name">MariaDB</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="CentOS7安装MariaDB"><a href="#CentOS7安装MariaDB" class="headerlink" title="CentOS7安装MariaDB"></a>CentOS7安装MariaDB</h1><h2 id="MariaDB简介"><a href="#MariaDB简介" class="headerlink" title="MariaDB简介"></a>MariaDB简介</h2><p>官网：<a target="_blank" rel="noopener" href="https://mariadb.org/">https://mariadb.org/</a></p>
-<p>MariaDB Github地址：<a target="_blank" rel="noopener" href="https://github.com/MariaDB/server">https://github.com/MariaDB/server</a></p>
-<h2 id="安装MariaDB"><a href="#安装MariaDB" class="headerlink" title="安装MariaDB"></a>安装MariaDB</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">su root <span class="comment">## 切换root用户</span></span><br><span class="line">yum -y install mariadb-server mariadb <span class="comment">## 下载MariaDB</span></span><br><span class="line">yum -y install mariadb-server mariadb <span class="comment">## 启动MariaDB服务</span></span><br><span class="line">systemctl <span class="built_in">enable</span> mariadb <span class="comment">## 设置默认开机启动 可选</span></span><br></pre></td></tr></table></figure>
-
-<h2 id="测试是否成功"><a href="#测试是否成功" class="headerlink" title="测试是否成功"></a>测试是否成功</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost toor]<span class="comment"># mysql</span></span><br><span class="line">Welcome to the MariaDB monitor.  Commands end with ; or \g.</span><br><span class="line">Your MariaDB connection id is 2</span><br><span class="line">Server version: 5.5.56-MariaDB MariaDB Server</span><br><span class="line"></span><br><span class="line">Copyright (c) 2000, 2017, Oracle, MariaDB Corporation Ab and others.</span><br><span class="line"></span><br><span class="line">Type <span class="string">&#x27;help;&#x27;</span> or <span class="string">&#x27;\h&#x27;</span> <span class="keyword">for</span> <span class="built_in">help</span>. Type <span class="string">&#x27;\c&#x27;</span> to clear the current input statement.</span><br></pre></td></tr></table></figure>
-
-<h2 id="运行一次mysql-secure-installation安全配置向导"><a href="#运行一次mysql-secure-installation安全配置向导" class="headerlink" title="运行一次mysql_secure_installation安全配置向导"></a>运行一次mysql_secure_installation安全配置向导</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#由于一开始安装MariaDB数据库后, root用户默认密码为空, 所以只需要按Enter键</span></span><br><span class="line">Enter current password <span class="keyword">for</span> root (enter <span class="keyword">for</span> none):</span><br><span class="line">OK, successfully used password, moving on...</span><br><span class="line"></span><br><span class="line"><span class="comment">#是否设置root用户的新密码</span></span><br><span class="line">Set root password? [Y/n] y</span><br><span class="line"></span><br><span class="line"><span class="comment">#录入新密码</span></span><br><span class="line">New password:</span><br><span class="line"></span><br><span class="line"><span class="comment">#确认新密码</span></span><br><span class="line">Re-enter new password:</span><br><span class="line"></span><br><span class="line"><span class="comment">#是否删除匿名用户,生产环境建议删除</span></span><br><span class="line">Remove anonymous users? [Y/n] y</span><br><span class="line">... Success!</span><br><span class="line"></span><br><span class="line"><span class="comment">#是否禁止root远程登录,根据自己的需求选择</span></span><br><span class="line">Disallow root login remotely? [Y/n] n</span><br><span class="line">... skipping.</span><br><span class="line"></span><br><span class="line"><span class="comment">#是否删除test数据库</span></span><br><span class="line">Remove <span class="built_in">test</span> database and access to it? [Y/n] y</span><br><span class="line"></span><br><span class="line"><span class="comment">#是否重新加载权限表</span></span><br><span class="line">Reload privilege tables now? [Y/n] y</span><br><span class="line"> ... Success!</span><br></pre></td></tr></table></figure>
-
-<h2 id="开放端口"><a href="#开放端口" class="headerlink" title="开放端口"></a>开放端口</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">firewall-cmd --zone=public --add-port=3306/tcp --permanent</span><br><span class="line">firewall-cmd --reload</span><br></pre></td></tr></table></figure>
-
-<h2 id="开放远程连接"><a href="#开放远程连接" class="headerlink" title="开放远程连接"></a>开放远程连接</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql -u root -p <span class="comment">## 登录mysql xing123123</span></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#任何远程主机都可以访问数据库</span></span><br><span class="line">mysql&gt; grant all privileges on *.* to <span class="string">&#x27;root&#x27;</span>@<span class="string">&#x27;%&#x27;</span> identified by <span class="string">&#x27;123456&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">#使修改生效</span></span><br><span class="line">mysql&gt; flush privileges;</span><br><span class="line">mysql&gt; <span class="built_in">exit</span></span><br></pre></td></tr></table></figure>
-
-<h2 id="修改编码为UTF-8"><a href="#修改编码为UTF-8" class="headerlink" title="修改编码为UTF-8"></a>修改编码为UTF-8</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/my.cnf</span><br></pre></td></tr></table></figure>
-
-<p>添加以下内容：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[mysqld]</span><br><span class="line">character-set-server=utf8</span><br></pre></td></tr></table></figure>
-
-<p>需要重启数据库</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">## 查看数据库编码</span></span><br><span class="line"></span><br><span class="line"> mysql -uroot -p</span><br><span class="line">show variables like <span class="string">&#x27;character%&#x27;</span>;</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">MariaDB [(none)]&gt; show variables like <span class="string">&#x27;character%&#x27;</span>;</span><br><span class="line">+--------------------------+----------------------------+</span><br><span class="line">| Variable_name            | Value                      |</span><br><span class="line">+--------------------------+----------------------------+</span><br><span class="line">| character_set_client     | utf8                       |</span><br><span class="line">| character_set_connection | utf8                       |</span><br><span class="line">| character_set_database   | utf8                       |</span><br><span class="line">| character_set_filesystem | binary                     |</span><br><span class="line">| character_set_results    | utf8                       |</span><br><span class="line">| character_set_server     | utf8                       |</span><br><span class="line">| character_set_system     | utf8                       |</span><br><span class="line">| character_sets_dir       | /usr/share/mysql/charsets/ |</span><br><span class="line">+--------------------------+----------------------------+</span><br><span class="line">8 rows <span class="keyword">in</span> <span class="built_in">set</span> (0.00 sec)</span><br></pre></td></tr></table></figure>
-
-<h2 id="使用mysql-workbench连接"><a href="#使用mysql-workbench连接" class="headerlink" title="使用mysql workbench连接"></a>使用mysql workbench连接</h2><p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20180905104709.png" alt="微信截图_20180905104709.png"></p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/toubennuhai/article/details/70808610">Centos7 安装配置MariaDB</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/27/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/27/">27</a><span class="page-number current">28</span><a class="page-number" href="/page/29/">29</a><span class="space">&hellip;</span><a class="page-number" href="/page/33/">33</a><a class="extend next" rel="next" href="/page/29/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
+    <a class="extend prev" rel="prev" href="/page/27/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/27/">27</a><span class="page-number current">28</span><a class="page-number" href="/page/29/">29</a><span class="space">&hellip;</span><a class="page-number" href="/page/34/">34</a><a class="extend next" rel="next" href="/page/29/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
   </nav>
 
 
@@ -3208,20 +3169,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">495</span>
+          <span class="site-state-item-count">497</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">128</span>
+        <span class="site-state-item-count">129</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">191</span>
+        <span class="site-state-item-count">193</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>

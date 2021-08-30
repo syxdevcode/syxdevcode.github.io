@@ -182,6 +182,247 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/08/21/Docker%E5%AE%89%E8%A3%85MongoDB4-1%E7%BE%A4%E9%9B%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/08/21/Docker%E5%AE%89%E8%A3%85MongoDB4-1%E7%BE%A4%E9%9B%86/" class="post-title-link" itemprop="url">Docker安装MongoDB4.1群集</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-08-21 10:37:53" itemprop="dateCreated datePublished" datetime="2018-08-21T10:37:53+00:00">2018-08-21</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/MongoDB/" itemprop="url" rel="index"><span itemprop="name">MongoDB</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="docker安装mongodb4-1群集"><a href="#docker安装mongodb4-1群集" class="headerlink" title="docker安装mongodb4.1群集"></a>docker安装mongodb4.1群集</h1><p>官网：<a target="_blank" rel="noopener" href="https://www.mongodb.com/">https://www.mongodb.com</a></p>
+<p>镜像：<a target="_blank" rel="noopener" href="https://hub.docker.com/_/mongo/">https://hub.docker.com/_/mongo/</a></p>
+<p>github: <a target="_blank" rel="noopener" href="https://github.com/docker-library/mongo/blob/4958ee0a8a6b1ac1c3734b161db67371720b31b5/4.1/Dockerfile">Dockerfile</a></p>
+<h2 id="相关概念"><a href="#相关概念" class="headerlink" title="相关概念"></a>相关概念</h2><p><img src="/img/sharded-cluster-production-architecture.bakedsvg.svg" alt="sharded-cluster-production-architecture.bakedsvg.svg"></p>
+<p>路由，分片、副本集、配置服务器</p>
+<p>四个组件：<code>mongos</code>、<code>config server</code>、<code>shard</code>、<code>replica set</code>。</p>
+<ul>
+<li><p><code>mongos</code>，数据库集群请求的入口，所有的请求都通过 <code>mongos</code> 进行协调，不需要在应用程序添加一个路由选择器，<code>mongos</code> 自己就是一个请求分发中心，它负责把对应的数据请求请求转发到对应的 <code>shard</code> 服务器上。在生产环境通常有多 <code>mongos</code> 作为请求的入口，防止其中一个挂掉所有的 <code>mongodb</code> 请求都没有办法操作。</p>
+</li>
+<li><p><code>config server</code>，顾名思义为配置服务器，存储所有数据库元信息（路由、分片）的配置。<code>mongos</code> 本身没有物理存储分片服务器和数据路由信息，只是缓存在内存里，配置服务器则实际存储这些数据。<code>mongos</code> 第一次启动或者关掉重启就会从 <code>config server</code> 加载配置信息，以后如果配置服务器信息变化会通知到所有的 <code>mongos</code> 更新自己的状态，这样 <code>mongos</code> 就能继续准确路由。在生产环境通常有多个 <code>config server</code> 配置服务器，因为它存储了分片路由的元数据，防止数据丢失！</p>
+</li>
+<li><p><code>shard</code>，分片（<code>sharding</code>）是指将数据库拆分，将其分散在不同的机器上的过程。将数据分散到不同的机器上，不需要功能强大的服务器就可以存储更多的数据和处理更大的负载。基本思想就是将集合切成小块，这些块分散到若干片里，每个片只负责总数据的一部分，最后通过一个均衡器来对各个分片进行均衡（数据迁移）。</p>
+</li>
+<li><p><code>replica set</code>，中文翻译 <code>副本集</code>，其实就是 <code>shard</code> 的备份，防止 <code>shard</code> 挂掉之后数据丢失。复制提供了数据的冗余备份，并在多个服务器上存储数据副本，提高了数据的可用性， 并可以保证数据的安全性。</p>
+</li>
+</ul>
+<p><code>仲裁者（Arbiter）</code>，是复制集中的一个 <code>MongoDB</code> 实例，它并不保存数据。仲裁节点使用最小的资源并且不要求硬件设备，不能将 <code>Arbiter</code> 部署在同一个数据集节点中，可以部署在其他应用服务器或者监视服务器中，也可部署在单独的虚拟机中。为了确保复制集中有奇数的投票成员（包括 <code>primary</code> ），需要添加仲裁节点做为投票，否则 <code>primary</code> 不能运行时不会自动切换 <code>primary</code>。</p>
+<p>注：<code>mongodb3.4</code> 以后要求配置服务器也创建副本集，不然集群搭建不成功。</p>
+<h2 id="部署"><a href="#部署" class="headerlink" title="部署"></a>部署</h2><p>目录结构：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mongodb</span><br><span class="line"> |--docker-compose.yml</span><br><span class="line"> |- mongodbtest</span><br></pre></td></tr></table></figure>
+
+<p>创建2个路由服务（<code>mongos</code>） 命令：<code>configdb</code></p>
+<p>创建3个配置服务（<code>configsvr</code> ）</p>
+<p>创建2个分片服务（<code>shardsvr</code>），每个 <code>shardsvr</code> 包含3个副本，其中1个主节点，1个从节点，1个仲裁节点。</p>
+<h3 id="创建目录"><a href="#创建目录" class="headerlink" title="创建目录"></a>创建目录</h3><p>在 <code>mongodb</code> 目录运行以下命令生成目录：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">mkdir -p /home/toor/Documents/mongodb/mongodbtest/mongos1 <span class="comment"># mongos1</span></span><br><span class="line">mkdir -p /home/toor/Documents/mongodb/mongodbtest/mongos2 <span class="comment"># mongos2</span></span><br><span class="line">mkdir -p /home/toor/Documents/mongodb/mongodbtest/cs/rs1 /home/toor/Documents/mongodb/mongodbtest/cs/rs2 /home/toor/Documents/mongodb/mongodbtest/cs/rs3 <span class="comment"># config server replset</span></span><br><span class="line">mkdir -p /home/toor/Documents/mongodb/mongodbtest/sh1/rs1 /home/toor/Documents/mongodb/mongodbtest/sh1/rs2 /home/toor/Documents/mongodb/mongodbtest/sh1/rs3 <span class="comment"># sharding</span></span><br><span class="line">mkdir -p /home/toor/Documents/mongodb/mongodbtest/sh2/rs1 /home/toor/Documents/mongodb/mongodbtest/sh2/rs2 /home/toor/Documents/mongodb/mongodbtest/sh2/rs3 <span class="comment"># sharding</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="创建docker-compose"><a href="#创建docker-compose" class="headerlink" title="创建docker-compose"></a>创建docker-compose</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">touch docker-compose.yml</span><br><span class="line">vim docker-compose.yml</span><br></pre></td></tr></table></figure>
+
+<p>docker-compose.yml内容：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line">version: <span class="string">&#x27;3&#x27;</span></span><br><span class="line">services:</span><br><span class="line">  csrs1:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/cs/rs1:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongod --noauth --configsvr --replSet csrs --dbpath /data/db</span><br><span class="line">  csrs2:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/cs/rs2:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongod --noauth --configsvr --replSet csrs --dbpath /data/db</span><br><span class="line">  csrs3:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/cs/rs3:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongod --noauth --configsvr --replSet csrs --dbpath /data/db</span><br><span class="line">  mongos1:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/mongos1:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongos --noauth --configdb csrs/csrs1:27019,csrs2:27019,csrs3:27019</span><br><span class="line">  mongos2:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/mongos2:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongos --noauth --configdb csrs/csrs1:27019,csrs2:27019,csrs3:27019</span><br><span class="line">  sh1rs1:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/sh1/rs1:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongod --noauth --dbpath /data/db --shardsvr --replSet shrs1</span><br><span class="line">  sh1rs2:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/sh1/rs2:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongod --noauth --dbpath /data/db --shardsvr --replSet shrs1</span><br><span class="line">  sh1rs3:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/sh1/rs3:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongod --noauth --dbpath /data/db --shardsvr --replSet shrs1</span><br><span class="line">  sh2rs1:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/sh2/rs1:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongod --noauth --dbpath /data/db --shardsvr --replSet shrs2</span><br><span class="line">  sh2rs2:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/sh2/rs2:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongod --noauth --dbpath /data/db --shardsvr --replSet shrs2</span><br><span class="line">  sh2rs3:</span><br><span class="line">    image: mongo:latest</span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="variable">$PWD</span>/mongodbtest/sh2/rs3:/data/db</span><br><span class="line">    <span class="built_in">command</span>: mongod --noauth --dbpath /data/db --shardsvr --replSet shrs2</span><br></pre></td></tr></table></figure>
+
+<p>注：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">--noauth 不进行身份认证</span><br><span class="line">--auth 进行身份认证</span><br><span class="line"></span><br><span class="line"><span class="comment"># 不加会有一个28017的端口监听，可以通过网页管理mongodb，不需要请去掉</span></span><br><span class="line">--nohttpinterface</span><br><span class="line"></span><br><span class="line"><span class="comment"># 这两个参数的作用就是改变启动端口</span></span><br><span class="line">--shardsvr</span><br><span class="line">--configsvr</span><br><span class="line"></span><br><span class="line"><span class="comment"># 副本集设置</span></span><br><span class="line">--replSet</span><br><span class="line"></span><br><span class="line"><span class="comment"># 这一项是用来指定chunk的大小的，单位是MB，默认大小为200MB</span></span><br><span class="line">--chunkSize</span><br><span class="line"></span><br><span class="line"><span class="comment"># 可以限制访问的ip</span></span><br><span class="line">--bind_ip</span><br><span class="line"></span><br><span class="line"><span class="comment"># 可以重新制定端口，默认为27017</span></span><br><span class="line">--port</span><br></pre></td></tr></table></figure>
+
+<h3 id="初始化-配置服务-副本集-Config-Server"><a href="#初始化-配置服务-副本集-Config-Server" class="headerlink" title="初始化[配置服务]副本集(Config Server)"></a>初始化[配置服务]副本集(Config Server)</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">docker-compose <span class="built_in">exec</span> csrs1 mongo --port 27019</span><br><span class="line">rs.initiate()</span><br><span class="line">rs.add(<span class="string">&#x27;csrs2:27019&#x27;</span>)</span><br><span class="line">rs.add(<span class="string">&#x27;csrs3:27019&#x27;</span>)</span><br><span class="line">rs.status() //查看状态</span><br><span class="line">quit() // 退出 或 <span class="built_in">exit</span></span><br></pre></td></tr></table></figure>
+
+<p>注：<code>config server</code> 默认端口为 27019</p>
+<h3 id="初始化分片"><a href="#初始化分片" class="headerlink" title="初始化分片"></a>初始化分片</h3><p>注：<code>shard server</code> 默认端口号为 27018</p>
+<h4 id="shrs1副本集"><a href="#shrs1副本集" class="headerlink" title="shrs1副本集"></a>shrs1副本集</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">docker-compose <span class="built_in">exec</span> sh1rs1 mongo --port 27018</span><br><span class="line">rs.initiate()</span><br><span class="line">var cfg = rs.conf()</span><br><span class="line">cfg.members[0].host = <span class="string">&#x27;sh1rs1:27018&#x27;</span></span><br><span class="line">rs.reconfig(cfg)</span><br><span class="line">rs.add(<span class="string">&#x27;sh1rs2:27018&#x27;</span>)</span><br><span class="line">rs.add(&#123;host:<span class="string">&quot;sh1rs3:27018&quot;</span>, arbiterOnly:<span class="literal">true</span>&#125;) // 仲裁</span><br><span class="line">quit()</span><br></pre></td></tr></table></figure>
+
+<h4 id="shrs2副本集"><a href="#shrs2副本集" class="headerlink" title="shrs2副本集"></a>shrs2副本集</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">docker-compose <span class="built_in">exec</span> sh2rs1 mongo --port 27018</span><br><span class="line">rs.initiate()</span><br><span class="line">var cfg = rs.conf()</span><br><span class="line">cfg.members[0].host = <span class="string">&#x27;sh2rs1:27018&#x27;</span></span><br><span class="line">rs.reconfig(cfg)</span><br><span class="line">rs.add(<span class="string">&#x27;sh2rs2:27018&#x27;</span>)</span><br><span class="line">rs.add(&#123;host:<span class="string">&quot;sh2rs3:27018&quot;</span>, arbiterOnly:<span class="literal">true</span>&#125;)</span><br><span class="line">quit()</span><br></pre></td></tr></table></figure>
+
+<h3 id="通过mongos添加分片关系到configsvr"><a href="#通过mongos添加分片关系到configsvr" class="headerlink" title="通过mongos添加分片关系到configsvr"></a>通过mongos添加分片关系到configsvr</h3><p>mongos1:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">docker-compose <span class="built_in">exec</span> mongos1 mongo</span><br><span class="line">sh.addShard(<span class="string">&#x27;shrs1/sh1rs1:27018,sh1rs2:27018,sh1rs3:27018&#x27;</span>)</span><br><span class="line">sh.addShard(<span class="string">&#x27;shrs2/sh2rs1:27018,sh2rs2:27018,sh2rs3:27018&#x27;</span>)</span><br><span class="line">sh.status() //查看状态</span><br></pre></td></tr></table></figure>
+
+<p>mongos2:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">docker-compose <span class="built_in">exec</span> mongos2 mongo</span><br><span class="line">sh.addShard(<span class="string">&#x27;shrs1/sh1rs1:27018,sh1rs2:27018,sh1rs3:27018&#x27;</span>)</span><br><span class="line">sh.addShard(<span class="string">&#x27;shrs2/sh2rs1:27018,sh2rs2:27018,sh2rs3:27018&#x27;</span>)</span><br><span class="line">sh.status() //查看状态</span><br></pre></td></tr></table></figure>
+
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180824094655.png" alt="QQ截图20180824094655.png"></p>
+<h2 id="启用分片"><a href="#启用分片" class="headerlink" title="启用分片"></a>启用分片</h2><h3 id="设置分片chunk大小"><a href="#设置分片chunk大小" class="headerlink" title="设置分片chunk大小"></a>设置分片chunk大小</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">use config</span><br><span class="line">db.settings.save(&#123;<span class="string">&quot;_id&quot;</span>:<span class="string">&quot;chunksize&quot;</span>,<span class="string">&quot;value&quot;</span>:1&#125;) // //设置块大小为1M是方便实验，不然就需要插入海量数据</span><br></pre></td></tr></table></figure>
+
+<h3 id="启用数据库分片"><a href="#启用数据库分片" class="headerlink" title="启用数据库分片"></a>启用数据库分片</h3><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#  数据库分片就有针对性，可以自定义需要分片的库或者表，毕竟也不是所有数据都是需要分片操作的</span></span><br><span class="line">sh.enableSharding(<span class="string">&quot;python&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">#  为表创建的索引,以”id“为索引</span></span><br><span class="line">db.user.createIndex(&#123;<span class="string">&quot;id&quot;</span>:1&#125;)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 启用表分片</span></span><br><span class="line">sh.shardCollection(<span class="string">&quot;python.user&quot;</span>,&#123;<span class="string">&quot;id&quot;</span>:1&#125;)</span><br><span class="line">sh.status()</span><br></pre></td></tr></table></figure>
+
+<h3 id="模拟写入数据"><a href="#模拟写入数据" class="headerlink" title="模拟写入数据"></a>模拟写入数据</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">use python</span><br><span class="line"><span class="keyword">for</span>(i=1;i&lt;=50000;i++)&#123;db.user.insert(&#123;<span class="string">&quot;id&quot;</span>:i,<span class="string">&quot;name&quot;</span>:<span class="string">&quot;jack&quot;</span>+i&#125;)&#125;</span><br><span class="line">sh.status()</span><br><span class="line">db.user.stats()</span><br><span class="line">db.user.count()</span><br><span class="line">show dbs</span><br></pre></td></tr></table></figure>
+
+<h2 id="后期运维"><a href="#后期运维" class="headerlink" title="后期运维"></a>后期运维</h2><p>mongodb 的启动顺序是，先启动配置服务器，在启动分片，最后启动 mongos.</p>
+<p>关闭时，直接 <code>killall</code> 杀掉所有进程</p>
+<p>例：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">killall mongod</span><br><span class="line">killall mongos</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.ityouknow.com/mongodb/2017/08/05/mongodb-cluster-setup.html">mongodb 3.4 集群搭建：分片+副本集</a></p>
+<p><a target="_blank" rel="noopener" href="http://blog.51cto.com/13643643/2148825">MongoDB(4.0)分片——大数据的处理之道</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/ityouknow/p/7566682.html">mongodb 3.4 集群搭建升级版 五台集群</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/4d86e9c33e0d">docker 搭建 mongo 集群</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/hehexiaoxia/p/6192796.html">[原创]在Docker上部署mongodb分片副本集群</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/08/14/CentOS7%E5%AE%89%E8%A3%85MariaDB/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/08/14/CentOS7%E5%AE%89%E8%A3%85MariaDB/" class="post-title-link" itemprop="url">CentOS7安装MariaDB</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-08-14 15:08:05" itemprop="dateCreated datePublished" datetime="2018-08-14T15:08:05+00:00">2018-08-14</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/MariaDB/" itemprop="url" rel="index"><span itemprop="name">MariaDB</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="CentOS7安装MariaDB"><a href="#CentOS7安装MariaDB" class="headerlink" title="CentOS7安装MariaDB"></a>CentOS7安装MariaDB</h1><h2 id="MariaDB简介"><a href="#MariaDB简介" class="headerlink" title="MariaDB简介"></a>MariaDB简介</h2><p>官网：<a target="_blank" rel="noopener" href="https://mariadb.org/">https://mariadb.org/</a></p>
+<p>MariaDB Github地址：<a target="_blank" rel="noopener" href="https://github.com/MariaDB/server">https://github.com/MariaDB/server</a></p>
+<h2 id="安装MariaDB"><a href="#安装MariaDB" class="headerlink" title="安装MariaDB"></a>安装MariaDB</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">su root <span class="comment">## 切换root用户</span></span><br><span class="line">yum -y install mariadb-server mariadb <span class="comment">## 下载MariaDB</span></span><br><span class="line">yum -y install mariadb-server mariadb <span class="comment">## 启动MariaDB服务</span></span><br><span class="line">systemctl <span class="built_in">enable</span> mariadb <span class="comment">## 设置默认开机启动 可选</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="测试是否成功"><a href="#测试是否成功" class="headerlink" title="测试是否成功"></a>测试是否成功</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost toor]<span class="comment"># mysql</span></span><br><span class="line">Welcome to the MariaDB monitor.  Commands end with ; or \g.</span><br><span class="line">Your MariaDB connection id is 2</span><br><span class="line">Server version: 5.5.56-MariaDB MariaDB Server</span><br><span class="line"></span><br><span class="line">Copyright (c) 2000, 2017, Oracle, MariaDB Corporation Ab and others.</span><br><span class="line"></span><br><span class="line">Type <span class="string">&#x27;help;&#x27;</span> or <span class="string">&#x27;\h&#x27;</span> <span class="keyword">for</span> <span class="built_in">help</span>. Type <span class="string">&#x27;\c&#x27;</span> to clear the current input statement.</span><br></pre></td></tr></table></figure>
+
+<h2 id="运行一次mysql-secure-installation安全配置向导"><a href="#运行一次mysql-secure-installation安全配置向导" class="headerlink" title="运行一次mysql_secure_installation安全配置向导"></a>运行一次mysql_secure_installation安全配置向导</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#由于一开始安装MariaDB数据库后, root用户默认密码为空, 所以只需要按Enter键</span></span><br><span class="line">Enter current password <span class="keyword">for</span> root (enter <span class="keyword">for</span> none):</span><br><span class="line">OK, successfully used password, moving on...</span><br><span class="line"></span><br><span class="line"><span class="comment">#是否设置root用户的新密码</span></span><br><span class="line">Set root password? [Y/n] y</span><br><span class="line"></span><br><span class="line"><span class="comment">#录入新密码</span></span><br><span class="line">New password:</span><br><span class="line"></span><br><span class="line"><span class="comment">#确认新密码</span></span><br><span class="line">Re-enter new password:</span><br><span class="line"></span><br><span class="line"><span class="comment">#是否删除匿名用户,生产环境建议删除</span></span><br><span class="line">Remove anonymous users? [Y/n] y</span><br><span class="line">... Success!</span><br><span class="line"></span><br><span class="line"><span class="comment">#是否禁止root远程登录,根据自己的需求选择</span></span><br><span class="line">Disallow root login remotely? [Y/n] n</span><br><span class="line">... skipping.</span><br><span class="line"></span><br><span class="line"><span class="comment">#是否删除test数据库</span></span><br><span class="line">Remove <span class="built_in">test</span> database and access to it? [Y/n] y</span><br><span class="line"></span><br><span class="line"><span class="comment">#是否重新加载权限表</span></span><br><span class="line">Reload privilege tables now? [Y/n] y</span><br><span class="line"> ... Success!</span><br></pre></td></tr></table></figure>
+
+<h2 id="开放端口"><a href="#开放端口" class="headerlink" title="开放端口"></a>开放端口</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">firewall-cmd --zone=public --add-port=3306/tcp --permanent</span><br><span class="line">firewall-cmd --reload</span><br></pre></td></tr></table></figure>
+
+<h2 id="开放远程连接"><a href="#开放远程连接" class="headerlink" title="开放远程连接"></a>开放远程连接</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysql -u root -p <span class="comment">## 登录mysql xing123123</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#任何远程主机都可以访问数据库</span></span><br><span class="line">mysql&gt; grant all privileges on *.* to <span class="string">&#x27;root&#x27;</span>@<span class="string">&#x27;%&#x27;</span> identified by <span class="string">&#x27;123456&#x27;</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">#使修改生效</span></span><br><span class="line">mysql&gt; flush privileges;</span><br><span class="line">mysql&gt; <span class="built_in">exit</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="修改编码为UTF-8"><a href="#修改编码为UTF-8" class="headerlink" title="修改编码为UTF-8"></a>修改编码为UTF-8</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vim /etc/my.cnf</span><br></pre></td></tr></table></figure>
+
+<p>添加以下内容：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[mysqld]</span><br><span class="line">character-set-server=utf8</span><br></pre></td></tr></table></figure>
+
+<p>需要重启数据库</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">## 查看数据库编码</span></span><br><span class="line"></span><br><span class="line"> mysql -uroot -p</span><br><span class="line">show variables like <span class="string">&#x27;character%&#x27;</span>;</span><br></pre></td></tr></table></figure>
+
+<p>结果：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">MariaDB [(none)]&gt; show variables like <span class="string">&#x27;character%&#x27;</span>;</span><br><span class="line">+--------------------------+----------------------------+</span><br><span class="line">| Variable_name            | Value                      |</span><br><span class="line">+--------------------------+----------------------------+</span><br><span class="line">| character_set_client     | utf8                       |</span><br><span class="line">| character_set_connection | utf8                       |</span><br><span class="line">| character_set_database   | utf8                       |</span><br><span class="line">| character_set_filesystem | binary                     |</span><br><span class="line">| character_set_results    | utf8                       |</span><br><span class="line">| character_set_server     | utf8                       |</span><br><span class="line">| character_set_system     | utf8                       |</span><br><span class="line">| character_sets_dir       | /usr/share/mysql/charsets/ |</span><br><span class="line">+--------------------------+----------------------------+</span><br><span class="line">8 rows <span class="keyword">in</span> <span class="built_in">set</span> (0.00 sec)</span><br></pre></td></tr></table></figure>
+
+<h2 id="使用mysql-workbench连接"><a href="#使用mysql-workbench连接" class="headerlink" title="使用mysql workbench连接"></a>使用mysql workbench连接</h2><p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20180905104709.png" alt="微信截图_20180905104709.png"></p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/toubennuhai/article/details/70808610">Centos7 安装配置MariaDB</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/08/07/SSH%E5%AF%86%E9%92%A5%E5%AF%B9%E9%AA%8C%E8%AF%81%E7%99%BB%E5%BD%95-CentOS7/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +454,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -315,7 +556,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -449,7 +690,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -530,7 +771,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -615,7 +856,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -725,7 +966,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -874,7 +1115,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -960,7 +1201,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1039,7 +1280,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1120,7 +1361,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1345,7 +1586,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1430,7 +1671,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1558,7 +1799,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
+                <time title="修改时间：2021-08-30 09:45:14" itemprop="dateModified" datetime="2021-08-30T09:45:14+00:00">2021-08-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1755,315 +1996,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/07/04/Docker%E6%90%AD%E5%BB%BARabbitMQ%E9%AB%98%E5%8F%AF%E7%94%A8%E7%BE%A4%E9%9B%86/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/07/04/Docker%E6%90%AD%E5%BB%BARabbitMQ%E9%AB%98%E5%8F%AF%E7%94%A8%E7%BE%A4%E9%9B%86/" class="post-title-link" itemprop="url">Docker搭建RabbitMQ高可用群集</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-07-04 13:45:17" itemprop="dateCreated datePublished" datetime="2018-07-04T13:45:17+00:00">2018-07-04</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/RabbitMQ/" itemprop="url" rel="index"><span itemprop="name">RabbitMQ</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="Docker搭建RabbitMQ高可用群集"><a href="#Docker搭建RabbitMQ高可用群集" class="headerlink" title="Docker搭建RabbitMQ高可用群集"></a>Docker搭建RabbitMQ高可用群集</h1><p>官方镜像：</p>
-<p><a target="_blank" rel="noopener" href="https://hub.docker.com/_/rabbitmq/">https://hub.docker.com/_/rabbitmq/</a><br><a target="_blank" rel="noopener" href="https://github.com/docker-library/rabbitmq/blob/4b2b11c59ee65c2a09616b163d4572559a86bb7b/3.7/debian/management/Dockerfile">Dockerfile</a></p>
-<h2 id="Docker搭建RabbitMQ单机容器"><a href="#Docker搭建RabbitMQ单机容器" class="headerlink" title="Docker搭建RabbitMQ单机容器"></a>Docker搭建RabbitMQ单机容器</h2><p>目录结构：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">rabbitmq</span><br><span class="line">|--rabbitmq-a</span><br><span class="line">  |--data</span><br></pre></td></tr></table></figure>
-
-<p>获取镜像：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker pull rabbitmq:<span class="number">3.7</span>.<span class="number">6</span>-management</span><br></pre></td></tr></table></figure>
-
-<p>使用以下命令运行容器：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">docker <span class="keyword">run</span><span class="bash"> -d --name rabbitmq-a \</span></span><br><span class="line"><span class="bash">    -p 4369:4369 \</span></span><br><span class="line"><span class="bash">    -p 5671:5671 \</span></span><br><span class="line"><span class="bash">    -p 5672:5672 \</span></span><br><span class="line"><span class="bash">    -p 25672:25672 \</span></span><br><span class="line"><span class="bash">    -p 15672:15672 \</span></span><br><span class="line"><span class="bash">    -h rabbitmq-node1 \</span></span><br><span class="line"><span class="bash">    -e RABBITMQ_NODENAME=rabbit \</span></span><br><span class="line"><span class="bash">    -e RABBITMQ_DEFAULT_USER=admin \</span></span><br><span class="line"><span class="bash">    -e RABBITMQ_DEFAULT_PASS=admin \</span></span><br><span class="line"><span class="bash">    -v <span class="variable">$PWD</span>/rabbitmq-a/data:/var/lib/rabbitmq \</span></span><br><span class="line"><span class="bash">    rabbitmq:3.7.6-management</span></span><br></pre></td></tr></table></figure>
-
-<p>进入容器：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker <span class="built_in">exec</span> -it rabbitmq-a /bin/bash</span><br></pre></td></tr></table></figure>
-
-<p>查看群集：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rabbitmqctl cluster_status</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">root@rabbitmq-node1:/<span class="comment"># rabbitmqctl cluster_status</span></span><br><span class="line">Cluster status of node rabbit@rabbitmq-node1 ...</span><br><span class="line">[&#123;nodes,[&#123;disc,[<span class="string">&#x27;rabbit@rabbitmq-node1&#x27;</span>]&#125;]&#125;,</span><br><span class="line"> &#123;running_nodes,[<span class="string">&#x27;rabbit@rabbitmq-node1&#x27;</span>]&#125;,</span><br><span class="line"> &#123;cluster_name,&lt;&lt;<span class="string">&quot;rabbit@rabbitmq-node1&quot;</span>&gt;&gt;&#125;,</span><br><span class="line"> &#123;partitions,[]&#125;,</span><br><span class="line"> &#123;alarms,[&#123;<span class="string">&#x27;rabbit@rabbitmq-node1&#x27;</span>,[]&#125;]&#125;]</span><br></pre></td></tr></table></figure>
-
-<p>查找cookie:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">find / -name <span class="string">&quot;.erlang.cookie&quot;</span></span><br><span class="line">cat /var/lib/rabbitmq/.erlang.cookie</span><br></pre></td></tr></table></figure>
-
-<p>结果：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">root@rabbitmq-node1:/<span class="comment"># find / -name &quot;.erlang.cookie&quot;</span></span><br><span class="line">/root/.erlang.cookie</span><br><span class="line">/var/lib/rabbitmq/.erlang.cookie</span><br><span class="line">root@rabbitmq-node1:/<span class="comment"># cat /var/lib/rabbitmq/.erlang.cookie</span></span><br><span class="line">BYCWRWRQGDLYZZDXDBSB</span><br></pre></td></tr></table></figure>
-
-<h2 id="RabbitMQ-Server-高可用集群相关概念"><a href="#RabbitMQ-Server-高可用集群相关概念" class="headerlink" title="RabbitMQ Server 高可用集群相关概念"></a>RabbitMQ Server 高可用集群相关概念</h2><h3 id="设计集群的目的"><a href="#设计集群的目的" class="headerlink" title="设计集群的目的"></a>设计集群的目的</h3><ul>
-<li>允许消费者和生产者在 RabbitMQ 节点崩溃的情况下继续运行。</li>
-<li>通过增加更多的节点来扩展消息通信的吞吐量。</li>
-</ul>
-<h3 id="集群配置方式"><a href="#集群配置方式" class="headerlink" title="集群配置方式"></a>集群配置方式</h3><ul>
-<li>cluster：不支持跨网段，用于同一个网段内的局域网；可以随意的动态增加或者减少；节点之间需要运行相同版本的 RabbitMQ 和 Erlang。</li>
-<li>federation：应用于广域网，允许单台服务器上的交换机或队列接收发布到另一台服务器上交换机或队列的消息，可以是单独机器或集群。federation 队列类似于单向点对点连接，消息会在联盟队列之间转发任意次，直到被消费者接受。通常使用 federation 来连接 internet 上的中间服务器，用作订阅分发消息或工作队列。</li>
-<li>shovel：连接方式与 federation 的连接方式类似，但它工作在更低层次。可以应用于广域网。</li>
-</ul>
-<h3 id="节点类型"><a href="#节点类型" class="headerlink" title="节点类型"></a>节点类型</h3><ul>
-<li>RAM node：内存节点将所有的队列、交换机、绑定、用户、权限和 vhost 的元数据定义存储在内存中，好处是可以使得像交换机和队列声明等操作更加的快速。</li>
-<li>Disk node：将元数据存储在磁盘中，单节点系统只允许磁盘类型的节点，防止重启 RabbitMQ 的时候，丢失系统的配置信息。</li>
-</ul>
-<p>** 问题说明：**</p>
-<p>RabbitMQ 要求在集群中至少有一个磁盘节点，所有其他节点可以是内存节点，当节点加入或者离开集群时，必须要将该变更通知到至少一个磁盘节点。如果集群中唯一的一个磁盘节点崩溃的话，集群仍然可以保持运行，但是无法进行其他操作（增删改查），直到节点恢复。</p>
-<p>** 解决方案：**</p>
-<p>设置两个磁盘节点，至少有一个是可用的，可以保存元数据的更改。</p>
-<h3 id="镜像队列"><a href="#镜像队列" class="headerlink" title="镜像队列"></a>镜像队列</h3><p>RabbitMQ 的 Cluster 集群模式一般分为两种，普通模式和镜像模式。</p>
-<ul>
-<li>** 普通模式**：默认的集群模式，以两个节点（rabbit01、rabbit02）为例来进行说明。对于 Queue 来说，消息实体只存在于其中一个节点 rabbit01（或者 rabbit02），rabbit01 和 rabbit02 两个节点仅有相同的元数据，即队列的结构。当消息进入 rabbit01 节点的 Queue 后，consumer 从 rabbit02 节点消费时，RabbitMQ 会临时在 rabbit01、rabbit02 间进行消息传输，把 A 中的消息实体取出并经过 B 发送给 consumer。所以 consumer 应尽量连接每一个节点，从中取消息。即对于同一个逻辑队列，要在多个节点建立物理 Queue。否则无论 consumer 连 rabbit01 或 rabbit02，出口总在 rabbit01，会产生瓶颈。当 rabbit01 节点故障后，rabbit02 节点无法取到 rabbit01 节点中还未消费的消息实体。如果做了消息持久化，那么得等 rabbit01 节点恢复，然后才可被消费；如果没有持久化的话，就会产生消息丢失的现象。</li>
-<li>** 镜像模式**：将需要消费的队列变为镜像队列，存在于多个节点，这样就可以实现 RabbitMQ 的 HA 高可用性。作用就是消息实体会主动在镜像节点之间实现同步，而不是像普通模式那样，在 consumer 消费数据时临时读取。缺点就是，集群内部的同步通讯会占用大量的网络带宽。</li>
-</ul>
-<p>镜像队列实现了 RabbitMQ 的高可用性（HA），具体的实现策略如下所示：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180705085605.png" alt="QQ截图20180705085605.png"></p>
-<p>实例列举：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">queue_args(<span class="string">&quot;x-ha-policy&quot;</span>:<span class="string">&quot;all&quot;</span>) //定义字典来设置额外的队列声明参数</span><br><span class="line">channel.queue_declare(queue=<span class="string">&quot;hello-queue&quot;</span>,argument=queue_args)</span><br></pre></td></tr></table></figure>
-
-<p>如果需要设定特定的节点（以rabbit@localhost为例），再添加一个参数</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">queue_args(<span class="string">&quot;x-ha-policy&quot;</span>:<span class="string">&quot;nodes&quot;</span>,</span><br><span class="line">           <span class="string">&quot;x-ha-policy-params&quot;</span>:[<span class="string">&quot;rabbit@localhost&quot;</span>])</span><br><span class="line">channel.queue_declare(queue=<span class="string">&quot;hello-queue&quot;</span>,argument=queue_args)</span><br></pre></td></tr></table></figure>
-
-<p>可以通过命令行查看那个主节点进行了同步</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rabbitmqctl list_queue name slave_pids synchronised_slave_pids</span><br></pre></td></tr></table></figure>
-
-<p>以上内容主要参考：<a target="_blank" rel="noopener" href="https://blog.csdn.net/WoogeYu/article/details/51119101">RabbitMQ分布式集群架构</a></p>
-<h2 id="Docker-Compose搭建RabbitMQ高可用集群"><a href="#Docker-Compose搭建RabbitMQ高可用集群" class="headerlink" title="Docker-Compose搭建RabbitMQ高可用集群"></a>Docker-Compose搭建RabbitMQ高可用集群</h2><p>架构图：</p>
-<p><img src="/img/435188-20180427122219477-216329665.png" alt="435188-20180427122219477-216329665.png"></p>
-<p>这个编排主要实现一个磁盘节点、两个内存节点的RabbitMQ集群和一个HAProxy代理。</p>
-<p>目录结构：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">rabbitmq</span><br><span class="line">  |--cluster_entrypoint.sh</span><br><span class="line">  |--docker-compose.yml</span><br><span class="line">  |--haproxy.cfg</span><br><span class="line">  |--parameters.env</span><br></pre></td></tr></table></figure>
-
-<h3 id="cluster-entrypoint-sh"><a href="#cluster-entrypoint-sh" class="headerlink" title="cluster_entrypoint.sh"></a>cluster_entrypoint.sh</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">touch cluster_entrypoint.sh <span class="comment">##新建</span></span><br><span class="line">chmod +x cluster_entrypoint.sh <span class="comment">##执行权限</span></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="built_in">set</span> -e</span><br><span class="line"><span class="keyword">if</span> [ -e <span class="string">&quot;/root/is_not_first_time&quot;</span> ]; <span class="keyword">then</span></span><br><span class="line">    <span class="built_in">exec</span> <span class="string">&quot;<span class="variable">$@</span>&quot;</span></span><br><span class="line"><span class="keyword">else</span></span><br><span class="line">    /usr/<span class="built_in">local</span>/bin/docker-entrypoint.sh rabbitmq-server -detached <span class="comment"># 先按官方入口文件启动且是后台运行</span></span><br><span class="line">    rabbitmqctl -n <span class="string">&quot;<span class="variable">$RABBITMQ_NODENAME</span>@<span class="variable">$RABBITMQ_HOSTNAME</span>&quot;</span> stop_app <span class="comment"># 停止应用</span></span><br><span class="line">    rabbitmqctl -n <span class="string">&quot;<span class="variable">$RABBITMQ_NODENAME</span>@<span class="variable">$RABBITMQ_HOSTNAME</span>&quot;</span> join_cluster <span class="variable">$&#123;RMQHA_RAM_NODE:+--ram&#125;</span> <span class="string">&quot;<span class="variable">$RMQHA_MASTER_NODE</span>@<span class="variable">$RMQHA_MASTER_HOST</span>&quot;</span> <span class="comment"># 加入rabbitmq_node0集群</span></span><br><span class="line">    rabbitmqctl -n <span class="string">&quot;<span class="variable">$RABBITMQ_NODENAME</span>@<span class="variable">$RABBITMQ_HOSTNAME</span>&quot;</span> start_app <span class="comment"># 启动应用</span></span><br><span class="line">    rabbitmqctl stop <span class="comment"># 停止所有服务</span></span><br><span class="line">    touch /root/is_not_first_time</span><br><span class="line">    sleep 2s</span><br><span class="line">    <span class="built_in">exec</span> <span class="string">&quot;<span class="variable">$@</span>&quot;</span></span><br><span class="line"><span class="keyword">fi</span></span><br></pre></td></tr></table></figure>
-
-<p>注意：<br>rabbitmqctl join_cluster rabbit@node1<br>//默认是磁盘节点，如果是内存节点的话，需要加–ram参数</p>
-<h3 id="parameters-env"><a href="#parameters-env" class="headerlink" title="parameters.env"></a>parameters.env</h3><p>即公共环境变量</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">touch parameters.env</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">RMQHA_MASTER_NODE=rabbit</span><br><span class="line">RMQHA_MASTER_HOST=rabbitmq_node0</span><br><span class="line">RABBITMQ_DEFAULT_USER=admin</span><br><span class="line">RABBITMQ_DEFAULT_PASS=admin</span><br><span class="line">RABBITMQ_NODENAME=rabbit</span><br><span class="line">RABBITMQ_ERLANG_COOKIE=FQSCWUREIVFXVRTAOIFI</span><br></pre></td></tr></table></figure>
-
-<h3 id="haproxy-cfg"><a href="#haproxy-cfg" class="headerlink" title="haproxy.cfg"></a>haproxy.cfg</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line">global</span><br><span class="line">    <span class="built_in">log</span>     127.0.0.1  local0 info</span><br><span class="line">    <span class="built_in">log</span>     127.0.0.1  local1 notice</span><br><span class="line">    daemon</span><br><span class="line">    maxconn 4096</span><br><span class="line"></span><br><span class="line">defaults</span><br><span class="line">    <span class="built_in">log</span>     global</span><br><span class="line">    mode    tcp</span><br><span class="line">    option  tcplog</span><br><span class="line">    option  dontlognull</span><br><span class="line">    retries 3</span><br><span class="line">    option  abortonclose</span><br><span class="line">    maxconn 4096</span><br><span class="line">    timeout connect  5000ms</span><br><span class="line">    timeout client  3000ms</span><br><span class="line">    timeout server  3000ms</span><br><span class="line">    balance roundrobin</span><br><span class="line"></span><br><span class="line">listen private_monitoring</span><br><span class="line">    <span class="built_in">bind</span>    0.0.0.0:8100 <span class="comment"># haproxy容器8100端口显示代理统计页面</span></span><br><span class="line">    mode    http</span><br><span class="line">    option  httplog</span><br><span class="line">    stats   <span class="built_in">enable</span></span><br><span class="line">    stats   refresh  5s</span><br><span class="line">    stats   hide-version</span><br><span class="line">    stats   uri  /stats</span><br><span class="line">    stats   realm   Haproxy</span><br><span class="line">    stats   auth  admin:admin</span><br><span class="line"></span><br><span class="line">listen rabbitmq_admin</span><br><span class="line">    <span class="built_in">bind</span>    0.0.0.0:15672</span><br><span class="line">    server  rabbitmq_node0 rabbitmq_node0:15672</span><br><span class="line">    server  rabbitmq_node1 rabbitmq_node1:15672</span><br><span class="line">    server  rabbitmq_node2 rabbitmq_node2:15672</span><br><span class="line"></span><br><span class="line">listen rabbitmq_cluster</span><br><span class="line">    <span class="built_in">bind</span>    0.0.0.0:5672</span><br><span class="line">    mode    tcp</span><br><span class="line">    option  tcplog</span><br><span class="line">    balance roundrobin</span><br><span class="line">    timeout client  3h</span><br><span class="line">    timeout server  3h</span><br><span class="line">    server  rabbitmq_node0 rabbitmq_node0:5672  check inter 5s rise 2 fall 3</span><br><span class="line">    server  rabbitmq_node1 rabbitmq_node1:5672  check inter 5s rise 2 fall 3</span><br><span class="line">    server  rabbitmq_node2 rabbitmq_node2:5672  check inter 5s rise 2 fall 3</span><br><span class="line"><span class="comment"># ssl for rabbitmq</span></span><br><span class="line">frontend ssl_rabbitmq</span><br><span class="line">    <span class="built_in">bind</span> *:5673 ssl crt /usr/<span class="built_in">local</span>/etc/rmqha.pem</span><br><span class="line">    mode tcp</span><br><span class="line">    default_backend rabbitmq_cluster</span><br></pre></td></tr></table></figure>
-
-<h3 id="docker-compose-yml"><a href="#docker-compose-yml" class="headerlink" title="docker-compose.yml"></a>docker-compose.yml</h3><p>注意三个rabbitmq服务，并没有映射主机端口，而是开放容器端口。</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br></pre></td><td class="code"><pre><span class="line">version: <span class="string">&quot;3&quot;</span></span><br><span class="line">services:</span><br><span class="line">  diskmq:</span><br><span class="line">    image: rabbitmq:3.7.6-management</span><br><span class="line">    container_name: rabbitmq_node0</span><br><span class="line">    restart: always</span><br><span class="line">    hostname: rabbitmq_node0</span><br><span class="line">    ports:</span><br><span class="line">      - <span class="string">&quot;15672&quot;</span></span><br><span class="line">      - <span class="string">&quot;5672&quot;</span></span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="string">&quot;./rabbitmq.config:/etc/rabbitmq/conf/rabbitmq.config&quot;</span></span><br><span class="line">      - <span class="string">&quot;/root/CA:/etc/rabbitmq/conf&quot;</span></span><br><span class="line">    env_file:</span><br><span class="line">      - ./parameters.env</span><br><span class="line">    environment:</span><br><span class="line">      - CONTAINER_NAME=rabbitmq_node0</span><br><span class="line">      - RABBITMQ_HOSTNAME=rabbitmq_node0</span><br><span class="line">      - RABBITMQ_NODENAME=rabbit</span><br><span class="line">      - RABBITMQ_CONFIG_FILE=/etc/rabbitmq/rabbitmq.config</span><br><span class="line">  rammq1:</span><br><span class="line">    image: rabbitmq:3.7.6-management</span><br><span class="line">    container_name: rabbitmq_node1</span><br><span class="line">    restart: always</span><br><span class="line">    depends_on:</span><br><span class="line">      - diskmq</span><br><span class="line">    hostname: rabbitmq_node1</span><br><span class="line">    ports:</span><br><span class="line">      - <span class="string">&quot;15672&quot;</span></span><br><span class="line">      - <span class="string">&quot;5672&quot;</span></span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="string">&quot;./cluster_entrypoint.sh:/usr/local/bin/cluster_entrypoint.sh&quot;</span></span><br><span class="line">      - <span class="string">&quot;./rabbitmq.config:/etc/rabbitmq/conf/rabbitmq.config&quot;</span></span><br><span class="line">      - <span class="string">&quot;/root/CA:/etc/rabbitmq/conf&quot;</span></span><br><span class="line">    entrypoint: <span class="string">&quot;/usr/local/bin/cluster_entrypoint.sh&quot;</span></span><br><span class="line">    <span class="built_in">command</span>: <span class="string">&quot;rabbitmq-server&quot;</span></span><br><span class="line">    env_file:</span><br><span class="line">      - ./parameters.env</span><br><span class="line">    environment:</span><br><span class="line">      - CONTAINER_NAME=rabbitmq_node1</span><br><span class="line">      - RABBITMQ_HOSTNAME=rabbitmq_node1</span><br><span class="line">      - RABBITMQ_NODENAME=rabbit</span><br><span class="line">      - RMQHA_RAM_NODE=<span class="literal">true</span></span><br><span class="line">      - RABBITMQ_CONFIG_FILE=/etc/rabbitmq/rabbitmq.config</span><br><span class="line">  rammq2:</span><br><span class="line">    image: rabbitmq:3.7.6-management</span><br><span class="line">    container_name: rabbitmq_node2</span><br><span class="line">    restart: always</span><br><span class="line">    depends_on:</span><br><span class="line">      - diskmq</span><br><span class="line">    hostname: rabbitmq_node2</span><br><span class="line">    ports:</span><br><span class="line">      - <span class="string">&quot;15672&quot;</span></span><br><span class="line">      - <span class="string">&quot;5672&quot;</span></span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="string">&quot;./cluster_entrypoint.sh:/usr/local/bin/cluster_entrypoint.sh&quot;</span></span><br><span class="line">      - <span class="string">&quot;./rabbitmq.config:/etc/rabbitmq/conf/rabbitmq.config&quot;</span></span><br><span class="line">      - <span class="string">&quot;/root/CA:/etc/rabbitmq/conf&quot;</span></span><br><span class="line">    entrypoint: <span class="string">&quot;/usr/local/bin/cluster_entrypoint.sh&quot;</span></span><br><span class="line">    <span class="built_in">command</span>: <span class="string">&quot;rabbitmq-server&quot;</span></span><br><span class="line">    env_file:</span><br><span class="line">      - ./parameters.env</span><br><span class="line">    environment:</span><br><span class="line">      - CONTAINER_NAME=rabbitmq_node2</span><br><span class="line">      - RABBITMQ_HOSTNAME=rabbitmq_node2</span><br><span class="line">      - RABBITMQ_NODENAME=rabbit</span><br><span class="line">      - RMQHA_RAM_NODE=<span class="literal">true</span></span><br><span class="line">      - RABBITMQ_CONFIG_FILE=/etc/rabbitmq/rabbitmq.config</span><br><span class="line">  haproxy:</span><br><span class="line">    image: haproxy:1.8-alpine</span><br><span class="line">    container_name: rabbitmq_proxy</span><br><span class="line">    restart: always</span><br><span class="line">    depends_on:</span><br><span class="line">      - diskmq</span><br><span class="line">      - rammq1</span><br><span class="line">      - rammq2</span><br><span class="line">    hostname: rabbitmq_proxy</span><br><span class="line">    ports:</span><br><span class="line">      - <span class="string">&quot;5672:5672&quot;</span></span><br><span class="line">      - <span class="string">&quot;5673:5673&quot;</span></span><br><span class="line">      - <span class="string">&quot;15672:15672&quot;</span></span><br><span class="line">      - <span class="string">&quot;8100:8100&quot;</span></span><br><span class="line">    volumes:</span><br><span class="line">      - <span class="string">&quot;./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg&quot;</span></span><br><span class="line">    environment:</span><br><span class="line">      - CONTAINER_NAME=rabbitmq_proxy</span><br></pre></td></tr></table></figure>
-
-<p>** 执行docker-compose**</p>
-<p>运行:</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker-compose up -d</span><br></pre></td></tr></table></figure>
-
-<p>停止：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker-compose down</span><br></pre></td></tr></table></figure>
-
-<h3 id="rabbitmq-SSL设置"><a href="#rabbitmq-SSL设置" class="headerlink" title="rabbitmq SSL设置"></a>rabbitmq SSL设置</h3><p>证书生成：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">## 生成CA证书</span></span><br><span class="line">openssl genrsa -out ca.key 2048</span><br><span class="line">openssl req -passin pass:1111 -new -x509 -days 365 -key ca.key -out ca.crt -subj <span class="string">&quot;/C=CN/ST=JS/L=ZJ/O=zx/OU=test/CN=root&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">## 生成服务器端pfx证书</span></span><br><span class="line">openssl genrsa -passout pass:1111 -des3 -out server.key 2048</span><br><span class="line">openssl req -passin pass:1111 -new -key server.key -out server.csr -subj <span class="string">&quot;/C=CN/ST=JS/L=ZJ/O=zx/OU=test/CN=www.shiyx.top&quot;</span></span><br><span class="line">openssl x509 -req -passin pass:1111 -days 365 -<span class="keyword">in</span> server.csr -CA ca.crt -CAkey ca.key -set_serial 01 -out server.crt</span><br><span class="line">openssl pkcs12 -<span class="built_in">export</span> -out server.pfx -inkey server.key -<span class="keyword">in</span> server.crt -certfile ca.crt</span><br><span class="line"></span><br><span class="line"><span class="comment">## haproxy使用ssl证书</span></span><br><span class="line">cat server.crt server.key|tee rmqha.pem <span class="comment"># 将私钥和证书合并到一个文件中</span></span><br></pre></td></tr></table></figure>
-
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://www.rabbitmq.com/ssl.html">https://www.rabbitmq.com/ssl.html</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.rabbitmq.com/configure.html#customise-environment">https://www.rabbitmq.com/configure.html#customise-environment</a></p>
-<p><a target="_blank" rel="noopener" href="https://github.com/rabbitmq/rabbitmq-server/blob/master/docs/rabbitmq.conf.example">https://github.com/rabbitmq/rabbitmq-server/blob/master/docs/rabbitmq.conf.example</a></p>
-<h3 id="rabbitmq镜像队列"><a href="#rabbitmq镜像队列" class="headerlink" title="rabbitmq镜像队列"></a>rabbitmq镜像队列</h3><p>mirror queue：镜像队列，queue能在多台机器中同步。</p>
-<p>通过webui设置</p>
-<p><a href="/img/QQ%E6%88%AA%E5%9B%BE20180705161425.png">QQ截图20180705161425.png</a></p>
-<p>或者通过命令行：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">## 表示当前如果是test开头的队列都是“镜像队列”。</span></span><br><span class="line">rabbitmqctl set_policy ha-all <span class="string">&quot;^test&quot;</span> <span class="string">&#x27;&#123;&quot;ha-mode&quot;:&quot;all&quot;,&quot;ha-sync-mode&quot;:&quot;automatic&quot;&#125;&#x27;</span></span><br><span class="line"><span class="comment"># 或者</span></span><br><span class="line">rabbitmqctl set_policy ha-all <span class="string">&quot;^&quot;</span> <span class="string">&#x27;&#123;&quot;ha-mode&quot;:&quot;all&quot;&#125;&#x27;</span></span><br></pre></td></tr></table></figure>
-
-<h3 id="防火墙开放端口"><a href="#防火墙开放端口" class="headerlink" title="防火墙开放端口"></a>防火墙开放端口</h3><p>命令：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">firewall-cmd --zone=public --add-port=8100/tcp --permanent</span><br><span class="line">firewall-cmd --zone=public --add-port=15672/tcp --permanent</span><br><span class="line">firewall-cmd --zone=public --add-port=5672/tcp --permanent</span><br><span class="line">firewall-cmd --reload</span><br></pre></td></tr></table></figure>
-
-<p>HAProxy 配置了三个地址：</p>
-<p>注：IP地址需要根据实际情况修改</p>
-<ul>
-<li><code>http://192.168.7.201:8100/stats</code> ：HAProxy 负载均衡信息地址，账号密码：admin/admin。</li>
-<li><code>http://192.168.7.201:15672</code>：RabbitMQ Server Web 管理界面（基于负载均衡），账号密码：admin/admin。</li>
-<li><code>http://192.168.7.201:5672</code>：RabbitMQ Server 服务地址（基于负载均衡），账号密码：admin/admin。</li>
-</ul>
-<h2 id="DotNet客户端测试"><a href="#DotNet客户端测试" class="headerlink" title="DotNet客户端测试"></a>DotNet客户端测试</h2><p>安装<a target="_blank" rel="noopener" href="https://www.nuget.org/packages/RabbitMQ.Client">RabbitMQ.Client</a></p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Install-Package RabbitMQ.Client -Version 5.1.0</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        ConnectionFactory factory = <span class="keyword">new</span> ConnectionFactory()</span><br><span class="line">        &#123;</span><br><span class="line">            UserName = <span class="string">&quot;admin&quot;</span>,</span><br><span class="line">            Password = <span class="string">&quot;admin&quot;</span>,</span><br><span class="line">            AutomaticRecoveryEnabled = <span class="literal">true</span>,</span><br><span class="line">            TopologyRecoveryEnabled = <span class="literal">true</span></span><br><span class="line">        &#125;;</span><br><span class="line"></span><br><span class="line">        <span class="comment">//第一步：创建connection </span></span><br><span class="line">        <span class="keyword">var</span> connection = factory.CreateConnection(<span class="keyword">new</span> <span class="built_in">string</span>[<span class="number">1</span>] &#123; <span class="string">&quot;192.168.7.201&quot;</span> &#125;);</span><br><span class="line"></span><br><span class="line">        <span class="comment">//第二步：创建一个channel</span></span><br><span class="line">        <span class="keyword">var</span> channel = connection.CreateModel();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">var</span> result = channel.QueueDeclare(<span class="string">&quot;test1&quot;</span>, <span class="literal">true</span>, <span class="literal">false</span>, <span class="literal">false</span>, <span class="literal">null</span>);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; <span class="number">100</span>; i++)</span><br><span class="line">        &#123;</span><br><span class="line">            channel.BasicPublish(<span class="built_in">string</span>.Empty, <span class="string">&quot;test1&quot;</span>, <span class="literal">null</span>, <span class="keyword">new</span> <span class="built_in">byte</span>[<span class="number">10</span>]);</span><br><span class="line"></span><br><span class="line">            Console.WriteLine(<span class="string">&quot;&#123;0&#125; 推送成功&quot;</span>, i);</span><br><span class="line">            Thread.Sleep(<span class="number">1000</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        Console.Read();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>支持ssl安全连接：</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">namespace</span> <span class="title">RabbitMqDemo</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            ServicePointManager.ServerCertificateValidationCallback += (sender, cert, chain, sslPolicyErrors) =&gt; <span class="literal">true</span>;</span><br><span class="line">            ConnectionFactory factory = <span class="keyword">new</span> ConnectionFactory()</span><br><span class="line">            &#123;</span><br><span class="line">                UserName = <span class="string">&quot;admin&quot;</span>,</span><br><span class="line">                Password = <span class="string">&quot;admin&quot;</span>,</span><br><span class="line">                AutomaticRecoveryEnabled = <span class="literal">true</span>,</span><br><span class="line">                Ssl = <span class="keyword">new</span> SslOption()</span><br><span class="line">                &#123;</span><br><span class="line">                    CertPath = <span class="string">@&quot;E:\git\RabbitMqDemo\RabbitMqDemo\server.pfx&quot;</span>,</span><br><span class="line">                    CertPassphrase = <span class="string">&quot;123123&quot;</span>,</span><br><span class="line">                    AcceptablePolicyErrors = SslPolicyErrors.RemoteCertificateNameMismatch |</span><br><span class="line">                                                SslPolicyErrors.RemoteCertificateChainErrors,</span><br><span class="line">                    Enabled = <span class="literal">true</span></span><br><span class="line">                &#125;,</span><br><span class="line">                <span class="comment">//AuthMechanisms = new AuthMechanismFactory[] &#123; new ExternalMechanismFactory() &#125;,</span></span><br><span class="line">                RequestedHeartbeat = <span class="number">60</span>,</span><br><span class="line">                Port = <span class="number">5673</span>,</span><br><span class="line">                TopologyRecoveryEnabled = <span class="literal">true</span></span><br><span class="line">            &#125;;</span><br><span class="line">            <span class="comment">//第一步：创建connection </span></span><br><span class="line">            <span class="keyword">var</span> connection = factory.CreateConnection(<span class="keyword">new</span> <span class="built_in">string</span>[<span class="number">1</span>] &#123; <span class="string">&quot;192.168.0.115&quot;</span> &#125;);</span><br><span class="line"></span><br><span class="line">            <span class="comment">//第二步：创建一个channel</span></span><br><span class="line">            <span class="keyword">var</span> channel = connection.CreateModel();</span><br><span class="line"></span><br><span class="line">            <span class="keyword">var</span> result = channel.QueueDeclare(<span class="string">&quot;test1&quot;</span>, <span class="literal">true</span>, <span class="literal">false</span>, <span class="literal">false</span>, <span class="literal">null</span>);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; <span class="built_in">int</span>.MaxValue; i++)</span><br><span class="line">            &#123;</span><br><span class="line">                channel.BasicPublish(<span class="built_in">string</span>.Empty, <span class="string">&quot;test1&quot;</span>, <span class="literal">null</span>, <span class="keyword">new</span> <span class="built_in">byte</span>[<span class="number">10</span>]);</span><br><span class="line"></span><br><span class="line">                Console.WriteLine(<span class="string">&quot;&#123;0&#125; 推送成功&quot;</span>, i);</span><br><span class="line">                <span class="comment">//Thread.Sleep(1000);</span></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            Console.Read();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/xishuai/p/centos-rabbitmq-cluster-and-haproxy.html">搭建 RabbitMQ Server 高可用集群</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/huangxincheng/p/6113891.html">搭建高可用的rabbitmq集群 + Mirror Queue + 使用C#驱动连接</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/97fbf9c82872">RabbitMQ 高可用集群</a></p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/WoogeYu/article/details/51119101">RabbitMQ分布式集群架构</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/85543491ab00">docker搭建rabbitmq集群</a></p>
-<p><a target="_blank" rel="noopener" href="https://blog.breezelin.site/2017/12/05/practice-rabbitmq-ha-docker-compose/"></a></p>
-<p><a target="_blank" rel="noopener" href="https://blog.breezelin.site/2017/12/05/practice-rabbitmq-ha-docker-compose/">用Docker搭建RabbitMQ高可用集群</a></p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/fqydhk/article/details/80624547">docker-compose配置rabbitmq集群服务器</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/07/04/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E6%91%98%E8%A6%81/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/07/04/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E6%91%98%E8%A6%81/" class="post-title-link" itemprop="url">消息队列摘要</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-07-04 10:15:42" itemprop="dateCreated datePublished" datetime="2018-07-04T10:15:42+00:00">2018-07-04</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-24 08:28:36" itemprop="dateModified" datetime="2021-08-24T08:28:36+00:00">2021-08-24</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/" itemprop="url" rel="index"><span itemprop="name">消息队列</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="消息队列摘要"><a href="#消息队列摘要" class="headerlink" title="消息队列摘要"></a>消息队列摘要</h1><h2 id="1-为什么要使用消息队列"><a href="#1-为什么要使用消息队列" class="headerlink" title="1,为什么要使用消息队列"></a>1,为什么要使用消息队列</h2><p>解耦、弹性伸缩、冗余存储、流量削峰、异步通信、数据同步</p>
-<p>(1) 解耦</p>
-<p>将消息写入消息队列，需要消息的系统自己从消息队列中订阅，原系统不需要做任何修改。</p>
-<p>(2) 异步</p>
-<p>将消息写入消息队列，非必要的业务逻辑以异步的方式运行，加快响应速度</p>
-<p>(3) 削峰</p>
-<p>并发请求到消息队列，业务系统按照实际处理能力从消息队列拉去数据。</p>
-<h2 id="2-使用了消息队列会有什么缺点"><a href="#2-使用了消息队列会有什么缺点" class="headerlink" title="2,使用了消息队列会有什么缺点"></a>2,使用了消息队列会有什么缺点</h2><p><strong>系统可用性降低</strong>: 消息队列如果宕机，系统直接崩溃，因此，系统可用性降低</p>
-<p><strong>系统复杂性增加</strong>: 要多考虑的问题，比如一致性问题、如何保证消息不被重复消费，如何保证保证消息可靠传输。因此，需要考虑的东西更多，系统复杂性增大。</p>
-<h2 id="3，消息队列如何选型"><a href="#3，消息队列如何选型" class="headerlink" title="3，消息队列如何选型"></a>3，消息队列如何选型</h2><p><img src="/img/1506330751030_7532_1506330753496.png" alt="1506330751030_7532_1506330753496.png"></p>
-<p><strong>中小型软件公司</strong>：建议选RabbitMQ<br><strong>大型软件公司</strong>：根据具体使用在rocketMq和kafka之间二选一</p>
-<h2 id="4，如何保证消息队列是高可用的"><a href="#4，如何保证消息队列是高可用的" class="headerlink" title="4，如何保证消息队列是高可用的"></a>4，如何保证消息队列是高可用的</h2><p>参考具体的消息队列高可用方案</p>
-<h2 id="5，如何保证消息不被重复消费"><a href="#5，如何保证消息不被重复消费" class="headerlink" title="5，如何保证消息不被重复消费"></a>5，如何保证消息不被重复消费</h2><p>即保证消息队列的幂等性。</p>
-<p>正常情况下，消费者在消费消息时候，消费完毕后，会发送一个确认信息给消息队列，消息队列就知道该消息被消费了，就会将该消息从消息队列中删除。只是不同的消息队列发送的确认信息形式不同,例如RabbitMQ是发送一个ACK确认消息，RocketMQ是返回一个CONSUME_SUCCESS成功标志，kafka实际上有个offset的概念，简单说一下(如果还不懂，出门找一个kafka入门到精通教程),就是每一个消息都有一个offset，kafka消费过消息后，需要提交offset，让消息队列知道自己已经消费过了。那造成重复消费的原因?，就是因为网络传输等等故障，确认信息没有传送到消息队列，导致消息队列不知道自己已经消费过该消息了，再次将该消息分发给其他的消费者。</p>
-<p>解决：</p>
-<ul>
-<li>(1) 拿到这个消息做数据库的insert操作,分配这个消息一个唯一主键，如果出现重复消费，则会导致主键冲突。</li>
-<li>(2) redis的set的操作，无论set几次结果都是一样的，set操作本来就算幂等操作。</li>
-<li>(3) 消费记录，以redis为例，给消息分配一个全局id，只要消费过该消息，将&lt;id,message&gt;以K-V形式写入redis。那消费者开始消费前，先去redis中查询有没消费记录即可。</li>
-</ul>
-<h2 id="6，保证消费的可靠性传输"><a href="#6，保证消费的可靠性传输" class="headerlink" title="6，保证消费的可靠性传输"></a>6，保证消费的可靠性传输</h2><ul>
-<li>（1）生产者丢数据</li>
-<li>（2）消息队列丢数据</li>
-<li>（3）消费者丢数据</li>
-</ul>
-<h2 id="如何保证消息的顺序性"><a href="#如何保证消息的顺序性" class="headerlink" title="如何保证消息的顺序性"></a>如何保证消息的顺序性</h2><p>通过某种算法，将需要保持先后顺序的消息放到同一个消息队列中(kafka中就是partition,rabbitMq中就是queue)。然后只用一个消费者去消费该队列。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/rjzheng/p/8994962.html">【原创】分布式之消息队列复习精讲</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.infoq.com/cn/articles/kafka-vs-rabbitmq">消息中间件选型分析：从Kafka与RabbitMQ的对比看全局</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/my_life/articles/5128746.html">常用消息队列介绍与对比</a></p>
-<p><a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/1006035">消息队列及常见消息队列介绍</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/28/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/28/">28</a><span class="page-number current">29</span><a class="page-number" href="/page/30/">30</a><span class="space">&hellip;</span><a class="page-number" href="/page/33/">33</a><a class="extend next" rel="next" href="/page/30/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
+    <a class="extend prev" rel="prev" href="/page/28/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/28/">28</a><span class="page-number current">29</span><a class="page-number" href="/page/30/">30</a><span class="space">&hellip;</span><a class="page-number" href="/page/34/">34</a><a class="extend next" rel="next" href="/page/30/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
   </nav>
 
 
@@ -2129,20 +2065,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">495</span>
+          <span class="site-state-item-count">497</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">128</span>
+        <span class="site-state-item-count">129</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">191</span>
+        <span class="site-state-item-count">193</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
