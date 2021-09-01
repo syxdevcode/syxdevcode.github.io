@@ -182,6 +182,690 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/09/23/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%8824%EF%BC%89-%20Notifications%20%E8%A7%A3%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/09/23/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%8824%EF%BC%89-%20Notifications%20%E8%A7%A3%E6%9E%90/" class="post-title-link" itemprop="url">ABP框架学习记录（24）- Notifications 解析</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-09-23 09:39:48" itemprop="dateCreated datePublished" datetime="2019-09-23T09:39:48+00:00">2019-09-23</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ABP/" itemprop="url" rel="index"><span itemprop="name">ABP</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="ABP框架学习记录（24）-Notifications-解析"><a href="#ABP框架学习记录（24）-Notifications-解析" class="headerlink" title="ABP框架学习记录（24）- Notifications 解析"></a>ABP框架学习记录（24）- Notifications 解析</h1><p><code>Notifications</code> 封装了通知的功能，实现 <code>Notification</code> 的定义，存储，发送，订阅等功能，支持租户通知，用户通知。通过 <code>IRealTimeNotifier</code> 接口，实现统一的 <code>Notification</code> 功能。支持 <code>SignalR</code>。</p>
+<p><code>Notifications</code> 在ABP项目中的位置：<br><img src="/img/QQ%E6%88%AA%E5%9B%BE20190923141119.png" alt="QQ截图20190923141119.png"></p>
+<h2 id="表-实体类对应"><a href="#表-实体类对应" class="headerlink" title="表-实体类对应"></a>表-实体类对应</h2><p>首先，介绍关于 <code>Notifications</code> 的表-实体类；</p>
+<p><code>NotificationInfo</code>：用于存储需要发送的通知；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190923181330.png" alt="QQ截图20190923181330.png"></p>
+<p><code>NotificationSubscriptionInfo</code>: 用于存储 通知订阅。</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190923181457.png" alt="QQ截图20190923181457.png"></p>
+<p><code>TenantNotificationInfo</code>: 分配给其相关租户的通知。</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924092140.png" alt="QQ截图20190924092140.png"></p>
+<p><code>UserNotificationInfo</code>：用户存储用户通知</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924092240.png" alt="QQ截图20190924092240.png"></p>
+<h2 id="通知数据"><a href="#通知数据" class="headerlink" title="通知数据"></a>通知数据</h2><p><code>NotificationData</code>：用户 通知数据的 存储；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924134512.png" alt="QQ截图20190924134512.png"></p>
+<p><code>MessageNotificationData</code>：继承 <code>NotificationData</code>, 可以用户简单的通知消息；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924134619.png" alt="QQ截图20190924134619.png"></p>
+<p><code>LocalizableMessageNotificationData</code>：继承 <code>NotificationData</code>, 可以用户表示本地的通知消息数据；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924134652.png" alt="QQ截图20190924134652.png"></p>
+<h2 id="通知定义管理"><a href="#通知定义管理" class="headerlink" title="通知定义管理"></a>通知定义管理</h2><p><code>NotificationDefinition</code>：定义通知</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924143636.png" alt="QQ截图20190924143636.png"></p>
+<p><code>NotificationDefinitionManager</code>：实现 <code>INotificationDefinitionManager</code> 接口，用于管理 <code>NotificationDefinition</code>;</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924143805.png" alt="QQ截图20190924143805.png"></p>
+<p><code>AbpKernelModule</code>：<code>PostInitialize</code> 方法中初始化；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924144304.png" alt="QQ截图20190924144304.png"></p>
+<p><code>NotificationDefinitionContext</code>：定义 <code>NotificationDefinition</code> 上下文；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924143854.png" alt="QQ截图20190924143854.png"></p>
+<p><code>NotificationDefinitionManagerExtensions</code>：扩展方法，获取给定用户的所有通知；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924144047.png" alt="QQ截图20190924144047.png"></p>
+<h2 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h2><p><code>INotificationConfiguration</code>：配置通知；</p>
+<p><code>NotificationConfiguration</code>：实现 <code>INotificationConfiguration</code> 接口；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924150138.png" alt="QQ截图20190924150138.png"></p>
+<p><code>AbpCoreInstaller</code> 中注册：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924150305.png" alt="QQ截图20190924150305.png"></p>
+<h2 id="持久化"><a href="#持久化" class="headerlink" title="持久化"></a>持久化</h2><p><code>INotificationStore</code>：定义通知持久化接口；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924151312.png" alt="QQ截图20190924151312.png"></p>
+<p><code>Abp.Zero.Common</code> 项目中，使用仓储模式，提供 <code>INotificationStore</code> 接口的实现 <code>NotificationStore</code>；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924151629.png" alt="QQ截图20190924151629.png"></p>
+<p><code>UserNotificationState</code>：定义通知的状态，已读，未读；</p>
+<h2 id="管理用户通知"><a href="#管理用户通知" class="headerlink" title="管理用户通知"></a>管理用户通知</h2><p><code>IUserNotificationManager</code>：定义用户通知管理接口；</p>
+<p><code>UserNotificationManager</code>：实现 <code>IUserNotificationManager</code> 接口；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924165743.png" alt="QQ截图20190924165743.png"></p>
+<p><code>UserNotification</code>：表示发送给用户的通知；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924165934.png" alt="QQ截图20190924165934.png"></p>
+<p><code>TenantNotification</code>：代表租户/用户 已经发送的通知；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924170219.png" alt="QQ截图20190924170219.png"></p>
+<h2 id="发布通知"><a href="#发布通知" class="headerlink" title="发布通知"></a>发布通知</h2><p><code>INotificationPublisher</code>：定义发布通知的接口；</p>
+<p><code>NotificationPublisher</code>：实现 <code>INotificationPublisher</code> 接口；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924170626.png" alt="QQ截图20190924170626.png"></p>
+<p><code>PublishAsync</code> 异步方法:</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924170842.png" alt="QQ截图20190924170842.png"></p>
+<p><code>NotificationDistributionJob</code>：后台工作，去通知用户；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924172001.png" alt="QQ截图20190924172001.png"></p>
+<h2 id="订阅通知"><a href="#订阅通知" class="headerlink" title="订阅通知"></a>订阅通知</h2><p><code>NotificationSubscription</code>：表示一个用户订阅的通知；</p>
+<p><code>INotificationSubscriptionManager</code>：管理订阅通知；</p>
+<p><code>NotificationSubscriptionManager</code>：实现 <code>INotificationSubscriptionManager</code>；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924171659.png" alt="QQ截图20190924171659.png"></p>
+<h2 id="通知设置"><a href="#通知设置" class="headerlink" title="通知设置"></a>通知设置</h2><p><code>NotificationSettingNames</code>：定义通知开关 配置名；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924172434.png" alt="QQ截图20190924172434.png"></p>
+<p><code>NotificationSettingProvider</code>：适配器</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924172654.png" alt="QQ截图20190924172654.png"></p>
+<p><code>AbpKernelModule</code> 模块初始化：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924172751.png" alt="QQ截图20190924172751.png"></p>
+<h2 id="发送通知"><a href="#发送通知" class="headerlink" title="发送通知"></a>发送通知</h2><p><code>INotificationDistributer</code>：定义发送给用户通知的接口；</p>
+<p><code>DefaultNotificationDistributer</code>：实现 <code>INotificationDistributer</code> 接口；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924173343.png" alt="QQ截图20190924173343.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924173922.png" alt="QQ截图20190924173922.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190924174210.png" alt="QQ截图20190924174210.png"></p>
+<p><code>IRealTimeNotifier</code>：定义向用户发送实时通知的接口；</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/09/21/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%8823%EF%BC%89-%20SignalR%20%E8%A7%A3%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/09/21/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%8823%EF%BC%89-%20SignalR%20%E8%A7%A3%E6%9E%90/" class="post-title-link" itemprop="url">ABP框架学习记录（23）- SignalR 解析</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-09-21 09:47:55" itemprop="dateCreated datePublished" datetime="2019-09-21T09:47:55+00:00">2019-09-21</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ABP/" itemprop="url" rel="index"><span itemprop="name">ABP</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="ABP框架学习记录（23）-SignalR解析"><a href="#ABP框架学习记录（23）-SignalR解析" class="headerlink" title="ABP框架学习记录（23）- SignalR解析"></a>ABP框架学习记录（23）- SignalR解析</h1><p>SignalR是一个.NET Core/.NET Framework的开源实时框架. SignalR的可使用Web Socket, Server Sent Events 和 Long Polling作为底层传输方式.</p>
+<p>SignalR基于这三种技术构建, 抽象于它们之上, 它让你更好的关注业务问题而不是底层传输技术问题.</p>
+<p>SignalR这个框架分服务器端和客户端, 服务器端支持ASP.NET Core 和 ASP.NET; 而客户端除了支持浏览器里的javascript以外, 也支持其它类型的客户端, 例如桌面应用.</p>
+<p>整体目录：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190921105001.png" alt="QQ截图20190921105001.png"></p>
+<p><code>AbpHubBase</code>： 继承 <code>Hub</code> 抽象类，定义成 Abp SignalR 的抽象类，类成员包括 <code>AbpSession</code>,<code>IocResolver</code>,<code>LocalizationManager</code> 等；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190921110241.png" alt="QQ截图20190921110241.png"></p>
+<p><code>AbpHubBaseOfClientType</code>：定义泛型 <code>Hub</code>;</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190921110421.png" alt="QQ截图20190921110421.png"></p>
+<p><code>OnlineClientHubBase</code>：在线客户端 <code>Hub</code> 基类；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190921110621.png" alt="QQ截图20190921110621.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190921110755.png" alt="QQ截图20190921110755.png"></p>
+<p><code>AbpCommonHub</code>：公用 <code>Hub</code>,提供注册方法；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190921111019.png" alt="QQ截图20190921111019.png"></p>
+<p><code>SignalRRealTimeNotifier</code>： 实现 <code>IRealTimeNotifier</code> 接口；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190921114233.png" alt="QQ截图20190921114233.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190921134226.png" alt="QQ截图20190921134226.png"></p>
+<p><code>AbpAspNetCoreSignalRModule</code>：定义 <code>SignalRModule</code>;</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190921134356.png" alt="QQ截图20190921134356.png"></p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/cgzl/p/9509207.html">ASP.NET Core的实时库: SignalR – 预备知识</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/cgzl/p/9515516.html">ASP.NET Core的实时库: SignalR简介及使用</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/09/12/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%8822%EF%BC%89-%20RealTime%E7%9A%84%E5%AE%9E%E7%8E%B0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/09/12/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%8822%EF%BC%89-%20RealTime%E7%9A%84%E5%AE%9E%E7%8E%B0/" class="post-title-link" itemprop="url">ABP框架学习记录（22）- RealTime的实现</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-09-12 09:44:13" itemprop="dateCreated datePublished" datetime="2019-09-12T09:44:13+00:00">2019-09-12</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ABP/" itemprop="url" rel="index"><span itemprop="name">ABP</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="ABP框架学习记录（22）-RealTime的实现"><a href="#ABP框架学习记录（22）-RealTime的实现" class="headerlink" title="ABP框架学习记录（22）-RealTime的实现"></a>ABP框架学习记录（22）-RealTime的实现</h1><p><code>RealTime</code>，翻译为 即时的，实时的；</p>
+<p><code>RealTime</code> 的实现，在ABP项目中的位置：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190912094652.png" alt="QQ截图20190912094652.png"></p>
+<p><code>IOnlineClientStore</code>：提供存储接口；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190920151501.png" alt="QQ截图20190920151501.png"></p>
+<p><code>InMemoryOnlineClientStore</code>：内存存储的实现；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190920151559.png" alt="QQ截图20190920151559.png"></p>
+<p><code>IOnlineClient</code>：表示一个连接到应用的客户端；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190920151741.png" alt="QQ截图20190920151741.png"></p>
+<p><code>OnlineClient</code>：<code>IOnlineClient</code> 接口的实现；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190920152302.png" alt="QQ截图20190920152302.png"></p>
+<p><code>OnlineClientEventArgs</code>：客户端事件</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190920152812.png" alt="QQ截图20190920152812.png"></p>
+<p><code>OnlineUserEventArgs</code>：用户事件</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190920153024.png" alt="QQ截图20190920153024.png"></p>
+<p><code>IOnlineClientManager</code>：管理连接到应用的客户端；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190920155746.png" alt="QQ截图20190920155746.png"></p>
+<p><code>OnlineClientManager</code>：<code>IOnlineClientManager</code> 的实现；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190920160558.png" alt="QQ截图20190920160558.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190920160908.png" alt="QQ截图20190920160908.png"></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/09/11/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%8821%EF%BC%89-%20Repositories%E7%9A%84%E5%AE%9E%E7%8E%B0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/09/11/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%8821%EF%BC%89-%20Repositories%E7%9A%84%E5%AE%9E%E7%8E%B0/" class="post-title-link" itemprop="url">ABP框架学习记录（21）- Repositories的实现</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-09-11 10:21:58" itemprop="dateCreated datePublished" datetime="2019-09-11T10:21:58+00:00">2019-09-11</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ABP/" itemprop="url" rel="index"><span itemprop="name">ABP</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="ABP框架学习记录（21）-Repositories的实现"><a href="#ABP框架学习记录（21）-Repositories的实现" class="headerlink" title="ABP框架学习记录（21）- Repositories的实现"></a>ABP框架学习记录（21）- Repositories的实现</h1><p><code>Repositories</code> 实现在ABP项目的目录位置：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190911102434.png" alt="QQ截图20190911102434.png"></p>
+<p><code>IRepository</code>：定义存储接口，所有的存储库必须实现，即按照约定标识；存储库需要实现泛型版本而不是此接口；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190911110920.png" alt="QQ截图20190911110920.png"></p>
+<p><code>IRepositoryOfTEntityAndTPrimaryKey</code>：泛型存储接口</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190911111150.png" alt="QQ截图20190911111150.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190911132904.png" alt="QQ截图20190911132904.png"></p>
+<p><code>AbpRepositoryBase</code>：继承 <code>IRepository&#123;TEntity,TPrimaryKey&#125;</code> 泛型接口的泛型抽象类；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190911133034.png" alt="QQ截图20190911133034.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190911142736.png" alt="QQ截图20190911142736.png"></p>
+<p><code>AutoRepositoryTypesAttribute</code>：自动为实体生成 <code>Repository</code>；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190911151234.png" alt="QQ截图20190911151234.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190911151333.png" alt="QQ截图20190911151333.png"></p>
+<p><code>AbpEntityFrameworkModule</code> : 解析出 <code>IEfGenericRepositoryRegistrar</code>，并应用 <code>RegisterForDbContext</code> 方法；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190911151456.png" alt="QQ截图20190911151456.png"></p>
+<p><code>EfGenericRepositoryRegistrar</code>：注册 <code>Repository</code>;</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190911151633.png" alt="QQ截图20190911151633.png"></p>
+<p><code>ISupportsExplicitLoading</code>：支持需要明确加载的对象；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190911142957.png" alt="QQ截图20190911142957.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190911105512.png" alt="QQ截图20190911105512.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190911110237.png" alt="QQ截图20190911110237.png"></p>
+<p><code>RepositoryExtensions</code>：<code>Repository</code> 扩展方法；</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190911154020.png" alt="QQ截图20190911154020.png"></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/09/09/%E5%8D%95%E8%AF%8D%E6%94%B6%E5%BD%9514/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/09/09/%E5%8D%95%E8%AF%8D%E6%94%B6%E5%BD%9514/" class="post-title-link" itemprop="url">单词收录14</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-09-09 11:28:44" itemprop="dateCreated datePublished" datetime="2019-09-09T11:28:44+00:00">2019-09-09</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%8D%95%E8%AF%8D%E6%94%B6%E5%BD%95/" itemprop="url" rel="index"><span itemprop="name">单词收录</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>Ingress：入口</p>
+<p>Electronic：电子</p>
+<p>Inspect：检查，视察，考察</p>
+<p>Patrol：巡逻</p>
+<p>Trigger：触发</p>
+<p>Exposing：揭露，暴露，揭发</p>
+<p>Hierarcy：等级，层次结构</p>
+<p>Fake：假的，伪造</p>
+<p>Ignite：点燃; 燃点</p>
+<p>salary：薪水，待遇</p>
+<p>hexadecimal：16进制</p>
+<p>Mediator：中间人; 和事佬</p>
+<p>Concrete：具体，实际</p>
+<p>Colleague：同事，合作者</p>
+<p>recommended：推荐，建议</p>
+<p>Maintenance：保留</p>
+<p>continuation：续编; 续集; 扩建物</p>
+<p>become：编程</p>
+<p>concepts：概念</p>
+<p>Reentrant：可折返</p>
+<p>Loopback：回送</p>
+<p>Interleave：交错的</p>
+<p>Immutable：不可变的</p>
+<p>Hold：保持</p>
+<p>Brief：简短的，简报</p>
+<p>Acquired：获得，已取得的</p>
+<p>allocate：分配</p>
+<p>concerned：关注，忧虑</p>
+<p>Established：成立</p>
+<p>Buffer：缓冲区</p>
+<p>Bedrock：牢固基础，基本原则，基岩</p>
+<p>negotiation：谈判，协商，交涉</p>
+<p>Gossip protocol：流言算法，疫情传播算法</p>
+<p>populated：有人住的，人口密集的</p>
+<p>loopback：回环</p>
+<p>assignable：可分配的，可转让的</p>
+<p>Unreliable：不可靠的，不能信赖的</p>
+<p>Slice：片，切片，薄片</p>
+<p>Advertised：宣扬，通过，广告的</p>
+<p>secondary：次要的；从属的，第二的；中学；次级</p>
+<p>Insecurity：不安全，不安定</p>
+<p>Serviceable：能用的</p>
+<p>Raise：变形，提高</p>
+<p>Unopened：未开启的，未打开的</p>
+<p>Recovery：恢复</p>
+<p>Critical:危及的，关键的</p>
+<p>robust：健壮的</p>
+<p>scalable：可拓展的</p>
+<p>Research：研究</p>
+<p>Delivered：交付，已交货</p>
+<p>consistent：一致性，前后一致的</p>
+<p>legacy：已停产的，遗传，传统</p>
+<p>Heterogeneous：易购的，各种各样的</p>
+<p>scenario：方案，剧本，情节</p>
+<p>garbage collection：GC 垃圾回收</p>
+<p>Triggered：引发，触发</p>
+<p>Avoid ：避免</p>
+<p>Finite：有限</p>
+<p>Corporation：法人，公司</p>
+<p>Behavior：行为；性能；表现</p>
+<p>straight：直的，笔直的</p>
+<p>Alternately：交替的，交互的</p>
+<p>illegal：不合法的；非法的；违法的</p>
+<p>arithmetic：算术；算术运算</p>
+<p>Cause：原因，事业，病因；</p>
+<p>Remainder：余数；剩余的；</p>
+<p>duplicate：重复</p>
+<p>proper：适当，正确</p>
+<p>duplicate：重复的</p>
+<p>inspection：检验</p>
+<p>packet：数据包</p>
+<p>Datagram：数据报文</p>
+<p>necessary：必要</p>
+<p>retrieves：检索</p>
+<p>Causes：原因，起因</p>
+<p>interrupt：中断</p>
+<p>square：平方，正方形，方块</p>
+<p>intended：预期，打算的；计划的</p>
+<p>Present：存在，现在，目前</p>
+<p>Supplier：供应商</p>
+<p>Deprecated：过时的，不赞成</p>
+<p>leak：泄漏</p>
+<p>practices：实践，做法</p>
+<p>certain：确定的</p>
+<p>proper：正确的，适当的</p>
+<p>Plenty：丰富的，充足的；</p>
+<p>separation：分离，分开</p>
+<p>huge：巨大的</p>
+<p>Flat：平的，水平的；平坦的，公寓；单元房</p>
+<p>shake：摆脱，动摇，震动</p>
+<p>fund：基金，资金，资助</p>
+<p>funding：资助，资金，拨款</p>
+<p>vulnerabilities：漏洞</p>
+<p>Prototype：原型，样机</p>
+<p>Pollution：污染</p>
+<p>Prototype Pollution：原型污染</p>
+<p>Critical：危急</p>
+<p>Denial：拒绝，否认</p>
+<p>Denial of Service：拒绝服务</p>
+<p>Arbitrary Code Execution：任意代码执行</p>
+<p>Misinterpretation：误解</p>
+<p>malicious：恶意</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/09/09/%E8%8B%B1%E8%AF%AD%E8%AF%AD%E5%8F%A5/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/09/09/%E8%8B%B1%E8%AF%AD%E8%AF%AD%E5%8F%A5/" class="post-title-link" itemprop="url">英语语句</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-09-09 11:28:41" itemprop="dateCreated datePublished" datetime="2019-09-09T11:28:41+00:00">2019-09-09</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%8D%95%E8%AF%8D%E6%94%B6%E5%BD%95/" itemprop="url" rel="index"><span itemprop="name">单词收录</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="英语语句"><a href="#英语语句" class="headerlink" title="英语语句"></a>英语语句</h1><p>Specification pattern is a particular software design pattern<br>：规格模式是一种特定的软件设计模式</p>
+<p>whereby business rules can be recombined by chaining the business rules together using boolean logic：从而可以通过使用布尔逻辑链接业务规则来重组业务规则<br>But, server-side validation is more critical and unavoidable<br>：但是，服务器端验证更为关键和不可避免</p>
+<p>If data annotations are not sufficient for your case<br>：如果数据注释不足以满足您的需求</p>
+<p>on slow hosting or with web platform installer for demo shops<br>：在缓慢的托管或用于演示商店的网络平台安装程序</p>
+<p>A value indicating whether a store owner can install sample data during installation<br>：指示店主是否可以在安装过程中安装样本数据的值</p>
+<p>It can slightly improve performance<br>：它可以稍微提高性能</p>
+<p> Add verbose exception handling / raising here since this is happening on app startup and could prevent app from starting altogether<br>： 在这里添加详细的异常处理/提升，因为这是在应用程序启动时发生的，可以防止应用程序完全启动</p>
+<p>Gets or sets a shipping rate (without discounts, additional shipping charges, etc)<br>：获取或设置运费（不含折扣，额外运费等）</p>
+<p>Compiles the lambda expression described by the expression tree into executable<br>  code and produces a delegate that represents the lambda expression.<br>：将表达式树描述的lambda表达式编译成可执行文件代码并生成代表lambda表达式的委托。</p>
+<p>nopCommerce supports a mobile version of your website with a compelling, feature-rich and graphically pleasing storefront and means for retailers to immediately deliver relevant offers, promotions and products. The mobile-responsive version works on any connected device, without requiring extra development or add-ons. It is free and available out of the box.<br>：nopCommerce支持您的网站的移动版本，具有引人注目，功能丰富且图形丰富的店面，并为零售商立即提供相关优惠，促销和产品的手段。 移动响应版本适用于任何连接的设备，无需额外的开发或附加功能。 它是免费的，可用的开箱即用。</p>
+<p>This means, you can host more than one frontend store on different domains and manage all admin operations from your single administration panel<br>：这意味着，您可以在不同的域上托管多个前端商店，并从单个管理面板管理所有管理操作</p>
+<p>This XML file does not appear to have any style information associated with it. The document tree is shown below.<br>：此XML文件似乎没有与之相关联的任何样式信息。 文档树如下所示。</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/09/09/%E5%8D%95%E8%AF%8D%E6%94%B6%E5%BD%9512/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +897,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -404,7 +1088,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -577,7 +1261,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -749,7 +1433,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -931,7 +1615,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1115,7 +1799,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1288,7 +1972,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1462,7 +2146,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1640,7 +2324,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1778,833 +2462,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/09/09/%E5%8D%95%E8%AF%8D%E6%94%B6%E5%BD%953/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/09/09/%E5%8D%95%E8%AF%8D%E6%94%B6%E5%BD%953/" class="post-title-link" itemprop="url">单词收录3</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-09-09 11:28:10" itemprop="dateCreated datePublished" datetime="2019-09-09T11:28:10+00:00">2019-09-09</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%8D%95%E8%AF%8D%E6%94%B6%E5%BD%95/" itemprop="url" rel="index"><span itemprop="name">单词收录</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="单词收录3"><a href="#单词收录3" class="headerlink" title="单词收录3"></a>单词收录3</h1><p>Encrypt  ：加密</p>
-<p>Decrypt：  解密</p>
-<p>secret ： 秘密，机密，秘诀</p>
-<p>Ticket ： 票</p>
-<p>Renew  ：使更新，更新</p>
-<p>Expiration  ：终结</p>
-<p>Lssue  ：发行，流出</p>
-<p>implemented： 实现</p>
-<p>credentials：  证书</p>
-<p>section：   截面，部分</p>
-<p>profile ：  侧面，剖面，外形</p>
-<p>anonymous ： 匿名</p>
-<p>Provider ：供应者</p>
-<p>filter： 过滤器</p>
-<p>Pattern：  模式</p>
-<p>specification： 规格，说明书</p>
-<p>pipeline ：管道</p>
-<p>Protocol： 协议</p>
-<p>Scheme：  计划</p>
-<p>Environment ：环境</p>
-<p>Forgot ： 忘记</p>
-<p>Factor：  因素，代理人</p>
-<p>Purpose ： 目的</p>
-<p>Migrations ： 迁移</p>
-<p>Infrastructure： 基础设施</p>
-<p>Stage： 阶段，举行</p>
-<p>integrated ：完整的，综合的</p>
-<p>Persistent：  持久的，稳固</p>
-<p>elapsed ：  运行，消耗时间</p>
-<p>graphic ：  图表的，形象的</p>
-<p>rasterlayer： 栅格图层</p>
-<p>schedule a demo ： 安排一次演示</p>
-<p>seminar：  研讨会</p>
-<p>Training  ：培训</p>
-<p>Garden  ：花园</p>
-<p>Advanced ：高级</p>
-<p>varies：  使重合的</p>
-<p>variety ：多样的，种类。</p>
-<p>category：  种类，分类</p>
-<p>fixed：  固执的</p>
-<p>Timestamp  ：时间戳</p>
-<p>official ： 官方的</p>
-<p>Distributed ：分布式的</p>
-<p>flush  ：激动，冲洗</p>
-<p>community  ：社区</p>
-<p>catalog   ：目录</p>
-<p>Certification ：  证明，保证</p>
-<p>Platform  ： 平台</p>
-<p>features ： 产品特点</p>
-<p>sandbox   ：沙盒</p>
-<p>reference  ： 参考</p>
-<p>stack  ：堆，堆叠</p>
-<p>heap ： 堆，许多，累计</p>
-<p>Queue  ：队列</p>
-<p>Intern   ：驻留，实习</p>
-<p>Capacity  ： 容量，能力</p>
-<p>Oriented ：  朝向，调整</p>
-<p>concurrent  ： 并发，同时发生的</p>
-<p>Male   ：男人，男性，雄性动物</p>
-<p>Female  ： 女人，女性，雌性动物</p>
-<p>given  ： 考虑到，鉴于，给予</p>
-<p>resolve  ： 解决，决定</p>
-<p>richly  ： 丰富的</p>
-<p>interactive  ： 交互式的；</p>
-<p>available  ： 可获得的</p>
-<p>forking and contribution ：  分支和贡献</p>
-<p>toward ： 对于，接近，即将到来的</p>
-<p>unstable ： 不稳定的</p>
-<p>Process Explorer ： 进程监视工具</p>
-<p>Explorer ： 探索，探险家</p>
-<p>internals  ：内部构件</p>
-<p>suite ： 套</p>
-<p>Pane  ：面板</p>
-<p>quota ： 配额，定额</p>
-<p>Mutex ： 互斥</p>
-<p>Foreground ： 前景</p>
-<p>architecture ： 体系结构</p>
-<p>dependency ： 依赖</p>
-<p>mocked ： 欺骗</p>
-<p>diagram ： 图标</p>
-<p>practices ： 实践</p>
-<p>optimize ： 优化，</p>
-<p>complex ： 复杂</p>
-<p>criticized  ： 批评</p>
-<p>Audit ： 审计</p>
-<p>persist ： 坚持，固执</p>
-<p>persistence：  持久化</p>
-<p>Privilege ：  权利，基本权利</p>
-<p>tutorial ：  指导</p>
-<p>Engine ：  引擎</p>
-<p>Faint ： 晕倒</p>
-<p>Monitor ：  监视器</p>
-<p>Acquire：   获取，捕获</p>
-<p>Release ：  释放，发布</p>
-<p>Pulse：   使跳动</p>
-<p>Upgrade  ： 升级，上升</p>
-<p>Downgrade  ： 退步</p>
-<p>period ： 周期</p>
-<p>due  ： 到期</p>
-<p>otherwise ： 否则</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/09/09/%E5%8D%95%E8%AF%8D%E6%94%B6%E5%BD%952/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/09/09/%E5%8D%95%E8%AF%8D%E6%94%B6%E5%BD%952/" class="post-title-link" itemprop="url">单词收录2</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-09-09 11:28:01" itemprop="dateCreated datePublished" datetime="2019-09-09T11:28:01+00:00">2019-09-09</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%8D%95%E8%AF%8D%E6%94%B6%E5%BD%95/" itemprop="url" rel="index"><span itemprop="name">单词收录</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>Cliam：身份信息，声明，要求</p>
-<p>ClaimsIdentity：身份证</p>
-<p>ClaimsPrincipal：证件所有者</p>
-<p>Principal：当事人</p>
-<p>Grade：等级</p>
-<p>Coupon：优惠卷</p>
-<p>Staff：员工</p>
-<p>Attention：关注</p>
-<p>Discount：折扣</p>
-<p>Expret：专家，人才</p>
-<p>Feedback：反馈，回复</p>
-<p>Impress：印象，印记，特征</p>
-<p>Medal：勋章，奖章，纪念章</p>
-<p>Estimate：估价，估计，判断</p>
-<p>Praise：赞扬，称赞</p>
-<p>Brand：品牌</p>
-<p>CashBack：返现</p>
-<p>Contract：合同，婚约</p>
-<p>greent：协议</p>
-<p>ravel：旅行</p>
-<p>Ingress：入口，进入</p>
-<p>Relation：关系</p>
-<p>mount：山峰，爬，登上，上升，增加，爬上，嵌入；安装</p>
-<p>Statistical：统计</p>
-<p>charge：收费</p>
-<p>aspect：方面</p>
-<p>interception：截击</p>
-<p>ps  PostScript：附录</p>
-<p>avliable：可用的</p>
-<p>plugin：插件</p>
-<p>resolve：坚决，解决，分解</p>
-<p>Subscriptions：订阅</p>
-<p>recursively：递归</p>
-<p>netmask：网络掩码</p>
-<p>gateway：网关</p>
-<p>metric：度量</p>
-<p>bcast：地址</p>
-<p>cable unplugged：电缆拔出</p>
-<p>manuals：手册</p>
-<p>Shortcuts：快捷键</p>
-<p>erase：擦除</p>
-<p>ensure：确认</p>
-<p>assure：保证，担保</p>
-<p>Represents：代表</p>
-<p>purpose：目的，用途，意志</p>
-<p>derivation：推导</p>
-<p>Theory：原理</p>
-<p>algorithm：算法</p>
-<p>Specifies：提起，指定</p>
-<p>Iteration：迭代，反复</p>
-<p>Transient：短暂的</p>
-<p>Fluent：流</p>
-<p>stable：稳定</p>
-<p>block the current thread until the current waitHandle receives a signal：阻塞当前线程直到当前wait Handle：接收信号</p>
-<p>country：国家</p>
-<p>notify：vt 通告，通知；公布</p>
-<p>dependency：n. 属性；从属；从属物</p>
-<p>performance：性能</p>
-<p>cost：开销，花费</p>
-<p>scalar：标量，数量</p>
-<p>proxy：代理</p>
-<p>compute：计算</p>
-<p>terminate：终止</p>
-<p>step： 一步</p>
-<p>prue  ：纯</p>
-<p>direction ：方向</p>
-<p>cause  ：原因，事业，目标</p>
-<p>prompt ：提示</p>
-<p>statement： 声明</p>
-<p>invalid：  无效的</p>
-<p>syntax 语法</p>
-<p>cursor：光标</p>
-<p>exact ：准确的</p>
-<p>exactly：  完全，正确</p>
-<p>argument：  论点</p>
-<p>crawl：爬取</p>
-<p>provinces：省</p>
-<p>touch：触摸</p>
-<p>expected： 预期，期盼</p>
-<p>distance：距离</p>
-<p>pass    ：通过，终止</p>
-<p>fuels    ：燃料</p>
-<p>postion ：位置，职位</p>
-<p>geeks ：极客们</p>
-<p>redundant ：多余的</p>
-<p>parentheses ：括号</p>
-<p>permanent  ：永久</p>
-<p>permalink： 永久链接</p>
-<p>match： 匹配</p>
-<p>popup：弹出</p>
-<p>sample：样品</p>
-<p>simple：简单</p>
-<p>shuffle：洗牌</p>
-<p>identity：统一</p>
-<p>authenticate ： 鉴定，认证</p>
-<p>authorize ：批准，授权</p>
-<p>grant： 同意</p>
-<p>deny    ：否认，拒绝</p>
-<p>anti  ： 反对</p>
-<p>terminology：术语，用辞</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/09/09/%E5%8D%95%E8%AF%8D%E6%94%B6%E5%BD%951/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/09/09/%E5%8D%95%E8%AF%8D%E6%94%B6%E5%BD%951/" class="post-title-link" itemprop="url">单词收录1</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-09-09 11:20:45" itemprop="dateCreated datePublished" datetime="2019-09-09T11:20:45+00:00">2019-09-09</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%8D%95%E8%AF%8D%E6%94%B6%E5%BD%95/" itemprop="url" rel="index"><span itemprop="name">单词收录</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>relies：依靠，依赖，凭借</p>
-<p>Widgets：部件，小工具</p>
-<p>Optimize：优化</p>
-<p>Proceed：继续，进行中</p>
-<p>Policy：策略，政策</p>
-<p>Policies：策略，政策</p>
-<p>Permission：许可，允许</p>
-<p>Identity：身份，特性</p>
-<p>Undefined：未定义</p>
-<p>Granted：授予</p>
-<p>Prohibited：禁止</p>
-<p>Consider：考虑</p>
-<p>Principal：主体，委托人</p>
-<p>preprocessor：预处理器</p>
-<p>directives：指令</p>
-<p>topological：拓扑</p>
-<p>consider：考虑</p>
-<p>recursively：递归的</p>
-<p>volo：飞行</p>
-<p>black：黑色</p>
-<p>block：块</p>
-<p>Blocking：阻塞</p>
-<p>Intercept：拦截</p>
-<p>invocation：调用</p>
-<p>Demonstrates：演示</p>
-<p>resemble：类似，相似</p>
-<p>Ambient：周围</p>
-<p>Strategy：策略，战略</p>
-<p>goodness：优点，善良</p>
-<p>isolation：隔离，隔绝</p>
-<p>Character：字符; 字</p>
-<p>Tokenizer：标记生成器</p>
-<p>Contributor：贡献者</p>
-<p>Permission：允许</p>
-<p>switch：开关，交换</p>
-<p>top-level：顶层</p>
-<p>manipulate：操作，操纵，摆布</p>
-<p>potential：潜在，潜力</p>
-<p>Immutable：不可变</p>
-<p>granted：倘若</p>
-<p>Satisfied：满足，满意的</p>
-<p>Qualified：合格，有资格，胜任</p>
-<p>persist：持久化，坚持</p>
-<p>distributed：分布式</p>
-<p>distribute：分发，分布</p>
-<p>Shortcut：捷径</p>
-<p>derived：派生</p>
-<p>directly：直接的</p>
-<p>related：有关，有联系，有关联</p>
-<p>Arbitrary：任意，随意</p>
-<p>severity：严重</p>
-<p>Terminology：术语</p>
-<p>Topic：主题，题目，话题</p>
-<p>Partition：划分; 隔开; 隔墙; 隔; 瓜分; 分拆; 隔离物 （kafka术语）</p>
-<p>Broker：经纪人; 中间商 （kafka术语）</p>
-<p>leader：领导</p>
-<p>Tenant：租户</p>
-<p>Secondary：二级的，次要的，附带，辅助</p>
-<p>Polling：轮循</p>
-<p>caller：呼叫者</p>
-<p>Entrust：委托</p>
-<p>marketplace： 集市; 市场;市场竞争;</p>
-<p>real - time：即时的</p>
-<p>Dispatcher：签派员</p>
-<p>Dispatch：派件</p>
-<p>Payload：有效负载</p>
-<p>Sampler：采样器</p>
-<p>Generic：类的，通用类，泛型</p>
-<p>Collector：收集器</p>
-<p>remaining：剩下的</p>
-<p>measure time intervals：测量时间间隔</p>
-<p>Interval：间隔，间距</p>
-<p>Profiling：性能分析</p>
-<p>Profiler：分析器，分析工具</p>
-<p>Block：块</p>
-<p>Capacity：能力，容量</p>
-<p>Chunked：分块</p>
-<p>leak：泄漏，漏洞</p>
-<p>noisy：嘈杂的</p>
-<p>practices：实践</p>
-<p>Monolithic：单块集成电路，整体的，巨石的，庞大的</p>
-<p>Reducing inventory：减少库存</p>
-<p>similar：类似</p>
-<p>unified：统一</p>
-<p>Mixed：混合的</p>
-<p>Availability：可用性</p>
-<p>symbol：象征，符号，标志</p>
-<p>assigned：分配，指定的</p>
-<p>quantity：数量</p>
-<p>Otherwise：另外的，其它</p>
-<p>seek：寻求，寻找</p>
-<p>seem：似乎，类似</p>
-<p>reviewing：回顾，评估，修订</p>
-<p>feedback：反馈，成果</p>
-<p>Roadmap：路标</p>
-<p>Prism：棱镜，棱柱</p>
-<p>Miscellaneous：混杂的</p>
-<p>Pretty：优质的</p>
-<p>Ambient：周围的，环境</p>
-<p>Impersonator：演员，模拟艺人</p>
-<p>Fine-Grained：细粒度的，有细密纹理的</p>
-<p>swarm：蜂群，一大群</p>
-<p>Expiration：过期，终结</p>
-<p>Frequency：频率，频繁</p>
-<p>Compaction：压缩，压紧</p>
-<p>Percentage：百分比，百分率</p>
-<p>Multicast：组播</p>
-<p>Scalability：可拓展性</p>
-<p>leak：泄漏</p>
-<p>instead：反而，替代</p>
-<p>fixed：固定，确定，既定</p>
-<p>fix：修理，安装</p>
-<p>otherwise：否则，相反的，反之</p>
-<p>Policies：策略，方针</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/08/29/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%8820%EF%BC%89-%20Services%E7%9A%84%E5%AE%9E%E7%8E%B0/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/08/29/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%8820%EF%BC%89-%20Services%E7%9A%84%E5%AE%9E%E7%8E%B0/" class="post-title-link" itemprop="url">ABP框架学习记录（20）- Services的实现</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-08-29 11:35:56" itemprop="dateCreated datePublished" datetime="2019-08-29T11:35:56+00:00">2019-08-29</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/ABP/" itemprop="url" rel="index"><span itemprop="name">ABP</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="ABP框架学习记录（20）-Services的实现"><a href="#ABP框架学习记录（20）-Services的实现" class="headerlink" title="ABP框架学习记录（20）- Services的实现"></a>ABP框架学习记录（20）- Services的实现</h1><p><code>Services</code> 的实现在ABP项目的目录位置：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190829113722.png" alt="QQ截图20190829113722.png"></p>
-<p><code>AbpServiceBase</code>：可以作为服务的基类，它提供一些有用的对象属性注入和一些基本方法；</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190903095122.png" alt="QQ截图20190903095122.png"></p>
-<p><code>IApplicationService</code>：所有应用程序服务都必须实现此接口，以便按惯例识别它们。</p>
-<p>应用：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190909111242.png" alt="QQ截图20190909111242.png"></p>
-<p><code>IAvoidDuplicateCrossCuttingConcerns</code>：避免重复的交叉问题</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190903103311.png" alt="QQ截图20190903103311.png"></p>
-<p><code>ApplicationService</code>：服务基类；</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190903103449.png" alt="QQ截图20190903103449.png"></p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190903103642.png" alt="QQ截图20190903103642.png"></p>
-<p><code>WebApi</code> 项目，在动态生成服务的功能中，通过反射，获取到 <code>ApplicationService</code> 作为基类的项：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190905140646.png" alt="QQ截图20190905140646.png"></p>
-<p><code>CrudAppServiceBase</code>：为 <code>CrudAppService</code> 和 <code>AsyncCrudAppService</code> 提供基类，使用的时候也是这两个类；</p>
-<p>基类提供分页，排序，对象映射，鉴权等方法；</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190906143117.png" alt="QQ截图20190906143117.png"></p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190906151327.png" alt="QQ截图20190906151327.png"></p>
-<p><code>ICrudAppService</code>：提供 同步 CRUD 操作的服务接口；</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190906151648.png" alt="QQ截图20190906151648.png"></p>
-<p><code>CrudAppService</code>：继承 <code>CrudAppServiceBase</code> 抽象类和 <code>ICrudAppService</code> 泛型接口；</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190906152516.png" alt="QQ截图20190906152516.png"></p>
-<p>其他泛型抽象类定义：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190906153453.png" alt="QQ截图20190906153453.png"></p>
-<p><code>IAsyncCrudAppService</code>：提供 异步 CRUD 操作的服务接口；</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190906151604.png" alt="QQ截图20190906151604.png"></p>
-<p><code>AsyncCrudAppService</code>：继承 <code>CrudAppServiceBase</code> 抽象类和 <code>IAsyncCrudAppService</code> 泛型接口；</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190906153733.png" alt="QQ截图20190906153733.png"></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/08/28/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%8819%EF%BC%89-%20Navigation%E8%A7%A3%E6%9E%90/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/08/28/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%8819%EF%BC%89-%20Navigation%E8%A7%A3%E6%9E%90/" class="post-title-link" itemprop="url">ABP框架学习记录（19）- Navigation解析</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-08-28 17:34:49" itemprop="dateCreated datePublished" datetime="2019-08-28T17:34:49+00:00">2019-08-28</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/ABP/" itemprop="url" rel="index"><span itemprop="name">ABP</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="ABP框架学习记录（19）-Navigation解析"><a href="#ABP框架学习记录（19）-Navigation解析" class="headerlink" title="ABP框架学习记录（19）- Navigation解析"></a>ABP框架学习记录（19）- Navigation解析</h1><p><code>Navigation</code> 目录位置：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190828173829.png" alt="QQ截图20190828173829.png"></p>
-<p><code>IHasMenuItemDefinitions</code>：为具有菜单项的类声明通用的接口；</p>
-<p><code>MenuDefinition</code>：实现 <code>IHasMenuItemDefinitions</code> 接口，表示应用程序的菜单；</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190828174546.png" alt="QQ截图20190828174546.png"></p>
-<p><code>MenuItemDefinition</code>：表示 <code>MenuDefinition</code> 类中 <code>Items</code> 的项；并且实现 <code>IHasMenuItemDefinitions</code> 接口;</p>
-<p><code>MenuItemDefinition</code> 中引用 <code>ILocalizableString</code>,<code>IPermissionDependency</code>,<code>IFeatureDependency</code>类型的字段；</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190828175215.png" alt="QQ截图20190828175215.png"></p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190829100905.png" alt="QQ截图20190829100905.png"></p>
-<p><code>INavigationManager</code>：管理 <code>MenuDefinition</code>；</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190829110838.png" alt="QQ截图20190829110838.png"></p>
-<p><code>NavigationManager</code>：实现 <code>INavigationManager</code> 接口，管理 <code>MenuDefinition</code>；</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190829111046.png" alt="QQ截图20190829111046.png"></p>
-<p><code>INavigationProviderContext</code>：提供设置导航的基础架构。也就是提供 <code>INavigationManager</code> 的实现；</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190829111516.png" alt="QQ截图20190829111516.png"></p>
-<p><code>NavigationProviderContext</code>：<code>INavigationProviderContext</code> 接口的实现；</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190829111621.png" alt="QQ截图20190829111621.png"></p>
-<p><code>NavigationProvider</code>：提供更改 <code>MenuDefinition</code> 的抽象类，由更改应用程序导航类实现。</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190829111807.png" alt="QQ截图20190829111807.png"></p>
-<p>实现：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190829112052.png" alt="QQ截图20190829112052.png"></p>
-<p><code>UserMenu</code>：表示一个向用户展示的菜单；</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190829112228.png" alt="QQ截图20190829112228.png"></p>
-<p><code>UserMenuItem</code>：表示 <code>UserMenu</code> 的项；</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190829112710.png" alt="QQ截图20190829112710.png"></p>
-<p><code>IUserNavigationManager</code>：定义管理用户菜单接口；</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190829112807.png" alt="QQ截图20190829112807.png"></p>
-<p><code>UserNavigationManager</code>：<code>IUserNavigationManager</code> 接口的实现，</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190829112944.png" alt="QQ截图20190829112944.png"></p>
-<p>使用：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190829113326.png" alt="QQ截图20190829113326.png"></p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/1zhk/p/5356757.html">ABP源码分析二十二：Navigation</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/08/23/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%8818%EF%BC%89-%20UI%20Inputs%E8%A7%A3%E6%9E%90/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/08/23/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%8818%EF%BC%89-%20UI%20Inputs%E8%A7%A3%E6%9E%90/" class="post-title-link" itemprop="url">ABP框架学习记录（18）- UI Inputs解析</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-08-23 10:34:46" itemprop="dateCreated datePublished" datetime="2019-08-23T10:34:46+00:00">2019-08-23</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/ABP/" itemprop="url" rel="index"><span itemprop="name">ABP</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="ABP框架学习记录（18）-UI-Inputs解析"><a href="#ABP框架学习记录（18）-UI-Inputs解析" class="headerlink" title="ABP框架学习记录（18）- UI Inputs解析"></a>ABP框架学习记录（18）- UI Inputs解析</h1><p>UI Inputs 在 ABP 项目中的路径：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190823104812.png" alt="QQ截图20190823104812.png"></p>
-<p><code>IInputType</code> ：定义输入类型接口；</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190823105038.png" alt="QQ截图20190823105038.png"></p>
-<p><code>InputTypeBase</code>：默认实现 <code>IInputType</code> 接口；</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190823105319.png" alt="QQ截图20190823105319.png"></p>
-<p><code>InputTypeAttribute</code>：定义输入类型属性；</p>
-<p><code>SingleLineStringInputType</code>：单行字符串；</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">override</span> <span class="keyword">void</span> <span class="title">SetFeatures</span>(<span class="params">IFeatureDefinitionContext context</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">var</span> contacts = context.Create(Names.Contacts, <span class="string">&quot;false&quot;</span>);</span><br><span class="line">    contacts.CreateChildFeature(Names.MaxContactCount, <span class="string">&quot;100&quot;</span>, inputType: <span class="keyword">new</span> SingleLineStringInputType(<span class="keyword">new</span> NumericValueValidator(<span class="number">1</span>, <span class="number">10000</span>)));</span><br><span class="line"></span><br><span class="line">    contacts.CreateChildFeature(Names.ChildFeatureToOverride, <span class="string">&quot;ChildFeature&quot;</span>);</span><br><span class="line">    contacts.RemoveChildFeature(Names.ChildFeatureToOverride);</span><br><span class="line">    contacts.CreateChildFeature(Names.ChildFeatureToOverride, <span class="string">&quot;ChildFeatureToOverride&quot;</span>);</span><br><span class="line"></span><br><span class="line">    contacts.CreateChildFeature(Names.ChildFeatureToDelete, <span class="string">&quot;ChildFeatureToDelete&quot;</span>);</span><br><span class="line">    contacts.RemoveChildFeature(Names.ChildFeatureToDelete);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p><code>CheckboxInputType</code>：复选框类型；</p>
-<p><code>ComboboxInputType</code>：下拉列表；</p>
-<p><code>InputType</code> 验证：<code>Feature</code> 对象的 <code>InputType</code> 对象，<code>InputType</code> 的 <code>Validator</code> 对象的 <code>IsValid</code>方法；</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190823104156.png" alt="QQ截图20190823104156.png"></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -2674,7 +2531,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">497</span>
+          <span class="site-state-item-count">503</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>

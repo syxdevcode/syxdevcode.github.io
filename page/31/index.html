@@ -182,6 +182,1006 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/06/12/%E7%BC%93%E5%AD%98%E5%87%BB%E7%A9%BF%EF%BC%8C%E5%A4%B1%E6%95%88%E4%BB%A5%E5%8F%8A%E7%83%AD%E7%82%B9key/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/06/12/%E7%BC%93%E5%AD%98%E5%87%BB%E7%A9%BF%EF%BC%8C%E5%A4%B1%E6%95%88%E4%BB%A5%E5%8F%8A%E7%83%AD%E7%82%B9key/" class="post-title-link" itemprop="url">缓存击穿，失效以及热点key</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-06-12 14:41:31" itemprop="dateCreated datePublished" datetime="2018-06-12T14:41:31+00:00">2018-06-12</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BC%93%E5%AD%98/" itemprop="url" rel="index"><span itemprop="name">缓存</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="缓存击穿"><a href="#缓存击穿" class="headerlink" title="缓存击穿"></a>缓存击穿</h2><p>缓存一般是Key，value方式存在，当某一个Key不存在时会查询数据库，假如这个Key，一直不存在，则会频繁的请求数据库，对数据库造成访问压力。</p>
+<h3 id="1、使用互斥锁"><a href="#1、使用互斥锁" class="headerlink" title="1、使用互斥锁"></a>1、使用互斥锁</h3><p>在根据key获得的value值为空时，先锁上，再从数据库加载，加载完毕，释放锁。若其他线程发现获取锁失败，则睡眠50ms后重试。</p>
+<p>当通过某一个key去查询数据的时候，如果对应在数据库中的数据都不存在（不管是数据不存在，还是系统故障），我们将此key对应的value设置为一个默认的值，比如“NULL”，并设置一个缓存的失效时间，它的过期时间会很短，最长不超过五分钟。这时在缓存失效之前，所有通过此key的访问都被缓存挡住了。后面如果此key对应的数据在DB中存在时，缓存失效之后，通过此key再去访问数据，就能拿到新的value了。</p>
+<p>至于锁的类型，单机环境用并发包的Lock类型就行，集群环境则使用分布式锁( redis的setnx)</p>
+<p>** 优点**</p>
+<p>思路简单<br>保证一致性</p>
+<p>** 缺点**</p>
+<p>代码复杂度增大<br>存在死锁的风险</p>
+<p>** SETNX语法**</p>
+<p>SETNX key value</p>
+<p>将 key 的值设为 value ，当且仅当 key 不存在。</p>
+<p>若给定的 key 已经存在，则 SETNX 不做任何动作。</p>
+<p>SETNX 是『SET if Not eXists』(如果不存在，则 SET)的简写。</p>
+<p>可用版本：&gt;= 1.0.0</p>
+<p>时间复杂度： O(1)</p>
+<p>返回值： 设置成功，返回 1。设置失败，返回 0 。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">172.19.0.2:6380&gt; EXISTS job</span><br><span class="line">(integer) 0</span><br><span class="line">172.19.0.2:6380&gt; setnx job &quot;programmer&quot;</span><br><span class="line">(integer) 1</span><br><span class="line">172.19.0.2:6380&gt; setnx job &quot;code-farmer&quot;</span><br><span class="line">(integer) 0</span><br><span class="line">172.19.0.2:6380&gt; get job</span><br><span class="line">&quot;programmer&quot;</span><br></pre></td></tr></table></figure>
+
+<p>.net 代码</p>
+<p>参考：<a target="_blank" rel="noopener" href="http://www.cnblogs.com/yaoshangjin/p/7456378.html">http://www.cnblogs.com/yaoshangjin/p/7456378.html</a></p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;summary&gt;</span></span></span><br><span class="line"><span class="comment"><span class="doctag">///</span> 分布式锁</span></span><br><span class="line"><span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;/summary&gt;</span></span></span><br><span class="line"><span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;param name=&quot;resource&quot;&gt;</span>The thing we are locking on<span class="doctag">&lt;/param&gt;</span></span></span><br><span class="line"><span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;param name=&quot;expirationTime&quot;&gt;</span>The time after which the lock will automatically be expired by Redis<span class="doctag">&lt;/param&gt;</span></span></span><br><span class="line"><span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;param name=&quot;action&quot;&gt;</span>Action to be performed with locking<span class="doctag">&lt;/param&gt;</span></span></span><br><span class="line"><span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;returns&gt;</span>True if lock was acquired and action was performed; otherwise false<span class="doctag">&lt;/returns&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="built_in">bool</span> <span class="title">PerformActionWithLock</span>(<span class="params"><span class="built_in">string</span> resource, TimeSpan expirationTime, Action action</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    RedisValue lockToken = Guid.NewGuid().ToString(); <span class="comment">//Environment.MachineName;</span></span><br><span class="line">    RedisKey locKey = resource;</span><br><span class="line">    <span class="keyword">var</span> db = GetDatabase();</span><br><span class="line">    <span class="keyword">if</span> (db.LockTake(locKey, lockToken, expirationTime))</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">try</span></span><br><span class="line">        &#123;</span><br><span class="line">            action();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">finally</span></span><br><span class="line">        &#123;</span><br><span class="line">            db.LockRelease(locKey, lockToken);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>测试代码：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">[<span class="meta">Test</span>]</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">TestLock</span>(<span class="params"></span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    RedisKey _lockKey = <span class="string">&quot;lock_key&quot;</span>;</span><br><span class="line">    <span class="keyword">var</span> _lockDuration = TimeSpan.FromSeconds(<span class="number">30</span>);</span><br><span class="line">    <span class="keyword">var</span> mainTask = <span class="keyword">new</span> Task(() =&gt; _redisMSConnectionWrapper.PerformActionWithLock(_lockKey, _lockDuration, () =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;1.执行锁内任务-开始&quot;</span>);</span><br><span class="line">        Thread.Sleep(<span class="number">10000</span>);</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;1.执行锁内任务-结束&quot;</span>);</span><br><span class="line">    &#125;));</span><br><span class="line">    mainTask.Start();</span><br><span class="line">    Thread.Sleep(<span class="number">1000</span>);</span><br><span class="line">    <span class="keyword">var</span> subOk = <span class="literal">true</span>;</span><br><span class="line">    <span class="keyword">while</span> (subOk)</span><br><span class="line">    &#123;</span><br><span class="line">        _redisMSConnectionWrapper.PerformActionWithLock(_lockKey, _lockDuration, () =&gt;</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;2.执行锁内任务-开始&quot;</span>);</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;2.执行锁内任务-结束&quot;</span>);</span><br><span class="line">            subOk = <span class="literal">false</span>;</span><br><span class="line">        &#125;);</span><br><span class="line">        Thread.Sleep(<span class="number">1000</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;结束&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2、异步构建缓存"><a href="#2、异步构建缓存" class="headerlink" title="2、异步构建缓存"></a>2、异步构建缓存</h3><p>或者叫”提前”使用互斥锁</p>
+<p>在value内部设置1个超时值(timeout1), timeout1比实际的memcache timeout(timeout2)小。当从cache读取到timeout1发现它已经过期时候，马上延长timeout1并重新设置到cache。然后再从数据库加载数据并设置到cache中。</p>
+<p>** 优点**</p>
+<p>性价最佳，用户无需等待</p>
+<p>** 缺点**</p>
+<p>无法保证缓存一致性</p>
+<h3 id="3、布隆过滤器"><a href="#3、布隆过滤器" class="headerlink" title="3、布隆过滤器"></a>3、布隆过滤器</h3><p>布隆过滤器的巨大用处就是，能够迅速判断一个元素是否在一个集合中。因此他有如下三个使用场景:</p>
+<p>1.网页爬虫对URL的去重，避免爬取相同的URL地址<br>2.反垃圾邮件，从数十亿个垃圾邮件列表中判断某邮箱是否垃圾邮箱（同理，垃圾短信）<br>3.缓存击穿，将已存在的缓存放到布隆过滤器中，当黑客访问不存在的缓存时迅速返回避免缓存及DB挂掉。</p>
+<p>** 布隆过滤器的原理**</p>
+<p>其内部维护一个全为0的bit数组，需要说明的是，布隆过滤器有一个误判率的概念，误判率越低，则数组越长，所占空间越大。误判率越高则数组越小，所占的空间越小。</p>
+<p>** 优点**</p>
+<p>思路简单<br>保证一致性<br>性能强</p>
+<p>** 缺点**</p>
+<p>代码复杂度增大<br>需要另外维护一个集合来存放缓存的Key<br>布隆过滤器不支持删值操作</p>
+<h2 id="缓存雪崩（缓存失效）"><a href="#缓存雪崩（缓存失效）" class="headerlink" title="缓存雪崩（缓存失效）"></a>缓存雪崩（缓存失效）</h2><p>在高并发的环境下，缓存集中在一段时间内大量失效（例如设置缓存时采用了相同的过期时间，导致缓存在某一时刻同时失效），此时有多个进程就会去同时去查询DB，然后再去同时设置缓存。DB访问量会瞬间增大，造成了缓存雪崩。</p>
+<p>解决方法：</p>
+<p>1, 在缓存失效后，通过加锁或者队列来控制读数据库写缓存的线程数量。比如对某个key只允许一个线程查询数据和写缓存，其他线程等待，参考上文：1、使用互斥锁。<br>2, 可以通过缓存reload机制，预先去更新缓存，再即将发生大并发访问前手动触发加载缓存。<br>3, 不同的key，设置不同的过期时间，让缓存失效的时间点尽量均匀,例如在原有的失效时间基础上增加一个随机值，比如1-5分钟随机，这样每一个缓存的过期时间的重复率就会降低，就很难引发集体失效的事件。<br>4, 做二级缓存，或者双缓存策略。A1为原始缓存，A2为拷贝缓存，A1失效时，可以访问A2，A1缓存失效时间设置为短期，A2设置为长期。</p>
+<h2 id="热点key问题"><a href="#热点key问题" class="headerlink" title="热点key问题"></a>热点key问题</h2><p>(1) 这个key是一个热点key（例如一个重要的新闻，一个热门的八卦新闻等等），所以这种key访问量可能非常大。</p>
+<p>(2) 缓存的构建是需要一定时间的。（可能是一个复杂计算，例如复杂的sql、多次IO、多个依赖(各种接口)等等）</p>
+<p>于是就会出现一个致命问题：在缓存失效的瞬间，有大量线程来构建缓存，或者由于设计问题，造成缓存击穿，造成后端负载加大，甚至可能会让系统崩溃。</p>
+<p>解决方法：</p>
+<p>1，使用互斥锁(mutex key):这种解决方案思路比较简单，就是只让一个线程构建缓存，其他线程等待构建缓存的线程执行完，重新从缓存获取数据就可以了，参考上文：1、使用互斥锁。</p>
+<p>2，”提前”使用互斥锁(mutex key)：在value内部设置1个超时值(timeout1), timeout1比实际的memcache timeout(timeout2)小。当从cache读取到timeout1发现它已经过期时候，马上延长timeout1并重新设置到cache。然后再从数据库加载数据并设置到cache中。参考上文：2、异步构建缓存</p>
+<p>3，”永远不过期”：</p>
+<p>这里的“永远不过期”包含两层意思：</p>
+<p>(1) 从redis上看，确实没有设置过期时间，这就保证了，不会出现热点key过期问题，也就是“物理”不过期。</p>
+<p>(2) 从功能上看，如果不过期，那不就成静态的了吗？所以我们把过期时间存在key对应的value里，如果发现要过期了，通过一个后台的异步线程进行缓存的构建，也就是“逻辑”过期</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/rjzheng/p/8908073.html">分布式之缓存击穿</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/wang0112233/article/details/79558612">缓存雪崩、缓存穿透、热点Key解决方案和分析</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/zeb_perfect/article/details/54135506">缓存穿透，缓存击穿，缓存雪崩解决方案分析</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/d5a3668d4dad">缓存击穿、失效以及热点key问题</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/06/12/%E7%BC%93%E5%AD%98%E5%9C%A8%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F%E4%B8%AD%E7%9A%84%E5%BA%94%E7%94%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/06/12/%E7%BC%93%E5%AD%98%E5%9C%A8%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F%E4%B8%AD%E7%9A%84%E5%BA%94%E7%94%A8/" class="post-title-link" itemprop="url">缓存在分布式系统中的应用</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-06-12 09:10:31" itemprop="dateCreated datePublished" datetime="2018-06-12T09:10:31+00:00">2018-06-12</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BC%93%E5%AD%98/" itemprop="url" rel="index"><span itemprop="name">缓存</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="缓存在分布式系统中的应用"><a href="#缓存在分布式系统中的应用" class="headerlink" title="缓存在分布式系统中的应用"></a>缓存在分布式系统中的应用</h1><h2 id="一、缓存概述"><a href="#一、缓存概述" class="headerlink" title="一、缓存概述"></a>一、缓存概述</h2><p>缓存是分布式系统中的重要组件，主要解决高并发，大数据场景下，热点数据访问的性能问题。提供高性能的数据快速访问。</p>
+<h3 id="1-1缓存的原理"><a href="#1-1缓存的原理" class="headerlink" title="1.1缓存的原理"></a>1.1缓存的原理</h3><p>（1）将数据写入/读取速度更快的存储（设备）</p>
+<p>（2）将数据缓存到离应用最近的位置；</p>
+<p>（3）将数据缓存到离用户最近的位置。</p>
+<h3 id="1-2缓存分类"><a href="#1-2缓存分类" class="headerlink" title="1.2缓存分类"></a>1.2缓存分类</h3><p>（1）CDN缓存；</p>
+<p>（2）反向代理缓存；</p>
+<p>（3）分布式Cache；</p>
+<p>（4）本地应用缓存；</p>
+<h3 id="1-3缓存媒介"><a href="#1-3缓存媒介" class="headerlink" title="1.3缓存媒介"></a>1.3缓存媒介</h3><p>常用中间件：Redis，Memcache，Ngnix，Varnish，Squid，Ehcache等；</p>
+<p>缓存的内容：文件，数据，对象；</p>
+<p>缓存的介质：CPU，内存（本地，分布式），磁盘（本地，分布式）</p>
+<h3 id="1-4缓存设计"><a href="#1-4缓存设计" class="headerlink" title="1.4缓存设计"></a>1.4缓存设计</h3><p>缓存设计需要解决以下几个问题：</p>
+<p>（1）缓存什么？</p>
+<p>哪些数据需要缓存：1.热点数据；2.静态资源；</p>
+<p>（2）缓存的位置？</p>
+<p>CDN，反向代理，分布式缓存服务器，本机（内存，硬盘）</p>
+<p>（3）如何缓存的问题？</p>
+<p>过期策略</p>
+<p>1.固定时间：比如指定缓存的时间是30分钟；<br>2.相对时间：比如最近10分钟内没有访问的数据；</p>
+<p>同步机制</p>
+<p>实时写入；（推）<br>异步刷新；（推拉）</p>
+<h2 id="二、CDN缓存"><a href="#二、CDN缓存" class="headerlink" title="二、CDN缓存"></a>二、CDN缓存</h2><p>CDN主要解决将数据缓存到离用户最近的位置，一般缓存静态资源文件（页面，脚本，图片，视频，文件等）。国内网络异常复杂，跨运营商的网络访问会很慢。为了解决跨运营商或各地用户访问问题，可以在重要的城市，部署CDN应用。使用户就近获取所需内容，降低网络拥塞，提高用户访问响应速度和命中率。</p>
+<h3 id="2-1-CND原理"><a href="#2-1-CND原理" class="headerlink" title="2.1 CND原理"></a>2.1 CND原理</h3><p>CDN的基本原理是广泛采用各种缓存服务器，将这些缓存服务器分布到用户访问相对集中的地区或网络中，在用户访问网站时，利用全局负载技术将用户的访问指向距离最近的工作正常的缓存服务器上，由缓存服务器直接响应用户请求。</p>
+<p>（1）未部署CDN应用前</p>
+<p>网络请求路径：</p>
+<p>请求：本机网络（局域网）——》运营商网络——》应用服务器机房</p>
+<p>响应：应用服务器机房——》运营商网络——》本机网络（局域网）</p>
+<p>在不考虑复杂网络的情况下，从请求到响应需要经过3个节点，6个步骤完成一次用户访问操作。</p>
+<p>（2）部署CDN应用后</p>
+<p>网络路径：</p>
+<p>请求：本机网络（局域网）——》运营商网络</p>
+<p>响应：运营商网络——》本机网络（局域网）</p>
+<p>在不考虑复杂网络的情况下，从请求到响应需要经过2个节点，2个步骤完成一次用户访问操作。</p>
+<p>与不部署CDN服务相比，减少了1个节点，4个步骤的访问。极大的提高的系统的响应速度。</p>
+<h3 id="2-2-CDN优缺点"><a href="#2-2-CDN优缺点" class="headerlink" title="2.2 CDN优缺点"></a>2.2 CDN优缺点</h3><p>（1）优点（摘自百度百科）</p>
+<p>1、本地Cache加速：提升访问速度，尤其含有大量图片和静态页面站点；</p>
+<p>2、镜像服务：消除了不同运营商之间互联的瓶颈造成的影响，实现了跨运营商的网络加速，保证不同网络中的用户都能得到良好的访问质量；</p>
+<p>3、远程加速：远程访问用户根据DNS负载均衡技术智能自动选择Cache服务器，选择最快的Cache服务器，加快远程访问的速度；</p>
+<p>4、带宽优化：自动生成服务器的远程Mirror（镜像）cache服务器，远程用户访问时从cache服务器上读取数据，减少远程访问的带宽、分担网络流量、减轻原站点WEB服务器负载等功能。</p>
+<p>5、集群抗攻击：广泛分布的CDN节点加上节点之间的智能冗余机制，可以有效地预防黑客入侵以及降低各种D.D.o.S攻击对网站的影响，同时保证较好的服务质量。</p>
+<p>（2）缺点</p>
+<p>1.动态资源缓存，需要注意实时性；</p>
+<p>解决：主要缓存静态资源，动态资源建立多级缓存或准实时同步；</p>
+<p>2.如何保证数据的一致性和实时性需要权衡考虑；</p>
+<p>解决：</p>
+<p>1.设置缓存失效时间（1个小时，最终一致性）；<br>2.数据版本号；</p>
+<h2 id="三、反向代理缓存"><a href="#三、反向代理缓存" class="headerlink" title="三、反向代理缓存"></a>三、反向代理缓存</h2><p>反向代理是指在网站服务器机房部署代理服务器，实现负载均衡，数据缓存，安全控制等功能。</p>
+<h3 id="3-1缓存原理"><a href="#3-1缓存原理" class="headerlink" title="3.1缓存原理"></a>3.1缓存原理</h3><p>反向代理位于应用服务器机房，处理所有对WEB服务器的请求。如果用户请求的页面在代理服务器上有缓冲的话，代理服务器直接将缓冲内容发送给用户。如果没有缓冲则先向WEB服务器发出请求，取回数据，本地缓存后再发送给用户。通过降低向WEB服务器的请求数，从而降低了WEB服务器的负载。</p>
+<p>反向代理一般缓存静态资源，动态资源转发到应用服务器处理。常用的缓存应用服务器有Varnish，Ngnix，Squid。</p>
+<h3 id="3-2-代理缓存比较"><a href="#3-2-代理缓存比较" class="headerlink" title="3.2 代理缓存比较"></a>3.2 代理缓存比较</h3><p>常用的代理缓存有Varnish，Squid，Ngnix，简单比较如下：</p>
+<p>（1）varnish和squid是专业的cache服务，nginx需要第三方模块支持；</p>
+<p>（2）Varnish采用内存型缓存，避免了频繁在内存、磁盘中交换文件，性能比Squid高；</p>
+<p>（3）Varnish由于是内存cache，所以对小文件如css,js,小图片啥的支持很棒，后端的持久化缓存可以采用的是Squid或ATS；</p>
+<p>（4）Squid功能全而大，适合于各种静态的文件缓存，一般会在前端挂一个HAProxy或nginx做负载均衡跑多个实例；</p>
+<p>（5）Nginx采用第三方模块ncache做的缓冲，性能基本达到varnish，一般作为反向代理使用，可以实现简单的缓存。</p>
+<h2 id="四、分布式缓存"><a href="#四、分布式缓存" class="headerlink" title="四、分布式缓存"></a>四、分布式缓存</h2><p>CDN,反向代理缓存，主要解决静态文件，或用户请求资源的缓存，数据源一般为静态文件或动态生成的文件（有缓存头标识）。</p>
+<p>分布式缓存，主要指缓存用户经常访问数据的缓存，数据源为数据库。一般起到热点数据访问和减轻数据库压力的作用。</p>
+<p>目前分布式缓存设计，在大型网站架构中是必备的架构要素。常用的中间件有Memcache，Redis。</p>
+<h3 id="Memcache"><a href="#Memcache" class="headerlink" title="Memcache"></a>Memcache</h3><p>（1）使用物理内存作为缓存区，可独立运行在服务器上。每个进程最大2G，如果想缓存更多的数据，可以开辟更多的memcache进程（不同端口）或者使用分布式memcache进行缓存，将数据缓存到不同的物理机或者虚拟机上。</p>
+<p>（2）使用key-value的方式来存储数据，这是一种单索引的结构化数据组织形式，可使数据项查询时间复杂度为O(1)。</p>
+<p>（3）协议简单：基于文本行的协议，直接通过telnet在memcached服务器上可进行存取数据操作，简单，方便多种缓存参考此协议；</p>
+<p>（4）基于libevent高性能通信：Libevent是一套利用C开发的程序库，它将BSD系统的kqueue,Linux系统的epoll等事件处理功能封装成一个接口，与传统的select相比，提高了性能。</p>
+<p>（5）内置的内存管理方式：所有数据都保存在内存中，存取数据比硬盘快，当内存满后，通过LRU算法自动删除不使用的缓存，但没有考虑数据的容灾问题，重启服务，所有数据会丢失。</p>
+<p>（6）分布式：各个memcached服务器之间互不通信，各自独立存取数据，不共享任何信息。服务器并不具有分布式功能，分布式部署取决于memcache客户端。</p>
+<p>（7）缓存策略：Memcached的缓存策略是LRU（最近最少使用）到期失效策略。在memcached内存储数据项时，可以指定它在缓存的失效时间，默认为永久。当memcached服务器用完分配的内时，失效的数据被首先替换，然后也是最近未使用的数据。在LRU中，memcached使用的是一种Lazy Expiration策略，自己不会监控存入的key/vlue对是否过期，而是在获取key值时查看记录的时间戳，检查key/value对空间是否过期，这样可减轻服务器的负载。</p>
+<h3 id="Redis"><a href="#Redis" class="headerlink" title="Redis"></a>Redis</h3><p>Redis 是一个开源（BSD许可）的，基于内存的，多数据结构存储系统。可以用作数据库、缓存和消息中间件。 支持多种类型的数据结构，如 字符串（strings）， 散列（hashes）， 列表（lists）， 集合（sets）， 有序集合（sorted sets） 与范围查询， bitmaps， hyperloglogs 和 地理空间（geospatial） 索引半径查询。</p>
+<p>内置了 复制（replication），LUA脚本（Lua scripting）， LRU驱动事件（LRU eviction），事务（transactions） 和不同级别的 磁盘持久化（persistence）， 并通过 Redis哨兵（Sentinel）和自动分区（Cluster）提供高可用性（high availability）。</p>
+<h3 id="Memcache与Redis的比较"><a href="#Memcache与Redis的比较" class="headerlink" title="Memcache与Redis的比较"></a>Memcache与Redis的比较</h3><p>（1）数据结构：Memcache只支持key value存储方式，Redis支持更多的数据类型，比如Key value，hash，list，set，zset；</p>
+<p>（2）多线程：Memcache支持多线程，redis支持单线程；CPU利用方面Memcache优于redis；</p>
+<p>（3）持久化：Memcache不支持持久化，Redis支持持久化；</p>
+<p>（4）内存利用率：memcache高，redis低（采用压缩的情况下比memcache高）；</p>
+<p>（5）过期策略：memcache过期后，不删除缓存，会导致下次取数据数据的问题，Redis有专门线程，清除缓存数据；</p>
+<h2 id="缓存穿透"><a href="#缓存穿透" class="headerlink" title="缓存穿透"></a>缓存穿透</h2><p>缓存穿透是说收到了一个请求，但是该请求缓存里没有，只能去数据库里查询，然后放进缓存。这里面有两个风险，一个是同时有好多请求访问同一个数据，然后业务系统把这些请求全发到了数据库；第二个是有人恶意构造一个逻辑上不存在的数据，然后大量发送这个请求，这样每次请求都会被发送到数据库，可能导致数据挂掉。</p>
+<p>怎么应对这种情况呢？对于恶意访问，一个思路是事先做校验，对恶意数据直接过滤掉，不要发到数据库层；第二个思路是缓存空结果，就是对查询不存在的数据仍然记录一条该数据不存在在缓存里，这样能有效的减少查询数据库的次数。</p>
+<h2 id="缓存击穿"><a href="#缓存击穿" class="headerlink" title="缓存击穿"></a>缓存击穿</h2><p>缓存一般是Key，value方式存在，当某一个Key不存在时会查询数据库，假如这个Key，一直不存在，则会频繁的请求数据库，对数据库造成访问压力。</p>
+<p>解决方法：</p>
+<p>（1）对结果为空的数据也进行缓存，当此key有数据后，清理缓存；</p>
+<p>（2）一定不存在的key，采用布隆过滤器，建立一个大的Bitmap中，查询时通过该bitmap过滤；</p>
+<p>一个思路是全局锁，就是所有访问某个数据的请求都共享一个锁，获得锁的那个才有资格去访问数据库，其他线程必须等待。但是现在的业务都是分布式的，本地锁没法控制其他服务器也等待，所以要用到全局锁，比如用redis的setnx实现全局锁。</p>
+<p>另一个思路是对即将过期的数据主动刷新，做法可以有很多，比如起一个线程轮询数据，比如把所有数据划分为不同的缓存区间，定期分区间刷新数据等等。</p>
+<h2 id="四、缓存雪崩"><a href="#四、缓存雪崩" class="headerlink" title="四、缓存雪崩"></a>四、缓存雪崩</h2><p>雪崩是指当大量缓存失效时，导致大量的请求访问数据库，导致数据库服务器，无法抗住请求或挂掉的情况。</p>
+<p>解决方法：</p>
+<p>（1）合理规划缓存的失效时间；</p>
+<p>（2）合理评估数据库的负载压力；</p>
+<p>（3）对数据库进行过载保护或应用层限流；</p>
+<p>（4）多级缓存设计，缓存高可用；</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/itfly8/p/5562610.html">大型网站架构系列：缓存在分布式系统中的应用（一）</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/itfly8/p/5562615.html">大型网站架构系列：缓存在分布式系统中的应用（二）</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/itfly8/p/5597639.html">大型网站架构系列：缓存在分布式系统中的应用（三）</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/bethunebtj/p/9159914.html">高并发请求的缓存设计策略</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/06/11/Redis%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/06/11/Redis%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B/" class="post-title-link" itemprop="url">Redis内存模型</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-06-11 14:02:41" itemprop="dateCreated datePublished" datetime="2018-06-11T14:02:41+00:00">2018-06-11</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>本文转载<a target="_blank" rel="noopener" href="http://www.cnblogs.com/kismetv/p/8654978.html">深入学习Redis（1）：Redis内存模型</a></p>
+<p>这篇文章主要介绍Redis的内存模型（以3.0为例），包括Redis占用内存的情况及如何查询、不同的对象类型在内存中的编码方式、内存分配器(jemalloc)、简单动态字符串(SDS)、RedisObject等；然后在此基础上介绍几个Redis内存模型的应用。</p>
+<h2 id="一、Redis内存统计"><a href="#一、Redis内存统计" class="headerlink" title="一、Redis内存统计"></a>一、Redis内存统计</h2><p>在客户端通过redis-cli连接服务器后（后面如无特殊说明，客户端一律使用redis-cli），通过info命令可以查看内存使用情况：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">info memory</span><br></pre></td></tr></table></figure>
+
+<p>结果：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">172.19.0.2:6380&gt; info memory</span><br><span class="line"># Memory</span><br><span class="line">used_memory:848344</span><br><span class="line">used_memory_human:828.46K</span><br><span class="line">used_memory_rss:7520256</span><br><span class="line">used_memory_rss_human:7.17M</span><br><span class="line">used_memory_peak:848344</span><br><span class="line">used_memory_peak_human:828.46K</span><br><span class="line">used_memory_peak_perc:100.01%</span><br><span class="line">used_memory_overhead:836086</span><br><span class="line">used_memory_startup:786456</span><br><span class="line">used_memory_dataset:12258</span><br><span class="line">used_memory_dataset_perc:19.81%</span><br><span class="line">total_system_memory:1910714368</span><br><span class="line">total_system_memory_human:1.78G</span><br></pre></td></tr></table></figure>
+
+<p>其中，info命令可以显示redis服务器的许多信息，包括服务器基本信息、CPU、内存、持久化、客户端连接信息等等；memory是参数，表示只显示内存相关的信息。</p>
+<p>返回结果中比较重要的几个说明如下：</p>
+<p>（1）** used_memory**：Redis分配器分配的内存总量（单位是字节），包括使用的虚拟内存（即swap）；Redis分配器后面会介绍。used_memory_human只是显示更友好。</p>
+<p>（2）** used_memory_rss**：Redis进程占据操作系统的内存（单位是字节），与top及ps命令看到的值是一致的；除了分配器分配的内存之外，used_memory_rss还包括进程运行本身需要的内存、内存碎片等，但是不包括虚拟内存。</p>
+<p>因此，used_memory和used_memory_rss，前者是从Redis角度得到的量，后者是从操作系统角度得到的量。二者之所以有所不同，一方面是因为内存碎片和Redis进程运行需要占用内存，使得前者可能比后者小，另一方面虚拟内存的存在，使得前者可能比后者大。</p>
+<p>由于在实际应用中，Redis的数据量会比较大，此时进程运行占用的内存与Redis数据量和内存碎片相比，都会小得多；因此used_memory_rss和used_memory的比例，便成了衡量Redis内存碎片率的参数；这个参数就是mem_fragmentation_ratio。</p>
+<p>（3）** mem_fragmentation_ratio**：内存碎片比率，该值是used_memory_rss / used_memory的比值。</p>
+<p>mem_fragmentation_ratio一般大于1，且该值越大，内存碎片比例越大。mem_fragmentation_ratio&lt;1，说明Redis使用了虚拟内存，由于虚拟内存的媒介是磁盘，比内存速度要慢很多，当这种情况出现时，应该及时排查，如果内存不足应该及时处理，如增加Redis节点、增加Redis服务器的内存、优化应用等。</p>
+<p>一般来说，mem_fragmentation_ratio在1.03左右是比较健康的状态（对于jemalloc来说）；</p>
+<p>（4）** mem_allocator**：Redis使用的内存分配器，在编译时指定；可以是 libc 、jemalloc或者tcmalloc，默认是jemalloc；截图中使用的便是默认的jemalloc。</p>
+<h2 id="二、Redis内存划分"><a href="#二、Redis内存划分" class="headerlink" title="二、Redis内存划分"></a>二、Redis内存划分</h2><p>Redis的内存占用主要可以划分为以下几个部分：</p>
+<h3 id="1、数据"><a href="#1、数据" class="headerlink" title="1、数据"></a>1、数据</h3><p>作为数据库，数据是最主要的部分；这部分占用的内存会统计在used_memory中。</p>
+<p>Redis使用键值对存储数据，其中的值（对象）包括5种类型，即字符串、哈希、列表、集合、有序集合。这5种类型是Redis对外提供的，实际上，在Redis内部，每种类型可能有2种或更多的内部编码实现；此外，Redis在存储对象时，并不是直接将数据扔进内存，而是会对对象进行各种包装：如redisObject、SDS等；这篇文章后面将重点介绍Redis中数据存储的细节。</p>
+<h3 id="2、进程本身运行需要的内存"><a href="#2、进程本身运行需要的内存" class="headerlink" title="2、进程本身运行需要的内存"></a>2、进程本身运行需要的内存</h3><p>Redis主进程本身运行肯定需要占用内存，如代码、常量池等等；这部分内存大约几兆，在大多数生产环境中与Redis数据占用的内存相比可以忽略。这部分内存不是由jemalloc分配，因此不会统计在used_memory中。</p>
+<p>补充说明：除了主进程外，Redis创建的子进程运行也会占用内存，如Redis执行AOF、RDB重写时创建的子进程。当然，这部分内存不属于Redis进程，也不会统计在used_memory和used_memory_rss中。</p>
+<h3 id="3、缓冲内存"><a href="#3、缓冲内存" class="headerlink" title="3、缓冲内存"></a>3、缓冲内存</h3><p>缓冲内存包括客户端缓冲区、复制积压缓冲区、AOF缓冲区等；其中，客户端缓冲存储客户端连接的输入输出缓冲；复制积压缓冲用于部分复制功能；AOF缓冲区用于在进行AOF重写时，保存最近的写入命令。在了解相应功能之前，不需要知道这些缓冲的细节；这部分内存由jemalloc分配，因此会统计在used_memory中。</p>
+<h3 id="4、内存碎片"><a href="#4、内存碎片" class="headerlink" title="4、内存碎片"></a>4、内存碎片</h3><p>内存碎片是Redis在分配、回收物理内存过程中产生的。例如，如果对数据的更改频繁，而且数据之间的大小相差很大，可能导致redis释放的空间在物理内存中并没有释放，但redis又无法有效利用，这就形成了内存碎片。内存碎片不会统计在used_memory中。</p>
+<p>内存碎片的产生与对数据进行的操作、数据的特点等都有关；此外，与使用的内存分配器也有关系：如果内存分配器设计合理，可以尽可能的减少内存碎片的产生。后面将要说到的jemalloc便在控制内存碎片方面做的很好。</p>
+<p>如果Redis服务器中的内存碎片已经很大，可以通过安全重启的方式减小内存碎片：因为重启之后，Redis重新从备份文件中读取数据，在内存中进行重排，为每个数据重新选择合适的内存单元，减小内存碎片。</p>
+<h2 id="三、Redis数据存储的细节"><a href="#三、Redis数据存储的细节" class="headerlink" title="三、Redis数据存储的细节"></a>三、Redis数据存储的细节</h2><h3 id="1、概述"><a href="#1、概述" class="headerlink" title="1、概述"></a>1、概述</h3><p>关于Redis数据存储的细节，涉及到内存分配器（如jemalloc）、简单动态字符串（SDS）、5种对象类型及内部编码、redisObject。在讲述具体内容之前，先说明一下这几个概念之间的关系。</p>
+<p>下图是执行set hello world时，所涉及到的数据模型。</p>
+<p><img src="/img/1174710-20180327001055927-1896197804.png" alt="1174710-20180327001055927-1896197804.png"></p>
+<p>图片来源：<a target="_blank" rel="noopener" href="https://searchdatabase.techtarget.com.cn/7-20218/">https://searchdatabase.techtarget.com.cn/7-20218/</a></p>
+<p>（1）dictEntry：Redis是Key-Value数据库，因此对每个键值对都会有一个dictEntry，里面存储了指向Key和Value的指针；next指向下一个dictEntry，与本Key-Value无关。</p>
+<p>（2）Key：图中右上角可见，Key（”hello”）并不是直接以字符串存储，而是存储在SDS结构中。</p>
+<p>（3）redisObject：Value(“world”)既不是直接以字符串存储，也不是像Key一样直接存储在SDS中，而是存储在redisObject中。实际上，不论Value是5种类型的哪一种，都是通过redisObject来存储的；而redisObject中的type字段指明了Value对象的类型，ptr字段则指向对象所在的地址。不过可以看出，字符串对象虽然经过了redisObject的包装，但仍然需要通过SDS存储。</p>
+<p>实际上，redisObject除了type和ptr字段以外，还有其他字段图中没有给出，如用于指定对象内部编码的字段；后面会详细介绍。</p>
+<p>（4）jemalloc：无论是DictEntry对象，还是redisObject、SDS对象，都需要内存分配器（如jemalloc）分配内存进行存储。以DictEntry对象为例，有3个指针组成，在64位机器下占24个字节，jemalloc会为它分配32字节大小的内存单元。</p>
+<p>下面来分别介绍jemalloc、redisObject、SDS、对象类型及内部编码。</p>
+<h3 id="2、jemalloc"><a href="#2、jemalloc" class="headerlink" title="2、jemalloc"></a>2、jemalloc</h3><p>Redis在编译时便会指定内存分配器；内存分配器可以是 libc 、jemalloc或者tcmalloc，默认是jemalloc。</p>
+<p>jemalloc作为Redis的默认内存分配器，在减小内存碎片方面做的相对比较好。jemalloc在64位系统中，将内存空间划分为小、大、巨大三个范围；每个范围内又划分了许多小的内存块单位；当Redis存储数据时，会选择大小最合适的内存块进行存储。</p>
+<p>jemalloc划分的内存单元如下图所示：</p>
+<p><img src="/img/1174710-20180327001126509-2023165562.png" alt="1174710-20180327001126509-2023165562.png"></p>
+<p>图片来源：<a target="_blank" rel="noopener" href="http://blog.csdn.net/zhengpeitao/article/details/76573053">http://blog.csdn.net/zhengpeitao/article/details/76573053</a></p>
+<p>例如，如果需要存储大小为130字节的对象，jemalloc会将其放入160字节的内存单元中。</p>
+<h3 id="3、redisObject"><a href="#3、redisObject" class="headerlink" title="3、redisObject"></a>3、redisObject</h3><p>前面说到，Redis对象有5种类型；无论是哪种类型，Redis都不会直接存储，而是通过redisObject对象进行存储。</p>
+<p>redisObject对象非常重要，Redis对象的类型、内部编码、内存回收、共享对象等功能，都需要redisObject支持，下面将通过redisObject的结构来说明它是如何起作用的。</p>
+<p>redisObject的定义如下（不同版本的Redis可能稍稍有所不同）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">typedef struct redisObject &#123;</span><br><span class="line">　　unsigned type:4;</span><br><span class="line">　　unsigned encoding:4;</span><br><span class="line">　　unsigned lru:REDIS_LRU_BITS; /* lru time (relative to server.lruclock) */</span><br><span class="line">　　int refcount;</span><br><span class="line">　　void *ptr;</span><br><span class="line">&#125; robj;</span><br></pre></td></tr></table></figure>
+
+<p>redisObject的每个字段的含义和作用如下：</p>
+<h4 id="（1）type"><a href="#（1）type" class="headerlink" title="（1）type"></a>（1）type</h4><p>type字段表示对象的类型，占4个比特；目前包括REDIS_STRING(字符串)、REDIS_LIST (列表)、REDIS_HASH(哈希)、REDIS_SET(集合)、REDIS_ZSET(有序集合)。</p>
+<p>当我们执行type命令时，便是通过读取RedisObject的type字段获得对象的类型；如下所示：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">172.19.0.2:6380&gt; set mystring helloredis</span><br><span class="line">OK</span><br><span class="line">172.19.0.2:6380&gt; type mystring</span><br><span class="line">string</span><br><span class="line">172.19.0.2:6380&gt; sadd myset member1 member2 member3</span><br><span class="line">(integer) 3</span><br><span class="line">172.19.0.2:6380&gt; type myset</span><br><span class="line">set</span><br></pre></td></tr></table></figure>
+
+<h4 id="（2）encoding"><a href="#（2）encoding" class="headerlink" title="（2）encoding"></a>（2）encoding</h4><p>encoding表示对象的内部编码，占4个比特。</p>
+<p>对于Redis支持的每种类型，都有至少两种内部编码，例如对于字符串，有int、embstr、raw三种编码。通过encoding属性，Redis可以根据不同的使用场景来为对象设置不同的编码，大大提高了Redis的灵活性和效率。以列表对象为例，有压缩列表和双端链表两种编码方式；如果列表中的元素较少，Redis倾向于使用压缩列表进行存储，因为压缩列表占用内存更少，而且比双端链表可以更快载入；当列表对象元素较多时，压缩列表就会转化为更适合存储大量元素的双端链表。</p>
+<p>通过object encoding命令，可以查看对象采用的编码方式，如所示：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">172.19.0.2:6380&gt; set key1 33</span><br><span class="line">OK</span><br><span class="line">172.19.0.2:6380&gt; object encoding key1</span><br><span class="line">&quot;int&quot;</span><br><span class="line">172.19.0.2:6380&gt; set key2 helloworld</span><br><span class="line">OK</span><br><span class="line">172.19.0.2:6380&gt; object encoding key2</span><br><span class="line">&quot;embstr&quot;</span><br></pre></td></tr></table></figure>
+
+<h4 id="（3）lru"><a href="#（3）lru" class="headerlink" title="（3）lru"></a>（3）lru</h4><p>lru记录的是对象最后一次被命令程序访问的时间，占据的比特数不同的版本有所不同（如4.0版本占24比特，2.6版本占22比特）。</p>
+<p>通过对比lru时间与当前时间，可以计算某个对象的空转时间；object idletime命令可以显示该空转时间（单位是秒）。object idletime命令的一个特殊之处在于它不改变对象的lru值。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">172.19.0.2:6380&gt; object idletime mystring</span><br><span class="line">(integer) 540</span><br><span class="line">172.19.0.2:6380&gt; object idletime mystring</span><br><span class="line">(integer) 541</span><br><span class="line">172.19.0.2:6380&gt; object idletime mystring</span><br><span class="line">(integer) 547</span><br><span class="line">172.19.0.2:6380&gt; get mystring</span><br><span class="line">&quot;helloredis&quot;</span><br><span class="line">172.19.0.2:6380&gt; object idletime mystring</span><br></pre></td></tr></table></figure>
+
+<p>lru值除了通过object idletime命令打印之外，还与Redis的内存回收有关系：如果Redis打开了maxmemory选项，且内存回收算法选择的是volatile-lru或allkeys—lru，那么当Redis内存占用超过maxmemory指定的值时，Redis会优先选择空转时间最长的对象进行释放。</p>
+<h4 id="（4）refcount"><a href="#（4）refcount" class="headerlink" title="（4）refcount"></a>（4）refcount</h4><p>** refcount与共享对象**</p>
+<p>refcount记录的是该对象被引用的次数，类型为整型。refcount的作用，主要在于对象的引用计数和内存回收。当创建新对象时，refcount初始化为1；当有新程序使用该对象时，refcount加1；当对象不再被一个新程序使用时，refcount减1；当refcount变为0时，对象占用的内存会被释放。</p>
+<p>Redis中被多次使用的对象(refcount&gt;1)，称为共享对象。Redis为了节省内存，当有一些对象重复出现时，新的程序不会创建新的对象，而是仍然使用原来的对象。这个被重复使用的对象，就是共享对象。目前共享对象仅支持整数值的字符串对象。</p>
+<p>** 共享对象的具体实现 **</p>
+<p>Redis的共享对象目前只支持整数值的字符串对象。之所以如此，实际上是对内存和CPU（时间）的平衡：共享对象虽然会降低内存消耗，但是判断两个对象是否相等却需要消耗额外的时间。对于整数值，判断操作复杂度为O(1)；对于普通字符串，判断复杂度为O(n)；而对于哈希、列表、集合和有序集合，判断的复杂度为O(n^2)。</p>
+<p>虽然共享对象只能是整数值的字符串对象，但是5种类型都可能使用共享对象（如哈希、列表等的元素可以使用）。</p>
+<p>就目前的实现来说，Redis服务器在初始化时，会创建10000个字符串对象，值分别是0<del>9999的整数值；当Redis需要使用值为0</del>9999的字符串对象时，可以直接使用这些共享对象。10000这个数字可以通过调整参数REDIS_SHARED_INTEGERS（4.0中是OBJ_SHARED_INTEGERS）的值进行改变。</p>
+<h4 id="（5）ptr"><a href="#（5）ptr" class="headerlink" title="（5）ptr"></a>（5）ptr</h4><p>ptr指针指向具体的数据，如前面的例子中，set hello world，ptr指向包含字符串world的SDS。</p>
+<h4 id="（6）总结"><a href="#（6）总结" class="headerlink" title="（6）总结"></a>（6）总结</h4><p>综上所述，redisObject的结构与对象类型、编码、内存回收、共享对象都有关系；一个redisObject对象的大小为16字节：</p>
+<p>4bit+4bit+24bit+4Byte+8Byte=16Byte。</p>
+<h3 id="4、SDS"><a href="#4、SDS" class="headerlink" title="4、SDS"></a>4、SDS</h3><p>Redis没有直接使用C字符串(即以空字符’\0’结尾的字符数组)作为默认的字符串表示，而是使用了SDS。SDS是简单动态字符串(Simple Dynamic String)的缩写。</p>
+<h4 id="（1）SDS结构"><a href="#（1）SDS结构" class="headerlink" title="（1）SDS结构"></a>（1）SDS结构</h4><p>sds的结构如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">struct sdshdr &#123;</span><br><span class="line">    int len;</span><br><span class="line">    int free;</span><br><span class="line">    char buf[];</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>其中，buf表示字节数组，用来存储字符串；len表示buf已使用的长度，free表示buf未使用的长度。下面是两个例子。</p>
+<p>通过SDS的结构可以看出，buf数组的长度=free+len+1（其中1表示字符串结尾的空字符）；所以，一个SDS结构占据的空间为：free所占长度+len所占长度+ buf数组的长度=4+4+free+len+1=free+len+9。</p>
+<h4 id="2-SDS与C字符串的应用"><a href="#2-SDS与C字符串的应用" class="headerlink" title="(2)SDS与C字符串的应用"></a>(2)SDS与C字符串的应用</h4><p>Redis在存储对象时，一律使用SDS代替C字符串。例如set hello world命令，hello和world都是以SDS的形式存储的。而sadd myset member1 member2 member3命令，不论是键（”myset”），还是集合中的元素（”member1”、 ”member2”和”member3”），都是以SDS的形式存储。除了存储对象，SDS还用于存储各种缓冲区。</p>
+<p>只有在字符串不会改变的情况下，如打印日志时，才会使用C字符串。</p>
+<h2 id="四、Redis的对象类型与内部编码"><a href="#四、Redis的对象类型与内部编码" class="headerlink" title="四、Redis的对象类型与内部编码"></a>四、Redis的对象类型与内部编码</h2><p>前面已经说过，Redis支持5种对象类型，而每种结构都有至少两种编码；这样做的好处在于：一方面接口与实现分离，当需要增加或改变内部编码时，用户使用不受影响，另一方面可以根据不同的应用场景切换内部编码，提高效率。</p>
+<p>关于Redis内部编码的转换，都符合以下规律：编码转换在Redis写入数据时完成，且转换过程不可逆，只能从小内存编码向大内存编码转换。</p>
+<h3 id="1、字符串"><a href="#1、字符串" class="headerlink" title="1、字符串"></a>1、字符串</h3><h4 id="（1）概况"><a href="#（1）概况" class="headerlink" title="（1）概况"></a>（1）概况</h4><p>字符串是最基础的类型，因为所有的键都是字符串类型，且字符串之外的其他几种复杂类型的元素也是字符串。</p>
+<p>字符串长度不能超过512MB。</p>
+<h4 id="（2）内部编码"><a href="#（2）内部编码" class="headerlink" title="（2）内部编码"></a>（2）内部编码</h4><p>字符串类型的内部编码有3种，它们的应用场景如下：</p>
+<p>** int**：8个字节的长整型。字符串值是整型时，这个值使用long整型表示。</p>
+<p>** embstr**：&lt;=39字节的字符串。embstr与raw都使用redisObject和sds保存数据，区别在于，embstr的使用只分配一次内存空间（因此redisObject和sds是连续的），而raw需要分配两次内存空间（分别为redisObject和sds分配空间）。因此与raw相比，embstr的好处在于创建时少分配一次空间，删除时少释放一次空间，以及对象的所有数据连在一起，寻找方便。而embstr的坏处也很明显，如果字符串的长度增加需要重新分配内存时，整个redisObject和sds都需要重新分配空间，因此redis中的embstr实现为只读。</p>
+<p>** raw**：大于39个字节的字符串</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">172.19.0.2:6380&gt; object encoding key2</span><br><span class="line">&quot;int&quot;</span><br><span class="line">172.19.0.2:6380&gt; set key2 helloworld</span><br><span class="line">OK</span><br><span class="line">172.19.0.2:6380&gt; object encoding key2</span><br><span class="line">&quot;embstr&quot;</span><br><span class="line">172.19.0.2:6380&gt; set key3 helloworldhelloworldhelloworldhelloworldhelloworld</span><br><span class="line">OK</span><br><span class="line">172.19.0.2:6380&gt; strlen key3</span><br><span class="line">(integer) 50</span><br><span class="line">172.19.0.2:6380&gt; object encoding key3</span><br><span class="line">&quot;raw&quot;</span><br><span class="line">172.19.0.2:6380&gt;</span><br></pre></td></tr></table></figure>
+
+<p>embstr和raw进行区分的长度，是39；是因为redisObject的长度是16字节，sds的长度是9+字符串长度；因此当字符串长度是39时，embstr的长度正好是16+9+39=64，jemalloc正好可以分配64字节的内存单元。</p>
+<h4 id="（3）编码转换"><a href="#（3）编码转换" class="headerlink" title="（3）编码转换"></a>（3）编码转换</h4><p>当int数据不再是整数，或大小超过了long的范围时，自动转化为raw。</p>
+<p>而对于embstr，由于其实现是只读的，因此在对embstr对象进行修改时，都会先转化为raw再进行修改，因此，只要是修改embstr对象，修改后的对象一定是raw的，无论是否达到了39个字节。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">172.19.0.2:6380&gt; set key1 hello</span><br><span class="line">OK</span><br><span class="line">172.19.0.2:6380&gt; object encoding key1</span><br><span class="line">&quot;embstr&quot;</span><br><span class="line">172.19.0.2:6380&gt; append key1 ,world</span><br><span class="line">(integer) 11</span><br><span class="line">172.19.0.2:6380&gt; get key1</span><br><span class="line">&quot;hello,world&quot;</span><br><span class="line">172.19.0.2:6380&gt; object encoding key1</span><br><span class="line">&quot;raw&quot;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2、列表"><a href="#2、列表" class="headerlink" title="2、列表"></a>2、列表</h3><h4 id="（1）列表概况"><a href="#（1）列表概况" class="headerlink" title="（1）列表概况"></a>（1）列表概况</h4><p>列表（list）用来存储多个有序的字符串，每个字符串称为元素；一个列表可以存储2^32-1个元素。Redis中的列表支持两端插入和弹出，并可以获得指定位置（或范围）的元素，可以充当数组、队列、栈等。</p>
+<h4 id="（2）列表内部编码"><a href="#（2）列表内部编码" class="headerlink" title="（2）列表内部编码"></a>（2）列表内部编码</h4><p>列表的内部编码可以是压缩列表（ziplist）或双端链表（linkedlist）。</p>
+<p>双端链表：由一个list结构和多个listNode结构组成；典型结构如下图所示：</p>
+<p><img src="/img/1174710-20180327001435577-242733744.png" alt="1174710-20180327001435577-242733744.png"></p>
+<p>图片来源：《Redis设计与实现》</p>
+<p>通过图中可以看出，双端链表同时保存了表头指针和表尾指针，并且每个节点都有指向前和指向后的指针；链表中保存了列表的长度；dup、free和match为节点值设置类型特定函数，所以链表可以用于保存各种不同类型的值。而链表中每个节点指向的是type为字符串的redisObject。</p>
+<p>压缩列表：压缩列表是Redis为了节约内存而开发的，是由一系列特殊编码的连续内存块(而不是像双端链表一样每个节点是指针)组成的顺序型数据结构；具体结构相对比较复杂，略。与双端链表相比，压缩列表可以节省内存空间，但是进行修改或增删操作时，复杂度较高；因此当节点数量较少时，可以使用压缩列表；但是节点数量多时，还是使用双端链表划算。</p>
+<p>压缩列表不仅用于实现列表，也用于实现哈希、有序列表；使用非常广泛。</p>
+<h4 id="（3）列表编码转换"><a href="#（3）列表编码转换" class="headerlink" title="（3）列表编码转换"></a>（3）列表编码转换</h4><p>只有同时满足下面两个条件时，才会使用压缩列表：列表中元素数量小于512个；列表中所有字符串对象都不足64字节。如果有一个条件不满足，则使用双端列表；且编码只可能由压缩列表转化为双端链表，反方向则不可能。</p>
+<p>其中，单个字符串不能超过64字节，是为了便于统一分配每个节点的长度；这里的64字节是指字符串的长度，不包括SDS结构，因为压缩列表使用连续、定长内存块存储字符串，不需要SDS结构指明长度。后面提到压缩列表，也会强调长度不超过64字节，原理与这里类似。</p>
+<h3 id="3、哈希"><a href="#3、哈希" class="headerlink" title="3、哈希"></a>3、哈希</h3><h4 id="（1）概况-1"><a href="#（1）概况-1" class="headerlink" title="（1）概况"></a>（1）概况</h4><p>哈希（作为一种数据结构），不仅是redis对外提供的5种对象类型的一种（与字符串、列表、集合、有序结合并列），也是Redis作为Key-Value数据库所使用的数据结构。为了说明的方便，在本文后面当使用“内层的哈希”时，代表的是redis对外提供的5种对象类型的一种；使用“外层的哈希”代指Redis作为Key-Value数据库所使用的数据结构。</p>
+<p>#####（2）内部编码</p>
+<p>内层的哈希使用的内部编码可以是压缩列表（ziplist）和哈希表（hashtable）两种；Redis的外层的哈希则只使用了hashtable。</p>
+<p>压缩列表前面已介绍。与哈希表相比，压缩列表用于元素个数少、元素长度小的场景；其优势在于集中存储，节省空间；同时，虽然对于元素的操作复杂度也由O(n)变为了O(1)，但由于哈希中元素数量较少，因此操作的时间并没有明显劣势。</p>
+<p>hashtable：一个hashtable由1个dict结构、2个dictht结构、1个dictEntry指针数组（称为bucket）和多个dictEntry结构组成。</p>
+<p>正常情况下（即hashtable没有进行rehash时）各部分关系如下图所示：</p>
+<p><img src="/img/1174710-20180327001627028-325473621.png" alt="1174710-20180327001627028-325473621.png"></p>
+<p>图片改编自：《Redis设计与实现》</p>
+<p>下面从底层向上依次介绍各个部分：</p>
+<p>** dictEntry **</p>
+<p>dictEntry结构用于保存键值对，结构定义如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">typedef struct dictEntry&#123;</span><br><span class="line">    void *key;</span><br><span class="line">    union&#123;</span><br><span class="line">        void *val;</span><br><span class="line">        uint64_tu64;</span><br><span class="line">        int64_ts64;</span><br><span class="line">    &#125;v;</span><br><span class="line">    struct dictEntry *next;</span><br><span class="line">&#125;dictEntry;</span><br></pre></td></tr></table></figure>
+
+<p>其中，各个属性的功能如下：</p>
+<p>key：键值对中的键；<br>val：键值对中的值，使用union(即共用体)实现，存储的内容既可能是一个指向值的指针，也可能是64位整型，或无符号64位整型；<br>next：指向下一个dictEntry，用于解决哈希冲突问题<br>在64位系统中，一个dictEntry对象占24字节（key/val/next各占8字节）。</p>
+<p>** bucket**</p>
+<p>bucket是一个数组，数组的每个元素都是指向dictEntry结构的指针。redis中bucket数组的大小计算规则如下：大于dictEntry的、最小的2^n；例如，如果有1000个dictEntry，那么bucket大小为1024；如果有1500个dictEntry，则bucket大小为2048。</p>
+<p>** dictht**</p>
+<p>dictht结构如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">typedef struct dictht&#123;</span><br><span class="line">    dictEntry **table;</span><br><span class="line">    unsigned long size;</span><br><span class="line">    unsigned long sizemask;</span><br><span class="line">    unsigned long used;</span><br><span class="line">&#125;dictht;</span><br></pre></td></tr></table></figure>
+
+<p>其中，各个属性的功能说明如下：</p>
+<p>table属性是一个指针，指向bucket；<br>size属性记录了哈希表的大小，即bucket的大小；<br>used记录了已使用的dictEntry的数量；<br>sizemask属性的值总是为size-1，这个属性和哈希值一起决定一个键在table中存储的位置。</p>
+<p>** dict**</p>
+<p>一般来说，通过使用dictht和dictEntry结构，便可以实现普通哈希表的功能；但是Redis的实现中，在dictht结构的上层，还有一个dict结构。下面说明dict结构的定义及作用。</p>
+<p>dict结构如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">pedef struct dict&#123;</span><br><span class="line">    dictType *type;</span><br><span class="line">    void *privdata;</span><br><span class="line">    dictht ht[2];</span><br><span class="line">    int trehashidx;</span><br><span class="line">&#125; dict;</span><br></pre></td></tr></table></figure>
+
+<p>其中，type属性和privdata属性是为了适应不同类型的键值对，用于创建多态字典。</p>
+<p>ht属性和trehashidx属性则用于rehash，即当哈希表需要扩展或收缩时使用。ht是一个包含两个项的数组，每项都指向一个dictht结构，这也是Redis的哈希会有1个dict、2个dictht结构的原因。通常情况下，所有的数据都是存在放dict的ht[0]中，ht[1]只在rehash的时候使用。dict进行rehash操作的时候，将ht[0]中的所有数据rehash到ht[1]中。然后将ht[1]赋值给ht[0]，并清空ht[1]。</p>
+<p>因此，Redis中的哈希之所以在dictht和dictEntry结构之外还有一个dict结构，一方面是为了适应不同类型的键值对，另一方面是为了rehash。</p>
+<h3 id="（3）编码转换-1"><a href="#（3）编码转换-1" class="headerlink" title="（3）编码转换"></a>（3）编码转换</h3><p>如前所述，Redis中内层的哈希既可能使用哈希表，也可能使用压缩列表。</p>
+<p>只有同时满足下面两个条件时，才会使用压缩列表：哈希中元素数量小于512个；哈希中所有键值对的键和值字符串长度都小于64字节。如果有一个条件不满足，则使用哈希表；且编码只可能由压缩列表转化为哈希表，反方向则不可能。</p>
+<p>下图展示了Redis内层的哈希编码转换的特点：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">172.19.0.2:6380&gt; hset myhash k1 v1</span><br><span class="line">(integer) 1</span><br><span class="line">172.19.0.2:6380&gt; hset myhash k2 v2</span><br><span class="line">(integer) 1</span><br><span class="line">172.19.0.2:6380&gt; object encoding myhash</span><br><span class="line">&quot;ziplist&quot;</span><br><span class="line">172.19.0.2:6380&gt; hset myhash k4 vvsdfsddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd</span><br><span class="line">(integer) 1</span><br><span class="line">172.19.0.2:6380&gt; object encoding myhash</span><br><span class="line">&quot;hashtable&quot;</span><br><span class="line">172.19.0.2:6380&gt; hdel myhash k4</span><br><span class="line">(integer) 1</span><br><span class="line">172.19.0.2:6380&gt; object encoding myhash</span><br><span class="line">&quot;hashtable&quot;</span><br><span class="line">172.19.0.2:6380&gt;</span><br></pre></td></tr></table></figure>
+
+<h3 id="4、集合"><a href="#4、集合" class="headerlink" title="4、集合"></a>4、集合</h3><h4 id="（1）概况-2"><a href="#（1）概况-2" class="headerlink" title="（1）概况"></a>（1）概况</h4><p>集合（set）与列表类似，都是用来保存多个字符串，但集合与列表有两点不同：集合中的元素是无序的，因此不能通过索引来操作元素；集合中的元素不能有重复。</p>
+<p>一个集合中最多可以存储2^32-1个元素；除了支持常规的增删改查，Redis还支持多个集合取交集、并集、差集。</p>
+<h4 id="（2）内部编码-1"><a href="#（2）内部编码-1" class="headerlink" title="（2）内部编码"></a>（2）内部编码</h4><p>集合的内部编码可以是整数集合（intset）或哈希表（hashtable）。</p>
+<p>哈希表前面已经讲过，这里略过不提；需要注意的是，集合在使用哈希表时，值全部被置为null。</p>
+<p>整数集合的结构定义如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">typedef struct intset&#123;</span><br><span class="line">    uint32_t encoding;</span><br><span class="line">    uint32_t length;</span><br><span class="line">    int8_t contents[];</span><br><span class="line">&#125; intset;</span><br></pre></td></tr></table></figure>
+
+<p>其中，encoding代表contents中存储内容的类型，虽然contents（存储集合中的元素）是int8_t类型，但实际上其存储的值是int16_t、int32_t或int64_t，具体的类型便是由encoding决定的；length表示元素个数。</p>
+<p>整数集合适用于集合所有元素都是整数且集合元素数量较小的时候，与哈希表相比，整数集合的优势在于集中存储，节省空间；同时，虽然对于元素的操作复杂度也由O(n)变为了O(1)，但由于集合数量较少，因此操作的时间并没有明显劣势。</p>
+<h4 id="（3）编码转换-2"><a href="#（3）编码转换-2" class="headerlink" title="（3）编码转换"></a>（3）编码转换</h4><p>只有同时满足下面两个条件时，集合才会使用整数集合：集合中元素数量小于512个；集合中所有元素都是整数值。如果有一个条件不满足，则使用哈希表；且编码只可能由整数集合转化为哈希表，反方向则不可能。</p>
+<h3 id="5、有序集合"><a href="#5、有序集合" class="headerlink" title="5、有序集合"></a>5、有序集合</h3><h4 id="（1）概况-3"><a href="#（1）概况-3" class="headerlink" title="（1）概况"></a>（1）概况</h4><p>有序集合与集合一样，元素都不能重复；但与集合不同的是，有序集合中的元素是有顺序的。与列表使用索引下标作为排序依据不同，有序集合为每个元素设置一个分数（score）作为排序依据。</p>
+<h4 id="（2）内部编码-2"><a href="#（2）内部编码-2" class="headerlink" title="（2）内部编码"></a>（2）内部编码</h4><p>有序集合的内部编码可以是压缩列表（ziplist）或跳跃表（skiplist）。ziplist在列表和哈希中都有使用，前面已经讲过，这里略过不提。</p>
+<p>跳跃表是一种有序数据结构，通过在每个节点中维持多个指向其他节点的指针，从而达到快速访问节点的目的。除了跳跃表，实现有序数据结构的另一种典型实现是平衡树；大多数情况下，跳跃表的效率可以和平衡树媲美，且跳跃表实现比平衡树简单很多，因此redis中选用跳跃表代替平衡树。跳跃表支持平均O(logN)、最坏O(N)的复杂点进行节点查找，并支持顺序操作。Redis的跳跃表实现由zskiplist和zskiplistNode两个结构组成：前者用于保存跳跃表信息（如头结点、尾节点、长度等），后者用于表示跳跃表节点。具体结构相对比较复杂，略。</p>
+<h4 id="（3）编码转换-3"><a href="#（3）编码转换-3" class="headerlink" title="（3）编码转换"></a>（3）编码转换</h4><p>只有同时满足下面两个条件时，才会使用压缩列表：有序集合中元素数量小于128个；有序集合中所有成员长度都不足64字节。如果有一个条件不满足，则使用跳跃表；且编码只可能由压缩列表转化为跳跃表，反方向则不可能。</p>
+<h2 id="五、应用举例"><a href="#五、应用举例" class="headerlink" title="五、应用举例"></a>五、应用举例</h2><h3 id="1、估算Redis内存使用量"><a href="#1、估算Redis内存使用量" class="headerlink" title="1、估算Redis内存使用量"></a>1、估算Redis内存使用量</h3><p>要估算redis中的数据占据的内存大小，需要对redis的内存模型有比较全面的了解，包括前面介绍的hashtable、sds、redisobject、各种对象类型的编码方式等。</p>
+<p>下面以最简单的字符串类型来进行说明。</p>
+<p>假设有90000个键值对，每个key的长度是7个字节，每个value的长度也是7个字节（且key和value都不是整数）；下面来估算这90000个键值对所占用的空间。在估算占据空间之前，首先可以判定字符串类型使用的编码方式：embstr。</p>
+<p>90000个键值对占据的内存空间主要可以分为两部分：一部分是90000个dictEntry占据的空间；一部分是键值对所需要的bucket空间。</p>
+<p>每个dictEntry占据的空间包括：</p>
+<ol>
+<li><p>一个dictEntry，24字节，jemalloc会分配32字节的内存块</p>
+</li>
+<li><p>一个key，7字节，所以SDS(key)需要7+9=16个字节，jemalloc会分配16字节的内存块</p>
+</li>
+<li><p>一个redisObject，16字节，jemalloc会分配16字节的内存块</p>
+</li>
+<li><p>一个value，7字节，所以SDS(value)需要7+9=16个字节，jemalloc会分配16字节的内存块</p>
+</li>
+<li><p>综上，一个dictEntry需要32+16+16+16=80个字节。</p>
+</li>
+</ol>
+<p>bucket空间：bucket数组的大小为大于90000的最小的2^n，是131072；每个bucket元素为8字节（因为64位系统中指针大小为8字节）。</p>
+<p>因此，可以估算出这90000个键值对占据的内存大小为：90000<em>80 + 131072</em>8 = 8248576。</p>
+<h3 id="2、优化内存占用"><a href="#2、优化内存占用" class="headerlink" title="2、优化内存占用"></a>2、优化内存占用</h3><p>了解redis的内存模型，对优化redis内存占用有很大帮助。下面介绍几种优化场景。</p>
+<p>（1）利用jemalloc特性进行优化</p>
+<p>上一小节所讲述的90000个键值便是一个例子。由于jemalloc分配内存时数值是不连续的，因此key/value字符串变化一个字节，可能会引起占用内存很大的变动；在设计时可以利用这一点。</p>
+<p>例如，如果key的长度如果是8个字节，则SDS为17字节，jemalloc分配32字节；此时将key长度缩减为7个字节，则SDS为16字节，jemalloc分配16字节；则每个key所占用的空间都可以缩小一半。</p>
+<p>（2）使用整型/长整型</p>
+<p>如果是整型/长整型，Redis会使用int类型（8字节）存储来代替字符串，可以节省更多空间。因此在可以使用长整型/整型代替字符串的场景下，尽量使用长整型/整型。</p>
+<p>（3）共享对象</p>
+<p>利用共享对象，可以减少对象的创建（同时减少了redisObject的创建），节省内存空间。目前redis中的共享对象只包括10000个整数（0-9999）；可以通过调整REDIS_SHARED_INTEGERS参数提高共享对象的个数；例如将REDIS_SHARED_INTEGERS调整到20000，则0-19999之间的对象都可以共享。</p>
+<p>考虑这样一种场景：论坛网站在redis中存储了每个帖子的浏览数，而这些浏览数绝大多数分布在0-20000之间，这时候通过适当增大REDIS_SHARED_INTEGERS参数，便可以利用共享对象节省内存空间。</p>
+<p>（4）避免过度设计</p>
+<p>然而需要注意的是，不论是哪种优化场景，都要考虑内存空间与设计复杂度的权衡；而设计复杂度会影响到代码的复杂度、可维护性。</p>
+<p>如果数据量较小，那么为了节省内存而使得代码的开发、维护变得更加困难并不划算；还是以前面讲到的90000个键值对为例，实际上节省的内存空间只有几MB。但是如果数据量有几千万甚至上亿，考虑内存的优化就比较必要了。</p>
+<h3 id="3、关注内存碎片率"><a href="#3、关注内存碎片率" class="headerlink" title="3、关注内存碎片率"></a>3、关注内存碎片率</h3><p>内存碎片率是一个重要的参数，对redis 内存的优化有重要意义。</p>
+<p>如果内存碎片率过高（jemalloc在1.03左右比较正常），说明内存碎片多，内存浪费严重；这时便可以考虑重启redis服务，在内存中对数据进行重排，减少内存碎片。</p>
+<p>如果内存碎片率小于1，说明redis内存不足，部分数据使用了虚拟内存（即swap）；由于虚拟内存的存取速度比物理内存差很多（2-3个数量级），此时redis的访问速度可能会变得很慢。因此必须设法增大物理内存（可以增加服务器节点数量，或提高单机内存），或减少redis中的数据。</p>
+<p>要减少redis中的数据，除了选用合适的数据类型、利用共享对象等，还有一点是要设置合理的数据回收策略（maxmemory-policy），当内存达到一定量后，根据不同的优先级对内存进行回收。</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/06/08/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B9%8B%E6%95%B0%E6%8D%AE%E5%BA%93%E5%92%8C%E7%BC%93%E5%AD%98%E5%8F%8C%E5%86%99%E4%B8%80%E8%87%B4%E6%80%A7%E6%96%B9%E6%A1%88/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/06/08/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B9%8B%E6%95%B0%E6%8D%AE%E5%BA%93%E5%92%8C%E7%BC%93%E5%AD%98%E5%8F%8C%E5%86%99%E4%B8%80%E8%87%B4%E6%80%A7%E6%96%B9%E6%A1%88/" class="post-title-link" itemprop="url">分布式之数据库和缓存双写一致性方案</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-06-08 17:14:48" itemprop="dateCreated datePublished" datetime="2018-06-08T17:14:48+00:00">2018-06-08</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BC%93%E5%AD%98/" itemprop="url" rel="index"><span itemprop="name">缓存</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="分布式之数据库和缓存双写一致性方案"><a href="#分布式之数据库和缓存双写一致性方案" class="headerlink" title="分布式之数据库和缓存双写一致性方案"></a>分布式之数据库和缓存双写一致性方案</h1><p>本文参考<a target="_blank" rel="noopener" href="https://www.cnblogs.com/rjzheng/p/9041659.html">【原创】分布式之数据库和缓存双写一致性方案解析</a>,做的进一步整理笔记。</p>
+<p>三种更新策略：</p>
+<p>1.先更新数据库，再更新缓存</p>
+<p>2.先删除缓存，再更新数据库</p>
+<p>3.先更新数据库，再删除缓存</p>
+<h2 id="1-先更新数据库，再更新缓存"><a href="#1-先更新数据库，再更新缓存" class="headerlink" title="(1)先更新数据库，再更新缓存"></a>(1)先更新数据库，再更新缓存</h2><p>这套方案，大家是普遍反对的。为什么呢？有如下两点原因。</p>
+<p>** 原因一（线程安全角度）**</p>
+<p>同时有请求A和请求B进行更新操作，那么会出现</p>
+<p>（1）线程A更新了数据库</p>
+<p>（2）线程B更新了数据库</p>
+<p>（3）线程B更新了缓存</p>
+<p>（4）线程A更新了缓存</p>
+<p>这就出现请求A更新缓存应该比请求B更新缓存早才对，但是因为网络等原因，B却比A更早更新了缓存。这就导致了脏数据，因此不考虑。</p>
+<p>** 原因二（业务场景角度）**</p>
+<p>有如下两点：</p>
+<p>（1）如果你是一个写数据库场景比较多，而读数据场景比较少的业务需求，采用这种方案就会导致，数据压根还没读到，缓存就被频繁的更新，浪费性能。</p>
+<p>（2）如果你写入数据库的值，并不是直接写入缓存的，而是要经过一系列复杂的计算再写入缓存。那么，每次写入数据库后，都再次计算写入缓存的值，无疑是浪费性能的。显然，删除缓存更为适合。</p>
+<p>接下来讨论的就是争议最大的，先删缓存，再更新数据库。还是先更新数据库，再删缓存的问题。</p>
+<h2 id="2-先删缓存，再更新数据库"><a href="#2-先删缓存，再更新数据库" class="headerlink" title="(2)先删缓存，再更新数据库"></a>(2)先删缓存，再更新数据库</h2><p>该方案会导致不一致的原因是。同时有一个请求A进行更新操作，另一个请求B进行查询操作。那么会出现如下情形:</p>
+<p>（1）请求A进行写操作，删除缓存</p>
+<p>（2）请求B查询发现缓存不存在</p>
+<p>（3）请求B去数据库查询得到旧值</p>
+<p>（4）请求B将旧值写入缓存</p>
+<p>（5）请求A将新值写入数据库</p>
+<p>上述情况就会导致不一致的情形出现。而且，如果不采用给缓存设置过期时间策略，该数据永远都是脏数据。<br>那么，如何解决呢？采用延时双删策略</p>
+<p>伪代码如下</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">public void write(string key,object data)</span><br><span class="line">&#123;</span><br><span class="line">    redis.delKey(key);</span><br><span class="line">    db.updateData(data);</span><br><span class="line">    Thread.sleep(1000);</span><br><span class="line">    redis.delKey(key);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>转化为中文描述就是</p>
+<p>（1）先淘汰缓存</p>
+<p>（2）再写数据库（这两步和原来一样）</p>
+<p>（3）休眠1秒，再次淘汰缓存</p>
+<p>这么做，可以将1秒内所造成的缓存脏数据，再次删除。</p>
+<p>** 那么，这个1秒怎么确定的，具体该休眠多久呢？**</p>
+<p>针对上面的情形，读者应该自行评估自己的项目的读数据业务逻辑的耗时。然后写数据的休眠时间则在读数据业务逻辑的耗时基础上，加几百ms即可。这么做的目的，就是确保读请求结束，写请求可以删除读请求造成的缓存脏数据。</p>
+<p>** 如果你用了mysql的读写分离架构怎么办？**</p>
+<p>ok，在这种情况下，造成数据不一致的原因如下，还是两个请求，一个请求A进行更新操作，另一个请求B进行查询操作。</p>
+<p>（1）请求A进行写操作，删除缓存</p>
+<p>（2）请求A将数据写入数据库了</p>
+<p>（3）请求B查询缓存发现，缓存没有值</p>
+<p>（4）请求B去从库查询，这时，还没有完成主从同步，因此查询到的是旧值</p>
+<p>（5）请求B将旧值写入缓存</p>
+<p>（6）数据库完成主从同步，从库变为新值</p>
+<p>上述情形，就是数据不一致的原因。还是使用双删延时策略。只是，睡眠时间修改为在主从同步的延时时间基础上，加几百ms。</p>
+<p>** 采用这种同步淘汰策略，吞吐量降低怎么办？**</p>
+<p>ok，那就将第二次删除作为异步的。自己起一个线程，异步删除。这样，写的请求就不用沉睡一段时间后了，再返回。这么做，加大吞吐量。</p>
+<p>** 第二次删除,如果删除失败怎么办？**</p>
+<p>这是个非常好的问题，因为第二次删除失败，就会出现如下情形。还是有两个请求，一个请求A进行更新操作，另一个请求B进行查询操作，为了方便，假设是单库：</p>
+<p>（1）请求A进行写操作，删除缓存</p>
+<p>（2）请求B查询发现缓存不存在</p>
+<p>（3）请求B去数据库查询得到旧值</p>
+<p>（4）请求B将旧值写入缓存</p>
+<p>（5）请求A将新值写入数据库</p>
+<p>（6）请求A试图去删除请求B写入对缓存值，结果失败了。</p>
+<p>ok,这也就是说。如果第二次删除缓存失败，会再次出现缓存和数据库不一致的问题。</p>
+<p>如何解决呢？<br>具体解决方案，且看对第(3)种更新策略的解析。</p>
+<h2 id="3-先更新数据库，再删缓存"><a href="#3-先更新数据库，再删缓存" class="headerlink" title="(3)先更新数据库，再删缓存"></a>(3)先更新数据库，再删缓存</h2><p>** Cache Aside Pattern **</p>
+<p>这是最常用最常用的pattern了。其具体逻辑如下：</p>
+<p>** 失效**：应用程序先从cache取数据，没有得到，则从数据库中取数据，成功后，放到缓存中。</p>
+<p>** 命中**：应用程序从cache中取数据，取到后返回。</p>
+<p>** 更新**：先把数据存到数据库中，成功后，再让缓存失效。</p>
+<p>注意，我们的更新是先更新数据库，成功后，让缓存失效。</p>
+<p>** 这种情况不存在并发问题么？**</p>
+<p>不是的。假设这会有两个请求，一个请求A做查询操作，一个请求B做更新操作，那么会有如下情形产生</p>
+<p>（1）缓存刚好失效</p>
+<p>（2）请求A查询数据库，得一个旧值</p>
+<p>（3）请求B将新值写入数据库</p>
+<p>（4）请求B删除缓存</p>
+<p>（5）请求A将查到的旧值写入缓存</p>
+<p>ok，如果发生上述情况，确实是会发生脏数据。</p>
+<p>** 然而，发生这种情况的概率又有多少呢？**</p>
+<p>发生上述情况有一个先天性条件，就是步骤（3）的写数据库操作比步骤（2）的读数据库操作耗时更短，才有可能使得步骤（4）先于步骤（5）。可是，大家想想，数据库的读操作的速度远快于写操作的（不然做读写分离干嘛，做读写分离的意义就是因为读操作比较快，耗资源少），因此步骤（3）耗时比步骤（2）更短，这一情形很难出现。</p>
+<p>** 如何解决上述并发问题？**</p>
+<p>首先，给缓存设有效时间是一种方案。其次，采用策略（2）里给出的异步延时删除策略，保证读请求完成以后，再进行删除操作。</p>
+<p>** 还有其他造成不一致的原因么？**</p>
+<p>有的，这也是缓存更新策略（2）和缓存更新策略（3）都存在的一个问题，如果删缓存失败了怎么办，那不是会有不一致的情况出现么。比如一个写数据请求，然后写入数据库了，删缓存失败了，这会就出现不一致的情况了。这也是缓存更新策略（2）里留下的最后一个疑问。</p>
+<p>** 如何解决？**</p>
+<p>提供一个保障的重试机制即可，这里给出两套方案。</p>
+<p>** 方案一：**</p>
+<p>流程如下所示</p>
+<p><img src="/img/o_update1.png" alt="o_update1.png"></p>
+<p>（1）更新数据库数据；</p>
+<p>（2）缓存因为种种问题删除失败</p>
+<p>（3）将需要删除的key发送至消息队列</p>
+<p>（4）自己消费消息，获得需要删除的key</p>
+<p>（5）继续重试删除操作，直到成功</p>
+<p>** 方案二：**</p>
+<p>流程如下所示：</p>
+<p><img src="/img/o_update2.png" alt="o_update2.png"></p>
+<p>（1）更新数据库数据</p>
+<p>（2）数据库会将操作信息写入binlog日志当中</p>
+<p>（3）订阅程序提取出所需要的数据以及key</p>
+<p>（4）另起一段非业务代码，获得该信息</p>
+<p>（5）尝试删除缓存操作，发现删除失败</p>
+<p>（6）将这些信息发送至消息队列</p>
+<p>（7）重新从消息队列中获得该数据，重试操作。</p>
+<p>备注说明：上述的订阅binlog程序在mysql中有现成的中间件叫canal，可以完成订阅binlog日志的功能。另外，重试机制，可以采用的是消息队列的方式。如果对一致性要求不是很高，直接在程序中另起一个线程，每隔一段时间去重试即可。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/rjzheng/p/9041659.html">【原创】分布式之数据库和缓存双写一致性方案解析</a></p>
+<p><a target="_blank" rel="noopener" href="https://coolshell.cn/articles/17416.html">缓存更新的套路</a></p>
+<p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s?__biz=MjM5ODYxMDA5OQ==&mid=404308725&idx=1&sn=1a25ce76dd1956014ceb8a011855268e&scene=21#wechat_redirect">主从DB与cache一致性</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/06/08/Redis%E8%AF%A6%E8%A7%A3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/06/08/Redis%E8%AF%A6%E8%A7%A3/" class="post-title-link" itemprop="url">Redis详解</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-06-08 16:01:34" itemprop="dateCreated datePublished" datetime="2018-06-08T16:01:34+00:00">2018-06-08</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="Redis详解"><a href="#Redis详解" class="headerlink" title="Redis详解"></a>Redis详解</h1><p>本文参考<a target="_blank" rel="noopener" href="http://www.cnblogs.com/rjzheng/p/9096228.html">【原创】分布式之redis复习精讲</a>,做的进一步整理笔记。</p>
+<h2 id="1、为什么使用redis"><a href="#1、为什么使用redis" class="headerlink" title="1、为什么使用redis"></a>1、为什么使用redis</h2><p>Redis 的优势：</p>
+<p>性能极高 – Redis 能读的速度是 110000 次/s，写的速度是 81000 次/s。</p>
+<p>丰富的数据类型 – Redis 支持二进制案例的 Strings, Lists, Hashes, Sets 及 Ordered Sets 数据类型操作。</p>
+<p>原子 – Redis 的所有操作都是原子性的，意思就是要么成功执行要么失败完全不执行。单个操作是原子性的。多个操作也支持事务，即原子性，通过 MULTI 和 EXEC 指令包起来。</p>
+<p>丰富的特性 – Redis 还支持 publish/subscribe, 通知, key 过期等等特性。</p>
+<h3 id="性能"><a href="#性能" class="headerlink" title="性能"></a>性能</h3><p>我们在碰到需要执行耗时特别久，且结果不频繁变动的SQL，就特别适合将运行结果放入缓存。这样，后面的请求就去缓存中读取，使得请求能够迅速响应。</p>
+<h3 id="并发"><a href="#并发" class="headerlink" title="并发"></a>并发</h3><p>在大并发的情况下，所有的请求直接访问数据库，数据库会出现连接异常。这个时候，就需要使用redis做一个缓冲操作，让请求先访问到redis，而不是直接访问数据库。</p>
+<h2 id="2、使用redis有什么缺点"><a href="#2、使用redis有什么缺点" class="headerlink" title="2、使用redis有什么缺点"></a>2、使用redis有什么缺点</h2><p>分析:大家用redis这么久，这个问题是必须要了解的，基本上使用redis都会碰到一些问题，常见的也就几个。</p>
+<p>回答:主要是四个问题</p>
+<p>(一)缓存和数据库双写一致性问题</p>
+<p>(二)缓存雪崩问题</p>
+<p>(三)缓存击穿问题</p>
+<p>(四)缓存的并发竞争问题</p>
+<h2 id="3、单线程的redis为什么这么快"><a href="#3、单线程的redis为什么这么快" class="headerlink" title="3、单线程的redis为什么这么快"></a>3、单线程的redis为什么这么快</h2><p>分析:这个问题其实是对redis内部机制的一个考察。</p>
+<p>回答:主要是以下三点</p>
+<p>(一)纯内存操作</p>
+<p>(二)单线程操作，避免了频繁的上下文切换</p>
+<p>(三)采用了非阻塞I/O多路复用机制</p>
+<h2 id="4、redis的数据类型，以及每种数据类型的使用场景"><a href="#4、redis的数据类型，以及每种数据类型的使用场景" class="headerlink" title="4、redis的数据类型，以及每种数据类型的使用场景"></a>4、redis的数据类型，以及每种数据类型的使用场景</h2><p>** 一共五种 **</p>
+<h3 id="String"><a href="#String" class="headerlink" title="String"></a>String</h3><p>最常规的set/get操作，value可以是String也可以是数字。一般做一些复杂的计数功能的缓存。</p>
+<h3 id="hash"><a href="#hash" class="headerlink" title="hash"></a>hash</h3><p>这里value存放的是结构化的对象，比较方便的就是操作其中的某个字段。在做单点登录的时候，就是用这种数据结构存储用户信息，以cookieId作为key，设置30分钟为缓存过期时间，能很好的模拟出类似session的效果。</p>
+<h3 id="list"><a href="#list" class="headerlink" title="list"></a>list</h3><p>使用List的数据结构，可以做简单的消息队列的功能。另外还有一个就是，可以利用lrange命令，做基于redis的分页功能，性能极佳，用户体验好。</p>
+<h3 id="set"><a href="#set" class="headerlink" title="set"></a>set</h3><p>因为set堆放的是一堆不重复值的集合。所以可以做全局去重的功能。</p>
+<h3 id="sorted-set"><a href="#sorted-set" class="headerlink" title="sorted set"></a>sorted set</h3><p>sorted set多了一个权重参数score,集合中的元素能够按score进行排列。可以做排行榜应用，取TOP N操作</p>
+<h2 id="5、redis的过期策略以及内存淘汰机制"><a href="#5、redis的过期策略以及内存淘汰机制" class="headerlink" title="5、redis的过期策略以及内存淘汰机制"></a>5、redis的过期策略以及内存淘汰机制</h2><p>分析:这个问题其实相当重要，到底redis有没用到家，这个问题就可以看出来。比如你redis只能存5G数据，可是你写了10G，那会删5G的数据。怎么删的，这个问题思考过么？还有，你的数据已经设置了过期时间，但是时间到了，内存占用率还是比较高，有思考过原因么?</p>
+<p>回答:<br>redis采用的是定期删除+惰性删除策略。</p>
+<h3 id="为什么不用定时删除策略"><a href="#为什么不用定时删除策略" class="headerlink" title="为什么不用定时删除策略"></a>为什么不用定时删除策略</h3><p>定时删除,用一个定时器来负责监视key,过期则自动删除。虽然内存及时释放，但是十分消耗CPU资源。在大并发请求下，CPU要将时间应用在处理请求，而不是删除key,因此没有采用这一策略.</p>
+<h3 id="定期删除-惰性删除是如何工作的呢"><a href="#定期删除-惰性删除是如何工作的呢" class="headerlink" title="定期删除+惰性删除是如何工作的呢"></a>定期删除+惰性删除是如何工作的呢</h3><p>定期删除，redis默认每个100ms检查，是否有过期的key,有过期key则删除。需要说明的是，redis不是每个100ms将所有的key检查一次，而是随机抽取进行检查(如果每隔100ms,全部key进行检查，redis岂不是卡死)。因此，如果只采用定期删除策略，会导致很多key到时间没有删除。<br>于是，惰性删除派上用场。也就是说在你获取某个key的时候，redis会检查一下，这个key如果设置了过期时间那么是否过期了？如果过期了此时就会删除。</p>
+<h3 id="采用定期删除-惰性删除就没其他问题了么"><a href="#采用定期删除-惰性删除就没其他问题了么" class="headerlink" title="采用定期删除+惰性删除就没其他问题了么"></a>采用定期删除+惰性删除就没其他问题了么</h3><p>不是的，如果定期删除没删除key。然后你也没即时去请求key，也就是说惰性删除也没生效。这样，redis的内存会越来越高。那么就应该采用内存淘汰机制。<br>在redis.conf中有一行配置</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># maxmemory-policy volatile-lru</span><br></pre></td></tr></table></figure>
+
+<p>该配置就是配内存淘汰策略的</p>
+<p>1）noeviction：当内存不足以容纳新写入数据时，新写入操作会报错。** 不推荐**</p>
+<p>2）allkeys-lru：当内存不足以容纳新写入数据时，在键空间中，移除最近最少使用的key。** 推荐使用。**</p>
+<p>3）allkeys-random：当内存不足以容纳新写入数据时，在键空间中，随机移除某个key。** 不推荐。**</p>
+<p>4）volatile-lru：当内存不足以容纳新写入数据时，在设置了过期时间的键空间中，移除最近最少使用的key。这种情况一般是把redis既当缓存，又做持久化存储的时候才用。** 不推荐 **</p>
+<p>5）volatile-random：当内存不足以容纳新写入数据时，在设置了过期时间的键空间中，随机移除某个key。** 不推荐**</p>
+<p>6）volatile-ttl：当内存不足以容纳新写入数据时，在设置了过期时间的键空间中，有更早过期时间的key优先移除。** 不推荐**</p>
+<p>ps：如果没有设置 expire 的key, 不满足先决条件(prerequisites); 那么 volatile-lru, volatile-random 和 volatile-ttl 策略的行为, 和 noeviction(不删除) 基本上一致。</p>
+<h2 id="6、redis和数据库双写一致性问题"><a href="#6、redis和数据库双写一致性问题" class="headerlink" title="6、redis和数据库双写一致性问题"></a>6、redis和数据库双写一致性问题</h2><p>分析:一致性问题是分布式常见问题，还可以再分为最终一致性和强一致性。数据库和缓存双写，就必然会存在不一致的问题。答这个问题，先明白一个前提。就是如果对数据有强一致性要求，不能放缓存。我们所做的一切，只能保证最终一致性。另外，我们所做的方案其实从根本上来说，只能说降低不一致发生的概率，无法完全避免。因此，有强一致性要求的数据，不能放缓存。</p>
+<p>回答: 参考 《<a target="_blank" rel="noopener" href="https://syxdevcode.github.io/2018/06/08/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B9%8B%E6%95%B0%E6%8D%AE%E5%BA%93%E5%92%8C%E7%BC%93%E5%AD%98%E5%8F%8C%E5%86%99%E4%B8%80%E8%87%B4%E6%80%A7%E6%96%B9%E6%A1%88/">分布式之数据库和缓存双写一致性方案解析</a>》首先，采取正确更新策略，先更新数据库，再删缓存。其次，因为可能存在删除缓存失败的问题，提供一个补偿措施即可，例如利用消息队列。</p>
+<h2 id="7、如何应对缓存穿透和缓存雪崩问题"><a href="#7、如何应对缓存穿透和缓存雪崩问题" class="headerlink" title="7、如何应对缓存穿透和缓存雪崩问题"></a>7、如何应对缓存穿透和缓存雪崩问题</h2><p>分析:一般中小型传统软件企业，很难碰到这个问题。如果有大并发的项目，流量有几百万左右。这两个问题一定要深刻考虑。</p>
+<p>回答:如下所示</p>
+<h3 id="缓存穿透"><a href="#缓存穿透" class="headerlink" title="缓存穿透"></a>缓存穿透</h3><p>即黑客故意去请求缓存中不存在的数据，导致所有的请求都怼到数据库上，从而数据库连接异常。</p>
+<p>** 解决方案:**</p>
+<p>(一)利用互斥锁，缓存失效的时候，先去获得锁，得到锁了，再去请求数据库。没得到锁，则休眠一段时间重试</p>
+<p>(二)采用异步更新策略，无论key是否取到值，都直接返回。value值中维护一个缓存失效时间，缓存如果过期，异步起一个线程去读数据库，更新缓存。需要做缓存预热(项目启动前，先加载缓存)操作。</p>
+<p>(三)提供一个能迅速判断请求是否有效的拦截机制，比如，利用布隆过滤器，内部维护一系列合法有效的key。迅速判断出，请求所携带的Key是否合法有效。如果不合法，则直接返回。</p>
+<h3 id="缓存雪崩"><a href="#缓存雪崩" class="headerlink" title="缓存雪崩"></a>缓存雪崩</h3><p>即缓存同一时间大面积的失效，这个时候又来了一波请求，结果请求都怼到数据库上，从而导致数据库连接异常。</p>
+<p>解决方案:</p>
+<p>(一)给缓存的失效时间，加上一个随机值，避免集体失效。</p>
+<p>(二)使用互斥锁，但是该方案吞吐量明显下降了。</p>
+<p>(三)双缓存。我们有两个缓存，缓存A和缓存B。缓存A的失效时间为20分钟，缓存B不设失效时间。自己做缓存预热操作。然后细分以下几个小点</p>
+<p>I 从缓存A读数据库，有则直接返回</p>
+<p>II A没有数据，直接从B读数据，直接返回，并且异步启动一个更新线程。</p>
+<p>III 更新线程同时更新缓存A和缓存B。</p>
+<h2 id="8、如何解决redis的并发竞争问题"><a href="#8、如何解决redis的并发竞争问题" class="headerlink" title="8、如何解决redis的并发竞争问题"></a>8、如何解决redis的并发竞争问题</h2><p>分析:同时有多个子系统去set一个key。s不推荐使用redis的事务机制。因为生产环境，基本都是redis集群环境，做了数据分片操作。你一个事务中有涉及到多个key操作的时候，这多个key不一定都存储在同一个redis-server上。因此，redis的事务机制，十分鸡肋。</p>
+<p>回答:如下所示</p>
+<p>(1)如果对这个key操作，不要求顺序</p>
+<p>这种情况下，准备一个分布式锁，大家去抢锁，抢到锁就做set操作即可，比较简单。</p>
+<p>(2)如果对这个key操作，要求顺序</p>
+<p>假设有一个key1,系统A需要将key1设置为valueA,系统B需要将key1设置为valueB,系统C需要将key1设置为valueC.</p>
+<p>期望按照key1的value值按照 valueA–&gt;valueB–&gt;valueC的顺序变化。这种时候我们在数据写入数据库的时候，需要保存一个时间戳。假设时间戳如下</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">系统A key 1 &#123;valueA  3:00&#125;</span><br><span class="line">系统B key 1 &#123;valueB  3:05&#125;</span><br><span class="line">系统C key 1 &#123;valueC  3:10&#125;</span><br></pre></td></tr></table></figure>
+
+<p>那么，假设这会系统B先抢到锁，将key1设置为{valueB 3:05}。接下来系统A抢到锁，发现自己的valueA的时间戳早于缓存中的时间戳，那就不做set操作了。以此类推。</p>
+<p>其他方法，比如利用队列，将set方法变成串行访问也可以。总之，灵活变通。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/rjzheng/p/9096228.html">【原创】分布式之redis复习精讲</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/05/28/Redis%E6%8C%81%E4%B9%85%E5%8C%96/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/05/28/Redis%E6%8C%81%E4%B9%85%E5%8C%96/" class="post-title-link" itemprop="url">Redis持久化</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-05-28 08:46:39" itemprop="dateCreated datePublished" datetime="2018-05-28T08:46:39+00:00">2018-05-28</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="redis持久化"><a href="#redis持久化" class="headerlink" title="redis持久化"></a>redis持久化</h1><p>Redis虽然是一种内存型数据库，一旦服务器进程退出，数据库的数据就会丢失，为了解决这个问题Redis提供了两种持久化的方案，将内存中的数据保存到磁盘中，避免数据的丢失。</p>
+<h2 id="AOF与RDB对比"><a href="#AOF与RDB对比" class="headerlink" title="AOF与RDB对比"></a>AOF与RDB对比</h2><p>** AOF **更安全，可将数据及时同步到文件中，但需要较多的磁盘IO，AOF文件尺寸较大，文件内容恢复相对较慢， 也更完整。</p>
+<p>** RDB **持久化，安全性较差，它是正常时期数据备份及 master-slave数据同步的最佳手段，文件尺寸较小，恢复数度较快。</p>
+<h2 id="RDB持久化"><a href="#RDB持久化" class="headerlink" title="RDB持久化"></a>RDB持久化</h2><p>redis提供了RDB持久化的功能，这个功能可以将redis在内存中的的状态保存到硬盘中，它可以手动执行，也可以再redis.conf中配置，定期执行。</p>
+<p>RDB持久化产生的RDB文件是一个经过压缩的二进制文件，这个文件被保存在硬盘中，redis可以通过这个文件还原数据库当时的状态。</p>
+<h3 id="RDB的创建与载入"><a href="#RDB的创建与载入" class="headerlink" title="RDB的创建与载入"></a>RDB的创建与载入</h3><p>RDB文件可以通过两个命令来生成：</p>
+<p><code>SAVE</code>：阻塞redis的服务器进程，直到RDB文件被创建完毕。<br><code>BGSAVE</code>：派生(fork)一个子进程来创建新的RDB文件，记录接收到BGSAVE当时的数据库状态，父进程继续处理接收到的命令，子进程完成文件的创建之后，会发送信号给父进程，而与此同时，父进程处理命令的同时，通过轮询来接收子进程的信号。<br>而RDB文件的载入一般情况是自动的，redis服务器启动的时候，redis服务器再启动的时候如果检测到RDB文件的存在，那么redis会自动载入这个文件。</p>
+<p>如果服务器开启了AOF持久化，那么服务器会优先使用AOF文件来还原数据库状态。</p>
+<p>RDB是通过保存键值对来记录数据库状态的，采用copy on write的模式，每次都是全量的备份。</p>
+<h3 id="自动保存间隔"><a href="#自动保存间隔" class="headerlink" title="自动保存间隔"></a>自动保存间隔</h3><p><code>BGSAVE</code>可以在不阻塞主进程的情况下完成数据的备份。可以通过redis.conf中设置多个自动保存条件，只要有一个条件被满足，服务器就会执行BGSAVE命令。</p>
+<p>相关配置</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"># 以下配置表示的条件：</span><br><span class="line"># 服务器在900秒之内被修改了1次</span><br><span class="line">save 900 1</span><br><span class="line"># 服务器在300秒之内被修改了10次</span><br><span class="line">save 300 10</span><br><span class="line"># 服务器在60秒之内被修改了10000次</span><br><span class="line">save 60 10000</span><br></pre></td></tr></table></figure>
+
+<h2 id="AOF持久化"><a href="#AOF持久化" class="headerlink" title="AOF持久化"></a>AOF持久化</h2><p>AOF持久化（Append-Only-File），与RDB持久化不同，AOF持久化是通过保存Redis服务器锁执行的写状态来记录数据库的</p>
+<p>具体来说，RDB持久化相当于备份数据库状态，而AOF持久化是备份数据库接收到的命令，所有被写入AOF的命令都是以redis的协议格式来保存的。</p>
+<p>在AOF持久化的文件中，数据库会记录下所有变更数据库状态的命令，除了指定数据库的select命令，其他的命令都是来自client的，这些命令会以追加(append)的形式保存到文件中。</p>
+<p>** appendfsync** 影响服务器多久完成一次命令的记录</p>
+<p><code>always</code>：将缓存区的内容总是即时写到AOF文件中。</p>
+<p><code>everysec</code>：将缓存区的内容每隔一秒写入AOF文件中。</p>
+<p><code>no</code> ：写入AOF文件中的操作由操作系统决定，一般而言为了提高效率，操作系统会等待缓存区被填满，才会开始同步数据到磁盘</p>
+<p>redis默认<code>everysec</code></p>
+<p>redis在载入AOF文件的时候，会创建一个虚拟的client，把AOF中每一条命令都执行一遍，最终还原回数据库的状态，它的载入也是自动的。在RDB和AOF备份文件都有的情况下，redis会优先载入AOF备份文件</p>
+<p>AOF文件可能会随着服务器运行的时间越来越大，可以利用AOF重写的功能，来控制AOF文件的大小。AOF重写功能会首先读取数据库中现有的键值对状态，然后根据类型使用一条命令来替代前的键值对多条命令。</p>
+<p>AOF重写功能有大量写入操作，所以redis才用子进程来处理AOF重写。这里带来一个新的问题，由于处理重新的是子进程，这样意味着如果主线程的数据在此时被修改，备份的数据和主库的数据将会有不一致的情况发生。因此redis还设置了一个AOF重写缓冲区，这个缓冲区在子进程被创建开始之后开始使用，这个期间，所有的命令会被存两份，一份在AOF缓存空间，一份在AOF重写缓冲区，当AOF重写完成之后，子进程发送信号给主进程，通知主进程将AOF重写缓冲区的内容添加到AOF文件中。</p>
+<p>相关配置：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">#AOF 和 RDB 持久化方式可以同时启动并且无冲突。</span><br><span class="line">#如果AOF开启，启动redis时会加载aof文件，这些文件能够提供更好的保证。</span><br><span class="line">appendonly yes</span><br><span class="line"></span><br><span class="line"># 只增文件的文件名称。（默认是appendonly.aof）</span><br><span class="line"># appendfilename appendonly.aof </span><br><span class="line">#redis支持三种不同的写入方式：</span><br><span class="line">#</span><br><span class="line"># no:不调用，之等待操作系统来清空缓冲区当操作系统要输出数据时。很快。</span><br><span class="line"># always: 每次更新数据都写入仅增日志文件。慢，但是最安全。</span><br><span class="line"># everysec: 每秒调用一次。折中。</span><br><span class="line">appendfsync everysec</span><br><span class="line"></span><br><span class="line"># 设置为yes表示rewrite期间对新写操作不fsync,暂时存在内存中,等rewrite完成后再写入.官方文档建议如果你有特殊的情况可以配置为&#x27;yes&#x27;。但是配置为&#x27;no&#x27;是最为安全的选择。</span><br><span class="line">no-appendfsync-on-rewrite no</span><br><span class="line"></span><br><span class="line"># 自动重写只增文件。</span><br><span class="line"># redis可以自动盲从的调用‘BGREWRITEAOF’来重写日志文件，如果日志文件增长了指定的百分比。</span><br><span class="line"># 当前AOF文件大小是上次日志重写得到AOF文件大小的二倍时，自动启动新的日志重写过程。</span><br><span class="line">auto-aof-rewrite-percentage 100</span><br><span class="line"># 当前AOF文件启动新的日志重写过程的最小值，避免刚刚启动Reids时由于文件尺寸较小导致频繁的重写。</span><br><span class="line">auto-aof-rewrite-min-size 64mb</span><br></pre></td></tr></table></figure>
+
+<h3 id="目录结构"><a href="#目录结构" class="headerlink" title="目录结构"></a>目录结构</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">test1</span><br><span class="line"> |--data</span><br><span class="line"> |--docker-compose.yml</span><br><span class="line"> |--Dockerfile</span><br><span class="line"> |--redis.conf</span><br></pre></td></tr></table></figure>
+
+<h3 id="新建redis-conf"><a href="#新建redis-conf" class="headerlink" title="新建redis.conf"></a>新建redis.conf</h3><p>具体配置如下：</p>
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 使用守护进程模式</span></span><br><span class="line"><span class="attribute">daemonize</span> <span class="literal">no</span></span><br><span class="line"><span class="comment"># 非保护模式，可以外网访问</span></span><br><span class="line">protected-mode <span class="literal">no</span></span><br><span class="line">timeout <span class="number">300</span></span><br><span class="line">databases <span class="number">16</span></span><br><span class="line">rdbcompression <span class="literal">yes</span></span><br><span class="line"><span class="comment"># 学习开发，使用最大日志级别，能够看到最多的日志信息</span></span><br><span class="line">loglevel <span class="literal">debug</span></span><br><span class="line">port <span class="number">6380</span></span><br><span class="line"><span class="comment">##授权密码，各个配置保持一致</span></span><br><span class="line"><span class="comment">##暂且禁用指令重命名</span></span><br><span class="line"><span class="comment">##rename-command</span></span><br><span class="line"><span class="comment">##开启AOF，禁用snapshot</span></span><br><span class="line">slave-read-only <span class="literal">yes</span></span><br><span class="line">maxclients <span class="number">10000</span></span><br><span class="line">maxmemory 1000mb</span><br><span class="line"></span><br><span class="line"><span class="comment">#AOF 和 RDB 持久化方式可以同时启动并且无冲突。</span></span><br><span class="line"><span class="comment">#如果AOF开启，启动redis时会加载aof文件，这些文件能够提供更好的保证。</span></span><br><span class="line">appendonly <span class="literal">yes</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 只增文件的文件名称。（默认是appendonly.aof）</span></span><br><span class="line"><span class="comment"># appendfilename appendonly.aof</span></span><br><span class="line"><span class="comment">#redis支持三种不同的写入方式：</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># no:不调用，之等待操作系统来清空缓冲区当操作系统要输出数据时。很快。</span></span><br><span class="line"><span class="comment"># always: 每次更新数据都写入仅增日志文件。慢，但是最安全。</span></span><br><span class="line"><span class="comment"># everysec: 每秒调用一次。折中。</span></span><br><span class="line">appendfsync everysec</span><br><span class="line"></span><br><span class="line"><span class="comment"># 设置为yes表示rewrite期间对新写操作不fsync,暂时存在内存中,等rewrite完成后再写入.官方文档建议如果你有特殊的情况可以配置为&#x27;yes&#x27;。但是配置为&#x27;no&#x27;是最为安全的选择。</span></span><br><span class="line"><span class="literal">no</span>-appendfsync-<span class="literal">on</span>-rewrite <span class="literal">no</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 自动重写只增文件。</span></span><br><span class="line"><span class="comment"># redis可以自动盲从的调用‘BGREWRITEAOF’来重写日志文件，如果日志文件增长了指定的百分比。</span></span><br><span class="line"><span class="comment"># 当前AOF文件大小是上次日志重写得到AOF文件大小的二倍时，自动启动新的日志重写过程。</span></span><br><span class="line">auto-aof-rewrite-percentage <span class="number">100</span></span><br><span class="line"><span class="comment"># 当前AOF文件启动新的日志重写过程的最小值，避免刚刚启动Reids时由于文件尺寸较小导致频繁的重写。</span></span><br><span class="line">auto-aof-rewrite-min-size 64mb</span><br></pre></td></tr></table></figure>
+
+<h3 id="新建Dockerfile"><a href="#新建Dockerfile" class="headerlink" title="新建Dockerfile"></a>新建Dockerfile</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">FROM</span> redis:<span class="number">4</span>-alpine</span><br><span class="line"></span><br><span class="line"><span class="comment">#设置时区</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> apk add --update tzdata</span></span><br><span class="line"><span class="keyword">ENV</span> TZ=Asia/Shanghai</span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> ln -snf /usr/share/zoneinfo/<span class="variable">$TZ</span> /etc/localtime &amp;&amp; <span class="built_in">echo</span> <span class="variable">$TZ</span> &gt; /etc/timezone</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">COPY</span><span class="bash"> redis.conf /conf/redis.conf</span></span><br><span class="line"><span class="keyword">RUN</span><span class="bash"> chown redis:redis /conf/*</span></span><br></pre></td></tr></table></figure>
+
+<p>** 生成镜像**</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker build -t redis:v2 .</span><br></pre></td></tr></table></figure>
+
+<h3 id="新建docker-compose-yml"><a href="#新建docker-compose-yml" class="headerlink" title="新建docker-compose.yml"></a>新建docker-compose.yml</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">version: <span class="string">&#x27;3&#x27;</span></span><br><span class="line"></span><br><span class="line">services:</span><br><span class="line">  redis-master:</span><br><span class="line">    container_name: redis_server</span><br><span class="line">    volumes:</span><br><span class="line">      - $PWD/data:/data</span><br><span class="line">    image: redis:v2</span><br><span class="line">    command: [<span class="string">&quot;redis-server&quot;</span>, <span class="string">&quot;/conf/redis.conf&quot;</span>]</span><br><span class="line">    ports:</span><br><span class="line">      - <span class="string">&quot;6380:6380&quot;</span></span><br><span class="line">    <span class="keyword">expose</span>:</span><br><span class="line">      - <span class="string">&quot;6380&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>** 执行**</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker-compose up -d</span><br></pre></td></tr></table></figure>
+
+<h3 id="验证"><a href="#验证" class="headerlink" title="验证"></a>验证</h3><p>在data目录查看是否有.aof文件生成</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost redistest1]# cd data</span><br><span class="line">[root@localhost data]# ls</span><br><span class="line">appendonly.aof</span><br></pre></td></tr></table></figure>
+
+<h4 id="获取容器IP"><a href="#获取容器IP" class="headerlink" title="获取容器IP"></a>获取容器IP</h4><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">docker inspect -f <span class="string">&#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27;</span> redis_server</span><br><span class="line"><span class="number">172.19</span>.<span class="number">0.2</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="连接Redis"><a href="#连接Redis" class="headerlink" title="连接Redis"></a>连接Redis</h4><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker exec -it redis_server redis-cli -h <span class="number">172.19</span>.<span class="number">0.2</span> -p <span class="number">6380</span></span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/bedec93e5a7b">Redis 持久化</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/kismetv/p/9137897.html">深入学习Redis（2）：持久化</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/05/25/Docker%E4%BF%AE%E6%94%B9%E6%97%B6%E5%8C%BA/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +1213,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -289,7 +1289,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -442,7 +1442,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -672,7 +1672,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -789,7 +1789,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -908,7 +1908,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1030,7 +2030,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1440,7 +2440,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
               </span>
 
           
@@ -1504,7 +2504,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
+                <time title="修改时间：2021-09-01 08:00:43" itemprop="dateModified" datetime="2021-09-01T08:00:43+00:00">2021-09-01</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1633,666 +2633,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/05/10/Linux-bash%E5%AD%A6%E4%B9%A0/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/05/10/Linux-bash%E5%AD%A6%E4%B9%A0/" class="post-title-link" itemprop="url">Linux bash学习</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-05-10 14:53:18" itemprop="dateCreated datePublished" datetime="2018-05-10T14:53:18+00:00">2018-05-10</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Linux%E5%9F%BA%E7%A1%80%E5%91%BD%E4%BB%A4/" itemprop="url" rel="index"><span itemprop="name">Linux基础命令</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://cn.linux.vbird.org/linux_basic/0320bash.php">http://cn.linux.vbird.org/linux_basic/0320bash.php</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/skywang12345/archive/2013/05/30/3106570.html">https://www.cnblogs.com/skywang12345/archive/2013/05/30/3106570.html</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/skywang12345/archive/2013/05/31/3107871.html">http://www.cnblogs.com/skywang12345/archive/2013/05/31/3107871.html</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/05/10/Linux-ps%E5%91%BD%E4%BB%A4/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/05/10/Linux-ps%E5%91%BD%E4%BB%A4/" class="post-title-link" itemprop="url">Linux ps命令</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-05-10 11:16:26" itemprop="dateCreated datePublished" datetime="2018-05-10T11:16:26+00:00">2018-05-10</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Linux%E5%9F%BA%E7%A1%80%E5%91%BD%E4%BB%A4/" itemprop="url" rel="index"><span itemprop="name">Linux基础命令</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="Linux-ps命令"><a href="#Linux-ps命令" class="headerlink" title="Linux ps命令"></a>Linux ps命令</h1><p>Linux中的ps命令是Process Status的缩写。ps命令用来列出系统中当前运行的那些进程。ps命令列出的是当前那些进程的快照，就是执行ps命令的那个时刻的那些进程，如果想要动态的显示进程信息，就可以使用top命令。</p>
-<p>要对进程进行监测和控制，首先必须要了解当前进程的情况，也就是需要查看当前进程，而 ps 命令就是最基本同时也是非常强大的进程查看命令。使用该命令可以确定有哪些进程正在运行和运行的状态、进程是否结束、进程有没有僵死、哪些进程占用了过多的资源等等。总之大部分信息都是可以通过执行该命令得到的。</p>
-<p>ps 为我们提供了进程的一次性的查看，它所提供的查看结果并不动态连续的；如果想对进程时间监控，应该用 top 工具。</p>
-<p>kill 命令用于杀死进程。</p>
-<h2 id="linux上进程有5种状态"><a href="#linux上进程有5种状态" class="headerlink" title="linux上进程有5种状态"></a>linux上进程有5种状态</h2><ol>
-<li>运行(正在运行或在运行队列中等待)</li>
-<li>中断(休眠中, 受阻, 在等待某个条件的形成或接受到信号)</li>
-<li>不可中断(收到信号不唤醒和不可运行, 进程必须等待直到有中断发生)</li>
-<li>僵死(进程已终止, 但进程描述符存在, 直到父进程调用wait4()系统调用后释放)</li>
-<li>停止(进程收到SIGSTOP, SIGSTP, SIGTIN, SIGTOU信号后停止运行运行)</li>
-</ol>
-<h2 id="ps工具标识进程的5种状态码"><a href="#ps工具标识进程的5种状态码" class="headerlink" title="ps工具标识进程的5种状态码"></a>ps工具标识进程的5种状态码</h2><p>D 不可中断 uninterruptible sleep (usually IO)<br>R 运行 runnable (on run queue)<br>S 中断 sleeping<br>T 停止 traced or stopped<br>Z 僵死 a defunct (”zombie”) process</p>
-<h2 id="ps命令"><a href="#ps命令" class="headerlink" title="ps命令"></a>ps命令</h2><p>** 命令格式：**<br>ps [参数]</p>
-<p>** 命令功能：**<br>用来显示当前进程的状态</p>
-<p>** 命令参数：**</p>
-<p>a  显示所有进程<br>-a 显示同一终端下的所有程序<br>-A 显示所有进程<br>c  显示进程的真实名称<br>-N 反向选择<br>-e 等于“-A”<br>e  显示环境变量<br>f  显示程序间的关系<br>-H 显示树状结构<br>r  显示当前终端的进程<br>T  显示当前终端的所有程序<br>u  指定用户的所有进程<br>-au 显示较详细的资讯<br>-aux 显示所有包含其他使用者的行程<br>-C&lt;命令&gt; 列出指定命令的状况<br>–lines&lt;行数&gt; 每页显示的行数<br>–width&lt;字符数&gt; 每页显示的字符数<br>–help 显示帮助信息<br>–version 显示版本显示</p>
-<p>** 使用实例 **</p>
-<p><code>ps -A</code>:显示所有进程信息</p>
-<p><code>ps -u root</code>:显示指定用户信息</p>
-<p><code>ps -ef|grep ssh</code>:ps 与grep 常用组合用法，查找特定进程</p>
-<p><code>ps -l</code>:将目前属于您自己这次登入的 PID 与相关信息列示出来</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost Desktop]<span class="comment"># ps -l</span></span><br><span class="line">F S   UID    PID   PPID  C PRI  NI ADDR SZ WCHAN  TTY          TIME CMD</span><br><span class="line">4 S     0   2774   2722  0  80   0 - 47498 do_wai pts/0    00:00:00 su</span><br><span class="line">4 S     0   2780   2774  0  80   0 - 29075 do_wai pts/0    00:00:00 bash</span><br><span class="line">0 R     0  23118   2780  0  80   0 - 37235 -      pts/0    00:00:00 ps</span><br></pre></td></tr></table></figure>
-
-<p>** 说明：**</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">F 代表这个程序的旗标 (flag)， 4 代表使用者为 super user</span><br><span class="line">S 代表这个程序的状态 (STAT)，关于各 STAT 的意义将在内文介绍</span><br><span class="line">UID 程序被该 UID 所拥有</span><br><span class="line">PID 就是这个程序的 ID ！</span><br><span class="line">PPID 则是其上级父程序的ID</span><br><span class="line">C CPU 使用的资源百分比</span><br><span class="line">PRI 这个是 Priority (优先执行序) 的缩写，详细后面介绍</span><br><span class="line">NI 这个是 Nice 值，在下一小节我们会持续介绍</span><br><span class="line">ADDR 这个是 kernel <span class="keyword">function</span>，指出该程序在内存的那个部分。如果是个 running的程序，一般就是 <span class="string">&quot;-&quot;</span></span><br><span class="line">SZ 使用掉的内存大小</span><br><span class="line">WCHAN 目前这个程序是否正在运作当中，若为 - 表示正在运作</span><br><span class="line">TTY 登入者的终端机位置</span><br><span class="line">TIME 使用掉的 CPU 时间。</span><br><span class="line">CMD 所下达的指令为何</span><br><span class="line">在预设的情况下， ps 仅会列出与目前所在的 bash shell 有关的 PID 而已，所以， 当我使用 ps -l 的时候，只有三个 PID。</span><br></pre></td></tr></table></figure>
-
-<p><code>ps -axjf</code>:列出类似程序树的程序显示</p>
-<p><code>ps aux | egrep &#39;(cron|syslog)&#39;</code>:找出与 cron 与 syslog 这两个服务有关的 PID 号码</p>
-<p><code>ps -aux |more</code>:用 | 管道和 more 连接起来分页查看</p>
-<p><code>ps -aux &gt; ps001.txt</code>:把所有进程显示出来，并输出到ps001.txt文件</p>
-<p><code>ps -o pid,ppid,pgrp,session,tpgid,comm</code>:输出指定字段</p>
-<h2 id="ps-ef和ps-aux的区别"><a href="#ps-ef和ps-aux的区别" class="headerlink" title="ps -ef和ps aux的区别"></a>ps -ef和ps aux的区别</h2><p>Linux下显示系统进程的命令ps，最常用的有ps -ef 和ps aux。这两个到底有什么区别呢？两者没太大差别，讨论这个问题，要追溯到Unix系统中的两种风格，System Ｖ风格和BSD 风格，ps aux最初用到Unix Style中，而ps -ef被用在System V Style中，两者输出略有不同。现在的大部分Linux系统都是可以同时使用这两种方式的。</p>
-<p>** <code>ps -ef</code>:显示所有进程信息，连同命令行 **</p>
-<p>ps -ef 是用标准的格式显示进程的</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost Desktop]<span class="comment"># ps -ef</span></span><br><span class="line">UID         PID   PPID  C STIME TTY          TIME CMD</span><br><span class="line">root          1      0  0 09:40 ?        00:00:03 /usr/lib/systemd/systemd --swi</span><br><span class="line">root          2      0  0 09:40 ?        00:00:00 [kthreadd]</span><br><span class="line">root          3      2  0 09:40 ?        00:00:00 [ksoftirqd/0]</span><br><span class="line">root          5      2  0 09:40 ?        00:00:00 [kworker/0:0H]</span><br><span class="line">root          7      2  0 09:40 ?        00:00:00 [migration/0]</span><br><span class="line">root          8      2  0 09:40 ?        00:00:00 [rcu_bh]</span><br><span class="line">root          9      2  0 09:40 ?        00:00:02 [rcu_sched]</span><br><span class="line">root         10      2  0 09:40 ?        00:00:00 [watchdog/0]</span><br></pre></td></tr></table></figure>
-
-<p>参数详解：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">UID    //用户ID、但输出的是用户名</span><br><span class="line">PID    //进程的ID</span><br><span class="line">PPID   //父进程ID</span><br><span class="line">C      //进程占用CPU的百分比</span><br><span class="line">STIME  //进程启动到现在的时间</span><br><span class="line">TTY    //该进程在那个终端上运行，若与终端无关，则显示? 若为pts/0等，则表示由网络连接主机进程。</span><br><span class="line">CMD    //命令的名称和参数</span><br></pre></td></tr></table></figure>
-
-<p>** <code>ps aux</code>:列出目前所有的正在内存当中的程序 ** </p>
-<p>ps aux 是用BSD的格式来显示</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">root@localhost Desktop]<span class="comment"># ps -aux</span></span><br><span class="line">USER        PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND</span><br><span class="line">root          1  0.0  0.4 193720  4236 ?        Ss   09:40   0:03 /usr/lib/syste</span><br><span class="line">root          2  0.0  0.0      0     0 ?        S    09:40   0:00 [kthreadd]</span><br><span class="line">root          3  0.0  0.0      0     0 ?        S    09:40   0:00 [ksoftirqd/0]</span><br><span class="line">root          5  0.0  0.0      0     0 ?        S&lt;   09:40   0:00 [kworker/0:0H]</span><br><span class="line">root          7  0.0  0.0      0     0 ?        S    09:40   0:00 [migration/0]</span><br><span class="line">root          8  0.0  0.0      0     0 ?        S    09:40   0:00 [rcu_bh]</span><br><span class="line">root          9  0.0  0.0      0     0 ?        R    09:40   0:02 [rcu_sched]</span><br><span class="line">root         10  0.0  0.0      0     0 ?        S    09:40   0:00 [watchdog/0]</span><br><span class="line">root         12  0.0  0.0      0     0 ?        S    09:40   0:00 [kdevtmpfs]</span><br></pre></td></tr></table></figure>
-
-<p>同ps -ef 不同的有列有</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">USER      //用户名</span><br><span class="line">%CPU      //进程占用的CPU百分比</span><br><span class="line">%MEM      //占用内存的百分比</span><br><span class="line">VSZ       //该进程使用的虚拟內存量（KB）</span><br><span class="line">RSS       //该进程占用的固定內存量（KB）（驻留中页的数量）</span><br><span class="line">STAT      //进程的状态</span><br><span class="line">START     //该进程被触发启动时间</span><br><span class="line">TIME      //该进程实际使用CPU运行的时间</span><br></pre></td></tr></table></figure>
-
-<p>其中STAT状态位常见的状态字符有</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">D      //无法中断的休眠状态（通常 IO 的进程）；</span><br><span class="line">R      //正在运行可中在队列中可过行的；</span><br><span class="line">S      //处于休眠状态；</span><br><span class="line">T      //停止或被追踪；</span><br><span class="line">W      //进入内存交换 （从内核2.6开始无效）；</span><br><span class="line">X      //死掉的进程 （基本很少见）；</span><br><span class="line">Z      //僵尸进程；</span><br><span class="line">&lt;      //优先级高的进程</span><br><span class="line">N      //优先级较低的进程</span><br><span class="line">L      //有些页被锁进内存；</span><br><span class="line">s      //进程的领导者（在它之下有子进程）；</span><br><span class="line">l      //多线程，克隆线程（使用 CLONE_THREAD, 类似 NPTL pthreads）；</span><br><span class="line">+      //位于后台的进程组；</span><br></pre></td></tr></table></figure>
-
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/peida/archive/2012/12/19/2824418.html">http://www.cnblogs.com/peida/archive/2012/12/19/2824418.html</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.linuxidc.com/Linux/2016-07/133515.htm">https://www.linuxidc.com/Linux/2016-07/133515.htm</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/05/10/Linux-grep%E5%91%BD%E4%BB%A4/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/05/10/Linux-grep%E5%91%BD%E4%BB%A4/" class="post-title-link" itemprop="url">Linux grep命令</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-05-10 10:45:46" itemprop="dateCreated datePublished" datetime="2018-05-10T10:45:46+00:00">2018-05-10</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Linux%E5%9F%BA%E7%A1%80%E5%91%BD%E4%BB%A4/" itemprop="url" rel="index"><span itemprop="name">Linux基础命令</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="Linux-grep命令"><a href="#Linux-grep命令" class="headerlink" title="Linux grep命令"></a>Linux grep命令</h1><h2 id="作用"><a href="#作用" class="headerlink" title="作用"></a>作用</h2><p>Linux系统中grep命令是一种强大的文本搜索工具，它能使用正则表达式搜索文本，并把匹 配的行打印出来。grep全称是Global Regular Expression Print，表示全局正则表达式版本，它的使用权限是所有用户。</p>
-<h2 id="格式"><a href="#格式" class="headerlink" title="格式"></a>格式</h2><p>grep [options]</p>
-<h2 id="主要参数"><a href="#主要参数" class="headerlink" title="主要参数"></a>主要参数</h2><p>** [options]主要参数：**</p>
-<p>－c：只输出匹配行的计数。<br>－I：不区分大 小写(只适用于单字符)。<br>－h：查询多文件时不显示文件名。<br>－l：查询多文件时只输出包含匹配字符的文件名。<br>－n：显示匹配行及 行号。<br>－s：不显示不存在或无匹配文本的错误信息。<br>－v：显示不包含匹配文本的所有行。</p>
-<p>** pattern正则表达式主要参数：**</p>
-<p>\： 忽略正则表达式中特殊字符的原有含义。<br>^：匹配正则表达式的开始行。<br>$: 匹配正则表达式的结束行。<br>&lt;：从匹配正则表达 式的行开始。<br>\&gt;：到匹配正则表达式的行结束。<br>[ ]：单个字符，如[A]即A符合要求 。<br>[ - ]：范围，如[A-Z]，即A、B、C一直到Z都符合要求 。<br>。：所有的单个字符。<br>* ：有字符，长度可以为0。</p>
-<h2 id="grep命令使用简单实例"><a href="#grep命令使用简单实例" class="headerlink" title="grep命令使用简单实例"></a>grep命令使用简单实例</h2><p><code>ls |grep &#39;1&#39; t*</code><br>:显示所有以t开头的文件中包含‘1’的行</p>
-<p><code>grep ‘test’ aa bb cc</code><br>:显示在aa，bb，cc文件中匹配test的行。</p>
-<p><code>grep ‘[a-z]\&#123;5\&#125;’ aa</code><br>:显示所有包含每个字符串至少有5个连续小写字符的字符串的行。</p>
-<h2 id="grep命令使用复杂实例"><a href="#grep命令使用复杂实例" class="headerlink" title="grep命令使用复杂实例"></a>grep命令使用复杂实例</h2><p>假设您正在’/usr/src/Linux/Doc’目录下搜索带字符 串’magic’的文件：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ grep magic /usr/src/Linux/Doc/*</span><br><span class="line">sysrq.txt:* How do I enable the magic SysRQ key?</span><br><span class="line">sysrq.txt:* How do I use the magic SysRQ key?</span><br></pre></td></tr></table></figure>
-
-<p>其中文件’sysrp.txt’包含该字符串，讨论的是 SysRQ 的功能。<br>默认情况下，’grep’只搜索当前目录。如果 此目录下有许多子目录，’grep’会以如下形式列出：<br>grep: sound: Is a directory<br>这可能会使’grep’ 的输出难于阅读。这里有两种解决的办法：</p>
-<p>明确要求搜索子目录：<code>grep -r</code><br>或忽略子目录：<code>grep -d skip</code></p>
-<p>如果有很多 输出时，您可以通过管道将其转到’less’上阅读：<br><code>$ grep magic /usr/src/Linux/Documentation/* | less</code><br>这样，您就可以更方便地阅读。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/end/archive/2012/02/21/2360965.html">http://www.cnblogs.com/end/archive/2012/02/21/2360965.html</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/05/10/Linux-shell%E4%B8%AD%E7%9A%84%E7%AB%96%E7%BA%BF%EF%BC%88-%EF%BC%89%E2%80%94%E2%80%94%E7%AE%A1%E9%81%93%E7%AC%A6%E5%8F%B7/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/05/10/Linux-shell%E4%B8%AD%E7%9A%84%E7%AB%96%E7%BA%BF%EF%BC%88-%EF%BC%89%E2%80%94%E2%80%94%E7%AE%A1%E9%81%93%E7%AC%A6%E5%8F%B7/" class="post-title-link" itemprop="url">Linux shell中的竖线（|）——管道符号</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-05-10 10:18:29" itemprop="dateCreated datePublished" datetime="2018-05-10T10:18:29+00:00">2018-05-10</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Linux%E5%9F%BA%E7%A1%80%E5%91%BD%E4%BB%A4/" itemprop="url" rel="index"><span itemprop="name">Linux基础命令</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="Linux-shell中的竖线（-）——管道符号"><a href="#Linux-shell中的竖线（-）——管道符号" class="headerlink" title="Linux shell中的竖线（|）——管道符号"></a>Linux shell中的竖线（|）——管道符号</h1><p>在Linux系统中管道线是由竖杠（|）隔开的若干个命令组成的序列，在管道线中，每个命令运行时都有一个独立的进程。前一个命令的输出正是下一个命令的输入。而管道线中有一类命令也称作“过滤器”，过滤器首先读取输入，然后将输入以某种简单方式进行变换（相当于过滤），再将处理结果输出，例如grep、tail、sort和wc等命令就称为过滤器。</p>
-<p>一个管道线中可以包括多条命令。</p>
-<p>用法: <code>command 1 | command 2</code></p>
-<p>他的功能是把第一个命令command 1执行的结果作为command 2的输入传给command 2</p>
-<p>例如：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ls -s|sort -nr</span><br></pre></td></tr></table></figure>
-
-<p>-s 是file size，-n是numeric-sort，-r是reverse，反转</p>
-<p>该命令列出当前目录中的文档(含size)，并把输出送给sort命令作为输入，sort命令按数字递减的顺序把ls的输出排序。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ls -s|sort -n</span><br></pre></td></tr></table></figure>
-
-<p>按从小到大的顺序输出。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://blog.sina.com.cn/s/blog_6d09b5750100vley.html">http://blog.sina.com.cn/s/blog_6d09b5750100vley.html</a></p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/kaosini/article/details/6578115">https://blog.csdn.net/kaosini/article/details/6578115</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/05/09/Docker%E5%9F%BA%E7%A1%80-%E9%95%9C%E5%83%8F/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/05/09/Docker%E5%9F%BA%E7%A1%80-%E9%95%9C%E5%83%8F/" class="post-title-link" itemprop="url">Docker基础-镜像</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-05-09 09:00:50" itemprop="dateCreated datePublished" datetime="2018-05-09T09:00:50+00:00">2018-05-09</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Docker/" itemprop="url" rel="index"><span itemprop="name">Docker</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>** 三大核心概念 **</p>
-<p>镜像，容器，仓库</p>
-<p><strong>镜像是 Docker 的三大核心概念之一</strong>。Docker 运行容器前需要本地存在对应的镜像，如果本地没有对应的镜像，Docker 会尝试从默认的镜像仓库下载。当然用户也可以通过配置，使用自定义的镜像仓库。<br>本文将介绍镜像的具体操作，包括使用 pull 命令从 Docker Hub 的镜像仓库中拉取(下载)公共镜像；查看本地已有的镜像信息；使用 search 命令搜索镜像；删除镜像标签和镜像文件；创建用户自定义镜像并上传到 Docker Hub 镜像仓库。<br>与镜像相关的操作都被定义在 <strong>docker image</strong> 子命令中，虽然不带 image 的格式依然被兼容，但带上 image 后会让命令更容易理解，也会有更好的自动补全效果。</p>
-<h2 id="获取镜像"><a href="#获取镜像" class="headerlink" title="获取镜像"></a>获取镜像</h2><p>本地镜像是运行容器的前提，所以在运行容器前我们需要使用 docker image pull 命令从网络上的镜像仓库把镜像拉取到本地。该命令的格式为：</p>
-<p>** docker image pull [OPTIONS] NAME[:TAG|@DIGEST] **</p>
-<p>如果只指定了镜像的名称，默认会选择拉取 latest 标签标记的镜像。比如我们要拉取最新的 ubuntu 镜像：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker image pull ubuntu</span><br></pre></td></tr></table></figure>
-
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180509141612.png" alt="1"></p>
-<p>该命令实际拉取的是 ubuntu:latest 镜像。从上图中可以看到，docker 的镜像其实被分成了很多的层，每层保存一些特定的文件。上面的命令实际相当于：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker image pull registry.hub.docker.com/ubuntu:latest</span><br></pre></td></tr></table></figure>
-
-<p>即从默认的数据仓库服务器 registry.hub.docker.com 中拉取 ubuntu 仓库中的最新镜像。如果我们感觉从 Docker Hub 上拉取镜像太慢，可选择从其它的数据仓库服务器上拉取，比如 Docker Hub 在国内部署的服务器：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker image pull registry.docker-cn.com/library/ubuntu:latest</span><br></pre></td></tr></table></figure>
-
-<p>镜像下载到本地后就可运行容器了，比如：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker <span class="keyword">run</span><span class="bash"> --rm ubuntu <span class="built_in">echo</span> hello docker</span></span><br></pre></td></tr></table></figure>
-
-<p>–rm :退出时，删除容器</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180509163105.png" alt="1"></p>
-<h2 id="查看镜像信息"><a href="#查看镜像信息" class="headerlink" title="查看镜像信息"></a>查看镜像信息</h2><p> <code>docker image ls</code> 或 <code>docker images</code> 命令可以列出本地存储的镜像<br><img src="/img/QQ%E6%88%AA%E5%9B%BE20180509163307.png" alt="2"></p>
-<p>输出的信息中包含的内容有：</p>
-<p>REPOSITORY：说明镜像来自哪个仓库，比如 ubuntu 或 registry.docker-cn.com/library/ubuntu。</p>
-<p>TAG：镜像的标签信息，比如 14.04 或 latest。</p>
-<p>IMAGE ID：标识镜像的 ID 号。</p>
-<p>CREATED：创建镜像的时间。</p>
-<p>SIZE：镜像大小。</p>
-<p>其中镜像的 ID 信息十分重要，它唯一的标识了镜像。</p>
-<p>TAG 信息用来标记来自同一个仓库(比如 ubuntu)的不同镜像。例如 ubuntu 仓库中有多个镜像，可以通过 TAG 信息来区</p>
-<p>分它们，TAG 13.04、14.04 和 16.04 都代表了不同的发行版本。</p>
-<p>使用 <code>docker image tag</code> 命令为本地的镜像添加新的标签还可以方便我们的使用，比如为 ubuntu:latest 镜像添加下面的标签：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker image tag ubuntu:latest oldubuntu</span><br></pre></td></tr></table></figure>
-
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180509163748.png" alt="3"></p>
-<p>使用<code>docker image inspect</code>命令可以查看镜像详细信息</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker image inspect ubuntu:latest</span><br></pre></td></tr></table></figure>
-
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180509164159.png" alt="4"></p>
-<p>它输出的是一个 JSON 格式的信息，一般情况下我们会有的放矢的通过 -f 选项取其中的某一部分。比如只获取镜像的 Architecture 信息：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker image inspect -f &#123;&#123;<span class="string">&quot;.Architecture&quot;</span>&#125;&#125; ubuntu:latest</span><br></pre></td></tr></table></figure>
-
-<h2 id="搜索镜像"><a href="#搜索镜像" class="headerlink" title="搜索镜像"></a>搜索镜像</h2><p>除了直接在 Docker Hub 的官方网站上搜索镜像资源，还可以通 docker search 命令以命令行的方式进行搜索，比如搜索 mysql 镜像：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker search mysql</span><br></pre></td></tr></table></figure>
-
-<p>这个命令的价值有限，因为我们在选择镜像时还是需要慎重的。往往要在 Docker Hub 的官方网站上查看镜像相关的详细信息，然后才会决定是否使用，而 docker search 命令提供的信息过于有限。</p>
-<h2 id="删除镜像"><a href="#删除镜像" class="headerlink" title="删除镜像"></a>删除镜像</h2><p> docker image rm 命令传递镜像的标签或 ID，这两种方式略微有些区别。</p>
-<h3 id="使用进行的标签删除镜像"><a href="#使用进行的标签删除镜像" class="headerlink" title="使用进行的标签删除镜像"></a>使用进行的标签删除镜像</h3><p>对于被多个标签引用的镜像 ID，删除标签时只是把那个标签删掉了，并不会真正删除镜像文件。</p>
-<h3 id="使用镜像-ID-删除镜像"><a href="#使用镜像-ID-删除镜像" class="headerlink" title="使用镜像 ID 删除镜像"></a>使用镜像 ID 删除镜像</h3><p> docker 检测到该镜像 ID 被引用了多次就机智的报错了，并且终止了删除操作。同样如果由其它的镜像引用了该 ID 的镜像， docker 同样会报错并终止删除操作。所以，只有当一个镜像不被多个标签引用，也没其它镜像引用它时，才可以被通过镜像 ID 删除。</p>
-<h2 id="创建镜像"><a href="#创建镜像" class="headerlink" title="创建镜像"></a>创建镜像</h2><p>我们可以通过不同的方式创建镜像，比如基于已有容器进行创建和基于 Dockerfile 文件进行创建。</p>
-<p>这里只介绍如何通过 <code>docker container commit</code> 命令基于已有容器创建镜像</p>
-<p>我们先启动一个以 ubuntu:latest 为镜像的容器，然后在当前目录下创建一个名为 testfile 的文件:</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker <span class="keyword">run</span><span class="bash"> -it ubuntu:latest bash</span></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost Desktop]<span class="comment"># docker run -it ubuntu:latest bash</span></span><br><span class="line">root@<span class="number">2</span>a45b0b39bf8:/<span class="comment"># touch testfile</span></span><br><span class="line">root@<span class="number">2</span>a45b0b39bf8:/<span class="comment"># ls</span></span><br><span class="line">bin   dev  home  lib64  mnt  proc  <span class="keyword">run</span><span class="bash">   srv  testfile  usr</span></span><br><span class="line">boot  etc  lib   media  opt  root  sbin  sys  tmp       var</span><br><span class="line">root@<span class="number">2</span>a45b0b39bf8:/<span class="comment">#</span></span><br></pre></td></tr></table></figure>
-
-<p>在文件创建后退出容器，但要记住该容器的 ID 为： 2a45b0b39bf8 。然后执行下面的命令创建镜像：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker container commit -m <span class="string">&quot;add file testfile.&quot;</span> <span class="number">2</span>a45b0b39bf8 testimage</span><br></pre></td></tr></table></figure>
-
-<p>镜像创建成功后，你可以在镜像列表中看到名称为 testimage 的镜像</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker images</span><br></pre></td></tr></table></figure>
-
-<p>下面运行一个基于 testimage 的容器，看看 nickfile 是否存在。–rm：退出时自动删除</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker <span class="keyword">run</span><span class="bash"> --rm testimage ls</span></span><br></pre></td></tr></table></figure>
-
-<p>在容器中创建的文件 testfile 已经被成功的添加到 testimage 镜像中了。</p>
-<h2 id="导入导出镜像"><a href="#导入导出镜像" class="headerlink" title="导入导出镜像"></a>导入导出镜像</h2><p>当碰到没有网络的环境时，如何获取镜像呢？答案是在能够获得镜像的环境中把镜像导出为文件，然后通过 U 盘等设备拷贝到目标环境中，再进行导入。</p>
-<h3 id="导出镜像"><a href="#导出镜像" class="headerlink" title="导出镜像"></a>导出镜像</h3><p>通过 <code>docker image save</code> 命令可以把镜像导出为本地文件，比如导出 ubuntu:latest 镜像为 ubuntu1804.tar：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker image save -o ubuntu1804.tar ubuntu:latest</span><br></pre></td></tr></table></figure>
-
-<p>一般我们还会再压缩一下，这样最终的文件会小不少：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tar -czf ubuntu1804.tar.gz ubuntu1804.tar</span><br></pre></td></tr></table></figure>
-
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180509172150.png" alt="4"></p>
-<h3 id="导入镜像"><a href="#导入镜像" class="headerlink" title="导入镜像"></a>导入镜像</h3><p>把 ubuntu1804.tar.gz 文件拷贝到目标系统上后先要解压出 ubuntu1804.tar 文件：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">tar -xf ubuntu1804.tar.gz</span><br></pre></td></tr></table></figure>
-
-<p>然后通过 docker image load 命令执行镜像的导入操作：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker image load -i ubuntu1804.tar</span><br></pre></td></tr></table></figure>
-
-<p>这样就 OK 了，用 docker image ls 命令看看，是不是已经可以看到 ubuntu:latest 镜像了！</p>
-<h2 id="上传镜像"><a href="#上传镜像" class="headerlink" title="上传镜像"></a>上传镜像</h2><p>可以使用 <strong><code>docker image push</code></strong> 命令把镜像上传到镜像仓库服务器，默认是上传到 Docker Hub 的镜像仓库，此时事先需要注册用户并进行登录。上传镜像的命令格式为：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker image push NAME[:TAG]</span><br></pre></td></tr></table></figure>
-
-<p>在 Docker Hub 注册账号，并通过 docker login 命令完成了登录操作(需要输入用户名和密码进行验证)。接下来就可把本地的镜像上传到镜像仓库服务器了。在上传前需要给镜像打上合法的标签(用户账号/仓库名称:TAG)，比如：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost Desktop]# docker image tag --help</span><br><span class="line"></span><br><span class="line">Usage: docker image tag SOURCE_IMAGE[:TAG] TARGET_IMAGE[:TAG]</span><br><span class="line"></span><br><span class="line">Create a tag TARGET_IMAGE that refers to SOURCE_IMAGE</span><br><span class="line"></span><br><span class="line">Options:</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker image tag azcli:<span class="number">1.0</span> ljfpower/azcli:latest</span><br></pre></td></tr></table></figure>
-
-<p>最后上传这个标签就行了：</p>
-<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker image push ljfpower/azcli:latest</span><br></pre></td></tr></table></figure>
-
-<p>上传后你就可以在 Docker Hub 上看到这个镜像了。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/sparkdev/p/8901728.html">https://www.cnblogs.com/sparkdev/p/8901728.html</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/05/08/CentOS7-Docker-Jenkins-DotNetCore%E9%A1%B9%E7%9B%AE%E9%85%8D%E7%BD%AE/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/05/08/CentOS7-Docker-Jenkins-DotNetCore%E9%A1%B9%E7%9B%AE%E9%85%8D%E7%BD%AE/" class="post-title-link" itemprop="url">CentOS7 & Docker & Jenkins & DotNetCore项目配置</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-05-08 13:54:33" itemprop="dateCreated datePublished" datetime="2018-05-08T13:54:33+00:00">2018-05-08</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-08-31 01:05:09" itemprop="dateModified" datetime="2021-08-31T01:05:09+00:00">2021-08-31</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Jenkins/" itemprop="url" rel="index"><span itemprop="name">Jenkins</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="CentOS7-amp-Docker-amp-Jenkins-amp-DotNetCore项目配置"><a href="#CentOS7-amp-Docker-amp-Jenkins-amp-DotNetCore项目配置" class="headerlink" title="CentOS7 &amp; Docker &amp; Jenkins &amp; DotNetCore项目配置"></a>CentOS7 &amp; Docker &amp; Jenkins &amp; DotNetCore项目配置</h1><h2 id="GitHub配置"><a href="#GitHub配置" class="headerlink" title="GitHub配置"></a>GitHub配置</h2><h3 id="SercretText"><a href="#SercretText" class="headerlink" title="SercretText"></a>SercretText</h3><p>注：此处需要一个对项目有写权限的账户</p>
-<p>进入SGithub –&gt; Setting –&gt; Developer settings –&gt; Personal access tokens</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180508141541.png" alt="1"></p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180508141948.png" alt="2"></p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180508142138.png" alt="3"></p>
-<p>自己先保存此token，如果丢失，之后再也无法找到这个token。</p>
-<h2 id="配置GitHub-Plugin"><a href="#配置GitHub-Plugin" class="headerlink" title="配置GitHub Plugin"></a>配置GitHub Plugin</h2><p>系统管理 –&gt; 系统设置 –&gt; GitHub –&gt; GitHub Plugin</p>
-<p>配置github用户名，邮箱</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180508144549.png" alt="4"></p>
-<h2 id="配置Jenkins"><a href="#配置Jenkins" class="headerlink" title="配置Jenkins"></a>配置Jenkins</h2><h3 id="新建任务："><a href="#新建任务：" class="headerlink" title="新建任务："></a>新建任务：</h3><p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180508145651.png" alt="5"></p>
-<h3 id="General-通常"><a href="#General-通常" class="headerlink" title="General(通常)"></a>General(通常)</h3><p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180508145841.png" alt="6"></p>
-<h3 id="源码管理"><a href="#源码管理" class="headerlink" title="源码管理"></a>源码管理</h3><p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180508145941.png" alt="7"></p>
-<p>点击Add：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180508150102.png" alt="8"></p>
-<h3 id="构建触发器："><a href="#构建触发器：" class="headerlink" title="构建触发器："></a>构建触发器：</h3><p><code>H/2 * * * *</code></p>
-<p>具体参考：</p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/brave_insist/article/details/78434877">https://blog.csdn.net/brave_insist/article/details/78434877</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">每15分钟构建一次：H/15 * * * *   或*/5 * * * *</span><br><span class="line"></span><br><span class="line">每天8点构建一次：0 8 * * *</span><br><span class="line"></span><br><span class="line">每天8点~17点，两小时构建一次：0 8-17/2 * * *</span><br><span class="line"></span><br><span class="line">周一到周五，8点~17点，两小时构建一次：0 8-17/2 * * 1-5</span><br><span class="line"></span><br><span class="line">每月1号、15号各构建一次，除12月：H H 1,15 1-11 *</span><br><span class="line"></span><br><span class="line">*/5 * * * * （每5分钟检查一次源码变化）</span><br><span class="line"></span><br><span class="line">0 2 * * * （每天2:00 必须build一次源码）</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">每个部分代表的含义以及取值范围</span><br><span class="line"></span><br><span class="line">分钟，取值范围（0~59）：若其他值不做设定，则表示每个设定的分钟都会构建</span><br><span class="line">如：5 * * * * ，表示每个小时的第5分钟都会构建一次</span><br><span class="line"></span><br><span class="line">小时，取值范围（0~23）：若其他值不做设定，则表示每个设定小时的每分钟都会构建</span><br><span class="line">如：* 5 * * * ，表示在每天5点的时候，一小时内每一分钟都会构建一次</span><br><span class="line"></span><br><span class="line">日期，取值范围（1~31）：若其他值不做设定，则表示每个月的那一天每分钟都会构建一次</span><br><span class="line">如：* * 5 * *，表示在每个月5号的时候，0点开始每分钟构建一次</span><br><span class="line"></span><br><span class="line">月份，取值范围（1~12）：若其他值不做设定，则表示每年的那个月每分钟都会构建一次</span><br><span class="line">如：* * * 5 *，表示在每年的5月份，1号0点开始每分钟构建一次</span><br><span class="line"></span><br><span class="line">星期，取值范围（0 ~ 7）：若其他值不做设定，则表示每周的那一天几每分钟都会构建一次</span><br><span class="line">如：* * * * 5，表示每周五0点开始每分钟构建一次</span><br></pre></td></tr></table></figure>
-
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180508150645.png" alt="9"></p>
-<h3 id="构建环境"><a href="#构建环境" class="headerlink" title="构建环境"></a>构建环境</h3><p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180508151257.png" alt="10"></p>
-<p>点击Add：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180508152137.png" alt="10"></p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180508152518.png" alt="11"></p>
-<h3 id="构建"><a href="#构建" class="headerlink" title="构建"></a>构建</h3><p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180508152609.png" alt="12"></p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="comment"># 获取短版本号</span></span><br><span class="line"></span><br><span class="line">GITHASH=`git rev-parse --short HEAD`</span><br><span class="line"><span class="built_in">echo</span> ---------------Remove-Orphans------------------</span><br><span class="line">docker-compose -f ./docker-compose.yml -f ./docker-compose.override.yml  -p dotnetcoreapp1 down --rmi <span class="built_in">local</span> --remove-orphans</span><br><span class="line"><span class="built_in">echo</span> ------------------Config-----------------------</span><br><span class="line">docker-compose -f ./docker-compose.ci.build.yml -p dotnetcoreapp1 config</span><br><span class="line"><span class="built_in">echo</span> ------------------Build------------------------</span><br><span class="line">docker-compose -f ./docker-compose.ci.build.yml -p dotnetcoreapp1 up --build</span><br><span class="line"><span class="built_in">echo</span> ---------------Publishing...------------------</span><br><span class="line">docker-compose -f <span class="string">&quot;./docker-compose.yml&quot;</span> -f <span class="string">&quot;./docker-compose.override.yml&quot;</span>  -p dotnetcoreapp1 up -d --build</span><br><span class="line"><span class="built_in">echo</span> ---------------Clear-Images...------------------</span><br><span class="line">docker rmi -f $(docker images -f <span class="string">&quot;dangling=true&quot;</span> -q)</span><br><span class="line"><span class="built_in">echo</span> ---------------Clear-Containers...------------------</span><br><span class="line">docker rm dotnetcoreapp1_ci-build_1</span><br></pre></td></tr></table></figure>
-
-<p>命令说明：</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">-f, --file FILE 指定使用的 Compose 模板文件，默认为 docker-compose.yml，可以多次指定。</span><br><span class="line"></span><br><span class="line">-p, --project-name NAME 指定项目名称，默认将使用所在目录名称作为项目名。</span><br></pre></td></tr></table></figure>
-
-<p>修改docker-compose.override.yml文件：</p>
-<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">version:</span> <span class="string">&#x27;3&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="attr">services:</span></span><br><span class="line">  <span class="attr">dotnetcoreapp:</span></span><br><span class="line">    <span class="attr">environment:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">ASPNETCORE_ENVIRONMENT=Development</span></span><br><span class="line">    <span class="attr">ports:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">&quot;8081:80&quot;</span></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br></pre></td><td class="code"><pre><span class="line">[MvcTest] $ /bin/bash /tmp/jenkins3923627102865574973.sh</span><br><span class="line">---------------Remove-Orphans------------------</span><br><span class="line"></span><br><span class="line">Removing network dotnetcoreapp1_default</span><br><span class="line">------------------Config-----------------------</span><br><span class="line"></span><br><span class="line">services:</span><br><span class="line">  ci-build:</span><br><span class="line">    <span class="built_in">command</span>: /bin/bash -c <span class="string">&quot;dotnet restore ./DotNetCoreApp.sln &amp;&amp; dotnet publish ./DotNetCoreApp.sln</span></span><br><span class="line"><span class="string">      -c Release -o ./obj/Docker/publish&quot;</span></span><br><span class="line">    image: microsoft/aspnetcore-build:1.0-2.0</span><br><span class="line">    volumes:</span><br><span class="line">    - /var/jenkins_home/workspace/MvcTest:/src:rw</span><br><span class="line">    working_dir: /src</span><br><span class="line">version: <span class="string">&#x27;3.0&#x27;</span></span><br><span class="line"></span><br><span class="line">------------------Build------------------------</span><br><span class="line"></span><br><span class="line">Creating network <span class="string">&quot;dotnetcoreapp1_default&quot;</span> with the default driver</span><br><span class="line"></span><br><span class="line">Creating dotnetcoreapp1_ci-build_1 ... </span><br><span class="line"></span><br><span class="line">[1A[2K</span><br><span class="line">Creating dotnetcoreapp1_ci-build_1 ... [32mdone[0m</span><br><span class="line">[1BAttaching to dotnetcoreapp1_ci-build_1</span><br><span class="line">[36mci-build_1  |[0m   Restoring packages <span class="keyword">for</span> /src/DotNetCoreApp/DotNetCoreApp.csproj...</span><br><span class="line"></span><br><span class="line">[36mci-build_1  |[0m   Generating MSBuild file /src/DotNetCoreApp/obj/DotNetCoreApp.csproj.nuget.g.props.</span><br><span class="line"></span><br><span class="line">[36mci-build_1  |[0m   Generating MSBuild file /src/DotNetCoreApp/obj/DotNetCoreApp.csproj.nuget.g.targets.</span><br><span class="line">[36mci-build_1  |[0m   Restore completed <span class="keyword">in</span> 30.06 sec <span class="keyword">for</span> /src/DotNetCoreApp/DotNetCoreApp.csproj.</span><br><span class="line">[36mci-build_1  |[0m   Restoring packages <span class="keyword">for</span> /src/DotNetCoreApp/DotNetCoreApp.csproj...</span><br><span class="line"></span><br><span class="line">[36mci-build_1  |[0m   Restore completed <span class="keyword">in</span> 2.64 sec <span class="keyword">for</span> /src/DotNetCoreApp/DotNetCoreApp.csproj.</span><br><span class="line"></span><br><span class="line">[36mci-build_1  |[0m Microsoft (R) Build Engine version 15.6.84.34536 <span class="keyword">for</span> .NET Core</span><br><span class="line">[36mci-build_1  |[0m Copyright (C) Microsoft Corporation. All rights reserved.</span><br><span class="line">[36mci-build_1  |[0m </span><br><span class="line"></span><br><span class="line">[36mci-build_1  |[0m   Restore completed <span class="keyword">in</span> 97.25 ms <span class="keyword">for</span> /src/DotNetCoreApp/DotNetCoreApp.csproj.</span><br><span class="line">[36mci-build_1  |[0m   Restore completed <span class="keyword">in</span> 24.37 ms <span class="keyword">for</span> /src/DotNetCoreApp/DotNetCoreApp.csproj.</span><br><span class="line"></span><br><span class="line">[36mci-build_1  |[0m   DotNetCoreApp -&gt; /src/DotNetCoreApp/bin/Release/netcoreapp2.0/DotNetCoreApp.dll</span><br><span class="line"></span><br><span class="line">[36mci-build_1  |[0m   DotNetCoreApp -&gt; /src/DotNetCoreApp/obj/Docker/publish/</span><br><span class="line"></span><br><span class="line">[36mdotnetcoreapp1_ci-build_1 exited with code 0</span><br><span class="line"></span><br><span class="line">[0m---------------Publishing...------------------</span><br><span class="line"></span><br><span class="line">Building dotnetcoreapp</span><br><span class="line"></span><br><span class="line">Step 1/6 : FROM microsoft/aspnetcore:2.0</span><br><span class="line"> ---&gt; c4ca78cf9dca</span><br><span class="line">Step 2/6 : ARG <span class="built_in">source</span></span><br><span class="line"> ---&gt; Using cache</span><br><span class="line"> ---&gt; 5ccef217b449</span><br><span class="line">Step 3/6 : WORKDIR /app</span><br><span class="line"> ---&gt; Using cache</span><br><span class="line"> ---&gt; 21ca58736a23</span><br><span class="line">Step 4/6 : EXPOSE 80</span><br><span class="line"> ---&gt; Using cache</span><br><span class="line"> ---&gt; fa9898960c84</span><br><span class="line">Step 5/6 : COPY <span class="variable">$&#123;source:-obj/Docker/publish&#125;</span> .</span><br><span class="line"></span><br><span class="line"> ---&gt; a7d0c6386eb4</span><br><span class="line">Step 6/6 : ENTRYPOINT [<span class="string">&quot;dotnet&quot;</span>, <span class="string">&quot;DotNetCoreApp.dll&quot;</span>]</span><br><span class="line"> ---&gt; Running <span class="keyword">in</span> dd4cfb6f5cb8</span><br><span class="line"></span><br><span class="line">Removing intermediate container dd4cfb6f5cb8</span><br><span class="line"> ---&gt; d8dea36554b4</span><br><span class="line">Successfully built d8dea36554b4</span><br><span class="line">Successfully tagged dotnetcoreapp:latest</span><br><span class="line">Recreating dotnetcoreapp2_dotnetcoreapp_1 ... </span><br><span class="line"></span><br><span class="line">[1A[2K</span><br><span class="line">Recreating dotnetcoreapp2_dotnetcoreapp_1 ... [32mdone[0m</span><br><span class="line">[1B---------------Clear-Images...------------------</span><br><span class="line"></span><br><span class="line">Deleted: sha256:238c39ae8c13a1d6816361946429024cb46e6911329dad2d714033d2578da618</span><br><span class="line">Deleted: sha256:12dfe61eae3ee68775237340f3e50e19554a653357baec0de52a50d0cff96652</span><br><span class="line">Deleted: sha256:3f6beb8ffd03ee5d3b9fd0e9e5b46074d270cdb707fa07056087194a53be1dd4</span><br><span class="line">---------------Clear-Containers...------------------</span><br><span class="line"></span><br><span class="line">dotnetcoreapp1_ci-build_1</span><br><span class="line">Finished: SUCCESS</span><br></pre></td></tr></table></figure>
-
-<p>最后通过浏览器访问<code>http://localhost:8081</code></p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/stulzq/p/8627824.html">http://www.cnblogs.com/stulzq/p/8627824.html</a><br><a target="_blank" rel="noopener" href="https://github.com/muyinchen/woker/blob/master/%E9%9B%86%E6%88%90%E6%B5%8B%E8%AF%95%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/%E6%89%8B%E6%8A%8A%E6%89%8B%E6%95%99%E4%BD%A0%E6%90%AD%E5%BB%BAJenkins%2BGithub%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E7%8E%AF%E5%A2%83.md">https://github.com/muyinchen/woker/blob/master/%E9%9B%86%E6%88%90%E6%B5%8B%E8%AF%95%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/%E6%89%8B%E6%8A%8A%E6%89%8B%E6%95%99%E4%BD%A0%E6%90%AD%E5%BB%BAJenkins%2BGithub%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E7%8E%AF%E5%A2%83.md</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/LongJiangXie/p/7517909.html">http://www.cnblogs.com/LongJiangXie/p/7517909.html</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/JacZhu/p/6814848.html">http://www.cnblogs.com/JacZhu/p/6814848.html</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -2362,7 +2702,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">497</span>
+          <span class="site-state-item-count">503</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
