@@ -2,6 +2,11 @@
 title: Nvm管理Nodejs版本
 date: 2021-09-01 15:42:25
 tags:
+- NPM
+- Nodejs
+- NVM
+categories:
+- NVM
 ---
 
 ## 安装配置

@@ -4,7 +4,6 @@ date: 2017-04-28 09:47:46
 tags: Hexo
 categories: Hexo
 ---
-# Hexo 笔迹
 
 ## hexo文档
 
