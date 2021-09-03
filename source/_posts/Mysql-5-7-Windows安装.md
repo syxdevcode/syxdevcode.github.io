@@ -31,13 +31,13 @@ skip-grant-tables
 #skip-grant-tables表示忽略密码
 ```
 
-6.启动管理员模式下的 CMD，并将路径切换至mysql下的bin目录，然后输入
+6.启动管理员模式下的 CMD，并将路径切换至 `mysql` 下的 `bin` 目录，然后输入
 
 ```sh
 mysqld –install
 ```
 
-7.再输入 `mysqld --initialize-insecure;` 初始化数据文件
+7.再输入 `mysqld --initialize;` 初始化数据文件
 
 8.输入 `net start mysql` 启动mysql服务
 
@@ -48,6 +48,9 @@ mysqld –install
 10.进入界面后更改root密码
 
 ```sh
+# 需要先刷新
+flush privileges;
+
 ALTER USER 'root'@'localhost' IDENTIFIED BY 'root';
 
 # 或者
