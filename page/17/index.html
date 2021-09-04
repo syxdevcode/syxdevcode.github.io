@@ -184,6 +184,114 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/11/Mysql5.7.X%E4%BF%AE%E6%94%B9sql_mode/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/11/Mysql5.7.X%E4%BF%AE%E6%94%B9sql_mode/" class="post-title-link" itemprop="url">Mysql5.7.X修改sql_mode</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-08-11 14:40:26" itemprop="dateCreated datePublished" datetime="2020-08-11T14:40:26+00:00">2020-08-11</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-09-04 09:10:11" itemprop="dateModified" datetime="2021-09-04T09:10:11+00:00">2021-09-04</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/MySql/" itemprop="url" rel="index"><span itemprop="name">MySql</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>1.4k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>1 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>5.7 以及之后的版本中会遇到这样的错误:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Expression #2 of SELECT list is not in GROUP BY clause and contains nonaggregated column &#x27;name&#x27; which is not functionally dependent on columns in GROUP BY clause;</span><br><span class="line">this is incompatible with sql_mode=only_full_group_by</span><br><span class="line"></span><br><span class="line">Expression #1 of ORDER BY clause is not in SELECT list, references column &#x27;sort&#x27; which is not in SELECT list; this is incompatible with DISTINCT</span><br></pre></td></tr></table></figure>
+
+<h2 id="说明"><a href="#说明" class="headerlink" title="说明"></a>说明</h2><p>mysql 5.7版本默认的sql配置是:sql_mode=”ONLY_FULL_GROUP_BY”，这个配置严格执行了”SQL92标准”。</p>
+<p>查看sql_mode的语句:</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> @<span class="variable">@GLOBAL</span>.sql_mode;</span><br><span class="line"></span><br><span class="line">##输出：</span><br><span class="line">ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION</span><br></pre></td></tr></table></figure>
+
+<p>很多从5.6升级到5.7时，为了语法兼容，大部分都会选择调整sql_mode，使其保持跟5.6一致，为了尽量兼容程序。</p>
+<p>原因分析：<br>再输出的结果 <code>target list</code> 中，即select后面跟着的字段，还有一个地方 <code>group by column</code>，就是 group by后面跟着的字段。由于开启了 <code>ONLY_FULL_GROUP_BY</code> 的设置，所以如果一个字段没有在 <code>target list </code><br>和 <code>group by</code> 字段中同时出现，或者是聚合函数的值的话，那么这条sql查询是被mysql认为非法的，会报错误。</p>
+<h2 id="解决方法"><a href="#解决方法" class="headerlink" title="解决方法"></a>解决方法</h2><h3 id="暂时修改sql-mode"><a href="#暂时修改sql-mode" class="headerlink" title="暂时修改sql_mode"></a>暂时修改sql_mode</h3><p>重启mysql数据库服务之后，ONLY_FULL_GROUP_BY还会出现。</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">set</span> @<span class="variable">@GLOBAL</span>.sql_mode<span class="operator">=</span>STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION</span><br></pre></td></tr></table></figure>
+
+<h3 id="修改mysql配置文件"><a href="#修改mysql配置文件" class="headerlink" title="修改mysql配置文件"></a>修改mysql配置文件</h3><p>修改 mysql 配置文件，<code>/usr/local/mysql/my.cnf</code>,添加如下代码，之后重启mysql服务。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#主要需要添加到 [mysql] [mysqld] 标签下，加入到其他地方，即使重启后也不生效。</span></span><br><span class="line">sql_mode=STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION</span><br></pre></td></tr></table></figure>
+
+<p>重启：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/etc/init.d/mysqld restart</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_42175986/article/details/82384160">5分钟学会MySQL-this is incompatible with sql_mode=only_full_group_by错误解决方案</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/feinifi/article/details/54135310">mysql5.7.x:this is incompatible with DISTINCT</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/11/%E8%B7%A8%E5%9F%9F%E8%B5%84%E6%BA%90%E5%85%B1%E4%BA%ABCORS%E7%AC%94%E8%AE%B0/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -215,7 +323,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-04 07:11:28" itemprop="dateModified" datetime="2021-09-04T07:11:28+00:00">2021-09-04</time>
+                <time title="修改时间：2021-09-04 09:10:11" itemprop="dateModified" datetime="2021-09-04T09:10:11+00:00">2021-09-04</time>
               </span>
 
           <br>
@@ -383,7 +491,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-04 07:11:28" itemprop="dateModified" datetime="2021-09-04T07:11:28+00:00">2021-09-04</time>
+                <time title="修改时间：2021-09-04 09:10:11" itemprop="dateModified" datetime="2021-09-04T09:10:11+00:00">2021-09-04</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -505,7 +613,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-04 07:11:28" itemprop="dateModified" datetime="2021-09-04T07:11:28+00:00">2021-09-04</time>
+                <time title="修改时间：2021-09-04 09:10:11" itemprop="dateModified" datetime="2021-09-04T09:10:11+00:00">2021-09-04</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -642,7 +750,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-04 07:11:28" itemprop="dateModified" datetime="2021-09-04T07:11:28+00:00">2021-09-04</time>
+                <time title="修改时间：2021-09-04 09:10:11" itemprop="dateModified" datetime="2021-09-04T09:10:11+00:00">2021-09-04</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -738,7 +846,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-04 07:11:28" itemprop="dateModified" datetime="2021-09-04T07:11:28+00:00">2021-09-04</time>
+                <time title="修改时间：2021-09-04 09:10:11" itemprop="dateModified" datetime="2021-09-04T09:10:11+00:00">2021-09-04</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -850,7 +958,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-04 07:11:28" itemprop="dateModified" datetime="2021-09-04T07:11:28+00:00">2021-09-04</time>
+                <time title="修改时间：2021-09-04 09:10:11" itemprop="dateModified" datetime="2021-09-04T09:10:11+00:00">2021-09-04</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -962,7 +1070,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-04 07:11:28" itemprop="dateModified" datetime="2021-09-04T07:11:28+00:00">2021-09-04</time>
+                <time title="修改时间：2021-09-04 09:10:11" itemprop="dateModified" datetime="2021-09-04T09:10:11+00:00">2021-09-04</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1088,7 +1196,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-04 07:11:28" itemprop="dateModified" datetime="2021-09-04T07:11:28+00:00">2021-09-04</time>
+                <time title="修改时间：2021-09-04 09:10:11" itemprop="dateModified" datetime="2021-09-04T09:10:11+00:00">2021-09-04</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1185,7 +1293,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-04 07:11:28" itemprop="dateModified" datetime="2021-09-04T07:11:28+00:00">2021-09-04</time>
+                <time title="修改时间：2021-09-04 09:10:11" itemprop="dateModified" datetime="2021-09-04T09:10:11+00:00">2021-09-04</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1300,7 +1408,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-04 07:11:28" itemprop="dateModified" datetime="2021-09-04T07:11:28+00:00">2021-09-04</time>
+                <time title="修改时间：2021-09-04 09:10:11" itemprop="dateModified" datetime="2021-09-04T09:10:11+00:00">2021-09-04</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1558,7 +1666,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-04 07:11:28" itemprop="dateModified" datetime="2021-09-04T07:11:28+00:00">2021-09-04</time>
+                <time title="修改时间：2021-09-04 09:10:11" itemprop="dateModified" datetime="2021-09-04T09:10:11+00:00">2021-09-04</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1737,7 +1845,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-04 07:11:28" itemprop="dateModified" datetime="2021-09-04T07:11:28+00:00">2021-09-04</time>
+                <time title="修改时间：2021-09-04 09:10:11" itemprop="dateModified" datetime="2021-09-04T09:10:11+00:00">2021-09-04</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1935,7 +2043,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-04 07:11:28" itemprop="dateModified" datetime="2021-09-04T07:11:28+00:00">2021-09-04</time>
+                <time title="修改时间：2021-09-04 09:10:11" itemprop="dateModified" datetime="2021-09-04T09:10:11+00:00">2021-09-04</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2034,7 +2142,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-04 07:11:28" itemprop="dateModified" datetime="2021-09-04T07:11:28+00:00">2021-09-04</time>
+                <time title="修改时间：2021-09-04 09:10:11" itemprop="dateModified" datetime="2021-09-04T09:10:11+00:00">2021-09-04</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2093,97 +2201,6 @@
 <p>参考：</p>
 <p><a target="_blank" rel="noopener" href="https://blog.csdn.net/yunhua12/article/details/81393572">[ERROR] InnoDB: Plugin initialization aborted with error Generic error几种报错</a></p>
 <p><a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/1409737">启动mysql报错The server quit without updating PID file！</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/07/30/CentOS7%E5%8D%B8%E8%BD%BD%EF%BC%8C%E5%AE%89%E8%A3%85rpm%E5%8C%85/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="syxdevcode的个人博客">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/07/30/CentOS7%E5%8D%B8%E8%BD%BD%EF%BC%8C%E5%AE%89%E8%A3%85rpm%E5%8C%85/" class="post-title-link" itemprop="url">CentOS7卸载，安装rpm包</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-07-30 13:29:41" itemprop="dateCreated datePublished" datetime="2020-07-30T13:29:41+00:00">2020-07-30</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-04 07:11:28" itemprop="dateModified" datetime="2021-09-04T07:11:28+00:00">2021-09-04</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/CentOS7/" itemprop="url" rel="index"><span itemprop="name">CentOS7</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>399</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>1 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 强制卸载：</span></span><br><span class="line">rpm -e --nodeps xxxxxx.rpm</span><br><span class="line"></span><br><span class="line"><span class="comment"># 强制安装：</span></span><br><span class="line">rpm -ivh --nodeps xxxxxx.rpm</span><br></pre></td></tr></table></figure>
-
-<p>示例：</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">rpm -e --nodeps glib2</span><br><span class="line"></span><br><span class="line"><span class="comment"># 进入挂载的镜像内</span></span><br><span class="line"><span class="built_in">cd</span> /media/cdrom/</span><br><span class="line"><span class="built_in">cd</span> Packages/</span><br><span class="line">ls | grep glib2</span><br><span class="line"></span><br><span class="line">[root@host Packages]<span class="comment"># ls | grep glib2</span></span><br><span class="line">compat-libpackagekit-glib2-16-0.8.9-1.el7.x86_64.rpm</span><br><span class="line">glib2-2.54.2-2.el7.x86_64.rpm</span><br><span class="line">glib2-devel-2.54.2-2.el7.x86_64.rpm</span><br><span class="line">pulseaudio-libs-glib2-10.0-5.el7.x86_64.rpm</span><br><span class="line"></span><br><span class="line">[root@host Packages]<span class="comment"># rpm -ivh glib2-2.54.2-2.el7.x86_64.rpm </span></span><br></pre></td></tr></table></figure>
 
       
     </div>
@@ -2270,7 +2287,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">505</span>
+          <span class="site-state-item-count">506</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -2333,7 +2350,7 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">24:38</span>
+    <span title="站点阅读时长">24:39</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
   </div>
