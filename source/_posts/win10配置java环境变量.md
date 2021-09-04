@@ -11,7 +11,7 @@ categories:
 
 ## 打开环境变量窗口
 
-右键 This PC(此电脑) -> Properties（属性） -> Advanced system settings（高级系统设置） -> Environment Variables（环境变量）
+右键 `This PC`(此电脑) -> `Properties`（属性） -> `Advanced system settings`（高级系统设置） -> `Environment Variables`（环境变量）
 
 ![微信截图_20200716151758.png](/img/微信截图_20200716151758.png)
 
