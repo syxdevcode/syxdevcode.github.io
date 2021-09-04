@@ -9,13 +9,17 @@ categories:
 - NVM
 ---
 
+**重要:**
+
+安装前首先要卸载已安装的任何版本的 `NodeJS`，安装过程需要设置 `NVM` 的安装路径和 `NodeJS` 的快捷方式路径，可以选择任意路径。
+
 ## 安装配置
 
 nvm下载地址：[https://github.com/coreybutler/nvm-windows/releases](https://github.com/coreybutler/nvm-windows/releases)
 
 在安装目录下配置：`C:\Users\Administrator\AppData\Roaming\nvm`
 
-输入以下命令设置nodejs路径(相当于`setting.txt`中的`path`:)：
+输入以下命令设置`nodejs`路径(相当于`setting.txt`中的`path`:)：
 
 ```ps1
 nvm node_mirror https://npm.taobao.org/mirrors/node/
@@ -35,6 +39,10 @@ npm_mirror: https://npm.taobao.org/mirrors/npm/
 ```
 
 ## 命令
+
+**重要:**
+
+通过 `nvm` 命令安装`NodeJS`时，需要以管理员权限启动命令行。
 
 ```sh
 # 查看已经安装的版本
