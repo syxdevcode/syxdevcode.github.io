@@ -9,11 +9,25 @@ categories:
 - NVM
 ---
 
+## NPX 命令方式
+
+npm 从5.2版开始，增加了 npx 命令。npx 想要解决的主要问题，就是调用项目内部安装的模块。
+
+使用不同的 `Node.js` 版本运行代码
+使用 `@` 指定版本，并将其与 `node npm` 软件包 结合使用：
+
+```sh
+npx node@10 -v #v10.18.1
+npx node@12 -v #v12.14.1
+```
+
+这有助于避免使用 `nvm` 之类的工具或其他 `Node.js` 版本管理工具。
+
+## 安装配置
+
 **重要:**
 
 安装前首先要卸载已安装的任何版本的 `NodeJS`，安装过程需要设置 `NVM` 的安装路径和 `NodeJS` 的快捷方式路径，可以选择任意路径。
-
-## 安装配置
 
 nvm下载地址：[https://github.com/coreybutler/nvm-windows/releases](https://github.com/coreybutler/nvm-windows/releases)
 
