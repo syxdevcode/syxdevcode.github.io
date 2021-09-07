@@ -10,8 +10,8 @@ categories:
 - Windows 
 ---
 
-
 ```sh
+control # 控制面板
 winver # 检查Windows版本
 wmimgmt.msc # 打开windows管理体系结构(WMI)
 wscript # windows脚本宿主设置
@@ -59,4 +59,23 @@ Nslookup # IP地址侦测器
 fsmgmt.msc # 共享文件夹管理器
 utilman # 辅助工具管理器
 gpedit.msc # 组策略
+
+wscui.cpl # 安全和维护
+inetcpl.cpl # Internet选项
+timedate.cpl # 日期和时间
+sysdm.cpl # 系统属性
+bthprops.cpl #（Bluetooth Control Panel Applet. 蓝牙控制面板程序，没有安装蓝牙，不能打开）
+appwiz.cpl # 程序和功能
+main.cpl # 鼠标 属性
+desk.cpl # 显示 设置
+intl.cpl # 区域
+telephon.cpl # 区域位置信息
+mmsys.cpl # 声音
+joy.cpl # 游戏控制器
+powercfg.cpl # 电源选项
+TabletPC.cpl # 笔和触摸（台式机不可用）
+hdwwiz.cpl # 设备管理器
+Firewall.cpl # Windows防火墙
+irprops.cpl # 红外线
+ncpa.cpl # 网络连接
 ```
