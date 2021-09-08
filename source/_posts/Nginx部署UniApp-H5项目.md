@@ -17,7 +17,7 @@ categories:
 
 ## Nginx配置
 
-```conf
+```s
 server {
         listen       10005;
         server_name  localhost,127.0.0.1;
@@ -30,9 +30,9 @@ server {
             root   E:\code\induction\unpackage\dist\build\h5; # 路径，不支持中文
             index  index.html index.htm;
         }
-		
+
         # 重定向 prefix：匹配的字符串
-		location ^~ /prefix/ {
+        location ^~ /prefix/ {
             rewrite  ^/prefix/(.*) /$1 break;
             proxy_pass https://api.mokahr.com;
         }

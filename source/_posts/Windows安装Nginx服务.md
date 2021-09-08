@@ -97,7 +97,7 @@ taskkill /F /IM nginx.exe>nul
 ```
 
 安装`nginx`服务 `nginx-service.exe install`
-删除`nginx`服务 `sc delete Nginx Service`
+删除`nginx`服务 `sc delete nginx-service`
 
 参考：
 
