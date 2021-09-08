@@ -11,7 +11,6 @@ tags:
 categories: 
 - Docker Compose
 ---
-# Docker & Docker Compose & Nginx 部署DotNetCore项目
 
 ## Docker Compose简介
 
@@ -133,14 +132,14 @@ ENV ASPNETCORE_URLS http://*:5000
 ENTRYPOINT ["dotnet","run"]
 ```
 
-**nginx下Dockerfile**
+**nginx下Dockerfile:**
 
 ```sh
 FROM nginx
 COPY nginx.conf /etc/nginx/nginx.conf
 ```
 
-**nginx下nginx.conf配置**
+**nginx下nginx.conf配置:**
 
 ```conf
 user  nginx;
