@@ -12,7 +12,7 @@ categories: Hexo
 * 主题：[https://github.com/hexojs/hexo/wiki/Themes](https://github.com/hexojs/hexo/wiki/Themes "主题")
 * 更多主题：[http://theme-next.iissnan.com/theme-settings.html](http://theme-next.iissnan.com/theme-settings.html "更多主题")
 
-### 命令
+## 命令
 
 * hexo：查看帮助
 * hexo server ：本地启动命令，可以在本地浏览器浏览
@@ -22,9 +22,9 @@ categories: Hexo
 * hexo generate ：生成
 * hexo deploy ：部署
 
-### 部署配置
+## 部署配置
 
-#### 生成 SSH KEY
+### 生成 SSH KEY
 
 ``` git
 git config --global user.name " GitHub 用户名 "
@@ -50,3 +50,18 @@ post_link 官方文档
 ```md
 {% post_link 'hexo blog' %}
 ```
+
+## 其它
+
+首页隐藏文章详细内容：
+
+```md
+<!--more-->
+```
+
+段落缩进两个字符：
+
+```md
+&emsp;&emsp;
+```
+
