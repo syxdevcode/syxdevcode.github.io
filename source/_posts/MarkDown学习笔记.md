@@ -183,7 +183,7 @@ A backtick-delimited string in a code span: `` `foo` ``
 
 ### 表格
 
-```
+```text
 | 左对齐 | 右对齐 | 居中对齐 |
 | :-----| ----: | :----: |
 | 单元格 | 单元格 | 单元格 |
@@ -199,7 +199,7 @@ A backtick-delimited string in a code span: `` `foo` ``
 示例：
 
 **echo输出的字符串总结：**
- 
+
 ```sh
 |符号| 能否引用变量  |  能否引用转移符  |  能否引用文本格式符(如：换行符、制表符)|
 |  ----  | ----  | ----| ---|
@@ -214,7 +214,7 @@ A backtick-delimited string in a code span: `` `foo` ``
 |  ----  | ----  | ----| ---|
 |  单引号  |  否  |  否 |  否  |
 |  双引号  |  能  |  能 |  能  |
-|  无引号  |   能 |  能 |  否  | 
+|  无引号  |   能 |  能 |  否  |
 
 ## 其它
 
