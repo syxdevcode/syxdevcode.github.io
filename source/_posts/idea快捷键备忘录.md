@@ -26,4 +26,10 @@ categories:
 
 **F12**：回到前一个工具窗口
 
+**Ctrl + /** ：行注释，再次使用，去掉行注释
+
+**Ctrl + Shift + /**：块注释
+
+**`输入/**`** ：方法注释，点击 `Enter`，自动根据参数和返回值生成注释模板
+
 [https://github.com/judasn/IntelliJ-IDEA-Tutorial/blob/master/keymap-introduce.md](https://github.com/judasn/IntelliJ-IDEA-Tutorial/blob/master/keymap-introduce.md)
