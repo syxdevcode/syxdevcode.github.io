@@ -184,6 +184,423 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/27/Linux-LVM-%E9%80%BB%E8%BE%91%E5%8D%B7%E7%AE%A1%E7%90%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/27/Linux-LVM-%E9%80%BB%E8%BE%91%E5%8D%B7%E7%AE%A1%E7%90%86/" class="post-title-link" itemprop="url">Linux LVM(逻辑卷管理)</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-08-27 17:24:24" itemprop="dateCreated datePublished" datetime="2020-08-27T17:24:24+00:00">2020-08-27</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux-LVM/" itemprop="url" rel="index"><span itemprop="name">Linux LVM</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>4.7k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>4 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>LVM是逻辑盘卷管理( <code>Logical Volume Manager</code>)的简称，它是Linux环境下对磁盘分区进行管理的一种机制，LVM是建立在硬盘和 分区之上的一个逻辑层，来提高磁盘分区管理的灵活性。</p>
+<p>通过LVM系统管理员可以轻松管理磁盘分区，如:将若干个磁盘分区连接为一个整块的卷组 (<code>volume group</code>)，形成一个存储池。</p>
+<p>管理员可以在卷组上随意创建逻辑卷组(<code>logical volumes</code>)，并进一步在逻辑卷组上创建文件系 统。管理员通过LVM可以方便的调整存储卷组的大小，并且可以对磁盘存储按照组的方式进行命名、管理和分配。</p>
+<p>例如按照使用用途进行定义:<code>development</code> 和 <code>sales</code>，而不是使用物理磁盘名 <code>sda</code> 和<code>sdb</code>。而且当系统添加了新的磁盘，通过LVM管理员就不必将磁盘的 文件移动到新的磁盘上以充分利用新的存储空间，而是直接扩展文件系统跨越磁盘即可。</p>
+<p><img src="/img/58846-20160825131201304-610664422.jpg" alt="58846-20160825131201304-610664422.jpg"></p>
+<h2 id="LVM相关名词"><a href="#LVM相关名词" class="headerlink" title="LVM相关名词"></a>LVM相关名词</h2><ul>
+<li>**PV(physical volume)**：<code>物理卷</code> 在逻辑卷管理系统最底层，可为整个物理硬盘或实际物理硬盘上的分区。</li>
+<li>**VG(volume group)**：<code>卷组</code> 建立在物理卷上，一卷组中至少要包括一物理卷，卷组建立后可动态的添加卷到卷组中，一个逻辑卷管理系统工程中可有多个卷组。</li>
+<li>**LV(logical volume)**：<code>逻辑卷</code> 建立在卷组基础上，卷组中未分配空间可用于建立新的逻辑卷，逻辑卷建立后可以动态扩展和缩小空间。</li>
+<li>**PE(physical extent)**：<code>物理区域</code> 是物理卷中可用于分配的最小存储单元，物理区域大小在建立卷组时指定，一旦确定不能更改，同一卷组所有物理卷的物理区域大小需一致，新的pv加入到vg后，pe的大小自动更改为vg中定义的pe大小。</li>
+<li>**LE(logical extent)**：<code>逻辑区域</code> 是逻辑卷中可用于分配的最小存储单元，逻辑区域的大小取决于逻辑卷所在卷组中的物理区域的大小。<br>卷组描述区域：卷组描述区域存在于每个物理卷中，用于描述物理卷本身、物理卷所属卷组、卷组中逻辑卷、逻辑卷中物理区域的分配等所有信息，它是在使用pvcreate建立物理卷时建立的。</li>
+</ul>
+<p><strong>关于PV命令</strong></p>
+<p><code>pvcreate</code> 命令用于将物理硬盘分区初始化为物理卷，以便LVM使用。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">pvcreate：将物理分区制作成 物理卷 PV</span><br><span class="line">pvscan：搜索当前系统里所有的具有 PV 属性的磁盘</span><br><span class="line">pvdisplay：显示当前系统上的 PV 状态</span><br><span class="line">pvremove：将 PV 属性删除，让其不具有 PV 属性，成为一般的分区</span><br></pre></td></tr></table></figure>
+
+<p><strong>关于VG下命令</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">vgcreate：建立 VG 。它的参数比较多，一会儿详细介绍</span><br><span class="line">vgscan：搜索当前系统里有多少个卷组 VG 存在</span><br><span class="line">vgdisplay：显示当前系统里指定的 VG 或所有 VG 的信息</span><br><span class="line">vgextend：在卷组 VG 中增加额外的物理卷 PV</span><br><span class="line">vgreduce：在卷组 VG 中删除 物理卷 PV</span><br><span class="line">vgchange：设置 VG 是否启动（active）</span><br><span class="line">vgremove：删除一个卷组 VG 本身</span><br></pre></td></tr></table></figure>
+
+<h2 id="创建LVM过程"><a href="#创建LVM过程" class="headerlink" title="创建LVM过程"></a>创建LVM过程</h2><p>创建 LVM 过程 ：</p>
+<p>分区成LVM格式(8e)—PV创建–VG创建—LV创建—格式化分区—MOUNT分区—-e2fsadm调整LV大小</p>
+<p>在LVM发行包中有一个称为 <code>e2fsadm</code> 的工具，它同时包含了 <code>lvextend</code> 与 <code>resize2fs</code> 的功能。</p>
+<h3 id="创建分区"><a href="#创建分区" class="headerlink" title="创建分区"></a>创建分区</h3><p>使用分区工具(如: <code>fdisk</code> 等)创建LVM分区，方法和创建其他一般分区的方式是一样的，区别仅仅是LVM的分区类型为8e。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">fdisk /dev/vdb</span><br><span class="line"></span><br><span class="line"><span class="comment"># 选项</span></span><br><span class="line"><span class="comment"># p n w</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 重启（可选）</span></span><br><span class="line">reboot</span><br></pre></td></tr></table></figure>
+
+<h3 id="创建物理卷"><a href="#创建物理卷" class="headerlink" title="创建物理卷"></a>创建物理卷</h3><p>创建物理卷的命令为 <code>pvcreate</code>，利用该命令将希望添加到卷组的所有分区或者磁盘创建为物理卷:</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 格式化</span></span><br><span class="line">mkfs.ext4 /dev/vdb</span><br><span class="line"></span><br><span class="line"><span class="comment"># 将整个磁盘创建为物理卷</span></span><br><span class="line">pvcreate /dev/vdb</span><br><span class="line"></span><br><span class="line"><span class="comment"># 或 将单个分区创建为物理卷</span></span><br><span class="line">pvcreate /dev/vda1</span><br><span class="line"></span><br><span class="line"><span class="comment"># 或  将6-9分区转成pv</span></span><br><span class="line">pvcreate /dev/vda&#123;6,7,8,9&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment"># -v显示创建的全部过程</span></span><br><span class="line">pvcreate [-v] /dev/vda2 /dev/vdb2</span><br><span class="line"></span><br><span class="line"><span class="comment"># 显示系统上的 PV 状态</span></span><br><span class="line">pvdisplay</span><br></pre></td></tr></table></figure>
+
+<h3 id="创建卷组"><a href="#创建卷组" class="headerlink" title="创建卷组"></a>创建卷组</h3><p>创建卷组的命令为 <code>vgcreate</code>，将使用 <code>pvcreate</code> 建立的物理卷创建为一个完整的卷组:</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># unicomvg：指定该卷组的逻辑名:</span></span><br><span class="line"><span class="comment"># 后面参数指定希望添加到该卷组的所有分区和磁盘</span></span><br><span class="line">vgcreate unicomvg /dev/vdb</span><br></pre></td></tr></table></figure>
+
+<p><code>vgcreate</code> 在创建卷组 <code>unicomvg</code> 以外，还设置使用大小为4MB的PE(默认为4MB)，这表示卷组上创建的所有逻辑卷都以4MB为增量单位来进行扩充 或缩减。</p>
+<p>由于内核原因，PE大小决定了逻辑卷的最大大小，4MB的PE决定了单个逻辑卷最大容量为256GB，若希望使用大于256G的逻辑卷则创建卷组时指定更大的PE。</p>
+<p>PE大小范围为8KB到512MB，并且必须总是2的倍数(使用-s指定，具体请参考 <code>manvgcreate</code> )。(centos 6.2系统已发现没有这种限制)</p>
+<p>例如，如果希望使用 64MB 的PE创建卷组，这样逻辑卷最大容量就可以为 <code>4TB</code>，命令如下: </p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vgcreate -64MB lvmdisk /dev/vdb1 /dev/vdc1</span><br></pre></td></tr></table></figure>
+
+<h3 id="激活卷组"><a href="#激活卷组" class="headerlink" title="激活卷组"></a>激活卷组</h3><p>为了立即使用卷组而不是重新启动系统，可以使用 <code>vgchange</code> 来激活卷组:</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vgchange -ay unicomvg</span><br></pre></td></tr></table></figure>
+
+<h3 id="添加新的物理卷到卷组中"><a href="#添加新的物理卷到卷组中" class="headerlink" title="添加新的物理卷到卷组中"></a>添加新的物理卷到卷组中</h3><p>当系统安装了新的磁盘并创建了新的物理卷，而要将其添加到已有卷组时，就需要使用 <code>vgextend</code> 命令:</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vgextend unicomvg /dev/vdb1</span><br></pre></td></tr></table></figure>
+
+<p>这里<code>/dev/vdb1</code>是新的物理卷。</p>
+<h3 id="从卷组中删除一个物理卷"><a href="#从卷组中删除一个物理卷" class="headerlink" title="从卷组中删除一个物理卷"></a>从卷组中删除一个物理卷</h3><p>要从一个卷组中删除一个物理卷，首先要确认要删除的物理卷没有被任何逻辑卷正在使用，就要使用 <code>pvdisplay</code> 命令察看一个该物理卷信息:</p>
+<p>如果某个物理卷正在被逻辑卷所使用，就需要将该物理卷的数据备份到其他地方，然后再删除。</p>
+<p>删除物理卷的命令为 <code>vgreduce</code>:</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vgreduce unicomvg /dev/sda1</span><br></pre></td></tr></table></figure>
+
+<h3 id="创建逻辑卷"><a href="#创建逻辑卷" class="headerlink" title="创建逻辑卷"></a>创建逻辑卷</h3><p>逻辑卷（Logical Volumes）简称 LV，是在卷组中划分的一个逻辑区域，类似于非LVM系统中的硬盘分区。<br>创建逻辑卷的命令为lvcreate，通过下面的命令。</p>
+<p>该命令就在卷组 <code>unicomvg</code> 上创建名字为 <code>unicomvol</code> ，大小为15000M（15G）的逻辑卷，并且设备入口为 <code>/dev/unicomvg/unicomvol</code> ( <code>unicomvg</code> 为卷组名，<code>unicomvol</code> 为逻辑卷名)。</p>
+<p>创建逻辑卷的命令为 <code>lvcreate</code>:</p>
+<ul>
+<li>-L：指定逻辑卷的大小，单位为“kKmMgGtT”字节；</li>
+<li>-l：指定逻辑卷的大小（LE数）。</li>
+</ul>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">lvcreate -L 15000 -n unicomvol unicomvg</span><br><span class="line"></span><br><span class="line"><span class="comment"># 或 指定100%的LE 到逻辑卷</span></span><br><span class="line">lvcreate -l 100%VG  -n unicomvol unicomvg</span><br><span class="line"></span><br><span class="line"><span class="comment"># 也可以指定大小为 15G</span></span><br><span class="line">lvcreate -L 15G -n unicomvol unicomvg</span><br></pre></td></tr></table></figure>
+
+<p>如果希望创建一个使用全部卷组的逻辑卷，则需要首先察看该卷组的PE数，然后在创建逻辑卷时指定:</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">vgdisplay unicomvg | grep <span class="string">&quot;TotalPE&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 显示</span></span><br><span class="line">Total PE 45230</span><br><span class="line"></span><br><span class="line">lvcreate -l 45230 unicomvg -n unicomvol</span><br></pre></td></tr></table></figure>
+
+<p>同卷组一样，逻辑卷在创建的过程中也被分成了一块一块的空间，这些空间称为 <code>LE（Logical Extents）</code>，在同一个卷组中，LE的大小和PE是相同的，并且一一对应。</p>
+<h3 id="创建文件系统"><a href="#创建文件系统" class="headerlink" title="创建文件系统"></a>创建文件系统</h3><p>创建了文件系统以后，就可以加载并使用它:</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建目录</span></span><br><span class="line">mkdir /data/wwwroot</span><br><span class="line"></span><br><span class="line"><span class="comment"># 挂载</span></span><br><span class="line">mount /dev/unicomvg/unicomvol /data/wwwroot</span><br><span class="line"></span><br><span class="line"><span class="comment"># 如果希望系统启动时自动加载文件系统，</span></span><br><span class="line"><span class="comment"># 则还需要在 /etc/fstab 中添加内容:</span></span><br><span class="line">/dev/unicomvg/unicomvol /data/wwwroot ext4  defaults 0 0</span><br><span class="line"></span><br><span class="line"><span class="comment"># 或者使用</span></span><br><span class="line"><span class="built_in">echo</span>  <span class="string">&quot;/dev/mapper/unicomvg-unicomvol /unicom ext4 defaults 0 0 &quot;</span> &gt;&gt;/etc/fstab</span><br></pre></td></tr></table></figure>
+
+<p><code>/etc/fstab</code>文件的每一行都遵循以下格式：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;device&gt;   &lt;dir&gt;    &lt;<span class="built_in">type</span>&gt;   &lt;options&gt;       &lt;dump&gt; &lt;pass&gt;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>device</strong>：指定加载的磁盘分区或移动文件系统，除了指定设备文件外，也可以使用 <code>UUID、LABEL</code>来指定分区；</li>
+<li><strong>dir</strong>：指定挂载点的路径；</li>
+<li><strong>type</strong>：指定文件系统的类型，如 <code>ext3</code>，<code>ext4</code>等；</li>
+<li><strong>options</strong>：指定挂载的选项，默认为defaults，其他可用选项包括<code>acl</code>，<code>noauto</code>，<code>ro</code>等；</li>
+<li><strong>dump</strong>：表示该挂载后的文件系统能否被dump备份命令作用；0表示不能，1表示每天都进行dump备份，2表示不定期进行dump操作。</li>
+<li><strong>pass</strong>：表示开机过程中是否校验扇区；0表示不要校验，1表示优先校验（一般为根目录），2表示为在1级别校验完后再进行校验；</li>
+</ul>
+<h2 id="删除一个逻辑卷"><a href="#删除一个逻辑卷" class="headerlink" title="删除一个逻辑卷"></a>删除一个逻辑卷</h2><p>删除逻辑卷以前首先需要将其卸载，然后删除:</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 卸载</span></span><br><span class="line">umount /dev/unicomvg/unicomvol</span><br><span class="line"></span><br><span class="line"><span class="comment"># 删除</span></span><br><span class="line">lvremove /dev/unicomvg/unicomvol</span><br></pre></td></tr></table></figure>
+
+<h2 id="扩展逻辑卷大小"><a href="#扩展逻辑卷大小" class="headerlink" title="扩展逻辑卷大小"></a>扩展逻辑卷大小</h2><p>LVM提供了方便调整逻辑卷大小的能力，扩展逻辑卷大小的命令是 <code>lvextend</code> :</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 将逻辑卷unicomvol的大小扩招为12G</span></span><br><span class="line">lvextend -L12G /dev/unicomvg/unicomvol</span><br><span class="line"></span><br><span class="line"><span class="comment"># 将逻辑卷unicomvol的大小增加1G</span></span><br><span class="line">lvextend -L +1G /dev/unicomvg/unicomvol、</span><br><span class="line"></span><br><span class="line"><span class="comment"># 将卷组 100% 分配到 逻辑卷unicomvol</span></span><br><span class="line">lvextend -l 100%VG /dev/mapper/centos-root</span><br></pre></td></tr></table></figure>
+
+<p><strong>调整文件系统大小</strong></p>
+<p>resize2fs 命令是用来增大或者收缩未加载的 <code>ext2/ext3/ext4</code> 文件系统的大小。</p>
+<p>参数：</p>
+<ul>
+<li>-d  打开调试特性</li>
+<li>-p  打印已完成的百分比进度条</li>
+<li>-f  强制执行调整大小操作，覆盖掉安全检查操作</li>
+<li>-F  开始执行调整大小前，刷新文件系统设备的缓冲区</li>
+<li>-M: 将文件系统缩小到最小值</li>
+<li>-P: 显示文件系统的最小值</li>
+</ul>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 建议最好将文件系统卸载，调整大小，然后再加载</span></span><br><span class="line"><span class="comment"># 卸载</span></span><br><span class="line">umount /dev/unicomvg/unicomvol</span><br><span class="line"></span><br><span class="line"><span class="comment"># 调整</span></span><br><span class="line">resize2fs -p /dev/unicomvg/unicomvol</span><br><span class="line"></span><br><span class="line"><span class="comment"># 挂载</span></span><br><span class="line">mount  /dev/unicomvg/unicomvol /data/wwwroot</span><br></pre></td></tr></table></figure>
+
+<h2 id="减少逻辑卷大小"><a href="#减少逻辑卷大小" class="headerlink" title="减少逻辑卷大小"></a>减少逻辑卷大小</h2><p><code>lvreduce</code>命令用于减少LVM逻辑卷占用的空间大小。使用 <code>lvreduce</code> 命令收缩逻辑卷的空间大小有可能会删除逻辑卷上已有的数据，所以在操作前必须进行确认。</p>
+<ul>
+<li>-L：指定逻辑卷的大小，单位为“kKmMgGtT”字节；</li>
+<li>-l：指定逻辑卷的大小（LE数）。</li>
+</ul>
+<p>需要首先将文件系统卸载:</p>
+<pre><code class="sh">umount /data/wwwroot
+
+# 减小 2G
+lvreduce -L -2G /dev/unicomvg/unicomvol
+
+mount /dev/unicomvg/unicomvol /data/wwwroot
+</code></pre>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://baike.so.com/doc/5462643-5700974.html">LVM</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/wangyongqiang/articles/12713877.html">Linux-centos磁盘扩容</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/stragon/p/5806388.html">LVM原理及PV、VG、LV、PE、LE关系图</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/27/Linux-df%E5%91%BD%E4%BB%A4/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/27/Linux-df%E5%91%BD%E4%BB%A4/" class="post-title-link" itemprop="url">Linux df命令</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-08-27 13:50:22" itemprop="dateCreated datePublished" datetime="2020-08-27T13:50:22+00:00">2020-08-27</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux%E5%9F%BA%E7%A1%80%E5%91%BD%E4%BB%A4/" itemprop="url" rel="index"><span itemprop="name">Linux基础命令</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>652</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>1 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>Linux df命令用于显示目前在Linux系统上的文件系统的磁盘使用情况统计。默认显示单位为KB。可以利用该命令来获取硬盘被占用了多少空间，目前还剩下多少空间等信息。</p>
+<h2 id="语法"><a href="#语法" class="headerlink" title="语法"></a>语法</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">df [选项]... [FILE]...</span><br></pre></td></tr></table></figure>
+
+<p>选项</p>
+<ul>
+<li>-a或–all：包含全部的文件系统；</li>
+<li>–block-size=&lt;区块大小&gt;：以指定的区块大小来显示区块数目；</li>
+<li>-h或–human-readable：以可读性较高的方式来显示信息；</li>
+<li>-H或–si：与-h参数相同，但在计算时是以1000 Bytes为换算单位而非1024 Bytes；</li>
+<li>-i或–inodes：显示inode的信息；</li>
+<li>-k或–kilobytes：指定区块大小为1024字节；</li>
+<li>-l或–local：仅显示本地端的文件系统；</li>
+<li>-m或–megabytes：指定区块大小为1048576字节；</li>
+<li>–no-sync：在取得磁盘使用信息前，不要执行sync指令，此为预设值；</li>
+<li>-P或–portability：使用POSIX的输出格式；</li>
+<li>–sync：在取得磁盘使用信息前，先执行sync指令；</li>
+<li>-t&lt;文件系统类型&gt;或–type=&lt;文件系统类型&gt;：仅显示指定文件系统类型的磁盘信息；</li>
+<li>-T或–print-type：显示文件系统的类型；</li>
+<li>-x&lt;文件系统类型&gt;或–exclude-type=&lt;文件系统类型&gt;：不要显示指定文件系统类型的磁盘信息；</li>
+<li>–help：显示帮助；</li>
+<li>–version：显示版本信息。</li>
+</ul>
+<h2 id="实例"><a href="#实例" class="headerlink" title="实例"></a>实例</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看系统磁盘设备，默认是KB为单位</span></span><br><span class="line">df </span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://man.linuxde.net/df">Linux df命令</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/27/Linux-umount%E5%91%BD%E4%BB%A4/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/27/Linux-umount%E5%91%BD%E4%BB%A4/" class="post-title-link" itemprop="url">Linux umount命令</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-08-27 13:50:07" itemprop="dateCreated datePublished" datetime="2020-08-27T13:50:07+00:00">2020-08-27</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux%E5%9F%BA%E7%A1%80%E5%91%BD%E4%BB%A4/" itemprop="url" rel="index"><span itemprop="name">Linux基础命令</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>435</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>1 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>Linux umount命令用于卸除文件系统。<br>umount可卸除目前挂在Linux目录中的文件系统。</p>
+<h2 id="语法"><a href="#语法" class="headerlink" title="语法"></a>语法</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">umount [-ahnrvV] [-t &lt;文件系统类型&gt;] [文件系统]</span><br></pre></td></tr></table></figure>
+
+<p>参数：</p>
+<ul>
+<li>-a 卸除/etc/mtab中记录的所有文件系统。</li>
+<li>-h 显示帮助。</li>
+<li>-n 卸除时不要将信息存入/etc/mtab文件中。</li>
+<li>-r 若无法成功卸除，则尝试以只读的方式重新挂入文件系统。</li>
+<li>-t&lt;文件系统类型&gt; 仅卸除选项中所指定的文件系统。</li>
+<li>-v 执行时显示详细的信息。</li>
+<li>-V 显示版本信息。</li>
+<li><code>[文件系统]</code> 除了直接指定文件系统外，也可以用设备名称或挂入点来表示文件系统。</li>
+</ul>
+<h2 id="实例"><a href="#实例" class="headerlink" title="实例"></a>实例</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 通过设备名卸载</span></span><br><span class="line">umount -v /dev/sda1</span><br><span class="line"></span><br><span class="line"><span class="comment"># 通过挂载点卸载</span></span><br><span class="line">umount -v /mnt/mymount/</span><br><span class="line"></span><br><span class="line"><span class="comment"># 如果设备正忙，卸载即告失败。</span></span><br><span class="line"><span class="comment"># 卸载失败的常见原因是，某个打开的shell当前目录为挂载点里的某个目录</span></span><br><span class="line">umount: /mnt/mymount: device is busy</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.runoob.com/linux/linux-comm-umount.html">Linux umount命令</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/27/Linux-mount%E5%91%BD%E4%BB%A4/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -215,7 +632,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -336,7 +753,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -436,7 +853,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -541,7 +958,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -696,7 +1113,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -904,7 +1321,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1029,7 +1446,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1157,7 +1574,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1261,7 +1678,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1407,7 +1824,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1625,7 +2042,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1724,7 +2141,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1808,329 +2225,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/20/Linux%20rcp%E5%91%BD%E4%BB%A4/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="syxdevcode的个人博客">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/08/20/Linux%20rcp%E5%91%BD%E4%BB%A4/" class="post-title-link" itemprop="url">Linux rcp命令</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-08-20 17:20:36" itemprop="dateCreated datePublished" datetime="2020-08-20T17:20:36+00:00">2020-08-20</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Linux%E5%9F%BA%E7%A1%80%E5%91%BD%E4%BB%A4/" itemprop="url" rel="index"><span itemprop="name">Linux基础命令</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>583</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>1 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>Linux rcp命令用于复制远程文件或目录。</p>
-<p>rcp指令用在远端复制文件或目录，如同时指定两个以上的文件或目录，且最后的目的地是一个已经存在的目录，则它会把前面指定的所有文件或目录复制到该目录中。</p>
-<h2 id="语法"><a href="#语法" class="headerlink" title="语法"></a>语法</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">rcp [-pr][源文件或目录][目标文件或目录]</span><br><span class="line">rcp [-pr][源文件或目录...][目标文件]</span><br></pre></td></tr></table></figure>
-
-<p>参数：</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">-p： 保留源文件或目录的属性，包括拥有者，所属群组，权限与时间。</span><br><span class="line">-r： 递归处理，将指定目录下的文件与子目录一并处理。</span><br></pre></td></tr></table></figure>
-
-<p><strong>实例</strong></p>
-<p>使用rcp指令复制远程文件到本地进行保存。</p>
-<p>设本地主机当前账户为rootlocal，远程主机账户为root，要将远程主机（192.125.30.5）主目录下的文件”testfile” 复制到本地目录 “test” 中，则输入如下命令：</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 复制远程文件到本地</span></span><br><span class="line">rcp root@192.125.30.5:./testfile testfile  </span><br><span class="line">rcp root@192.125.30.5:home/rootlocal/testfile testfile</span><br><span class="line"></span><br><span class="line"><span class="comment"># 要求当前登录账户cmd 登录到远程主机  </span></span><br><span class="line">rcp 192.125.30.5:./testfile testfile</span><br></pre></td></tr></table></figure>
-
-<p>注意：指令 <code>rcp</code> 执行以后不会有返回信息，仅需要在目录 “test” 下查看是否存在文件 “testfile”。<br>若存在，则表示远程复制操作成功，否则远程复制操作失败。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://www.runoob.com/linux/linux-comm-rcp.html">Linux rcp命令</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/20/Linux%20scp%E5%91%BD%E4%BB%A4/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="syxdevcode的个人博客">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/08/20/Linux%20scp%E5%91%BD%E4%BB%A4/" class="post-title-link" itemprop="url">Linux scp命令</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-08-20 16:41:05" itemprop="dateCreated datePublished" datetime="2020-08-20T16:41:05+00:00">2020-08-20</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Linux%E5%9F%BA%E7%A1%80%E5%91%BD%E4%BB%A4/" itemprop="url" rel="index"><span itemprop="name">Linux基础命令</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>1.7k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>2 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>Linux scp 命令用于 Linux 之间复制文件和目录。<br>scp 是 secure copy 的缩写, scp 是 linux 系统下基于 ssh 登陆进行安全的远程文件拷贝命令。<br>scp 是加密的，rcp 是不加密的，scp 是 rcp 的加强版。</p>
-<h1 id="语法"><a href="#语法" class="headerlink" title="语法"></a>语法</h1><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">scp [-1246BCpqrv] [-c cipher] [-F ssh_config] [-i identity_file]</span><br><span class="line">[-l <span class="built_in">limit</span>] [-o ssh_option] [-P port] [-S program]</span><br><span class="line">[[user@]host1:]file1 [...] [[user@]host2:]file2</span><br></pre></td></tr></table></figure>
-
-<p>简易写法:</p>
-<p><code>scp [可选参数] file_source file_target</code></p>
-<p>参数说明：</p>
-<ul>
-<li>-1： 强制scp命令使用协议ssh1</li>
-<li>-2： 强制scp命令使用协议ssh2</li>
-<li>-4： 强制scp命令只使用IPv4寻址</li>
-<li>-6： 强制scp命令只使用IPv6寻址</li>
-<li>-B： 使用批处理模式（传输过程中不询问传输口令或短语）</li>
-<li>-C： 允许压缩。（将-C标志传递给ssh，从而打开压缩功能）</li>
-<li>-p： 保留原文件的修改时间，访问时间和访问权限。</li>
-<li>-q： 不显示传输进度条。</li>
-<li>-r： 递归复制整个目录。</li>
-<li>-v： 详细方式显示输出。scp和ssh(1)会显示出整个过程的调试信息。这些信息用于调试连接，验证和配置问题。</li>
-<li>-c： cipher： 以cipher将数据传输进行加密，这个选项将直接传递给ssh。</li>
-<li>-F： ssh_config： 指定一个替代的ssh配置文件，此参数直接传递给ssh。</li>
-<li>-i： identity_file： 从指定文件中读取传输时使用的密钥文件，此参数直接传递给ssh。</li>
-<li>-l： limit： 限定用户所能使用的带宽，以Kbit/s为单位。</li>
-<li>-o： ssh_option： 如果习惯于使用ssh_config(5)中的参数传递方式，</li>
-<li>-P： port：注意是大写的P, port是指定数据传输用到的端口号</li>
-<li>-S： program： 指定加密传输时所使用的程序。此程序必须能够理解ssh(1)的选项。</li>
-</ul>
-<h2 id="实例"><a href="#实例" class="headerlink" title="实例"></a>实例</h2><h3 id="从本地复制到远程"><a href="#从本地复制到远程" class="headerlink" title="从本地复制到远程"></a>从本地复制到远程</h3><p><strong>文件复制</strong></p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1，2 指定了用户名，命令执行后需要再输入密码，</span></span><br><span class="line"><span class="comment"># 1，指定了远程的目录，文件名字不变</span></span><br><span class="line">scp local_file remote_username@remote_ip:remote_folder</span><br><span class="line"></span><br><span class="line"><span class="comment"># 2，指定了文件名；</span></span><br><span class="line">scp local_file remote_username@remote_ip:remote_file</span><br><span class="line"></span><br><span class="line"><span class="comment"># 3，4指定用户名，命令执行后需要输入用户名和密码</span></span><br><span class="line"><span class="comment"># 3，指定了远程的目录，文件名字不变</span></span><br><span class="line">scp local_file remote_ip:remote_folder</span><br><span class="line"></span><br><span class="line"><span class="comment"># 4，指定了文件名；</span></span><br><span class="line">scp local_file remote_ip:remote_file</span><br></pre></td></tr></table></figure>
-
-<p><strong>复制目录</strong></p>
-<p>命令格式：</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 指定了用户名，命令执行后需要再输入密码；</span></span><br><span class="line">scp -r local_folder remote_username@remote_ip:remote_folder</span><br><span class="line"></span><br><span class="line"><span class="comment"># 没有指定用户名，命令执行后需要输入用户名和密码；</span></span><br><span class="line">scp -r local_folder remote_ip:remote_folder </span><br></pre></td></tr></table></figure>
-
-<h3 id="从远程复制到本地"><a href="#从远程复制到本地" class="headerlink" title="从远程复制到本地"></a>从远程复制到本地</h3><p>从远程复制到本地，只要将从本地复制到远程的命令的后2个参数调换顺序即可。</p>
-<p>应用实例：</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">scp root@www.runoob.com:/home/root/others/music /home/space/music/1.mp3 </span><br><span class="line">scp -r www.runoob.com:/home/root/others/ /home/space/music/</span><br></pre></td></tr></table></figure>
-
-<h3 id="注意事项"><a href="#注意事项" class="headerlink" title="注意事项"></a>注意事项</h3><p>1.如果远程服务器防火墙有为scp命令设置了指定的端口，我们需要使用 -P 参数来设置命令的端口号。</p>
-<p>命令格式如下：</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#scp 命令使用端口号 4588</span></span><br><span class="line">scp -P 4588 remote@www.runoob.com:/usr/<span class="built_in">local</span>/sin.sh /home/administrator</span><br></pre></td></tr></table></figure>
-
-<p>2.使用scp命令要确保使用的用户具有可读取远程服务器相应文件的权限，否则scp命令是无法起作用的。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://www.runoob.com/linux/linux-comm-scp.html">Linux scp命令</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/19/Mysql%E6%89%A7%E8%A1%8Cflush%20privileges%E6%8A%A5%E9%94%99%EF%BC%9ATable%20'mysql.servers'%20doesn't%20exist/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="syxdevcode的个人博客">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/08/19/Mysql%E6%89%A7%E8%A1%8Cflush%20privileges%E6%8A%A5%E9%94%99%EF%BC%9ATable%20'mysql.servers'%20doesn't%20exist/" class="post-title-link" itemprop="url">Mysql执行flush privileges报错：Table 'mysql.servers' doesn't exist</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-08-19 17:51:40" itemprop="dateCreated datePublished" datetime="2020-08-19T17:51:40+00:00">2020-08-19</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
-              </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>1.5k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>1 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>mysql执行刷新权限报错：<code>Table &#39;mysql.servers&#39; doesn&#39;t exist</code></p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; flush privileges;</span><br><span class="line">ERROR 1146 (42S02): Table <span class="string">&#x27;mysql.servers&#x27;</span> doesn<span class="string">&#x27;t exist</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">mysql&gt; show warnings;</span></span><br><span class="line"><span class="string">+---------+------+-------------------------------------+</span></span><br><span class="line"><span class="string">| Level   | Code | Message                             |</span></span><br><span class="line"><span class="string">+---------+------+-------------------------------------+</span></span><br><span class="line"><span class="string">| Warning | 1146 | Table &#x27;</span>mysql.servers<span class="string">&#x27; doesn&#x27;</span>t exist |</span><br><span class="line">+---------+------+-------------------------------------+</span><br><span class="line">1 row <span class="keyword">in</span> <span class="built_in">set</span> (0.00 sec)</span><br><span class="line"></span><br><span class="line">mysql&gt; drop table <span class="keyword">if</span> exists servers;</span><br><span class="line">Query OK, 0 rows affected, 1 warning (0.00 sec)</span><br><span class="line"></span><br><span class="line">mysql&gt; CREATE TABLE `servers` (</span><br><span class="line">    -&gt; `Server_name` char(64) NOT NULL,</span><br><span class="line">    -&gt; `Host` char(64) NOT NULL,`Db` char(64) NOT NULL,</span><br><span class="line">    -&gt; `Username` char(64) NOT NULL,</span><br><span class="line">    -&gt; `Password` char(64) NOT NULL,</span><br><span class="line">    -&gt; `Port` int(4) DEFAULT NULL,</span><br><span class="line">    -&gt; `Socket` char(64) DEFAULT NULL,</span><br><span class="line">    -&gt; `Wrapper` char(64) NOT NULL,</span><br><span class="line">    -&gt; `Owner` char(64) NOT NULL,</span><br><span class="line">    -&gt; PRIMARY KEY (`Server_name`)</span><br><span class="line">    -&gt; ) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT=<span class="string">&#x27;MySQL Foreign Servers table&#x27;</span>;</span><br><span class="line">Query OK, 0 rows affected (0.01 sec)</span><br><span class="line"></span><br><span class="line">mysql&gt; flush privileges;</span><br><span class="line">Query OK, 0 rows affected (0.00 sec)</span><br></pre></td></tr></table></figure>
-
-<p>SQL脚本：</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> `servers` (</span><br><span class="line">`Server_name` <span class="type">char</span>(<span class="number">64</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">`Host` <span class="type">char</span>(<span class="number">64</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span>,`Db` <span class="type">char</span>(<span class="number">64</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">`Username` <span class="type">char</span>(<span class="number">64</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">`Password` <span class="type">char</span>(<span class="number">64</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">`Port` <span class="type">int</span>(<span class="number">4</span>) <span class="keyword">DEFAULT</span> <span class="keyword">NULL</span>,</span><br><span class="line">`Socket` <span class="type">char</span>(<span class="number">64</span>) <span class="keyword">DEFAULT</span> <span class="keyword">NULL</span>,</span><br><span class="line">`Wrapper` <span class="type">char</span>(<span class="number">64</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">`Owner` <span class="type">char</span>(<span class="number">64</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line"><span class="keyword">PRIMARY</span> KEY (`Server_name`)</span><br><span class="line">) ENGINE<span class="operator">=</span>MyISAM <span class="keyword">DEFAULT</span> CHARSET<span class="operator">=</span>utf8 COMMENT<span class="operator">=</span><span class="string">&#x27;MySQL Foreign Servers table&#x27;</span>;</span><br></pre></td></tr></table></figure>
-
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/ghjbk/p/13495761.html">ERROR 1146 (42S02): Table ‘mysql.servers’ doesn’t exist</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/8af0b92e4fc8">MYSQL ERROR 1146 Table doesnt exist 解析</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/16/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/16/">16</a><span class="page-number current">17</span><a class="page-number" href="/page/18/">18</a><span class="space">&hellip;</span><a class="page-number" href="/page/35/">35</a><a class="extend next" rel="next" href="/page/18/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
+    <a class="extend prev" rel="prev" href="/page/16/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/16/">16</a><span class="page-number current">17</span><a class="page-number" href="/page/18/">18</a><span class="space">&hellip;</span><a class="page-number" href="/page/36/">36</a><a class="extend next" rel="next" href="/page/18/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
   </nav>
 
 
@@ -2198,20 +2296,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">524</span>
+          <span class="site-state-item-count">527</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">134</span>
+        <span class="site-state-item-count">135</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">200</span>
+        <span class="site-state-item-count">202</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -2261,7 +2359,7 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">25:29</span>
+    <span title="站点阅读时长">25:39</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
   </div>

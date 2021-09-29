@@ -184,6 +184,558 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/04/Linux%E4%B8%ADPAM%E6%A8%A1%E5%9D%97/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/04/Linux%E4%B8%ADPAM%E6%A8%A1%E5%9D%97/" class="post-title-link" itemprop="url">Linux中PAM模块</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-08-04 14:37:39" itemprop="dateCreated datePublished" datetime="2020-08-04T14:37:39+00:00">2020-08-04</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/PAM/" itemprop="url" rel="index"><span itemprop="name">PAM</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>2.8k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>3 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="pam简介"><a href="#pam简介" class="headerlink" title="pam简介"></a>pam简介</h2><p><strong>PAM：全称 Pluggable Authentication Modules，中文名 插入式认证模块。</strong></p>
+<p>**Linux-PAM (Linux可插入认证模块)**：是一套适用于Linux的身份验证共享库系统，它为系统中的应用程序或服务提供动态身份验证模块支持。在Linux中，PAM是可动态配置的，本地系统管理员可以自由选择应用程序如何对用户进行身份验证。PAM应用在许多程序与服务上，比如登录程序(login、su)的PAM身份验证（口令认证、限制登录），passwd强制密码，用户进程实时管理，向用户分配系统资源等。</p>
+<p>PAM的主要特征是认证的性质是可动态配置的。PAM的核心部分是库（libpam）和PAM模块的集合，它们是位于文件夹 <code>/lib/security/</code> 中的动态链接库(.so)文件，以及位于 <code>/etc/pam.d/</code> 目录中（或者是 <code>/etc/pam.conf</code> 配置文件，centos6之后，没有这个文件了）的各个PAM模块配置文件。</p>
+<p>使用如下命令判断程序是否使用了PAM：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@host-192-125-30-59 ~]<span class="comment"># ldd /usr/bin/passwd | grep libpam</span></span><br><span class="line">	libpam.so.0 =&gt; /lib64/libpam.so.0 (0x00007fb53bd17000)</span><br><span class="line">	libpam_misc.so.0 =&gt; /lib64/libpam_misc.so.0 (0x00007fb53bb13000)</span><br></pre></td></tr></table></figure>
+
+<p>如看到有类似的输出，说明该程序使用了PAM，没有输出，则没有使用。</p>
+<h2 id="PAM的配置文件介绍"><a href="#PAM的配置文件介绍" class="headerlink" title="PAM的配置文件介绍"></a>PAM的配置文件介绍</h2><p><code>/etc/pam.d/</code> 目录包含应用程序的PAM配置文件。例如，login程序将其程序/服务名称定义为login，与之对应的PAM配置文件为 <code>/etc/pam.d/login</code> 。</p>
+<h3 id="PAM配置文件语法格式"><a href="#PAM配置文件语法格式" class="headerlink" title="PAM配置文件语法格式"></a>PAM配置文件语法格式</h3><p>每个PAM配置文件都包含一组指令，用于定义模块以及控制标志和参数。每条指令都有一个简单的语法，用于标识模块的目的（接口）和模块的配置设置，语法格式如下：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">module_interface      control_flag      module_name  module_arguments</span><br></pre></td></tr></table></figure>
+
+<p>例如：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">[root@host-192-125-30-59 ~]<span class="comment"># vim /etc/pam.d/system-auth-ac</span></span><br><span class="line"><span class="comment">#%PAM-1.0</span></span><br><span class="line"><span class="comment"># This file is auto-generated.</span></span><br><span class="line"><span class="comment"># User changes will be destroyed the next time authconfig is run.</span></span><br><span class="line">auth        required      pam_env.so</span><br><span class="line">auth        required      pam_faildelay.so delay=2000000</span><br><span class="line">auth        sufficient    pam_unix.so nullok try_first_pass</span><br><span class="line">auth        requisite     pam_succeed_if.so uid &gt;= 1000 quiet_success</span><br><span class="line">auth        required      pam_deny.so</span><br><span class="line"></span><br><span class="line">account     required      pam_unix.so</span><br><span class="line">account     sufficient    pam_localuser.so</span><br><span class="line">account     sufficient    pam_succeed_if.so uid &lt; 1000 quiet</span><br><span class="line">account     required      pam_permit.so</span><br><span class="line"></span><br><span class="line">password    requisite     pam_pwquality.so try_first_pass local_users_only retry=3 authtok_type=</span><br><span class="line">password    sufficient    pam_unix.so sha512 shadow nullok try_first_pass use_authtok</span><br><span class="line">password    required      pam_deny.so</span><br><span class="line"></span><br><span class="line">session     optional      pam_keyinit.so revoke</span><br><span class="line">session     required      pam_limits.so</span><br><span class="line">-session     optional      pam_systemd.so</span><br><span class="line">session     [success=1 default=ignore] pam_succeed_if.so service <span class="keyword">in</span> crond quiet use_uid</span><br></pre></td></tr></table></figure>
+
+<p>如在/etc/pam.d/password-auth-ac配置文件中(CentOS)，其中一行PAM模块接口定义如下<br><img src="/img/password-auth-ac.png" alt="password-auth-ac.png"></p>
+<h3 id="PAM的模块类型"><a href="#PAM的模块类型" class="headerlink" title="PAM的模块类型"></a>PAM的模块类型</h3><p>PAM为认证任务提供四种类型可用的模块接口，它们分别提供不同的认证服务：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">auth	- 认证模块接口，如验证用户身份、检查密码是否可以通过，并设置用户凭据</span><br><span class="line">account	- 账户模块接口，检查指定账户是否满足当前验证条件，如用户是否有权访问所请求的服务，检查账户是否到期</span><br><span class="line">password  - 密码模块接口，用于更改用户密码，以及强制使用强密码配置</span><br><span class="line">session	- 会话模块接口，用于管理和配置用户会话。会话在用户成功认证之后启动生效</span><br></pre></td></tr></table></figure>
+
+<p>单个PAM库模块可以提供给任何或所有模块接口使用。例如，pam_unix.so提供给四个模块接口使用。</p>
+<h3 id="PAM控制标志"><a href="#PAM控制标志" class="headerlink" title="PAM控制标志"></a>PAM控制标志</h3><p>所有的PAM模块被调用时都会返回成功或者失败的结果，每个PAM模块中由多个对应的控制标志决定结果是否通过或失败。每一个控制标志对应一个处理结果，PAM库将这些通过/失败的结果整合为一个整体的通过/失败结果，然后将结果返回给应用程序。模块可以按特定的顺序堆叠。控制标志是实现用户在对某一个特定的应用程序或服务身份验证的具体实现细节。该控制标志是PAM配置文件中的第二个字段，PAM控制标志如下：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">required  - 模块结果必须成功才能继续认证，如果在此处测试失败，则继续测试引用在该模块接口的下一个模块，直到所有的模块测试完成，才将结果通知给用户。</span><br><span class="line">requisite  - 模块结果必须成功才能继续认证，如果在此处测试失败，则会立即将失败结果通知给用户。</span><br><span class="line">sufficient  - 模块结果如果测试失败，将被忽略。如果sufficient模块测试成功，并且之前的required模块没有发生故障，PAM会向应用程序返回通过的结果，不会再调用堆栈中其他模块。</span><br><span class="line">optional  - 该模块返回的通过/失败结果被忽略。当没有其他模块被引用时，标记为optional模块并且成功验证时该模块才是必须的。该模块被调用来执行一些操作，并不影响模块堆栈的结果。</span><br><span class="line">include	 - 与其他控制标志不同，include与模块结果的处理方式无关。该标志用于直接引用其他PAM模块的配置参数</span><br></pre></td></tr></table></figure>
+
+<h3 id="PAM配置方法"><a href="#PAM配置方法" class="headerlink" title="PAM配置方法"></a>PAM配置方法</h3><p>可以使用 <code>man</code> 命令查看配置，比如要查找某个程序支持PAM模块的配置，可以使用 <code>man</code> 加模块名(去掉.so)查找说明。</p>
+<p>如 <code>man pam_unix</code>。(模块名可以在目录/lib/security/或/lib64/security/中找到。)</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/klb561/p/9236360.html">Linux安全策略配置-pam_tally2身份验证模块</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/ilinuxer/p/5087447.html">linux中pam模块</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.ibm.com/developerworks/cn/linux/l-cn-pam/index.html">深入 Linux PAM 体系结构</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/04/Linux%E6%9C%80%E5%A4%A7%E6%96%87%E4%BB%B6%E6%89%93%E5%BC%80%E6%95%B0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/04/Linux%E6%9C%80%E5%A4%A7%E6%96%87%E4%BB%B6%E6%89%93%E5%BC%80%E6%95%B0/" class="post-title-link" itemprop="url">Linux最大文件打开数</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-08-04 13:57:52" itemprop="dateCreated datePublished" datetime="2020-08-04T13:57:52+00:00">2020-08-04</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>5.1k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>5 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>linux最大打开文件句柄数，即打开文件数最大限制，就是规定的单个进程能够打开的最大文件句柄数量（Socket连接也算在里面，默认大小1024）</p>
+<p>为了防止失控的进程破坏系统的性能，<code>Unix</code> 和 <code>Linux</code> 跟踪进程使用的大部分资源，允许用户和系统管理员使用对进程的资源限制,<br>设置的限制有两种：<code>硬限制</code> 和 <code>软限制</code>:</p>
+<ul>
+<li><strong>hard</strong>：硬限制是可以在任何时候任何进程中设置 但硬限制只能由超级用户修改。</li>
+<li><strong>soft</strong>：软限制是内核实际执行的限制，任何进程都可以将软限制设置为任意小于等于对进程限制的硬限制的值。</li>
+</ul>
+<p>(noproc)最大线程数和(nofile)文件数。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># nr_open是单个进程可分配的最大文件数</span></span><br><span class="line"><span class="comment"># 一般默认为：1024*1024=1048576</span></span><br><span class="line">cat /proc/sys/fs/nr_open</span><br><span class="line"></span><br><span class="line"><span class="comment"># file-max是内核可分配的最大文件数</span></span><br><span class="line">cat /proc/sys/fs/file-max</span><br></pre></td></tr></table></figure>
+
+<p>在Linux下有时会遇到 <code>Socket/File : Can&#39;t open so many files</code> 的问题。其实Linux是有文件句柄限制的，而且Linux默认一般都是1024（阿里云主机默认是65535）。在生产环境中很容易到达这个值，因此这里就会成为系统的瓶颈。</p>
+<h2 id="Linux资源的限制"><a href="#Linux资源的限制" class="headerlink" title="Linux资源的限制"></a>Linux资源的限制</h2><h3 id="登陆时限制"><a href="#登陆时限制" class="headerlink" title="登陆时限制"></a>登陆时限制</h3><p>Linux对用户使用资源的限制通过 PAM 对登陆用户进行身份验证并设置相应的限制。</p>
+<p>具体顺序如下。从用户登陆开始，操作系统会依次执行如下三部</p>
+<ul>
+<li><ol>
+<li>/etc/pam.d/login</li>
+</ol>
+</li>
+<li><ol start="2">
+<li>/etc/pam.d/system-auth</li>
+</ol>
+</li>
+<li><ol start="3">
+<li>/lib64/security/pam_limits.so</li>
+</ol>
+</li>
+</ul>
+<p><strong>1，/etc/pam.d/login 中调用system-auth</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /etc/pam.d/login</span><br></pre></td></tr></table></figure>
+
+<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20201224172412.png" alt="微信截图_20201224172412.png"></p>
+<p><strong>2，在/etc/pam.d/system-auth 调用 pam_limits.so</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/etc/pam.d/system-auth</span><br></pre></td></tr></table></figure>
+
+<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20201224172513.png" alt="微信截图_20201224172513.png"></p>
+<p><strong>3，通过grep查看 /lib64/security/pam_limits.so 可以看到 limits.conf和limits.d/*.conf</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grep -a <span class="string">&quot;/etc/security/limits.&quot;</span> /lib64/security/pam_limits.so</span><br></pre></td></tr></table></figure>
+
+<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20201224172633.png" alt="微信截图_20201224172633.png"></p>
+<h2 id="Centos7系统修改"><a href="#Centos7系统修改" class="headerlink" title="Centos7系统修改"></a>Centos7系统修改</h2><p>在Centos7系统中，使用 <code>Systemd</code> 替代了之前的 SysV。<code>/etc/security/limits.conf</code> 文件的配置作用域缩小了。<code>/etc/security/limits.conf</code> 的配置，只适用于通过PAM认证登录用户的资源限制，它对 <code>systemd</code> 的 <code>service</code> 的资源限制不生效。因此登录用户的限制，通过 <code>/etc/security/limits.conf</code> 与 <code>/etc/security/limits.d</code> 下的文件设置即可。</p>
+<p>对于 <code>systemd service</code> 的资源设置，则需修改全局配置，全局配置文件放在 <code>/etc/systemd/system.conf</code> 和 <code>/etc/systemd/user.conf</code>。<code>system.conf</code> 是系统实例使用的，<code>user.conf</code> 是用户实例使用的。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># vim /etc/systemd/system.conf</span></span><br><span class="line">[Manager]</span><br><span class="line">DefaultLimitNOFILE=1048576</span><br><span class="line">DefaultLimitNPROC=1048576</span><br></pre></td></tr></table></figure>
+
+<p><code>reboot</code> 重启后生效。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">[root@host-192-175-32-22 bin]<span class="comment"># cat /proc/2789/limits</span></span><br><span class="line">Limit                     Soft Limit           Hard Limit           Units     </span><br><span class="line">Max cpu time              unlimited            unlimited            seconds   </span><br><span class="line">Max file size             unlimited            unlimited            bytes     </span><br><span class="line">Max data size             unlimited            unlimited            bytes     </span><br><span class="line">Max stack size            8388608              unlimited            bytes     </span><br><span class="line">Max core file size        0                    unlimited            bytes     </span><br><span class="line">Max resident <span class="built_in">set</span>          unlimited            unlimited            bytes     </span><br><span class="line">Max processes             1048576              1048576              processes </span><br><span class="line">Max open files            1048576              1048576              files     </span><br><span class="line">Max locked memory         65536                65536                bytes     </span><br><span class="line">Max address space         unlimited            unlimited            bytes     </span><br><span class="line">Max file locks            unlimited            unlimited            locks     </span><br><span class="line">Max pending signals       127951               127951               signals   </span><br><span class="line">Max msgqueue size         819200               819200               bytes     </span><br><span class="line">Max nice priority         0                    0                    </span><br><span class="line">Max realtime priority     0                    0                    </span><br><span class="line">Max realtime timeout      unlimited            unlimited            us        </span><br><span class="line">[root@host-192-175-32-22 bin]<span class="comment"># ulimit -n</span></span><br><span class="line">1048576</span><br></pre></td></tr></table></figure>
+
+<h2 id="Red-Hat系统修改"><a href="#Red-Hat系统修改" class="headerlink" title="Red Hat系统修改"></a>Red Hat系统修改</h2><p>查看 <code>/etc/sysctl.conf</code> 和 <code>/etc/sysctl.d/*.conf</code> 的设置，修改 <code>sysctl.conf</code>，修改后须执行 <code>sysctl -p</code> 使修改生效。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fs.file-max=6523120</span><br></pre></td></tr></table></figure>
+
+<p>查看 <code>/etc/security/limits.conf</code> 以及 <code>/etc/security/limits.d/*.conf</code> 。操作系统默认先加载 limits.conf 后加载 limits.d/*.conf，所以相同配置后面会覆盖前面，如：<code>/etc/security/limits.d/90-nproc.conf</code></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">*          -       nofile    1048576</span><br><span class="line">*          -       nproc     1048576</span><br></pre></td></tr></table></figure>
+
+<p><strong>免密登陆</strong></p>
+<p>用户不会进行登陆验证过程，所以不会加载 limits.conf 文件，建议通过 <code>/etc/profile</code> 添加 <code>ulimit -n 1048576</code> 命令设置，重新登陆或者执行 <code>source /etc/profile</code> 命令，然后启动服务程序；</p>
+<h2 id="查看用户级的最大限制"><a href="#查看用户级的最大限制" class="headerlink" title="查看用户级的最大限制"></a>查看用户级的最大限制</h2><p><code>ulimit -a</code> 或者 <code>ulimit -n</code></p>
+<p><code>ulimit -n</code>，默认是1024，向阿里云华为云这种云主机一般是 65535。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">[root@host-192-125-30-59 ~]<span class="comment"># ulimit -a</span></span><br><span class="line">core file size          (blocks, -c) 0</span><br><span class="line">data seg size           (kbytes, -d) unlimited</span><br><span class="line">scheduling priority             (-e) 0</span><br><span class="line">file size               (blocks, -f) unlimited</span><br><span class="line">pending signals                 (-i) 256967</span><br><span class="line">max locked memory       (kbytes, -l) 64</span><br><span class="line">max memory size         (kbytes, -m) unlimited</span><br><span class="line">open files                      (-n) 1024</span><br><span class="line">pipe size            (512 bytes, -p) 8</span><br><span class="line">POSIX message queues     (bytes, -q) 819200</span><br><span class="line">real-time priority              (-r) 0</span><br><span class="line">stack size              (kbytes, -s) 8192</span><br><span class="line">cpu time               (seconds, -t) unlimited</span><br><span class="line">max user processes              (-u) 256967</span><br><span class="line">virtual memory          (kbytes, -v) unlimited</span><br><span class="line">file locks                      (-x) unlimited</span><br><span class="line">[root@host-192-125-30-59 ~]<span class="comment"># ulimit -n</span></span><br><span class="line">1024</span><br></pre></td></tr></table></figure>
+
+<p>open files （-n）1024 是linux操作系统对一个进程打开的文件句柄数量的限制（也包含打开的套接字数量）</p>
+<table>
+<thead>
+<tr>
+<th>选项 [options]</th>
+<th>含义</th>
+<th>例子</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>-H</td>
+<td>设置硬资源限制，一旦设置不能增加。</td>
+<td>ulimit – Hs 64；限制硬资源，线程栈大小为 64K。</td>
+</tr>
+<tr>
+<td>-S</td>
+<td>设置软资源限制，设置后可以增加，但是不能超过硬资源设置。</td>
+<td>ulimit – Sn 32；限制软资源，32 个文件描述符。</td>
+</tr>
+<tr>
+<td>-a</td>
+<td>显示当前所有的 limit 信息。</td>
+<td>ulimit – a；显示当前所有的 limit 信息。</td>
+</tr>
+<tr>
+<td>-c</td>
+<td>最大的 core 文件的大小， 以 blocks 为单位。</td>
+<td>ulimit – c unlimited； 对生成的 core 文件的大小不进行限制。</td>
+</tr>
+<tr>
+<td>-d</td>
+<td>进程最大的数据段的大小，以 Kbytes 为单位。</td>
+<td>ulimit -d unlimited；对进程的数据段大小不进行限制。</td>
+</tr>
+<tr>
+<td>-f</td>
+<td>进程可以创建文件的最大值，以 blocks 为单位。</td>
+<td>ulimit – f 2048；限制进程可以创建的最大文件大小为 2048 blocks。</td>
+</tr>
+<tr>
+<td>-l</td>
+<td>最大可加锁内存大小，以 Kbytes 为单位。</td>
+<td>ulimit – l 32；限制最大可加锁内存大小为 32 Kbytes。</td>
+</tr>
+<tr>
+<td>-m</td>
+<td>最大内存大小，以 Kbytes 为单位。</td>
+<td>ulimit – m unlimited；对最大内存不进行限制。</td>
+</tr>
+<tr>
+<td>-n</td>
+<td>可以打开最大文件描述符的数量。</td>
+<td>ulimit – n 128；限制最大可以使用 128 个文件描述符。</td>
+</tr>
+<tr>
+<td>-p</td>
+<td>管道缓冲区的大小，以 Kbytes 为单位。</td>
+<td>ulimit – p 512；限制管道缓冲区的大小为 512 Kbytes。</td>
+</tr>
+<tr>
+<td>-s</td>
+<td>线程栈大小，以 Kbytes 为单位。</td>
+<td>ulimit – s 512；限制线程栈的大小为 512 Kbytes。</td>
+</tr>
+<tr>
+<td>-t</td>
+<td>最大的 CPU 占用时间，以秒为单位。</td>
+<td>ulimit – t unlimited；对最大的 CPU 占用时间不进行限制。</td>
+</tr>
+<tr>
+<td>-u</td>
+<td>用户最大可用的进程数。</td>
+<td>ulimit – u 64；限制用户最多可以使用 64 个进程。</td>
+</tr>
+<tr>
+<td>-v</td>
+<td>进程最大可用的虚拟内存，以 Kbytes 为单位。</td>
+<td>ulimit – v 200000；限制最大可用的虚拟内存为 200000 Kbytes。</td>
+</tr>
+</tbody></table>
+<h2 id="查看某个进程的最大打开文件数和当前打开文件数"><a href="#查看某个进程的最大打开文件数和当前打开文件数" class="headerlink" title="查看某个进程的最大打开文件数和当前打开文件数"></a>查看某个进程的最大打开文件数和当前打开文件数</h2><p>先找到该进程的进程号，然后查看</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 找到pid</span></span><br><span class="line">ps -aux</span><br><span class="line"></span><br><span class="line"><span class="comment"># /proc/[pid]/limits和fd</span></span><br><span class="line"></span><br><span class="line">cat /proc/[pid]/limits 显示当前进程的资源限制</span><br><span class="line"></span><br><span class="line">ls /proc/[pid]/fd 是一个目录，包含进程打开文件的情况</span><br></pre></td></tr></table></figure>
+
+<p>实例：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@host-192-125-30-59 ~]<span class="comment"># cat /proc/3289/limits| grep files</span></span><br><span class="line">Max open files            1024                 4096                 files</span><br><span class="line">[root@host-192-125-30-59 ~]<span class="comment"># ll /proc/3289/fd | wc -l</span></span><br><span class="line">7</span><br></pre></td></tr></table></figure>
+
+<p>ps：如果要查看某个进程的线程的详细信息，<code>/proc/[pid]/task</code></p>
+<h2 id="修改用户级最大限制"><a href="#修改用户级最大限制" class="headerlink" title="修改用户级最大限制"></a>修改用户级最大限制</h2><h3 id="临时生效方法：（重启后失效）"><a href="#临时生效方法：（重启后失效）" class="headerlink" title="临时生效方法：（重启后失效）"></a>临时生效方法：（重启后失效）</h3><p>这个设置是暂时的保留。当退出Shell会话后，该值恢复原值。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ulimit</span> -SHn 1048576</span><br></pre></td></tr></table></figure>
+
+<p><code>ulimit</code> 命令分软限制和硬限制，加 <code>-H</code> 就是硬限制，加 <code>-S</code> 就是软限制。默认显示的是软限制，如果运行 <code>ulimit</code> 命令修改时没有加上 <code>-H</code> 或 <code>-S</code> ，就是两个参数一起改变。</p>
+<p>硬限制就是实际的限制，而软限制是警告限制，它只会给出警告。</p>
+<h3 id="用户级修改永久有效方式"><a href="#用户级修改永久有效方式" class="headerlink" title="用户级修改永久有效方式"></a>用户级修改永久有效方式</h3><p>修改配置文件 <code>vim /etc/security/limits.conf</code>，加入：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">* soft nofile 65535</span><br><span class="line">* hard nofile 65535</span><br><span class="line">* soft nproc 65535</span><br><span class="line">* hard nproc 65535</span><br><span class="line"></span><br><span class="line"><span class="comment"># 可以使用下面一行来替代上面</span></span><br><span class="line">* - nofile 65535</span><br><span class="line">* - nproc 65535</span><br></pre></td></tr></table></figure>
+
+<p>或者使用命令：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&quot;* soft nofile 65535&quot;</span> &gt;&gt; /etc/security/limits.conf</span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;* hard nofile 65535&quot;</span> &gt;&gt; /etc/security/limits.conf</span><br></pre></td></tr></table></figure>
+
+<p><code>*</code> 表示所用的用户，但有的系统不认, 需要具体的用户名, 比如:</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">root soft nofile 65535</span><br><span class="line">root hard nofile 65535</span><br></pre></td></tr></table></figure>
+
+<p>有些环境修改后，root用户需要重启机器才生效，而普通用户重新登录后即生效。</p>
+<p>需要小心注意的是，有些环境上面这样做，可能导致无法ssh登录，所以在修改时最好打开两个窗口，万一登录不了还可自救。</p>
+<h2 id="修改系统级最大限制"><a href="#修改系统级最大限制" class="headerlink" title="修改系统级最大限制"></a>修改系统级最大限制</h2><p>其实上面的修改都是对一个进程打开的文件句柄数量的限制，我们还需要设置系统的总限制才可以。</p>
+<p>假如，我们设置进程打开的文件句柄数是 1024 ，但是系统总限制才500，所以所有进程最多能打开文件句柄数量500。从这里我们可以看出只设置进程的打开文件句柄的数量是不行的。所以需要修改系统的总限制才可以。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 系统级修改临时生效方式：</span></span><br><span class="line"><span class="built_in">echo</span> 6523120 &gt; /proc/sys/fs/file-max</span><br><span class="line"></span><br><span class="line"><span class="comment"># 系统级修改永久生效方式：</span></span><br><span class="line">vim /etc/sysctl.conf</span><br><span class="line"><span class="comment"># 加入</span></span><br><span class="line">fs.file-max=6523120</span><br></pre></td></tr></table></figure>
+
+<p>查看系统级文件句柄修改，是否生效</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sysctl -p</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/pangguoping/p/5791432.html">Linux最大文件打开数</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/xulan0922/p/11937472.html">linux最大打开文件句柄数</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/ibyte/p/9762248.html">修改RedHat 7.2 进程最大句柄数限制</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/04/Linux%20Shell%20echo%E5%91%BD%E4%BB%A4/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/04/Linux%20Shell%20echo%E5%91%BD%E4%BB%A4/" class="post-title-link" itemprop="url">Linux Shell echo命令</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-08-04 09:02:36" itemprop="dateCreated datePublished" datetime="2020-08-04T09:02:36+00:00">2020-08-04</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux%E5%9F%BA%E7%A1%80%E5%91%BD%E4%BB%A4/" itemprop="url" rel="index"><span itemprop="name">Linux基础命令</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>1.3k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>1 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>Shell 的 echo 指令与 PHP 的 echo 指令类似，都是用于字符串的输出。命令格式：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> string</span><br></pre></td></tr></table></figure>
+
+<p><strong>Shell符号注解</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&gt; 重定向输出到某个位置，替换原有文件的所有内容。</span><br><span class="line">&gt;&gt; 重定向追加到某个位置，在原有文件的末尾添加内容。</span><br><span class="line">&lt; 重定向输入某个位置文件。</span><br><span class="line">2&gt; 重定向错误输出。</span><br><span class="line">2&gt;&gt; 重定向错误追加输出到文件末尾。</span><br><span class="line">&amp;&gt; 混合输出错误的和正确的都输出。</span><br></pre></td></tr></table></figure>
+
+<p><strong>echo输出的字符串总结：</strong></p>
+<p>===================================================================</p>
+<table>
+<thead>
+<tr>
+<th>符号</th>
+<th>能否引用变量</th>
+<th>能否引用转移符</th>
+<th>能否引用文本格式符(如：换行符、制表符)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>单引号</td>
+<td>否</td>
+<td>否</td>
+<td>否</td>
+</tr>
+<tr>
+<td>双引号</td>
+<td>能</td>
+<td>能</td>
+<td>能</td>
+</tr>
+<tr>
+<td>无引号</td>
+<td>能</td>
+<td>能</td>
+<td>否</td>
+</tr>
+</tbody></table>
+<p>===================================================================</p>
+<p><strong>1.显示普通字符串</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&quot;It is a test&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>这里的双引号完全可以省略，以下命令与上面实例效果一致：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> It is a <span class="built_in">test</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>2.显示转义字符</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&quot;\&quot;It is a test\&quot;&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>结果将是:</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">&quot;It is a test&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>同样，双引号也可以省略</p>
+<p><strong>3.显示变量</strong></p>
+<p>read 命令从标准输入中读取一行,并把输入行的每个字段的值指定给 shell 变量</p>
+<p>read 命令一个一个词组地接收输入的参数，每个词组需要使用空格进行分隔；如果输入的词组个数大于需要的参数个数，则多出的词组将被作为整体为最后一个参数接收。</p>
+<p>read 参数说明：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">-p 输入提示文字</span><br><span class="line">-n 输入字符长度限制(达到6位，自动结束)</span><br><span class="line">-t 输入限时</span><br><span class="line">-s 隐藏输入内容</span><br></pre></td></tr></table></figure>
+
+<p>示例：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/sh</span></span><br><span class="line"><span class="built_in">read</span> name </span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;<span class="variable">$name</span> It is a test&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>以上代码保存为 test.sh，name 接收标准输入的变量，结果将是:</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@www ~]<span class="comment"># sh test.sh</span></span><br><span class="line">OK                     <span class="comment">#标准输入</span></span><br><span class="line">OK It is a <span class="built_in">test</span>        <span class="comment">#输出</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>4.显示换行</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;OK! \n&quot;</span> <span class="comment"># -e 开启转义</span></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;It is a test&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>输出结果：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">OK!</span><br><span class="line"></span><br><span class="line">It is a <span class="built_in">test</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>5.显示不换行</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/sh</span></span><br><span class="line"><span class="built_in">echo</span> -e <span class="string">&quot;OK! \c&quot;</span> <span class="comment"># -e 开启转义 \c 不换行</span></span><br><span class="line"><span class="built_in">echo</span> <span class="string">&quot;It is a test&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>输出结果：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">OK! It is a <span class="built_in">test</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>6.显示结果定向至文件</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&quot;It is a test&quot;</span> &gt; myfile</span><br></pre></td></tr></table></figure>
+
+<p><strong>7.原样输出字符串，不进行转义或取变量(用单引号)</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> <span class="string">&#x27;$name\&quot;&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p>输出结果：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">$name</span>\&quot;</span><br></pre></td></tr></table></figure>
+
+<p><strong>8.显示命令执行结果</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> `date`</span><br></pre></td></tr></table></figure>
+
+<p>注意： 这里使用的是反引号 `, 而不是单引号 ‘。</p>
+<p>结果将显示当前日期</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Thu Jul 24 10:08:46 CST 2014</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.runoob.com/linux/linux-shell-echo.html">Shell echo命令</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/03/Redis-Cluster%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -215,7 +767,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -413,7 +965,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
+                <time title="修改时间：2021-09-29 03:54:29" itemprop="dateModified" datetime="2021-09-29T03:54:29+00:00">2021-09-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -512,7 +1064,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -621,7 +1173,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
+                <time title="修改时间：2021-09-29 03:54:29" itemprop="dateModified" datetime="2021-09-29T03:54:29+00:00">2021-09-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -712,7 +1264,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -802,7 +1354,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -893,7 +1445,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1002,7 +1554,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1134,7 +1686,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1223,7 +1775,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1323,7 +1875,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1416,7 +1968,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
+                <time title="修改时间：2021-09-29 03:54:30" itemprop="dateModified" datetime="2021-09-29T03:54:30+00:00">2021-09-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1472,322 +2024,10 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/05/19/NPM%E5%8C%85%E7%A6%BB%E7%BA%BF%E5%AE%89%E8%A3%85%20-%20CentOS7-4/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="syxdevcode的个人博客">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/05/19/NPM%E5%8C%85%E7%A6%BB%E7%BA%BF%E5%AE%89%E8%A3%85%20-%20CentOS7-4/" class="post-title-link" itemprop="url">NPM包离线安装 - CentOS7-4</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-05-19 15:08:17" itemprop="dateCreated datePublished" datetime="2020-05-19T15:08:17+00:00">2020-05-19</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Nodejs/" itemprop="url" rel="index"><span itemprop="name">Nodejs</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>1.3k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>1 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="联网机器安装NPM包"><a href="#联网机器安装NPM包" class="headerlink" title="联网机器安装NPM包"></a>联网机器安装NPM包</h2><p>以 <code>http-server</code> 为例：</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 首先查看 node npm 版本</span></span><br><span class="line">C:\Users\DELL&gt;npm -v</span><br><span class="line">6.13.4</span><br><span class="line"></span><br><span class="line">C:\Users\DELL&gt;node -v</span><br><span class="line">v12.16.1</span><br><span class="line"></span><br><span class="line"><span class="comment"># 安装 http-server</span></span><br><span class="line">npm install http-server -g</span><br></pre></td></tr></table></figure>
-
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看配置，找到安装目录</span></span><br><span class="line">npm config list</span><br><span class="line"></span><br><span class="line">C:\Users\DELL&gt;npm config list</span><br><span class="line">; cli configs</span><br><span class="line">metrics-registry = <span class="string">&quot;https://registry.npmjs.org/&quot;</span></span><br><span class="line">scope = <span class="string">&quot;&quot;</span></span><br><span class="line">user-agent = <span class="string">&quot;npm/6.13.4 node/v12.16.1 win32 x64&quot;</span></span><br><span class="line"></span><br><span class="line">; <span class="built_in">builtin</span> config undefined</span><br><span class="line">prefix = <span class="string">&quot;C:\\Users\\DELL\\AppData\\Roaming\\npm&quot;</span></span><br><span class="line"></span><br><span class="line">; node bin location = C:\Program Files\nodejs\node.exe</span><br><span class="line">; cwd = C:\Users\DELL</span><br><span class="line">; HOME = C:\Users\DELL</span><br><span class="line">; <span class="string">&quot;npm config ls -l&quot;</span> to show all defaults.</span><br></pre></td></tr></table></figure>
-
-<p>查看 <code>C:\\Users\\DELL\\AppData\\Roaming\\npm</code> 目录，截图如下：</p>
-<p><img src="/img/npm-path.png" alt="npm-path.png"><br><img src="/img/npm-http-server.png" alt="npm-http-server"></p>
-<h2 id="通过ftp工具拷贝到未联网服务器"><a href="#通过ftp工具拷贝到未联网服务器" class="headerlink" title="通过ftp工具拷贝到未联网服务器"></a>通过ftp工具拷贝到未联网服务器</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 本地文件夹：C:\\Users\\DELL\\AppData\\Roaming\\npm 下的文件，</span></span><br><span class="line"><span class="comment"># 拷贝到 服务器上 /root/.npm 下 (不存在，使用mkdir命令创建)</span></span><br><span class="line">http-server</span><br><span class="line">http-server.cmd</span><br></pre></td></tr></table></figure>
-
-<p>如图：</p>
-<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20200520102421.png" alt="微信截图_20200520102421.png"></p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 本地文件夹：C:\Users\DELL\AppData\Roaming\npm\node_modules 下的文件夹，</span></span><br><span class="line"><span class="comment"># 拷贝到 服务器上 /root/.npm/node_modules 下</span></span><br><span class="line">http-server</span><br></pre></td></tr></table></figure>
-
-<p>如图：</p>
-<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20200520102513.png" alt="微信截图_20200520102513.png"></p>
-<h2 id="安装启动"><a href="#安装启动" class="headerlink" title="安装启动"></a>安装启动</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 安装</span></span><br><span class="line">npm install /root/.npm/node_modules/http-server -g</span><br><span class="line"></span><br><span class="line"><span class="comment"># 启动</span></span><br><span class="line">http-server /<span class="built_in">test</span>/webapp -p 8013</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看监听的端口</span></span><br><span class="line">netstat -lnpt</span><br><span class="line"></span><br><span class="line"><span class="comment"># curl 命令验证</span></span><br><span class="line">curl  -o /dev/null -s -w %&#123;http_code&#125; -X GET <span class="string">&quot;192.125.30.82:8013/pages/tsjb/lzsp.html&quot;</span> -H <span class="string">&quot;accept: text/html&quot;</span></span><br><span class="line">curl -X GET <span class="string">&quot;192.125.30.82:8013/pages/tsjb/lzsp.html&quot;</span> -H <span class="string">&quot;accept: text/html&quot;</span></span><br></pre></td></tr></table></figure>
-
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/43064107/how-to-install-npm-package-while-offline/58744517#58744517">https://stackoverflow.com/questions/43064107/how-to-install-npm-package-while-offline/58744517#58744517</a></p>
-<p><a target="_blank" rel="noopener" href="https://docs.npmjs.com/cli/install">npm install</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.ruanyifeng.com/blog/2016/01/npm-install.html">npm 模块安装机制简介</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.zybuluo.com/lxjwlt/note/297879">NPM离线包</a></p>
-<p><a target="_blank" rel="noopener" href="https://github.com/arei/npmbox">npmbox</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/05/19/Nodejs%E7%A6%BB%E7%BA%BF%E5%AE%89%E8%A3%85-CentOS7-4/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="syxdevcode的个人博客">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/05/19/Nodejs%E7%A6%BB%E7%BA%BF%E5%AE%89%E8%A3%85-CentOS7-4/" class="post-title-link" itemprop="url">Nodejs离线安装-CentOS7.4</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-05-19 13:30:07" itemprop="dateCreated datePublished" datetime="2020-05-19T13:30:07+00:00">2020-05-19</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Nodejs/" itemprop="url" rel="index"><span itemprop="name">Nodejs</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>361</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>1 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="下载解压"><a href="#下载解压" class="headerlink" title="下载解压"></a>下载解压</h2><p>离线包：<a target="_blank" rel="noopener" href="https://nodejs.org/en/download/">https://nodejs.org/en/download/</a></p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">xz -d node-v14.2.0-linux-x64.tar.xz</span><br><span class="line">tar -xvf node-v14.2.0-linux-x64.tar</span><br></pre></td></tr></table></figure>
-
-<h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 移动到/usr/local</span></span><br><span class="line">mv node-v14.2.0-linux-x64 /usr/<span class="built_in">local</span>/nodejs-v14.2</span><br><span class="line"></span><br><span class="line"><span class="comment"># 添加环境变量</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 进入 /etc/profile 文件</span></span><br><span class="line">vim /etc/profile</span><br><span class="line"><span class="comment"># 在文件末尾添加</span></span><br><span class="line"><span class="built_in">export</span> PATH=<span class="variable">$PATH</span>:<span class="string">&#x27;/usr/local/nodejs-v14.2/bin&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 使环境变量生效</span></span><br><span class="line"><span class="built_in">source</span> /etc/profile</span><br><span class="line"></span><br><span class="line"><span class="comment"># 验证</span></span><br><span class="line">node -v</span><br><span class="line">npm -v</span><br></pre></td></tr></table></figure>
-
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_41474364/article/details/102906970">CentOS 7.3 离线二进制安装 nodeJS</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/05/19/%E8%A7%A3%E5%86%B3unix-tmp-supervisor-sock-no-such-file/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="syxdevcode的个人博客">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/05/19/%E8%A7%A3%E5%86%B3unix-tmp-supervisor-sock-no-such-file/" class="post-title-link" itemprop="url">解决unix-tmp-supervisor-sock-no-such-file</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-05-19 10:30:08" itemprop="dateCreated datePublished" datetime="2020-05-19T10:30:08+00:00">2020-05-19</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-09-24 11:02:37" itemprop="dateModified" datetime="2021-09-24T11:02:37+00:00">2021-09-24</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/supervisor/" itemprop="url" rel="index"><span itemprop="name">supervisor</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>996</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>1 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="原因"><a href="#原因" class="headerlink" title="原因"></a>原因</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">unix:///tmp/supervisor.sock no such file</span><br></pre></td></tr></table></figure>
-
-<p>supervisor 默认配置会把 socket 文件和 pid 守护进程生成在/tmp/目录下，/tmp/目录是缓存目录，Linux 会根据不同情况自动删除其下面的文件。</p>
-<h2 id="修改配置"><a href="#修改配置" class="headerlink" title="修改配置"></a>修改配置</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">vi /etc/supervisord.conf</span><br><span class="line"></span><br><span class="line"><span class="comment"># 英文分号后的内容为注释</span></span><br><span class="line">[unix_http_server]</span><br><span class="line">;file=/tmp/supervisor.sock   ; (the path to the socket file)</span><br><span class="line">file=/var/run/supervisor.sock   ; 修改为 /var/run 目录，避免被系统删除</span><br><span class="line"></span><br><span class="line">[supervisord]</span><br><span class="line">;logfile=/tmp/supervisord.log ; (main <span class="built_in">log</span> file;default <span class="variable">$CWD</span>/supervisord.log)</span><br><span class="line">logfile=/var/<span class="built_in">log</span>/supervisord.log ; 修改为 /var/<span class="built_in">log</span> 目录，避免被系统删除</span><br><span class="line">pidfile=/var/run/supervisord.pid ; 修改为 /var/run 目录，避免被系统删除</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">[supervisorctl]</span><br><span class="line">; 必须和<span class="string">&#x27;unix_http_server&#x27;</span>里面的设定匹配</span><br><span class="line">;serverurl=unix:///tmp/supervisor.sock ; use a unix:// URL  <span class="keyword">for</span> a unix socket</span><br><span class="line">serverurl=unix:///var/run/supervisor.sock ; 修改为 /var/run 目录，避免被系统删除</span><br></pre></td></tr></table></figure>
-
-<p>可选：</p>
-<ul>
-<li>修改权限</li>
-</ul>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo chmod 777 /run</span><br><span class="line">sudo chmod 777 /var/<span class="built_in">log</span></span><br></pre></td></tr></table></figure>
-
-<ul>
-<li>创建supervisor.sock</li>
-</ul>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo touch /var/run/supervisor.sock</span><br><span class="line">sudo chmod 777 /var/run/supervisor.sock</span><br></pre></td></tr></table></figure>
-
-<h2 id="更新配置文件"><a href="#更新配置文件" class="headerlink" title="更新配置文件"></a>更新配置文件</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">supervisorctl update</span><br></pre></td></tr></table></figure>
-
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://hacpai.com/article/1546398597198">“unix:///tmp/supervisor.sock no such file” 错误处理 (亲测)</a></p>
-<p>[<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_28885149/article/details/79364685]">https://blog.csdn.net/qq_28885149/article/details/79364685]</a>(解决unix:///tmp/supervisor.sock no such file的问题)</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/18/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/18/">18</a><span class="page-number current">19</span><a class="page-number" href="/page/20/">20</a><span class="space">&hellip;</span><a class="page-number" href="/page/35/">35</a><a class="extend next" rel="next" href="/page/20/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
+    <a class="extend prev" rel="prev" href="/page/18/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/18/">18</a><span class="page-number current">19</span><a class="page-number" href="/page/20/">20</a><span class="space">&hellip;</span><a class="page-number" href="/page/36/">36</a><a class="extend next" rel="next" href="/page/20/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
   </nav>
 
 
@@ -1855,20 +2095,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">524</span>
+          <span class="site-state-item-count">527</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">134</span>
+        <span class="site-state-item-count">135</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">200</span>
+        <span class="site-state-item-count">202</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -1918,7 +2158,7 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">25:29</span>
+    <span title="站点阅读时长">25:39</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
   </div>
