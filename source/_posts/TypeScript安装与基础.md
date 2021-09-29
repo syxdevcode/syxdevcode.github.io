@@ -31,12 +31,12 @@ tsc 常用编译参数：
 
 **--target** 设置 ECMA 版本
 
-**--declaration** 额外生成一个 .d.ts 扩展名的文件。
+**--declaration** 额外生成一个 `.d.ts` 扩展名的文件。
 
 <!--more-->
-```ps1
+```ts
 tsc ts-hw.ts --declaration
-以上命令会生成 ts-hw.d.ts、ts-hw.js 两个文件。
+//以上命令会生成 ts-hw.d.ts、ts-hw.js 两个文件。
 ```
 
 **--removeComments** 删除文件的注释
