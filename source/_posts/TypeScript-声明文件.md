@@ -30,8 +30,10 @@ declare module Module_Name {
 TypeScript 引入声明文件语法格式：
 
 ```ts
-/// <reference path = " runoob.d.ts" />
+/// <reference path = "runoob.d.ts" />
 ```
+
+<!--more-->
 
 ## 实例
 
