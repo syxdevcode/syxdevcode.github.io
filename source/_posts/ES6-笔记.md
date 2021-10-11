@@ -296,12 +296,3 @@ export { default as foo } from "methods";
 /* ------- 特点 2 --------*/
 export * from "methods";
 ```
-
-
-
-
-
-
-
-
-
