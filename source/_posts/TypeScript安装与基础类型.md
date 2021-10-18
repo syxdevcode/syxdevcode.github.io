@@ -1,5 +1,5 @@
 ---
-title: TypeScript安装与基础
+title: TypeScript安装与基础类型
 date: 2021-09-27 14:06:03
 tags:
 - TypeScript
