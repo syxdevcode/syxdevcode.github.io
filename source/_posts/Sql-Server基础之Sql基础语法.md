@@ -8,17 +8,16 @@ tags:
 categories: 
 - Sql
 ---
-# Sql Server基础之Sql基础语法
 
 <font color=#ff0000 size=4 face="黑体">Sql： Structured Query Language</font>
 
-** Sql server的组成**
+**Sql server的组成**
 
 * 主要数据库文件：.mdf 特点：有且只有一个
 * 次要数据库文件：.ndf 特点：任意个
 * 日志数据库文件：.ldf 特点：至少一个
 
-** 操作数据库**
+**操作数据库**
 
 ```sql
 创建数据库：create databse 库名
@@ -61,7 +60,9 @@ alter table 表名 alter column 字段名 数据类型
 alter table 表名 drop column 字段名
 
 -- 4,删除表语法
-drop table 表名
+drop table 表名 (有日志)
+
+truncate table 表名称（没有日志）
 ```
 
 ### 操作表数据
@@ -262,7 +263,7 @@ lower()：转小写
 
 ## T-Sql
 
-** 声明变量语法： **
+**声明变量语法：**
 
 ```sql
 declare @变量名 数据类型
@@ -270,7 +271,7 @@ set @变量名=值
 select @变量名=值
 ```
 
-** 编程语句:**
+**编程语句:**
 
 ```sql
 begin...end
