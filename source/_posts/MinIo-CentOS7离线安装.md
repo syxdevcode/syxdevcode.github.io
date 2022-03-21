@@ -37,7 +37,9 @@ chmod +x minio
 
 命令格式：
 
-`./minio -C \"${minio_config}\" server --address=\"${minio_address}\" ${minio_disks}`
+```sh
+./minio -C \"${minio_config}\" server --address=\"${minio_address}\" ${minio_disks}
+```
 
 -C：配置文件
 
@@ -154,7 +156,7 @@ netstat -tunpl | grep 9010
 ps aux | grep minio
 ```
 
-## TLS 
+## TLS
 
 详细信息请参考官网：[How to secure access to MinIO server with TLS](https://docs.min.io/docs/how-to-secure-access-to-minio-server-with-tls.html)
 
@@ -216,6 +218,6 @@ openssl req -x509 -nodes -days 730 -newkey rsa:2048 -keyout private.key -out pub
 
 [Minio 文件服务（1）—— Minio部署使用及存储机制分析](https://www.jianshu.com/p/3e81b87d5b0b)
 
-[MinIO Server Config Guide ](https://docs.min.io/docs/minio-server-configuration-guide.html)
+[MinIO Server Config Guide](https://docs.min.io/docs/minio-server-configuration-guide.html)
 
 [How to run MinIO in FreeNAS](https://docs.minio.io/docs/how-to-run-minio-in-freenas.html)
