@@ -20,7 +20,7 @@ categories:
 3，同目录下创建minio-server.xml。特别注意，xml和exe必须同名
 
 4，配置minio-server.xml文件
-
+<!--more-->
 minio-server.xml文件：
 
 ```xml

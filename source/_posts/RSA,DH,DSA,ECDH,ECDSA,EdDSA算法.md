@@ -1,5 +1,5 @@
 ---
-title: 'DH,DSA,ECDH,ECDSA算法'
+title: 'RSA,DH,DSA,ECDH,ECDSA,EdDSA算法'
 date: 2021-09-04 16:47:33
 tags:
 - Openssl
@@ -9,6 +9,14 @@ tags:
 categories:
 - SSL/TLS
 ---
+
+RSA，DSA，ECDSA，EdDSA和Ed25519都用于数字签名，但只有RSA也可以用于加密。
+
+ssh key的类型有四种，分别是 dsa、rsa、 ecdsa、ed25519，优先选择ed25519。
+
+## RSA
+
+RSA（Rivest–Shamir–Adleman）是最早的公钥密码系统之一，被广泛用于安全数据传输。它的安全性取决于整数分解，因此永远不需要安全的RNG（随机数生成器）。与DSA相比，RSA的签名验证速度更快，但生成速度较慢。
 
 ## DH算法
 
@@ -34,6 +42,20 @@ ECDH全称是椭圆曲线迪菲-赫尔曼秘钥交换（Elliptic Curve Diffie–
 
 ECDSA是ECC与DSA的结合，整个签名过程与DSA类似，所不一样的是签名中采取的算法为ECC，最后签名出来的值也是分为r,s。
 
+用于生成密钥的曲线（curve）：
+
+* NISTP-256 curve
+* NISTP-384 curve
+* NISTP-521 curve
+
+## EdDSA
+
+EdDSA（爱德华兹曲线数字签名算法）是一种使用基于扭曲爱德华兹曲线的Schnorr签名变体的数字签名方案。签名创建在EdDSA中是确定性的，其安全性是基于某些离散对数问题的难处理性，因此它比DSA和ECDSA更安全，后者要求每个签名都具有高质量的随机性。
+
+Ed25519是EdDSA签名方案，但使用 `SHA-512/256`和 `Curve25519`；它是一条安全的椭圆形曲线，比DSA，ECDSA和EdDSA 提供更好的安全性，并且具有更好的性能。
+
 参考：
 
 [DH算法为什么属于非对称加密算法？](https://www.zhihu.com/question/274142856)
+
+[RSA，DSA，ECDSA，EdDSA和Ed25519的区别](https://www.cnblogs.com/cure/p/15389876.html)
