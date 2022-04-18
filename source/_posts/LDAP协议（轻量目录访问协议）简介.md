@@ -10,9 +10,11 @@ categories:
 
 ## 简介
 
-LDAP 的全称是 Lightweight Directory Access Protocol，「轻量目录访问协议」，它是基于X.500标准的轻量级目录访问协议。
+LDAP 的全称是 `Lightweight Directory Access Protocol`，「轻量目录访问协议」，它是基于X.500标准的轻量级目录访问协议。
+
 目录是一个为查询、浏览和搜索而优化的数据库，它成树状结构组织数据，类似文件目录一样。
 目录数据库和关系数据库不同，它有优异的读性能，但写性能差，并且没有事务处理、回滚等复杂功能，不适于存储修改频繁的数据。
+
 LDAP 「是一个协议」，约定了 Client 与 Server 之间的信息交互格式、使用的端口号、认证方式等内容。
 
 ## LDAP的基本模型
