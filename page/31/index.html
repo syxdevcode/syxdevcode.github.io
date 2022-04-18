@@ -184,6 +184,101 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/24/TaskCompletionSource%E4%BD%BF%E7%94%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/12/24/TaskCompletionSource%E4%BD%BF%E7%94%A8/" class="post-title-link" itemprop="url">TaskCompletionSource使用</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-12-24 15:35:43" itemprop="dateCreated datePublished" datetime="2018-12-24T15:35:43+00:00">2018-12-24</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-04-18 01:35:40" itemprop="dateModified" datetime="2022-04-18T01:35:40+00:00">2022-04-18</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/net%E5%BC%82%E6%AD%A5%E4%B8%8E%E5%B9%B6%E8%A1%8C/" itemprop="url" rel="index"><span itemprop="name">.net异步与并行</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>836</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>1 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>在目标方法要调用基于事件API，又要返回Task的时候使用。</p>
+<p>比如下面的ApiWrapper方法，该方法要返回Task<string>,又要调用EventClass对象的Do方法，并且等到Do方法触发Done事件后，Task才能得到结果并返回。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">test</span>()</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">var</span> task = ApiWrapper();</span><br><span class="line"></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Test CurrentThread：&quot;</span> + Thread.CurrentThread.ManagedThreadId);</span><br><span class="line"></span><br><span class="line">    Console.WriteLine(task.Result);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> Task&lt;<span class="built_in">string</span>&gt; <span class="title">ApiWrapper</span>()</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">var</span> tcs = <span class="keyword">new</span> TaskCompletionSource&lt;<span class="built_in">string</span>&gt;();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> api = <span class="keyword">new</span> EventClass();</span><br><span class="line">    api.Done += (args) =&gt; &#123; tcs.TrySetResult(args); &#125;;</span><br><span class="line">    api.Do();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> tcs.Task;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">EventClass</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> Action&lt;<span class="built_in">string</span>&gt; Done = (args) =&gt; &#123;; &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">Do</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;EventClass&quot;</span> + Thread.CurrentThread.ManagedThreadId);</span><br><span class="line">        Done(<span class="string">&quot;Done&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.taskcompletionsource-1?view=netframework-4.7.2">TaskCompletionSource<TResult> Class</a></p>
+<p><a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/ask/72340">什么时候应该使用TaskCompletionSource<T></a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/1zhk/p/5399538.html">TaskCompletionSource的使用场景</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/23/DotNet%E5%9F%BA%E7%A1%80-%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -215,7 +310,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-04-17 02:33:04" itemprop="dateModified" datetime="2022-04-17T02:33:04+00:00">2022-04-17</time>
+                <time title="修改时间：2022-04-18 01:35:40" itemprop="dateModified" datetime="2022-04-18T01:35:40+00:00">2022-04-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -385,7 +480,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-04-17 02:33:04" itemprop="dateModified" datetime="2022-04-17T02:33:04+00:00">2022-04-17</time>
+                <time title="修改时间：2022-04-18 01:35:40" itemprop="dateModified" datetime="2022-04-18T01:35:40+00:00">2022-04-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -561,7 +656,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-04-17 02:33:04" itemprop="dateModified" datetime="2022-04-17T02:33:04+00:00">2022-04-17</time>
+                <time title="修改时间：2022-04-18 01:35:40" itemprop="dateModified" datetime="2022-04-18T01:35:40+00:00">2022-04-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -818,7 +913,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-04-17 02:33:04" itemprop="dateModified" datetime="2022-04-17T02:33:04+00:00">2022-04-17</time>
+                <time title="修改时间：2022-04-18 01:35:40" itemprop="dateModified" datetime="2022-04-18T01:35:40+00:00">2022-04-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -957,7 +1052,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-04-17 02:33:04" itemprop="dateModified" datetime="2022-04-17T02:33:04+00:00">2022-04-17</time>
+                <time title="修改时间：2022-04-18 01:35:40" itemprop="dateModified" datetime="2022-04-18T01:35:40+00:00">2022-04-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1270,7 +1365,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-04-17 02:33:04" itemprop="dateModified" datetime="2022-04-17T02:33:04+00:00">2022-04-17</time>
+                <time title="修改时间：2022-04-18 01:35:40" itemprop="dateModified" datetime="2022-04-18T01:35:40+00:00">2022-04-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1380,7 +1475,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-04-17 02:33:04" itemprop="dateModified" datetime="2022-04-17T02:33:04+00:00">2022-04-17</time>
+                <time title="修改时间：2022-04-18 01:35:40" itemprop="dateModified" datetime="2022-04-18T01:35:40+00:00">2022-04-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1490,7 +1585,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-04-17 02:33:04" itemprop="dateModified" datetime="2022-04-17T02:33:04+00:00">2022-04-17</time>
+                <time title="修改时间：2022-04-18 01:35:40" itemprop="dateModified" datetime="2022-04-18T01:35:40+00:00">2022-04-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1610,7 +1705,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-04-17 02:33:04" itemprop="dateModified" datetime="2022-04-17T02:33:04+00:00">2022-04-17</time>
+                <time title="修改时间：2022-04-18 01:35:40" itemprop="dateModified" datetime="2022-04-18T01:35:40+00:00">2022-04-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1721,7 +1816,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-04-17 02:33:04" itemprop="dateModified" datetime="2022-04-17T02:33:04+00:00">2022-04-17</time>
+                <time title="修改时间：2022-04-18 01:35:40" itemprop="dateModified" datetime="2022-04-18T01:35:40+00:00">2022-04-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1935,7 +2030,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-04-17 02:33:04" itemprop="dateModified" datetime="2022-04-17T02:33:04+00:00">2022-04-17</time>
+                <time title="修改时间：2022-04-18 01:35:40" itemprop="dateModified" datetime="2022-04-18T01:35:40+00:00">2022-04-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2042,7 +2137,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-04-17 02:33:04" itemprop="dateModified" datetime="2022-04-17T02:33:04+00:00">2022-04-17</time>
+                <time title="修改时间：2022-04-18 01:35:40" itemprop="dateModified" datetime="2022-04-18T01:35:40+00:00">2022-04-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2163,7 +2258,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-04-17 02:33:04" itemprop="dateModified" datetime="2022-04-17T02:33:04+00:00">2022-04-17</time>
+                <time title="修改时间：2022-04-18 01:35:40" itemprop="dateModified" datetime="2022-04-18T01:35:40+00:00">2022-04-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -3164,7 +3259,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-04-17 02:33:04" itemprop="dateModified" datetime="2022-04-17T02:33:04+00:00">2022-04-17</time>
+                <time title="修改时间：2022-04-18 01:35:40" itemprop="dateModified" datetime="2022-04-18T01:35:40+00:00">2022-04-18</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -3269,200 +3364,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/10/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9005-%E5%B8%B8%E9%87%8F%E3%80%81%E5%AD%97%E6%AE%B5%E3%80%81%E5%B1%9E%E6%80%A7%E3%80%81%E7%89%B9%E6%80%A7%E4%B8%8E%E5%A7%94%E6%89%98/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="syxdevcode的个人博客">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/12/10/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%9005-%E5%B8%B8%E9%87%8F%E3%80%81%E5%AD%97%E6%AE%B5%E3%80%81%E5%B1%9E%E6%80%A7%E3%80%81%E7%89%B9%E6%80%A7%E4%B8%8E%E5%A7%94%E6%89%98/" class="post-title-link" itemprop="url">DotNet面试题解析05-常量、字段、属性、特性与委托</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-12-10 11:18:34" itemprop="dateCreated datePublished" datetime="2018-12-10T11:18:34+00:00">2018-12-10</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-04-17 02:33:04" itemprop="dateModified" datetime="2022-04-17T02:33:04+00:00">2022-04-17</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/DotNet%E9%9D%A2%E8%AF%95%E9%A2%98%E8%A7%A3%E6%9E%90/" itemprop="url" rel="index"><span itemprop="name">DotNet面试题解析</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>4.5k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>4 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="字段与属性"><a href="#字段与属性" class="headerlink" title="字段与属性"></a>字段与属性</h2><h3 id="常量"><a href="#常量" class="headerlink" title="常量"></a>常量</h3><p>常量的几个特点：</p>
-<ul>
-<li>常量的值必须在编译时确定，简单说就是在定义是设置值，以后都不会被改变了，她是编译常量。</li>
-<li>常量只能用于简单的类型，因为常量值是要被编译然后保存到程序集的元数据中，只支持基元类型，如 int、char、string、bool、double 等。</li>
-<li>常量在使用时，是把常量的值内联到 IL 代码中的，常量类似一个占位符，在编译时被替换掉了。正是这个特点导致常量的一个风险，就是 <strong>不支持跨程序集版本更新</strong>；</li>
-</ul>
-<p>关于常量不支持跨程序集版本更新，举个简单的例子来说明：</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">A</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">const</span> <span class="built_in">int</span> PORT = <span class="number">10086</span>;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">Print</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(A.PORT);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>上面一段非常简单代码，其生产的 IL 代码如下，在使用常量变量的地方，把她的值拷过来了（把常量的值内联到使用的地方），与常量变量 A.PORT 没有关系了。假如 A 引用了 B 程序集（ B.dll 文件）中的一个常量，如果后面单独修改B程序集中的常量值，只是重新编译了 B，而没有编译程序集 A，就会出问题了，就是上面所说的不支持跨程序集版本更新。常量值更新后，所有使用该常量的代码都必须重新编译，这是我们在使用常量时必须要注意的一个问题。</p>
-<ul>
-<li>不要随意使用常量，特别是有可能变化的数据；</li>
-<li>不要随便修改已定义好的常量值；</li>
-</ul>
-<p><img src="/img/151257-20160308203229116-399744142.png" alt="151257-20160308203229116-399744142.png"></p>
-<h3 id="枚举"><a href="#枚举" class="headerlink" title="枚举"></a>枚举</h3><p>枚举 enum 也有类似的问题，其根源和const一样.</p>
-<p>下面的是一个简单的枚举定义，她的 IL 代码定义和 const 定义是一样一样的！枚举的成员定义和常量定义一样，因此枚举其实本质上就相当是一个常量集合。</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="built_in">enum</span> EnumType : <span class="built_in">int</span></span><br><span class="line">&#123;</span><br><span class="line">    None=<span class="number">0</span>,</span><br><span class="line">    Int=<span class="number">1</span>,</span><br><span class="line">    String=<span class="number">2</span>,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p><img src="/img/151257-20160308203230647-581894993.png" alt="151257-20160308203230647-581894993.png"></p>
-<h3 id="字段"><a href="#字段" class="headerlink" title="字段"></a>字段</h3><p>字段的内联初始化问题</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">SomeType</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="built_in">int</span> Age = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">private</span> DateTime StartTime = DateTime.Now;</span><br><span class="line">    <span class="keyword">private</span> <span class="built_in">string</span> Name = <span class="string">&quot;三体&quot;</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>定义字段并初始化值，是一种很常见的代码编写习惯。但注意了，看看 IL 代码结构，一行代码（定义字段+赋值）被拆成了两块，最终的赋值都在构造函数里执行的。</p>
-<p><img src="/img/151257-20160308203231741-1268662687.png" alt="151257-20160308203231741-1268662687.png"></p>
-<p>如果有多个构造函数，就像下面这样，有多个构造函数，会造成在两个构造函数 .ctor 中重复产生对字段赋值的 IL 代码，这就造成了不必要的代码膨胀。这个其实也很好解决，在非默认构造函数后加一个 “:this()” 就OK了，或者显示的在构造函数里初始化字段。</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">SomeType</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">private</span> DateTime _startTime = DateTime.Now;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SomeType</span>()</span> &#123; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SomeType</span>(<span class="params"><span class="built_in">string</span> name</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>改进之后：</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">SomeType</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">//改进</span></span><br><span class="line">    <span class="keyword">private</span> DateTime _startTime;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SomeType</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        _startTime = DateTime.Now;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SomeType</span>(<span class="params"><span class="built_in">string</span> name</span>):<span class="title">base</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="属性"><a href="#属性" class="headerlink" title="属性"></a>属性</h3><p>属性是面向对象编程的基本概念，提供了对私有字段的访问封装，在 C# 中以 get 和 set 访问器方法实现对可读可写属性的操作，提供了安全和灵活的数据访问封装。我们看看属性的本质，主要手段还是 IL 代码：</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">SomeType</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">int</span> Index &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">SomeType</span>()</span> &#123; &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p><img src="/img/151257-20160308203232913-500597794.png" alt="151257-20160308203232913-500597794.png"></p>
-<p>上面定义的属性Index被分成了三个部分：</p>
-<ul>
-<li>自动生成的私有字段 <code>“&lt;Index&gt;k__BackingField”</code></li>
-<li>方法：get_Index()，获取字段值；</li>
-<li>方法：set_Index(int32 ‘value’)，设置字段值；</li>
-</ul>
-<p><font color=#0099ff size=4 face="黑体">因此可以说属性的本质还是方法，使用面向对象的思想把字段封装了一下。在定义属性时，我们可以自定义一个私有字段，也可以使用 自动属性 “{ get; set; }”的简化语法形式。</font></p>
-<p>使用自动属性时需要注意一点的是，私有字段是由编译器自动命名的，是不受开发人员控制的。</p>
-<h2 id="委托与事件"><a href="#委托与事件" class="headerlink" title="委托与事件"></a>委托与事件</h2><h3 id="委托"><a href="#委托" class="headerlink" title="委托"></a>委托</h3><p>将方法作为参数进行传递。</p>
-<ul>
-<li>C# 中的委托都继承自 System.Delegate 类型；</li>
-<li>委托类型的声明与方法签名类似，有返回值和参数；</li>
-<li>委托是一种可以封装命名（或匿名）方法的引用类型，把方法当做指针传递，但委托是面向对象、类型安全的；</li>
-</ul>
-<p>委托的本质——是一个类。</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="built_in">delegate</span> <span class="keyword">void</span> <span class="title">ShowMessageHandler</span>(<span class="params"><span class="built_in">string</span> mes</span>)</span>;</span><br></pre></td></tr></table></figure>
-
-<p><img src="/img/151257-20160308203234335-1390533361.png" alt="151257-20160308203234335-1390533361.png"></p>
-<ul>
-<li>编译器自动帮我们创建了一个类 ShowMessageHandler，继承自 System.MulticastDelegate（她又继承自 System.Delegate ），这是一个多播委托；</li>
-<li>委托类 ShowMessageHandler 中包含几个方法，其中最重要的就是 Invoke 方法，签名和定义的方法签名一致；</li>
-<li>其他两个版本 BeginInvoke 和 EndInvoke 是异步执行版本；</li>
-</ul>
-<p>当我们调用委托的时候，其实就是调用委托对象的 Invoke 方法，可以验证一下，下面的调用代码会被编译为对委托对象的 Invoke 方法调用：</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> ShowMessageHandler ShowMessage;</span><br><span class="line"></span><br><span class="line"><span class="comment">//调用</span></span><br><span class="line"><span class="keyword">this</span>.ShowMessage(<span class="string">&quot;123&quot;</span>);</span><br></pre></td></tr></table></figure>
-
-<h3 id="事件"><a href="#事件" class="headerlink" title="事件"></a>事件</h3><p>Event 封装了委托类型的变量，使得：在类的内部，不管你声明它是 public 还是 protected ，它总是 private 的。在类的外部，注册 “+=” 和 注销“-=” 的访问限定符与你在声明事件时使用的访问符相同。</p>
-<p>声明一个事件不过类似于声明一个进行了封装的委托类型的变量而已。</p>
-<h2 id="NET的闭包"><a href="#NET的闭包" class="headerlink" title=".NET的闭包"></a>.NET的闭包</h2><p>闭包提供了一种类似脚本语言函数式编程的便捷、可以共享数据，但也存在一些隐患。</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">List&lt;Action&gt; acs = <span class="keyword">new</span> List&lt;Action&gt;(<span class="number">5</span>);</span><br><span class="line"><span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; <span class="number">5</span>; i++)</span><br><span class="line">&#123;</span><br><span class="line">    acs.Add(() =&gt; &#123; Console.WriteLine(i); &#125;);</span><br><span class="line">&#125;</span><br><span class="line">acs.ForEach(ac =&gt; ac()); <span class="comment">// 输出了 5 5 5 5 5，全是5</span></span><br></pre></td></tr></table></figure>
-
-<p>上面的代码中的 Action 就是 .NET 为我们定义好的一个无参数无返回值的委托，从上一节我们知道委托实质是一个类，理解这一点是解决本题的关键。在这个地方委托方法共享使用了一个局部变量i，那生成的类会是什么样的呢？看看IL代码：</p>
-<p><img src="/img/151257-20160308203236460-853216066.png" alt="151257-20160308203236460-853216066.png"></p>
-<p>共享的局部变量被提升为委托类的一个字段了：</p>
-<ul>
-<li>变量 i 的生命周期延长了；</li>
-<li>for 循环结束后字段 i 的值是 5 了；</li>
-<li>后面再次调用委托方法，肯定就是输出 5 了；</li>
-</ul>
-<p>修改以后：</p>
-<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">List&lt;Action&gt; acss = <span class="keyword">new</span> List&lt;Action&gt;(<span class="number">5</span>);</span><br><span class="line"><span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; <span class="number">5</span>; i++)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">int</span> m = i;</span><br><span class="line">    acss.Add(() =&gt; &#123; Console.WriteLine(m); &#125;);</span><br><span class="line">&#125;</span><br><span class="line">acss.ForEach(ac =&gt; ac()); <span class="comment">// 输出了 0 1 2 3 4</span></span><br></pre></td></tr></table></figure>
-
-<h2 id="题目答案解析"><a href="#题目答案解析" class="headerlink" title="题目答案解析"></a>题目答案解析</h2><h3 id="1-const和readonly有什么区别？"><a href="#1-const和readonly有什么区别？" class="headerlink" title="1. const和readonly有什么区别？"></a>1. const和readonly有什么区别？</h3><p>const 关键字用来声明编译时常量，readonly 用来声明运行时常量。都可以标识一个常量，主要有以下区别：<br>1、初始化位置不同。const 必须在声明的同时赋值；readonly 即可以在声明处赋值，也可以在构造方法里赋值。<br>2、修饰对象不同。const 即可以修饰类的字段，也可以修饰局部变量；readonly 只能修饰类的字段 。<br>3、const是编译时常量，在编译时确定该值，且值在编译时被内联到代码中；readonly 是运行时常量，在运行时确定该值。<br>4、const 默认是静态的；而 readonly 如果设置成静态需要显示声明 。<br>5、支持的类型时不同，const 只能修饰基元类型或值为 null 的其他引用类型；readonly 可以是任何类型。</p>
-<h3 id="2-哪些类型可以定义为常量？常量const有什么风险？"><a href="#2-哪些类型可以定义为常量？常量const有什么风险？" class="headerlink" title="2. 哪些类型可以定义为常量？常量const有什么风险？"></a>2. 哪些类型可以定义为常量？常量const有什么风险？</h3><p>基元类型或值为 null 的其他引用类型，常量的风险就是不支持跨程序集版本更新，常量值更新后，所有使用该常量的代码都必须重新编译。</p>
-<h3 id="3-字段与属性有什么异同？"><a href="#3-字段与属性有什么异同？" class="headerlink" title="3. 字段与属性有什么异同？"></a>3. 字段与属性有什么异同？</h3><ul>
-<li>属性提供了更为强大的，灵活的功能来操作字段</li>
-<li>出于面向对象的封装性，字段一般不设计为 Public</li>
-<li>属性允许在 set 和 get 中编写代码</li>
-<li>属性允许控制 set 和 get 的可访问性，从而提供只读或者可读写的功能 （逻辑上只写是没有意义的）</li>
-<li>属性可以使用 override 和 new</li>
-</ul>
-<h3 id="4-静态成员和非静态成员的区别？"><a href="#4-静态成员和非静态成员的区别？" class="headerlink" title="4. 静态成员和非静态成员的区别？"></a>4. 静态成员和非静态成员的区别？</h3><ul>
-<li>静态变量使用 static 修饰符进行声明，静态成员在加类的时候就被加载（静态字段是随类型对象存放在 <code>Load Heap</code> 上），通过类进行访问。</li>
-<li>不带有 static 修饰符声明的变量称做非静态变量，在对象被实例化时创建，通过对象进行访问 。</li>
-<li>一个类的所有实例的同一静态变量都是同一个值，同一个类的不同实例的同一非静态变量可以是不同的值 。</li>
-<li>静态函数的实现里不能使用非静态成员，如非静态变量、非静态函数等。</li>
-</ul>
-<h3 id="5-自动属性有什么风险？"><a href="#5-自动属性有什么风险？" class="headerlink" title="5. 自动属性有什么风险？"></a>5. 自动属性有什么风险？</h3><p>因为自动属性的私有字段是由编译器命名的，后期不宜随意修改，比如在序列化中会导致字段值丢失。</p>
-<h3 id="6-特性是什么？如何使用？"><a href="#6-特性是什么？如何使用？" class="headerlink" title="6. 特性是什么？如何使用？"></a>6. 特性是什么？如何使用？</h3><p>特性与属性是完全不相同的两个概念，只是在名称上比较相近。Attribute 特性就是关联了一个目标对象的一段配置信息，本质上是一个类，其为目标元素提供关联附加信息，这段附加信息存储在 dll 内的元数据，它本身没什么意义。运行期以反射的方式来获取附加信息。</p>
-<h3 id="7-下面的代码输出什么结果？为什么？"><a href="#7-下面的代码输出什么结果？为什么？" class="headerlink" title="7. 下面的代码输出什么结果？为什么？"></a>7. 下面的代码输出什么结果？为什么？</h3><figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">List&lt;Action&gt; acs = <span class="keyword">new</span> List&lt;Action&gt;(<span class="number">5</span>);</span><br><span class="line"><span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; <span class="number">5</span>; i++)</span><br><span class="line">&#123;</span><br><span class="line">    acs.Add(() =&gt; &#123; Console.WriteLine(i); &#125;);</span><br><span class="line">&#125;</span><br><span class="line">acs.ForEach(ac =&gt; ac());</span><br></pre></td></tr></table></figure>
-
-<p>输出了 5 5 5 5 5，全是5！因为闭包中的共享变量i会被提升为委托对象的公共字段，生命周期延长了。</p>
-<h3 id="8-C-中的委托是什么？事件是不是一种委托？"><a href="#8-C-中的委托是什么？事件是不是一种委托？" class="headerlink" title="8. C#中的委托是什么？事件是不是一种委托？"></a>8. C#中的委托是什么？事件是不是一种委托？</h3><p>什么是委托？简单来说，委托类似于 C 或 C++ 中的函数指针，允许将方法作为参数进行传递。</p>
-<ul>
-<li>C# 中的委托都继承自 System.Delegate 类型；</li>
-<li>委托类型的声明与方法签名类似，有返回值和参数；</li>
-<li>委托是一种可以封装命名（或匿名）方法的引用类型，把方法当做指针传递，但委托是面向对象、类型安全的；</li>
-</ul>
-<p>事件可以理解为一种特殊的委托，事件内部是基于委托来实现的。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/anding/p/5255492.html">.NET面试题解析(05)-常量、字段、属性、特性与委托</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/jimmyzhang/archive/2007/09/23/903360.html">C# 中的委托和事件</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -3534,7 +3435,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">548</span>
+          <span class="site-state-item-count">549</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -3547,7 +3448,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">205</span>
+        <span class="site-state-item-count">207</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -3597,7 +3498,7 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">26:24</span>
+    <span title="站点阅读时长">26:25</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
   </div>
