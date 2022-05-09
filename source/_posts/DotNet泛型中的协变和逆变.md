@@ -32,22 +32,22 @@ categories:
 * 变体仅适用于引用类型；如果为 `Variant` 类型参数指定值类型，则该类型参数对于生成的构造类型是不变的。
 * 变体不适用于委托组合。 也就是说，在给定类型 `Action<Derived>` 和 `Action<Base>` 的两个委托的情况下，无法将第二个委托与第一个委托结合起来，尽管结果将是类型安全的。 变体允许将第二个委托分配给类型 Action<Derived>的变量，但只能在这两个委托的类型完全匹配的情况下对它们进行组合。
 
-** Covariance:协变 **
+**Covariance:协变**
 使你能够使用比原始指定的类型派生程度更大的类型。
 
-** Contravariance：逆变**
+**Contravariance：逆变**
 使你能够使用比原始指定的类型更泛型（派生程度更小）的类型。
 
-** Invariance：不变**
+**Invariance：不变**
 这意味着，你只能使用原始指定的类型；固定泛型类型参数既不是协变类型，也不是逆变类型。
 
-### 关键字
+## 关键字
 
-** 协变类型参数用`out`关键字 **
+**协变类型参数用`out`关键字**
 
 可以将协变类型参数用作属于接口的方法的返回值，或用作委托的返回类型。 但不能将协变类型参数用作接口方法的泛型类型约束。如果接口的方法具有泛型委托类型的参数，则接口类型的协变类型参数可用于指定委托类型的逆变类型参数。
 
-** 逆变类型参数用 `in` 关键字**
+**逆变类型参数用 `in` 关键字**
 
 可以将逆变类型参数用作属于接口的方法的参数类型，或用作委托的参数类型。 也可以将逆变类型参数用作接口方法的泛型类型约束。
 
@@ -55,7 +55,7 @@ categories:
 
 C# 不允许违反协变和逆变类型参数的使用规则，也不允许将协变和逆变批注添加到接口和委托类型之外的类型参数中。 MSIL 汇编程序 不执行此类检查，但如果你尝试加载违反规则的类型，则会引发 TypeLoadException 。
 
-### 协变
+## 协变out（泛型修饰符）
 
 利用协变类型参数，你可以执行非常类似于普通的多态性的分配
 
@@ -64,7 +64,61 @@ IEnumerable<Derived> d = new List<Derived>();
 IEnumerable<Base> b = d;
 ```
 
-### 逆变
+**1,协变泛型接口:**
+
+```c#
+// Covariant interface.
+interface ICovariant<out R> { }
+
+// Extending covariant interface.
+interface IExtCovariant<out R> : ICovariant<R> { }
+
+// Implementing covariant interface.
+class Sample<R> : ICovariant<R> { }
+
+class Program
+{
+    static void Test()
+    {
+        ICovariant<Object> iobj = new Sample<Object>();
+        ICovariant<String> istr = new Sample<String>();
+
+        // You can assign istr to iobj because
+        // the ICovariant interface is covariant.
+        iobj = istr;
+    }
+}
+```
+
+**2，协变泛型委托:**
+
+```C#
+// Covariant delegate.
+public delegate R DCovariant<out R>();
+
+// Methods that match the delegate signature.
+public static Control SampleControl()
+{ return new Control(); }
+
+public static Button SampleButton()
+{ return new Button(); }
+
+public void Test()
+{
+    // Instantiate the delegates with the methods.
+    DCovariant<Control> dControl = SampleControl;
+    DCovariant<Button> dButton = SampleButton;
+
+    // You can assign dButton to dControl
+    // because the DCovariant delegate is covariant.
+    dControl = dButton;
+
+    // Invoke the delegate.
+    dControl();
+}
+```
+
+## 逆变in（泛型修饰符）
 
 由于 lambda 表达式与其自身所分配到的委托相匹配，因此它会定义一个方法，此方法采用一个类型 Base 的参数且没有返回值。 可以将结果委托分配给类型类型 `Action<Derived>` 的变量，因为 T 委托的类型参数 `Action<T>` 是逆变类型参数。 由于 T 指定了一个参数类型，因此该代码是类型安全代码。
 
@@ -72,6 +126,59 @@ IEnumerable<Base> b = d;
 Action<Base> b = (target) => { Console.WriteLine(target.GetType().Name); };
 Action<Derived> d = b;
 d(new Derived());
+```
+
+**1,逆变泛型接口:**
+
+```c#
+// Contravariant interface.
+interface IContravariant<in A> { }
+
+// Extending contravariant interface.
+interface IExtContravariant<in A> : IContravariant<A> { }
+
+// Implementing contravariant interface.
+class Sample<A> : IContravariant<A> { }
+
+class Program
+{
+    static void Test()
+    {
+        IContravariant<Object> iobj = new Sample<Object>();
+        IContravariant<String> istr = new Sample<String>();
+
+        // You can assign iobj to istr because
+        // the IContravariant interface is contravariant.
+        istr = iobj;
+    }
+}
+```
+
+**2,逆变泛型委托:**
+
+```c#
+// Contravariant delegate.
+public delegate void DContravariant<in A>(A argument);
+
+// Methods that match the delegate signature.
+public static void SampleControl(Control control)
+{ }
+public static void SampleButton(Button button)
+{ }
+
+public void Test()
+{
+    // Instantiating the delegates with the methods.
+    DContravariant<Control> dControl = SampleControl;
+    DContravariant<Button> dButton = SampleButton;
+
+    // You can assign dControl to dButton
+    // because the DContravariant delegate is contravariant.
+    dButton = dControl;
+
+    // Invoke the delegate.
+    dButton(new Button());
+}
 ```
 
 ## 泛型接口中的变体
@@ -185,3 +292,7 @@ Circle with area 31415.9265358979
 参考：
 
 [泛型中的协变和逆变](https://docs.microsoft.com/zh-cn/dotnet/standard/generics/covariance-and-contravariance)
+
+[out（泛型修饰符）](https://docs.microsoft.com/zh-cn/dotnet/csharp/language-reference/keywords/out-generic-modifier)
+
+[in（泛型修饰符）](https://docs.microsoft.com/zh-cn/dotnet/csharp/language-reference/keywords/in-generic-modifier)
