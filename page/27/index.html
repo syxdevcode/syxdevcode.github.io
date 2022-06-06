@@ -184,6 +184,135 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/05/08/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%887%EF%BC%89-%20%E5%90%8E%E5%8F%B0%E5%B7%A5%E4%BD%9C%E4%BB%BB%E5%8A%A1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/05/08/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%887%EF%BC%89-%20%E5%90%8E%E5%8F%B0%E5%B7%A5%E4%BD%9C%E4%BB%BB%E5%8A%A1/" class="post-title-link" itemprop="url">ABP框架学习记录（7）- 后台工作任务</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-05-08 09:23:29" itemprop="dateCreated datePublished" datetime="2019-05-08T09:23:29+00:00">2019-05-08</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-06-06 09:57:41" itemprop="dateModified" datetime="2022-06-06T09:57:41+00:00">2022-06-06</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/ABP/" itemprop="url" rel="index"><span itemprop="name">ABP</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>2.7k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>2 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="ABP框架学习记录（7）-后台工作任务"><a href="#ABP框架学习记录（7）-后台工作任务" class="headerlink" title="ABP框架学习记录（7）- 后台工作任务"></a>ABP框架学习记录（7）- 后台工作任务</h1><p>文主要说明ABP中后台工作者模块（BackgroundWorker）的实现方式，和后台工作模块（BackgroundJob）。<br>ABP通过 <code>BackgroundWorkerManager</code> 来管理 <code>BackgroundJobManager</code> ，然后通过 <code>BackgroundJobManager</code> 来管理 <code>BackgroundJob</code>。<code>BackgroundJob</code> 就代表一个真正的后台任务。</p>
+<p><code>AbpKernelModule</code> 的 <code>PostInitialize</code> 方法完成对 <code>BackgroundWorkerManager</code>，<code>BackgroundJobManager</code>的初始化。</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190508151157.png" alt="QQ截图20190508151157.png"></p>
+<h2 id="BackgroundWorkerManager-工作者"><a href="#BackgroundWorkerManager-工作者" class="headerlink" title="BackgroundWorkerManager 工作者"></a>BackgroundWorkerManager 工作者</h2><p>目录结构：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190508151546.png" alt="QQ截图20190508151546.png"></p>
+<p><code>IRunnable/RunnableBase</code>：定义了启动/终止一个任务的方法的接口和基本实现抽象类。共三个方法：start, stop, waittostop。 </p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190508151806.png" alt="QQ截图20190508151806.png"></p>
+<p><code>BackgroundWorkerBase</code>：实现 <code>IBackgroundWorker</code> 的一个抽象类，同时添加了UOW,Setting 和本地化的一些辅助方法。</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190508152210.png" alt="QQ截图20190508152210.png"></p>
+<p><code>PeriodicBackgroundWorkerBase</code>：继承 <code>BackgroundWorkerBase</code>， 通过封装 <code>AbpTimer</code> 实现定时启动执行任务的功能。这个类型定义个一个抽象方法 <code>DoWork</code>。<code>AbpTimer</code> 最终会定时执行这个方法。</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190508161027.png" alt="QQ截图20190508161027.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190508162829.png" alt="QQ截图20190508162829.png"></p>
+<p><font color=#ff0000 size=4 face="黑体">AbpTimer是整个ABP框架实现后台工作的核心类，其实现原理就是通过一个CLR中的timer定时启动执行任务。</font></p>
+<p>使用Timer需要注意的问题：</p>
+<p>第一，用timer有一个弊端，就是当timer间隔时间内，任务如果没执行完，timer就会新建一个线程，从头开始执行这个任务，而上一个线程仍然继续执行，这样就会导致系统中产生的线程过多，一会儿系统的资源就耗尽了。ABP的解决思路是在执行真正的业务方法之前，通过将timer的duetime设为无限大，从而timer就失效了。业务方法执行完以后在恢复timer的设置。</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190508173455.png" alt="QQ截图20190508173455.png"></p>
+<p><code>Timer</code> 官方文档解释为：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190508173557.png" alt="QQ截图20190508173557.png"></p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.threading.timer.change?view=netframework-4.8">System.Threading.Timer</a></p>
+<p>第二，如何知道一个Timer真正结束了呢？也就是说如何知道一个Timer要执行的任务已经完成（定义为A效果），同时timer已失效(定义为B效果)？ABP通过stop方法实现B，通过WaitToStop实现A效果。WaitToStop会一直阻塞调用他的线程直到_performingTasks变成false,也就是说Timer要执行的任务已经完成（任务完成时会将_performingTasks设为False，并且释放锁）。</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190508174549.png" alt="QQ截图20190508174549.png"></p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;summary&gt;</span></span></span><br><span class="line"><span class="comment"><span class="doctag">///</span> _taskTimer的回调方法</span></span><br><span class="line"><span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;/summary&gt;</span></span></span><br><span class="line"><span class="comment"><span class="doctag">///</span> <span class="doctag">&lt;param name=&quot;state&quot;&gt;</span>Not used argument<span class="doctag">&lt;/param&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">TimerCallBack</span>(<span class="params"><span class="built_in">object</span> state</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">lock</span> (_taskTimer)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (!_running || _performingTasks)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        _taskTimer.Change(Timeout.Infinite, Timeout.Infinite);</span><br><span class="line">        _performingTasks = <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (Elapsed != <span class="literal">null</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            Elapsed(<span class="keyword">this</span>, <span class="keyword">new</span> EventArgs());</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">catch</span></span><br><span class="line">    &#123;&#125;</span><br><span class="line">    <span class="keyword">finally</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">lock</span> (_taskTimer)</span><br><span class="line">        &#123;</span><br><span class="line">            _performingTasks = <span class="literal">false</span>;</span><br><span class="line">            <span class="keyword">if</span> (_running)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="comment">// 指示Timer继续执行</span></span><br><span class="line">                _taskTimer.Change(Period, Timeout.Infinite);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">// 释放锁</span></span><br><span class="line">            Monitor.Pulse(_taskTimer);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>IBackgroundWorkerManager/BackgroundWorkerManager</code>：用于管理后台工作任务：<code>IBackgroundWorker</code> 实例（添加 <code>IBackgroundWorker</code> 实例到管理器，启动，终止和注销后台任务）。</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190508160425.png" alt="QQ截图20190508160425.png"></p>
+<h2 id="BackgroundWorkerManager-工作者-1"><a href="#BackgroundWorkerManager-工作者-1" class="headerlink" title="BackgroundWorkerManager 工作者"></a>BackgroundWorkerManager 工作者</h2><p>在ABP项目的目录结构：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190509104729.png" alt="QQ截图20190509104729.png"></p>
+<p><code>IBackgroundJob/BackgroundJob</code>：定义一个后台工作任务的接口/和基本实现。具体的后台任务类可从 <code>BackgroundJob</code> 继承，这是定义最终需要被执行的逻辑的地方。</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190509113529.png" alt="QQ截图20190509113529.png"></p>
+<p><code>BackgroundJobInfo</code>：用于持久化job信息的实体类，对应于数据库中的表 <code>AbpBackgroundJobs</code>。一个job对应一个要执行的任务。</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190509131552.png" alt="QQ截图20190509131552.png"></p>
+<p><code>IBackgroundJobConfiguration/BackgroundJobConfiguration</code>：配置是否激活后台工作任务功能。</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190509114407.png" alt="QQ截图20190509114407.png"></p>
+<p><code>BackgroundJobPriority</code>：后台job的优先级。</p>
+<p><code>IBackgroundJobStore/InMemoryBackgroundJobStore</code>: 用于持久化后台任务 <code>BackgroundJobInfo</code>。可以实现这个接口将后台任务 <code>BackgroundJobInfo</code> 存储到数据库。</p>
+<p><code>IBackgroundJobManager/BackgroundJobManager</code>：<code>IBackgroundJobManager</code> 继承 <code>IBackgroundWorker</code>，<code>BackgroundJobManager</code> 默认实现 <code>IBackgroundJobManager</code> ，并 继承 <code>PeriodicBackgroundWorkerBase</code>。它可以被其他的后台工作提供者替代（Hangfire）。<code>BackgroundJobManager</code>之所以能在后台执行任务，是因为其继承了<code>PeriodicBackgroundWorkerBase</code> 基类，并重写了DoWork方法。从 <code>BackgroundJobStore</code>（可以自定义实现从数据库中读取）取最多1000个 <code>BackgroundJobInfo</code>，然后反射执行 <code>BackgroundJobInfo</code> 中定义的任务。</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190509131058.png" alt="QQ截图20190509131058.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190509131329.png" alt="QQ截图20190509131329.png"></p>
+<p>下面是一个ABP中通过 <code>BackgroundJobManager</code> 安排 <code>BackgroundJob</code> 的例子。</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20190509132129.png" alt="QQ截图20190509132129.png"></p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/1zhk/p/5304244.html">ABP源码分析九：后台工作任务</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/05/07/ABP%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95%EF%BC%886%EF%BC%89-%20Logging%E8%A7%A3%E6%9E%90/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -215,7 +344,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-05-10 09:21:35" itemprop="dateModified" datetime="2022-05-10T09:21:35+00:00">2022-05-10</time>
+                <time title="修改时间：2022-06-06 09:57:41" itemprop="dateModified" datetime="2022-06-06T09:57:41+00:00">2022-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -315,7 +444,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-05-10 09:21:35" itemprop="dateModified" datetime="2022-05-10T09:21:35+00:00">2022-05-10</time>
+                <time title="修改时间：2022-06-06 09:57:41" itemprop="dateModified" datetime="2022-06-06T09:57:41+00:00">2022-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -437,7 +566,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-05-10 09:21:35" itemprop="dateModified" datetime="2022-05-10T09:21:35+00:00">2022-05-10</time>
+                <time title="修改时间：2022-06-06 09:57:41" itemprop="dateModified" datetime="2022-06-06T09:57:41+00:00">2022-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -563,7 +692,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-05-10 09:21:35" itemprop="dateModified" datetime="2022-05-10T09:21:35+00:00">2022-05-10</time>
+                <time title="修改时间：2022-06-06 09:57:41" itemprop="dateModified" datetime="2022-06-06T09:57:41+00:00">2022-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -682,7 +811,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-05-10 09:21:35" itemprop="dateModified" datetime="2022-05-10T09:21:35+00:00">2022-05-10</time>
+                <time title="修改时间：2022-06-06 09:57:41" itemprop="dateModified" datetime="2022-06-06T09:57:41+00:00">2022-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -802,7 +931,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-05-10 09:21:35" itemprop="dateModified" datetime="2022-05-10T09:21:35+00:00">2022-05-10</time>
+                <time title="修改时间：2022-06-06 09:57:41" itemprop="dateModified" datetime="2022-06-06T09:57:41+00:00">2022-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -908,7 +1037,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-05-10 09:21:35" itemprop="dateModified" datetime="2022-05-10T09:21:35+00:00">2022-05-10</time>
+                <time title="修改时间：2022-06-06 09:57:41" itemprop="dateModified" datetime="2022-06-06T09:57:41+00:00">2022-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1004,7 +1133,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-05-10 09:21:35" itemprop="dateModified" datetime="2022-05-10T09:21:35+00:00">2022-05-10</time>
+                <time title="修改时间：2022-06-06 09:57:41" itemprop="dateModified" datetime="2022-06-06T09:57:41+00:00">2022-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1096,7 +1225,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-05-10 09:21:35" itemprop="dateModified" datetime="2022-05-10T09:21:35+00:00">2022-05-10</time>
+                <time title="修改时间：2022-06-06 09:57:41" itemprop="dateModified" datetime="2022-06-06T09:57:41+00:00">2022-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1188,7 +1317,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-05-10 09:21:35" itemprop="dateModified" datetime="2022-05-10T09:21:35+00:00">2022-05-10</time>
+                <time title="修改时间：2022-06-06 09:57:41" itemprop="dateModified" datetime="2022-06-06T09:57:41+00:00">2022-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1291,7 +1420,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-05-10 09:21:35" itemprop="dateModified" datetime="2022-05-10T09:21:35+00:00">2022-05-10</time>
+                <time title="修改时间：2022-06-06 09:57:41" itemprop="dateModified" datetime="2022-06-06T09:57:41+00:00">2022-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1403,7 +1532,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-05-10 09:21:35" itemprop="dateModified" datetime="2022-05-10T09:21:35+00:00">2022-05-10</time>
+                <time title="修改时间：2022-06-06 09:57:41" itemprop="dateModified" datetime="2022-06-06T09:57:41+00:00">2022-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1537,7 +1666,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-05-10 09:21:35" itemprop="dateModified" datetime="2022-05-10T09:21:35+00:00">2022-05-10</time>
+                <time title="修改时间：2022-06-06 09:57:41" itemprop="dateModified" datetime="2022-06-06T09:57:41+00:00">2022-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1631,7 +1760,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-05-10 09:21:35" itemprop="dateModified" datetime="2022-05-10T09:21:35+00:00">2022-05-10</time>
+                <time title="修改时间：2022-06-06 09:57:41" itemprop="dateModified" datetime="2022-06-06T09:57:41+00:00">2022-06-06</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1676,151 +1805,6 @@
 <p>2，找到Git/usr/bin目录下的ssh-keygen.exe</p>
 <p>参考：</p>
 <p><a target="_blank" rel="noopener" href="https://blog.csdn.net/zy_281870667/article/details/50443403">ssh-keygen不是内部或外部命令</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/04/01/%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80UML/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="syxdevcode的个人博客">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/04/01/%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80UML/" class="post-title-link" itemprop="url">统一建模语言UML</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-04-01 09:23:28" itemprop="dateCreated datePublished" datetime="2019-04-01T09:23:28+00:00">2019-04-01</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-05-10 09:21:35" itemprop="dateModified" datetime="2022-05-10T09:21:35+00:00">2022-05-10</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" itemprop="url" rel="index"><span itemprop="name">设计模式</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>905</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>1 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="统一建模语言UML"><a href="#统一建模语言UML" class="headerlink" title="统一建模语言UML"></a>统一建模语言UML</h1><h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>统一建模语言（英语：Unified Modeling Language，缩写 UML）是非专利的第三代建模和规约语言。UML是一种开放的方法，用于说明、可视化、构建和编写一个正在开发的、面向对象的、软件密集系统的制品的开放方法。UML展现了一系列最佳工程实践，这些最佳实践在对大规模，复杂系统进行建模方面，特别是在软件架构层次已经被验证有效。</p>
-<h2 id="模型"><a href="#模型" class="headerlink" title="模型"></a>模型</h2><p>在UML系统开发中有三个主要的模型：</p>
-<ul>
-<li>功能模型：从用户的角度展示系统的功能，包括用例图。</li>
-<li>对象模型：采用对象，属性，操作，关联等概念展示系统的结构和基础，包括类别图、对象图。</li>
-<li>动态模型：展现系统的内部行为。包括序列图，活动图，状态图。</li>
-</ul>
-<h2 id="图形"><a href="#图形" class="headerlink" title="图形"></a>图形</h2><h3 id="结构性图形（Structure-diagrams）"><a href="#结构性图形（Structure-diagrams）" class="headerlink" title="结构性图形（Structure diagrams）"></a>结构性图形（Structure diagrams）</h3><p><strong>1,静态图（static diagram</strong></p>
-<ul>
-<li>类图</li>
-<li>对象图</li>
-<li>包图</li>
-</ul>
-<p><strong>2,实现图（implementation diagram）</strong></p>
-<ul>
-<li>组件图</li>
-<li>部署图</li>
-</ul>
-<h3 id="行为式图形（Behavior-diagrams）"><a href="#行为式图形（Behavior-diagrams）" class="headerlink" title="行为式图形（Behavior diagrams）"></a>行为式图形（Behavior diagrams）</h3><ul>
-<li>活动图</li>
-<li>状态图</li>
-<li>用例图</li>
-</ul>
-<h3 id="交互性图形（Interaction-diagrams）"><a href="#交互性图形（Interaction-diagrams）" class="headerlink" title="交互性图形（Interaction diagrams）"></a>交互性图形（Interaction diagrams）</h3><ul>
-<li>通信图</li>
-<li>交互概述图（UML 2.0）</li>
-<li>时序图（UML 2.0）</li>
-<li>时间图（UML 2.0）</li>
-</ul>
-<h2 id="UML类图"><a href="#UML类图" class="headerlink" title="UML类图"></a>UML类图</h2><h3 id="属性和方法"><a href="#属性和方法" class="headerlink" title="属性和方法"></a>属性和方法</h3><p>在UML类图中，类使用包含类名、属性(field) 和方法(method) 且带有分割线的矩形来表示。</p>
-<p>UML类图中表示可见性的符号有三种：</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">+ ：表示<span class="keyword">public</span></span><br><span class="line">- ：表示<span class="keyword">private</span></span><br><span class="line"><span class="meta"># ：表示protected（friendly也归入这类）</span></span><br></pre></td></tr></table></figure>
-
-<p>规则：<font color=#ff0000 size=4 face="黑体">可见性  名称 ：类型 [ = 缺省值]</font></p>
-<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20190401142800.png" alt="微信截图_20190401142800.png"></p>
-<h3 id="对象关系"><a href="#对象关系" class="headerlink" title="对象关系"></a>对象关系</h3><h4 id="关联关系"><a href="#关联关系" class="headerlink" title="关联关系"></a>关联关系</h4><p><strong>1，单项关联</strong></p>
-<p><font color=#ff0000 size=4 face="黑体">单向关联用一个带箭头的直线表示。</font></p>
-<p><img src="/img/617148-20160612224805636-1840590061.jpg" alt="617148-20160612224805636-1840590061.jpg"></p>
-<p><strong>2,双向关联</strong></p>
-<p><font color=#ff0000 size=4 face="黑体">双向关联就是双方各自持有对方类型的成员变量，双向关联用一个不带箭头的直线表示。</font></p>
-<p><img src="/img/617148-20160612225006840-13774319.jpg" alt="617148-20160612225006840-13774319.jpg"></p>
-<p><strong>3,自关联</strong></p>
-<p><img src="/img/617148-20160612225239636-76459111.jpg" alt="617148-20160612225239636-76459111.jpg"></p>
-<h4 id="聚合关系"><a href="#聚合关系" class="headerlink" title="聚合关系"></a>聚合关系</h4><p><font color=#ff0000 size=4 face="黑体">UML中聚合关系用带空心菱形和箭头的直线表示，空心菱形能分离而独立存在。</font></p>
-<p><img src="/img/617148-20160612225421496-664373564.jpg" alt="617148-20160612225421496-664373564.jpg"></p>
-<h4 id="组合关系"><a href="#组合关系" class="headerlink" title="组合关系"></a>组合关系</h4><p><font color=#ff0000 size=4 face="黑体">UML类图中组合关系用一个带实心菱形和箭头的直线表示。</font></p>
-<p><img src="/img/617148-20160612232819824-829657559.jpg" alt="617148-20160612232819824-829657559.jpg"></p>
-<h4 id="依赖关系"><a href="#依赖关系" class="headerlink" title="依赖关系"></a>依赖关系</h4><p><font color=#ff0000 size=4 face="黑体">在UML类图中依赖关系用一条带有箭头的虚线表示。</font></p>
-<p><img src="/img/617148-20160612232951746-9292157.jpg" alt="617148-20160612232951746-9292157.jpg"></p>
-<h4 id="继承父类"><a href="#继承父类" class="headerlink" title="继承父类"></a>继承父类</h4><p><font color=#ff0000 size=4 face="黑体">在UML类图中继承父类用一条带有三角的实线表示。</font></p>
-<p><img src="/img/617148-20160612233246199-1404301867.jpg" alt="617148-20160612233246199-1404301867.jpg"></p>
-<h4 id="继承接口"><a href="#继承接口" class="headerlink" title="继承接口"></a>继承接口</h4><p><font color=#ff0000 size=4 face="黑体">在UML类图中继承接口用一条带有三角的虚线表示。</font></p>
-<p><img src="/img/617148-20160612233430777-736506858.jpg" alt="617148-20160612233430777-736506858.jpg"></p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://zh.wikipedia.org/wiki/%E7%BB%9F%E4%B8%80%E5%BB%BA%E6%A8%A1%E8%AF%AD%E8%A8%80">统一建模语言</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/0cd7df8a7789">一张图读懂UML</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/shindo/p/5579191.html">五分钟读懂UML类图</a></p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/damsoft/archive/2016/10/24/5993602.html">vs2013\2015UML系列之-类图</a></p>
 
       
     </div>
@@ -1907,14 +1891,14 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">551</span>
+          <span class="site-state-item-count">552</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">138</span>
+        <span class="site-state-item-count">139</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
@@ -1970,7 +1954,7 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">26:31</span>
+    <span title="站点阅读时长">26:37</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
   </div>
