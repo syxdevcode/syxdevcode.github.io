@@ -10,17 +10,50 @@ categories:
 - WSL
 ---
 
+## 简介
+
+**WSL1和WSL2**
+相比于 WSL1，WSL2 通过虚拟机的方式带来了更完整的 Linux 内核，但这种方式也引入了一些问题，微软给出了下面的图表来展示这些不同：
+
+![v2-bb7b8a23b362ba5329d66517f81fbca8_720w.jpg](/img/v2-bb7b8a23b362ba5329d66517f81fbca8_720w.jpg)
+
 ## 安装
 
-![QQ截图20200121163159.png](/img/QQ截图20200121163159.png)
+```ps1
+# 完全未安装 WSL 时才有效
+wsl --install
 
-![QQ截图20200121163433.png](/img/QQ截图20200121163433.png)
+# 以查看可用发行版列表并运行
+wsl --list --online
+# 或
+wsl -l -o
 
-![QQ截图20200121163508.png](/img/QQ截图20200121163508.png)
+# 安装发行版
+wsl --install -d <DistroName>
+```
 
-Microsoft Store应用商店获取子系统
+`--install` 命令执行以下操作：
 
-![QQ截图20200121163729.png](/img/QQ截图20200121163729.png)
+* 启用可选的 WSL 和虚拟机平台组件
+* 下载并安装最新 Linux 内核
+* 将 WSL 2 设置为默认值
+* 下载并安装 Ubuntu Linux 发行版（可能需要重新启动)
+
+## 网络互通
+
+Windows 访问 WSL2 启动的网络服务，可以直接使用 localhost，但是 Linux 访问 Windows 启动的网络服务这种方式就不行了，可以使用如下脚本获取 Windows 的 IP，并使用 IP 访问 Windows：
+
+```ps1
+ip route | grep default | awk '{print $3}'
+```
+
+## 文件系统互通
+
+WSL2 访问 Windows 文件系统依然通过挂载分区的方式，Windows 下的磁盘会被挂载在 `/mnt` 下，例如 `/mnt/c`。
+
+相比于 WSL1，这次增加了 Windows 访问 Linux 分区的能力，可以在资源管理器中输入 \\wsl$\<子系统名> 访问对应的子系统分区，为了方便也可以在资源管理器中把 Linux 分区挂载成一个磁盘。
+
+更加方便的一个方式是，在 Terminal 中，使用 explorer.exe . 可以直接调用资源管理器打开当前目录，有点类似 Mac 下的 `open .`。
 
 ## cmder
 
@@ -120,6 +153,8 @@ sudo apt-get upgrade
 
 参考：
 
-[win10上linux子系统的开启、升级及使用](https://blog.csdn.net/helaisun/article/details/80712287)
+[安装 WSL](https://docs.microsoft.com/zh-cn/windows/wsl/install)
+
+[面向开发者的 WSL2 安装指南](https://zhuanlan.zhihu.com/p/145488247)
 
 [Ubuntu修改apt-get源](https://www.cnblogs.com/TechSnail/p/7754969.html)
