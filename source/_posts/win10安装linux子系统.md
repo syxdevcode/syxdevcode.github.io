@@ -65,7 +65,7 @@ cmder下载： [http://cmder.net/](http://cmder.net/)
 sudo vim /etc/apt/sources.list
 # 使用vim命令删除:直接连着按下d键
 
-# 按下i键，拷贝下面的命令修改为阿里云的源
+# 按下i键，拷贝下面的命令修改源
 
 deb http://mirrors.163.com/ubuntu/ zesty main restricted universe multiverse
 deb http://mirrors.163.com/ubuntu/ zesty-security main restricted universe multiverse
