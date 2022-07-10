@@ -184,6 +184,1052 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2022/07/10/I2C%E6%80%BB%E7%BA%BF%E7%9A%84SDA%E5%92%8CSCL/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2022/07/10/I2C%E6%80%BB%E7%BA%BF%E7%9A%84SDA%E5%92%8CSCL/" class="post-title-link" itemprop="url">I2C总线的SDA和SCL</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-07-10 16:21:34 / 修改时间：08:39:26" itemprop="dateCreated datePublished" datetime="2022-07-10T16:21:34+00:00">2022-07-10</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%89%A9%E8%81%94%E7%BD%91/" itemprop="url" rel="index"><span itemprop="name">物联网</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>2.3k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>2 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>I2C总线是由Philips公司开发的一种简单、双向二线制同步串行总线。它只需要两根线即可在连接于总线上的器件之间传送信息。</p>
+<p>主器件用于启动总线传送数据，并产生时钟以开放传送的器件，此时任何被寻址的器件均被认为是从器件．在总线上主和从、发和收的关系不是恒定的，而取决于此时数据传送方向。如果主机要发送数据给从器件，则主机首先寻址从器件，然后主动发送数据至从器件，最后由主机终止数据传送；如果主机要接收从器件的数据，首先由主器件寻址从器件．然后主机接收从器件发送的数据，最后由主机终止接收过程。在这种情况下．主机负责产生定时时钟和终止数据传送。</p>
+<h2 id="工作原理"><a href="#工作原理" class="headerlink" title="工作原理"></a>工作原理</h2><p>SDA（串行数据线）和SCL（串行时钟线）都是双向I/O线，接口电路为开漏输出。需通过上拉电阻接电源VCC。当总线空闲时，两根线都是高电平，连接总线的外同器件都是CMOS器件，输出级也是开漏电路。在总线上消耗的电流很小，因此，总线上扩展的器件数量主要由电容负载来决定，因为每个器件的总线接口都有一定的等效电容。而线路中电容会影响总线传输速度。当电容过大时，有可能造成传输错误。所以，其负载能力为400pF，因此可以估算出总线允许长度和所接器件数量。<br>主器件用于启动总线传送数据，并产生时钟以开放传送的器件，此时任何被寻址的器件均被认为是从器件。在总线上主和从、发和收的关系不是恒定的，而取决于此时数据传送方向。如果主机要发送数据给从器件，则主机首先寻址从器件，然后主动发送数据至从器件，最后由主机终止数据传送；如果主机要接收从器件的数据，首先由主器件寻址从器件。然后主机接收从器件发送的数据，最后由主机终止接收过程。在这种情况下。主机负责产生定时时钟和终止数据传送。</p>
+<h2 id="特征"><a href="#特征" class="headerlink" title="特征"></a>特征</h2><p>I2C总线特点可以概括如下：<br>(1)在硬件上，I2C总线只需要一根数据线和一根时钟线两根线，总线接口已经集成在芯片内部，不需要特殊的接口电路，而且片上接口电路的滤波器可以滤去总线数据上的毛刺。因此I2C总线简化了硬件电路PCB布线，降低了系统成本，提高了系统可靠性。因为I2C芯片除了这两根线和少量中断线，与系统再没有连接的线，用户常用IC可以很容易形成标准化和模块化，便于重复利用。<br>(2)I2C总线是一个真正的多主机总线，如果两个或多个主机同时初始化数据传输，可以通过冲突检测和仲裁防止数据破坏，每个连接到总线上的器件都有唯一的地址，任何器件既可以作为主机也可以作为从机，但同一时刻只允许有一个主机。数据传输和地址设定由软件设定，非常灵活。总线上的器件增加和删除不影响其他器件正常工作。<br>(3)I2C总线可以通过外部连线进行在线检测，便于系统故障诊断和调试，故障可以立即被寻址，软件也利于标准化和模块化，缩短开发时间。<br>(4)连接到相同总线上的IC数量只受总线最大电容的限制，串行的8位双向数据传输位速率在标准模式下可达100Kbit/s，快速模式下可达400Kbit/s，高速模式下可达3.4Mbit/s。<br>(5)总线具有极低的电流消耗，抗高噪声干扰，增加总线驱动器可以使总线电容扩大10倍，传输距离达到15m；兼容不同电压等级的器件，工作温度范围宽。</p>
+<h2 id="数据传输"><a href="#数据传输" class="headerlink" title="数据传输"></a>数据传输</h2><h3 id="字节格式"><a href="#字节格式" class="headerlink" title="字节格式"></a>字节格式</h3><p>发送到SDA线上的每个字节必须为8位，每次传输可以发送的字节数量不受限制。每个字节后必须跟一个响应位。首先传输的是数据的最高位（MSB），如果从机要完成一些其他功能后（例如一个内部中断服务程序）才能接收或发送下一个完整的数据字节，可以使时钟线SCL保持低电平，迫使主机进入等待状态，当从机准备好接收下一个数据字节并释放时钟线SCL后数据传输继续。</p>
+<h3 id="应答响应"><a href="#应答响应" class="headerlink" title="应答响应"></a>应答响应</h3><p>数据传输必须带响应，相关的响应时钟脉冲由主机产生。在响应的时钟脉冲期间发送器释放SDA线（高）。<br>在响应的时钟脉冲期间，接收器必须将SDA线拉低，使它在这个时钟脉冲的高电平期间保持稳定的低电平。</p>
+<p>通常被寻址的接收器在接收到的每个字节后，除了用CBUS地址开头的数据，必须产生一个响应。当从机不能响应从机地址时（例如它正在执行一些实时函数不能接收或发送），从机必须使数据线保持高电平，主机然后产生一个停止条件终止传输或者产生重复起始条件开始新的传输。<br>如果从机接收器响应了从机地址，但是在传输了一段时间后不能接收更多数据字节，主机必须再一次终止传输。这个情况用从机在第一个字节后没有产生响应来表示。从机使数据线保持高电平，主机产生一个停止或重复起始条件。<br>如果传输中有主机接收器，它必须通过在从机发出的最后一个字节时产生一个响应，向从机发送器通知数据结束。从机发送器必须释放数据线，允许主机产生一个停止或重复起始条件。</p>
+<h3 id="时钟同步"><a href="#时钟同步" class="headerlink" title="时钟同步"></a>时钟同步</h3><p>所有主机在SCL线上产生它们自己的时钟来传输I2C总线上的报文。数据只在时钟的高电平周期有效，因此需要一个确定的时钟进行逐位仲裁。<br>时钟同步通过线与连接I2C接口到SCL线来执行。这就是说SCL线的高到低切换会使器件开始数它们的低电平周期，而且一旦器件的时钟变低电平，它会使SCL线保持这种状态直到到达时钟的高电平。但是如果另一个时钟仍处于低电平周期，这个时钟的低到高切换不会改变SCL线的状态。因此SCL线被有最长低电平周期的器件保持低电平。此时低电平周期短的器件会进入高电平的等待状态。<br>当所有有关的器件数完了它们的低电平周期后，时钟线被释放并变成高电平。之后，器件时钟和SCL线的状态没有差别，而且所有器件会开始数它们的高电平周期。首先完成高电平周期的器件会再次将SCL线拉低。<br>这样产生的同步SCL时钟的低电平周期由低电平时钟周期最长的器件决定，而高电平周期由高电平时钟周期最短的器件决定。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://baike.baidu.com/item/I2C%E6%80%BB%E7%BA%BF/918424?fr=aladdin">I2C总线</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2022/07/10/C%E5%92%8CCPP%E8%BF%90%E7%AE%97%E7%AC%A6/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2022/07/10/C%E5%92%8CCPP%E8%BF%90%E7%AE%97%E7%AC%A6/" class="post-title-link" itemprop="url">C和CPP运算符</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-07-10 15:53:01 / 修改时间：08:39:26" itemprop="dateCreated datePublished" datetime="2022-07-10T15:53:01+00:00">2022-07-10</time>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>3.8k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>3 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>下列运算符在两个语言中都是顺序点（运算符未重载时）： <code>&amp;&amp;</code>、<code>||</code>、<code>?:</code> 和 <code>,</code>（逗号运算符）。</p>
+<p>C++也包含类型转换运算符 <code>const_cast</code>、<code>static_cast</code>、<code>dynamic_cast</code>和 <code>reinterpret_cast</code>，不在表中列出以维持简洁。类型转换运算符需要在表达式中明确使用括号，因此并不存在优先级的问题。</p>
+<p>在C里有的运算符，除了逗号运算符和箭头记头的运算符以外，在Java、Perl、C#和PHP同样也有相同的优先级、结合性和语义。</p>
+<table class="wikitable">
+<tbody>
+<tr><th>优先级</th><th>运算符</th><th>叙述</th><th>示例</th><th>重载性</th><th>结合性</th></tr>
+<tr>
+<td><code>1</code></td>
+<td><code>::</code></td>
+<td>作用域解析(C++专有)</td>
+<td><code>Class::age = 2;</code></td>
+<td>否</td>
+<td rowspan="13">由左至右</td>
+</tr>
+<tr>
+<td rowspan="12"><code>2</code></td>
+<td><code>++</code></td>
+<td>后缀递增</td>
+<td>i++</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td><code>--</code></td>
+<td>后缀递减</td>
+<td>i--</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td><code>&#123;&#125;</code></td>
+<td>组合</td>
+<td>{i++;a*=i;}</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td><code>()</code></td>
+<td>函数调用或变量初始化</td>
+<td>c_tor(int x, int y)&nbsp;: _x(x), _y(y * 10) {}</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td><code>[]</code></td>
+<td>数组访问</td>
+<td>array[4] = 2;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td><code>.</code></td>
+<td>以对象方式访问成员</td>
+<td>obj.age = 34;</td>
+<td>否</td>
+</tr>
+<tr>
+<td><code>-&gt;</code></td>
+<td>以指针方式访问成员</td>
+<td>ptr-&gt;age = 34;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td><code>dynamic_cast</code></td>
+<td>运行时检查类型转换(C++专有)</td>
+<td>Y&amp; y = dynamic_cast&lt;Y&amp;&gt;(x);</td>
+<td>否</td>
+</tr>
+<tr>
+<td><code>static_cast</code></td>
+<td>未经检查的类型转换(C++专有)</td>
+<td>Y&amp; y = static_cast&lt;Y&amp;&gt;(x);</td>
+<td>否</td>
+</tr>
+<tr>
+<td><code>reinterpret_cast</code></td>
+<td>重定义类型转换(C++专有)</td>
+<td>int const* p = reinterpret_cast&lt;int const*&gt;(0x1234);</td>
+<td>否</td>
+</tr>
+<tr>
+<td><code>const_cast</code></td>
+<td>更改非常量属性(C++专有)</td>
+<td>int* q = const_cast&lt;int*&gt;(p);</td>
+<td>否</td>
+</tr>
+<tr>
+<td><code>typeid</code></td>
+<td>获取类型信息(C++专有)</td>
+<td>std::type_info const&amp; t = typeid(x);</td>
+<td>否</td>
+</tr>
+<tr>
+<td rowspan="14"><code>3</code></td>
+<td><code>++</code></td>
+<td>前缀递增</td>
+<td>++i</td>
+<td>&nbsp;</td>
+<td rowspan="14">由右至左</td>
+</tr>
+<tr>
+<td><code>--</code></td>
+<td>前缀递减</td>
+<td>--i</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td><code>+</code></td>
+<td>一元正号</td>
+<td>int i = +1;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td><code>-</code></td>
+<td>一元负号</td>
+<td>int i = -1;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td><code>!</code><br><code>not</code></td>
+<td>逻辑非<br><code>!</code>的备用拼写</td>
+<td>if (!done) …</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>~</code><br><code>compl</code></td>
+<td>按位取反<br><code>~</code>的备用拼写</td>
+<td>flag1 = ~flag2;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>(<em>type</em>)</code></td>
+<td>强制类型转换</td>
+<td>int i = (int)floatNum;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>*</code></td>
+<td>取指针指向的值</td>
+<td>int data = *intPtr;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>&amp;</code></td>
+<td>取变量的地址</td>
+<td>int *intPtr = &amp;data;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>sizeof</code></td>
+<td>某某的大小</td>
+<td>size_t s = sizeof(int);</td>
+<td>否</td>
+
+</tr>
+<tr>
+<td><code>new</code></td>
+<td>动态内存分配(C++专有)</td>
+<td>long* pVar = new long;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>new[]</code></td>
+<td>动态数组内存分配(C++专有)</td>
+<td>long* array = new long[20];</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>delete</code></td>
+<td>动态内存释放(C++专有)</td>
+<td>delete pVar;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>delete[]</code></td>
+<td>动态数组内存释放(C++专有)</td>
+<td>delete [] array;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td rowspan="2"><code>4</code></td>
+<td><code>.*</code></td>
+<td>成员对象选择(C++专有)</td>
+<td>obj.*var = 24;</td>
+<td>否</td>
+<td rowspan="20">由左至右</td>
+
+</tr>
+<tr>
+<td><code>-&gt;*</code></td>
+<td>成员指针选择(C++专有)</td>
+<td>ptr-&gt;*var = 24;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td rowspan="3"><code>5</code></td>
+<td><code>*</code></td>
+<td>乘法</td>
+<td>int i = 2 * 4;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>/</code></td>
+<td>除法</td>
+<td>float f = 10.0 / 3.0;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>%</code></td>
+<td>模数(取余)</td>
+<td>int rem = 4&nbsp;% 3;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td rowspan="2"><code>6</code></td>
+<td><code>+</code></td>
+<td>加法</td>
+<td>int i = 2 + 3;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>-</code></td>
+<td>减法</td>
+<td>int i = 5 - 1;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td rowspan="2"><code>7</code></td>
+<td><code>&lt;&lt;</code></td>
+<td>比特左移</td>
+<td>int flags = 33 &lt;&lt; 1;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>&gt;&gt;</code></td>
+<td>比特右移</td>
+<td>int flags = 33 &gt;&gt; 1;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td rowspan="4"><code>8</code></td>
+<td><code>&lt;</code></td>
+<td>小于关系</td>
+<td>if (i &lt; 42) …</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>&lt;=</code></td>
+<td>小于等于关系</td>
+<td>if (i &lt;= 42) ...</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>&gt;</code></td>
+<td>大于关系</td>
+<td>if (i &gt; 42) …</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>&gt;=</code></td>
+<td>大于等于关系</td>
+<td>if (i &gt;= 42) ...</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td rowspan="2"><code>9</code></td>
+<td><code>==</code><br><code>eq</code></td>
+<td>等于关系<br><code>==</code>的备用拼写</td>
+<td>if (i == 42) ...</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>!=</code><br><code>not_eq</code></td>
+<td>不等于关系<br><code>!=</code>的备用拼写</td>
+<td>if (i&nbsp;!= 42) …</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>10</code></td>
+<td><code>&amp;</code><br><code>bitand</code></td>
+<td>比特 AND<br><code>&amp;</code>的备用拼写</td>
+<td>flag1 = flag2 &amp; 42;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>11</code></td>
+<td><code>^</code><br><code>xor</code></td>
+<td>比特 XOR(独占or)<br><code>^</code>的备用拼写</td>
+<td>flag1 = flag2 ^ 42;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>12</code></td>
+<td><code>|</code><br><code>bitor</code></td>
+<td>比特 OR(包含or)<br><code>|</code>的备用拼写</td>
+<td>flag1 = flag2 | 42;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>13</code></td>
+<td><code>&amp;&amp;</code><br><code>and</code></td>
+<td>逻辑 AND<br><code>&amp;&amp;</code>的备用拼写</td>
+<td>if (conditionA &amp;&amp; conditionB) …</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>14</code></td>
+<td><code>||</code><br><code>or</code></td>
+<td>逻辑 OR<br><code>||</code>的备用拼写</td>
+<td>if (conditionA || conditionB) ...</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>15</code></td>
+<td><code><em>c</em>?<em>t</em>:<em>f</em></code></td>
+<td>三元条件运算</td>
+<td>int i = a &gt; b&nbsp;? a&nbsp;: b;</td>
+<td>否</td>
+<td rowspan="12">由右至左</td>
+
+</tr>
+<tr>
+<td rowspan="11"><code>16</code></td>
+<td><code>=</code></td>
+<td>直接赋值</td>
+<td>int a = b;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>+=</code></td>
+<td>以和赋值</td>
+<td>a += 3;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>-=</code></td>
+<td>以差赋值</td>
+<td>b -= 4;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>*=</code></td>
+<td>以乘赋值</td>
+<td>a *= 5;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>/=</code></td>
+<td>以除赋值</td>
+<td>a /= 2;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>%=</code></td>
+<td>以取余数赋值</td>
+<td>a&nbsp;%= 3;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>&lt;&lt;=</code></td>
+<td>以比特左移赋值</td>
+<td>flags &lt;&lt;= 2;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>&gt;&gt;=</code></td>
+<td>以比特右移赋值</td>
+<td>flags &gt;&gt;= 2;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>&amp;=</code><br><code>and_eq</code></td>
+<td>以比特AND赋值<br><code>&amp;=</code>的备用拼写</td>
+<td>flags &amp;= new_flags;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>^=</code><br><code>xor_eq</code></td>
+<td>以比特XOR赋值<br><code>^=</code>的备用拼写</td>
+<td>flags ^= new_flags;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>|=</code><br><code>or_eq</code></td>
+<td>以比特OR赋值<br><code>|=</code>的备用拼写</td>
+<td>flags |= new_flags;</td>
+<td>&nbsp;</td>
+
+</tr>
+<tr>
+<td><code>17</code></td>
+<td><code>throw</code></td>
+<td>抛出异常</td>
+<td>throw EClass(“Message”);</td>
+<td>否</td>
+
+</tr>
+<tr>
+<td><code>18</code></td>
+<td><code>,</code></td>
+<td>逗号运算符</td>
+<td>for (i = 0, j = 0; i &lt; 10; i++, j++) …</td>
+<td>&nbsp;</td>
+<td>由左至右</td>
+</tr>
+</tbody>
+</table>
+
+<h2 id="列表"><a href="#列表" class="headerlink" title="列表"></a>列表</h2><p>在本表中，a、b和c代表有效值（来自变量或返回值的逐字常数或数值）、对象名称，或适当的左值。</p>
+<table class="wikitable">
+<tbody>
+<tr>
+<td colspan="4">
+<h3 style="text-align: left"><span id=".E7.AE.97.E8.A1.93.E9.81.8B.E7.AE.97.E5.AD.90" class="mw-headline">算术运算符<span class="mw-editsection"><span class="mw-editsection-bracket">[<a title="编辑段落：算术运算符" target="_blank" href="http://zh.wikipedia.org/w/index.php?title=C%E5%92%8CC%2B%2B%E9%81%8B%E7%AE%97%E5%AD%90&amp;action=edit&amp;section=3" rel="noopener noopener">编辑</a><span class="mw-editsection-bracket">]</span></span></span></span></h3>
+
+</td>
+
+</tr>
+<tr><th>运算符名称</th><th>语法</th><th>可重载</th><th><a title="C" target="_blank" href="http://zh.wikipedia.org/wiki/C" rel="noopener noopener">C</a>里有</th></tr>
+<tr>
+<td>一元正号</td>
+<td><code><strong>+</strong>a</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>加法（总和）</td>
+<td><code>a&nbsp;<strong>+</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>前缀递增</td>
+<td><code><strong>++</strong>a</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>后缀递增</td>
+<td><code>a<strong>++</strong></code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>以加法赋值</td>
+<td><code>a&nbsp;<strong>+=</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>一元负号（取反）</td>
+<td><code><strong>-</strong>a</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>减法（差）</td>
+<td><code>a&nbsp;<strong>-</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>前缀递减</td>
+<td><code><strong>--</strong>a</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>后缀递减</td>
+<td><code>a<strong>--</strong></code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>以减法赋值</td>
+<td><code>a&nbsp;<strong>-=</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>乘法（乘积）</td>
+<td><code>a&nbsp;<strong>*</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>以乘法赋值</td>
+<td><code>a&nbsp;<strong>*=</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>除法（分之）</td>
+<td><code>a&nbsp;<strong>/</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>以除法赋值</td>
+<td><code>a&nbsp;<strong>/=</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>模数（余数）</td>
+<td><code>a&nbsp;<strong>%</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>以模数赋值</td>
+<td><code>a&nbsp;<strong>%=</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td colspan="4">
+<h3><span id=".E6.AF.94.E8.BC.83.E9.81.8B.E7.AE.97.E5.AD.90" class="mw-headline">比较运算符<span class="mw-editsection"><span class="mw-editsection-bracket">[<a title="编辑段落：比较运算符" target="_blank" href="http://zh.wikipedia.org/w/index.php?title=C%E5%92%8CC%2B%2B%E9%81%8B%E7%AE%97%E5%AD%90&amp;action=edit&amp;section=4" rel="noopener noopener">编辑</a><span class="mw-editsection-bracket">]</span></span></span></span></h3>
+
+</td>
+
+</tr>
+<tr><th>运算符名称</th><th>语法</th><th>可重载</th><th><a title="C" target="_blank" href="http://zh.wikipedia.org/wiki/C" rel="noopener noopener">C</a>里有</th></tr>
+<tr>
+<td>小于</td>
+<td><code>a&nbsp;<strong>&lt;</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>小于或等于</td>
+<td><code>a&nbsp;<strong>&lt;=</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>大于</td>
+<td><code>a&nbsp;<strong>&gt;</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>大于或等于</td>
+<td><code>a&nbsp;<strong>&gt;=</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>不等于</td>
+<td><code>a&nbsp;<strong>!=</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>等于</td>
+<td><code>a&nbsp;<strong>==</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>逻辑取反</td>
+<td><code><strong>!</strong>a</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>逻辑 AND</td>
+<td><code>a&nbsp;<strong>&amp;&amp;</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>逻辑 OR</td>
+<td><code>a&nbsp;<strong>||</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td colspan="4">
+<h3><span id=".E4.BD.8D.E5.85.83.E9.81.8B.E7.AE.97.E5.AD.90" class="mw-headline">比特运算符<span class="mw-editsection"><span class="mw-editsection-bracket">[<a title="编辑段落：比特运算符" target="_blank" href="http://zh.wikipedia.org/w/index.php?title=C%E5%92%8CC%2B%2B%E9%81%8B%E7%AE%97%E5%AD%90&amp;action=edit&amp;section=5" rel="noopener noopener">编辑</a><span class="mw-editsection-bracket">]</span></span></span></span></h3>
+
+</td>
+
+</tr>
+<tr><th>运算符名称</th><th>语法</th><th>可重载</th><th><a title="C" target="_blank" href="http://zh.wikipedia.org/wiki/C" rel="noopener noopener">C</a>里有</th></tr>
+<tr>
+<td>比特左移</td>
+<td><code>a&nbsp;<strong>&lt;&lt;</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>以比特左移赋值</td>
+<td><code>a&nbsp;<strong>&lt;&lt;=</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>比特右移</td>
+<td><code>a&nbsp;<strong>&gt;&gt;</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>以比特右移赋值</td>
+<td><code>a&nbsp;<strong>&gt;&gt;=</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>比特一的补数</td>
+<td><code><strong>~</strong>a</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>比特 AND</td>
+<td><code>a&nbsp;<strong>&amp;</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>以比特 AND 赋值</td>
+<td><code>a&nbsp;<strong>&amp;=</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>比特 OR</td>
+<td><code>a&nbsp;<strong>|</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>以比特 OR 赋值</td>
+<td><code>a&nbsp;<strong>|=</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>比特 XOR</td>
+<td><code>a&nbsp;<strong>^</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>以比特 XOR 赋值</td>
+<td><code>a&nbsp;<strong>^=</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td colspan="4">
+<h3><span class="mw-headline">其它运算符<span class="mw-editsection"><span class="mw-editsection-bracket">[<a title="编辑段落：其它运算符" target="_blank" href="http://zh.wikipedia.org/w/index.php?title=C%E5%92%8CC%2B%2B%E9%81%8B%E7%AE%97%E5%AD%90&amp;action=edit&amp;section=6" rel="noopener noopener">编辑</a><span class="mw-editsection-bracket">]</span></span></span></span></h3>
+
+</td>
+
+</tr>
+<tr><th>运算符名称</th><th>语法</th><th>可重载</th><th><a title="C" target="_blank" href="http://zh.wikipedia.org/wiki/C" rel="noopener noopener">C</a>里有</th></tr>
+<tr>
+<td>基本<a class="mw-redirect" title="C++赋值运算符" target="_blank" href="http://zh.wikipedia.org/wiki/C%2B%2B%E8%A8%AD%E5%AE%9A%E9%81%8B%E7%AE%97%E5%AD%90" rel="noopener noopener">赋值</a></td>
+<td><code>a&nbsp;<strong>=</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>函数调用</td>
+<td><code>a<strong>()</strong></code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>数组下标</td>
+<td><code>a<strong>[</strong>b<strong>]</strong></code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>间接（向下参考）</td>
+<td><code><strong>*</strong>a</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>的地址（参考）</td>
+<td><code><strong>&amp;</strong>a</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>成员指针</td>
+<td><code>a<strong>-&gt;</strong>b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>成员</td>
+<td><code>a<strong>.</strong>b</code></td>
+<td class="table-no">否</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>间接成员指针</td>
+<td><code>a<strong>-&gt;*</strong>b</code></td>
+<td class="table-yes">是</td>
+<td class="table-no">否</td>
+
+</tr>
+<tr>
+<td>间接成员</td>
+<td><code>a<strong>.*</strong>b</code></td>
+<td class="table-no">否</td>
+<td class="table-no">否</td>
+
+</tr>
+<tr>
+<td>转换</td>
+<td><code>(<em><a class="mw-redirect" title="資料型別" target="_blank" href="http://zh.wikipedia.org/wiki/%E8%B3%87%E6%96%99%E5%9E%8B%E5%88%A5" rel="noopener noopener">type</a></em>) a</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>逗号</td>
+<td><code>a&nbsp;<strong>,</strong>&nbsp;b</code></td>
+<td class="table-yes">是</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>三元条件</td>
+<td><code>a&nbsp;<strong>?</strong>&nbsp;b&nbsp;<strong>:</strong>&nbsp;c</code></td>
+<td class="table-no">否</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>作用域解析</td>
+<td><code>a<strong>::</strong>b</code></td>
+<td class="table-no">否</td>
+<td class="table-no">否</td>
+
+</tr>
+<tr>
+<td>的大小</td>
+<td><code><strong>sizeof</strong>&nbsp;a</code></td>
+<td class="table-no">否</td>
+<td class="table-yes">是</td>
+
+</tr>
+<tr>
+<td>类型识别</td>
+<td><code><strong>typeid</strong>&nbsp;<em><a class="mw-redirect" title="資料型別" target="_blank" href="http://zh.wikipedia.org/wiki/%E8%B3%87%E6%96%99%E5%9E%8B%E5%88%A5" rel="noopener noopener">type</a></em></code></td>
+<td class="table-no">否</td>
+<td class="table-no">否</td>
+
+</tr>
+<tr>
+<td>分配存储区</td>
+<td><code><strong>new</strong>&nbsp;<em><a class="mw-redirect" title="資料型別" target="_blank" href="http://zh.wikipedia.org/wiki/%E8%B3%87%E6%96%99%E5%9E%8B%E5%88%A5" rel="noopener noopener">type</a></em></code></td>
+<td class="table-yes">是</td>
+<td class="table-no">否</td>
+
+</tr>
+<tr>
+<td>解除分配存储区</td>
+<td><code><strong>delete</strong>&nbsp;a</code></td>
+<td class="table-yes">是</td>
+<td class="table-no">否</td>
+
+</tr>
+
+</tbody>
+
+</table>
+<h3><span class="mw-headline">语言扩展</span></h3>
+<table class="wikitable">
+<tbody>
+<tr><th>运算符名称</th><th>语法</th><th>可重载</th><th>C里有</th><th>提供者</th></tr>
+<tr>
+<td><a class="new" title="Label Value Operator（页面不存在）" target="_blank" href="http://zh.wikipedia.org/w/index.php?title=Label_Value_Operator&amp;action=edit&amp;redlink=1" rel="noopener noopener">标签值</a></td>
+<td><code><strong>&amp;&amp;</strong>&nbsp;label</code></td>
+<td class="table-no">否</td>
+<td class="table-yes">是</td>
+<td>GCC</td>
+
+</tr>
+<tr>
+<td>取得型态</td>
+<td><code><strong>typeof</strong>&nbsp;a</code><br><code><strong>typeof</strong>(<em>expr</em>)</code></td>
+<td class="table-no">否</td>
+<td class="table-yes">是</td>
+<td>GCC</td>
+
+</tr>
+<tr>
+<td>最小／最大值</td>
+<td><code>a&nbsp;<strong>&lt;?</strong>&nbsp;b</code><br><code>a&nbsp;<strong>&gt;?</strong>&nbsp;b</code></td>
+<td class="table-no">否</td>
+<td class="table-no">否</td>
+<td>GCC</td>
+</tr>
+</tbody>
+</table>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/yangjig/p/3923515.html">C和C++运算符</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2022/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93%E8%A1%A8%E8%AE%BE%E8%AE%A1-%E9%82%BB%E6%8E%A5%E8%A1%A8-%E5%B7%A6%E5%8F%B3%E5%80%BC-%E7%89%A9%E5%8C%96%E8%B7%AF%E5%BE%84-%E9%97%AD%E5%8C%85%E8%A1%A8/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -215,7 +1261,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-06-30 08:19:14" itemprop="dateModified" datetime="2022-06-30T08:19:14+00:00">2022-06-30</time>
+                <time title="修改时间：2022-07-10 08:39:26" itemprop="dateModified" datetime="2022-07-10T08:39:26+00:00">2022-07-10</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -314,7 +1360,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-06-30 08:19:14" itemprop="dateModified" datetime="2022-06-30T08:19:14+00:00">2022-06-30</time>
+                <time title="修改时间：2022-07-10 08:39:26" itemprop="dateModified" datetime="2022-07-10T08:39:26+00:00">2022-07-10</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -410,7 +1456,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-06-30 08:19:14" itemprop="dateModified" datetime="2022-06-30T08:19:14+00:00">2022-06-30</time>
+                <time title="修改时间：2022-07-10 08:39:26" itemprop="dateModified" datetime="2022-07-10T08:39:26+00:00">2022-07-10</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -512,7 +1558,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-06-30 08:19:14" itemprop="dateModified" datetime="2022-06-30T08:19:14+00:00">2022-06-30</time>
+                <time title="修改时间：2022-07-10 08:39:26" itemprop="dateModified" datetime="2022-07-10T08:39:26+00:00">2022-07-10</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -613,7 +1659,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-06-30 08:19:14" itemprop="dateModified" datetime="2022-06-30T08:19:14+00:00">2022-06-30</time>
+                <time title="修改时间：2022-07-10 08:39:26" itemprop="dateModified" datetime="2022-07-10T08:39:26+00:00">2022-07-10</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -728,7 +1774,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-06-30 08:19:14" itemprop="dateModified" datetime="2022-06-30T08:19:14+00:00">2022-06-30</time>
+                <time title="修改时间：2022-07-10 08:39:26" itemprop="dateModified" datetime="2022-07-10T08:39:26+00:00">2022-07-10</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -825,7 +1871,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-06-30 08:19:14" itemprop="dateModified" datetime="2022-06-30T08:19:14+00:00">2022-06-30</time>
+                <time title="修改时间：2022-07-10 08:39:26" itemprop="dateModified" datetime="2022-07-10T08:39:26+00:00">2022-07-10</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -924,7 +1970,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-06-30 08:19:14" itemprop="dateModified" datetime="2022-06-30T08:19:14+00:00">2022-06-30</time>
+                <time title="修改时间：2022-07-10 08:39:26" itemprop="dateModified" datetime="2022-07-10T08:39:26+00:00">2022-07-10</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1016,7 +2062,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-06-30 08:19:14" itemprop="dateModified" datetime="2022-06-30T08:19:14+00:00">2022-06-30</time>
+                <time title="修改时间：2022-07-10 08:39:26" itemprop="dateModified" datetime="2022-07-10T08:39:26+00:00">2022-07-10</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1146,7 +2192,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-06-30 08:19:14" itemprop="dateModified" datetime="2022-06-30T08:19:14+00:00">2022-06-30</time>
+                <time title="修改时间：2022-07-10 08:39:26" itemprop="dateModified" datetime="2022-07-10T08:39:26+00:00">2022-07-10</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1240,7 +2286,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-06-30 08:19:14" itemprop="dateModified" datetime="2022-06-30T08:19:14+00:00">2022-06-30</time>
+                <time title="修改时间：2022-07-10 08:39:26" itemprop="dateModified" datetime="2022-07-10T08:39:26+00:00">2022-07-10</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1336,7 +2382,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-06-30 08:19:14" itemprop="dateModified" datetime="2022-06-30T08:19:14+00:00">2022-06-30</time>
+                <time title="修改时间：2022-07-10 08:39:26" itemprop="dateModified" datetime="2022-07-10T08:39:26+00:00">2022-07-10</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1428,7 +2474,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-06-30 08:19:14" itemprop="dateModified" datetime="2022-06-30T08:19:14+00:00">2022-06-30</time>
+                <time title="修改时间：2022-07-10 08:39:26" itemprop="dateModified" datetime="2022-07-10T08:39:26+00:00">2022-07-10</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1471,208 +2517,6 @@
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2021/10/11/JS%E4%B8%AD%E4%B8%89%E4%B8%AA%E7%82%B9%E7%9A%84%E7%94%A8%E6%B3%95-%E6%89%A9%E5%B1%95%E8%BF%90%E7%AE%97%E7%AC%A6/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2021/10/09/ES6-%E7%AC%94%E8%AE%B0/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="syxdevcode的个人博客">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2021/10/09/ES6-%E7%AC%94%E8%AE%B0/" class="post-title-link" itemprop="url">ES6-笔记</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2021-10-09 14:37:42" itemprop="dateCreated datePublished" datetime="2021-10-09T14:37:42+00:00">2021-10-09</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-06-30 08:19:14" itemprop="dateModified" datetime="2022-06-30T08:19:14+00:00">2022-06-30</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/JavaScript/" itemprop="url" rel="index"><span itemprop="name">JavaScript</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>5k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>5 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="let-与-const"><a href="#let-与-const" class="headerlink" title="let 与 const"></a>let 与 const</h2><p>参考：<a target="_blank" rel="noopener" href="https://www.runoob.com/w3cnote/es6-let-const.html">ES6 let 与 const</a></p>
-<p>ES2015(ES6) 新增加了两个重要的 JavaScript 关键字: <code>let</code> 和 <code>const</code>。</p>
-<p>let 声明的变量只在 <code>let</code> 命令所在的代码块内有效。</p>
-<p>const 声明一个只读的常量，一旦声明，常量的值就不能改变。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2021/10/09/ES6-%E7%AC%94%E8%AE%B0/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2021/09/29/TypeScript-%E5%A3%B0%E6%98%8E%E6%96%87%E4%BB%B6/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="syxdevcode的个人博客">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2021/09/29/TypeScript-%E5%A3%B0%E6%98%8E%E6%96%87%E4%BB%B6/" class="post-title-link" itemprop="url">TypeScript-声明文件</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2021-09-29 17:18:42" itemprop="dateCreated datePublished" datetime="2021-09-29T17:18:42+00:00">2021-09-29</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-06-30 08:19:14" itemprop="dateModified" datetime="2022-06-30T08:19:14+00:00">2022-06-30</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/TypeScript/" itemprop="url" rel="index"><span itemprop="name">TypeScript</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>1.8k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>2 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><a target="_blank" rel="noopener" href="https://www.runoob.com/typescript/ts-ambient.html">TypeScript 声明文件</a></p>
-<p>TypeScript 作为 JavaScript 的超集，在开发过程中不可避免要引用其他第三方的 JavaScript 的库。虽然通过直接引用可以调用库的类和方法，但是却无法使用TypeScript 诸如类型检查等特性功能。为了解决这个问题，需要将这些库里的函数和方法体去掉后只保留导出类型声明，而产生了一个描述 JavaScript 库和模块信息的声明文件。通过引用这个声明文件，就可以借用 TypeScript 的各种特性来使用库文件了。</p>
-<h2 id="声明文件"><a href="#声明文件" class="headerlink" title="声明文件"></a>声明文件</h2><p>声明文件以 <code>.d.ts</code> 为后缀，例如：</p>
-<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">runoob.<span class="property">d</span>.<span class="property">ts</span></span><br></pre></td></tr></table></figure>
-
-<p>声明文件或模块的语法格式如下：</p>
-<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">declare</span> <span class="variable language_">module</span> <span class="title class_">Module</span>_Name &#123;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>TypeScript 引入声明文件语法格式：</p>
-<figure class="highlight ts"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/// &lt;reference path = &quot;runoob.d.ts&quot; /&gt;</span></span><br></pre></td></tr></table></figure>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2021/09/29/TypeScript-%E5%A3%B0%E6%98%8E%E6%96%87%E4%BB%B6/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -1763,14 +2607,14 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">552</span>
+          <span class="site-state-item-count">554</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">139</span>
+        <span class="site-state-item-count">140</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
@@ -1826,7 +2670,7 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">26:37</span>
+    <span title="站点阅读时长">26:43</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
   </div>
