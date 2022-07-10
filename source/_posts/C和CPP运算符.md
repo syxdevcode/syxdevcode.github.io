@@ -13,7 +13,7 @@ tags:
 C++也包含类型转换运算符 `const_cast`、`static_cast`、`dynamic_cast`和 `reinterpret_cast`，不在表中列出以维持简洁。类型转换运算符需要在表达式中明确使用括号，因此并不存在优先级的问题。
 
 在C里有的运算符，除了逗号运算符和箭头记头的运算符以外，在Java、Perl、C#和PHP同样也有相同的优先级、结合性和语义。
-
+<!--more-->
 <table class="wikitable">
 <tbody>
 <tr><th>优先级</th><th>运算符</th><th>叙述</th><th>示例</th><th>重载性</th><th>结合性</th></tr>
@@ -460,7 +460,7 @@ C++也包含类型转换运算符 `const_cast`、`static_cast`、`dynamic_cast`�
 <tbody>
 <tr>
 <td colspan="4">
-<h3 style="text-align: left"><span id=".E7.AE.97.E8.A1.93.E9.81.8B.E7.AE.97.E5.AD.90" class="mw-headline">算术运算符<span class="mw-editsection"><span class="mw-editsection-bracket">[<a title="编辑段落：算术运算符" href="http://zh.wikipedia.org/w/index.php?title=C%E5%92%8CC%2B%2B%E9%81%8B%E7%AE%97%E5%AD%90&amp;action=edit&amp;section=3" rel="noopener">编辑</a><span class="mw-editsection-bracket">]</span></span></span></span></h3>
+<h3 style="text-align: left"><span class="mw-headline">算术运算符</span></h3>
 
 </td>
 
@@ -580,7 +580,7 @@ C++也包含类型转换运算符 `const_cast`、`static_cast`、`dynamic_cast`�
 </tr>
 <tr>
 <td colspan="4">
-<h3><span id=".E6.AF.94.E8.BC.83.E9.81.8B.E7.AE.97.E5.AD.90" class="mw-headline">比较运算符<span class="mw-editsection"><span class="mw-editsection-bracket">[<a title="编辑段落：比较运算符" href="http://zh.wikipedia.org/w/index.php?title=C%E5%92%8CC%2B%2B%E9%81%8B%E7%AE%97%E5%AD%90&amp;action=edit&amp;section=4" rel="noopener">编辑</a><span class="mw-editsection-bracket">]</span></span></span></span></h3>
+<h3><span class="mw-headline">比较运算符</span></h3>
 
 </td>
 
@@ -651,7 +651,7 @@ C++也包含类型转换运算符 `const_cast`、`static_cast`、`dynamic_cast`�
 </tr>
 <tr>
 <td colspan="4">
-<h3><span id=".E4.BD.8D.E5.85.83.E9.81.8B.E7.AE.97.E5.AD.90" class="mw-headline">比特运算符<span class="mw-editsection"><span class="mw-editsection-bracket">[<a title="编辑段落：比特运算符" href="http://zh.wikipedia.org/w/index.php?title=C%E5%92%8CC%2B%2B%E9%81%8B%E7%AE%97%E5%AD%90&amp;action=edit&amp;section=5" rel="noopener">编辑</a><span class="mw-editsection-bracket">]</span></span></span></span></h3>
+<h3><span class="mw-headline">比特运算符</span></h3>
 
 </td>
 
@@ -736,7 +736,7 @@ C++也包含类型转换运算符 `const_cast`、`static_cast`、`dynamic_cast`�
 </tr>
 <tr>
 <td colspan="4">
-<h3><span class="mw-headline">其它运算符<span class="mw-editsection"><span class="mw-editsection-bracket">[<a title="编辑段落：其它运算符" href="http://zh.wikipedia.org/w/index.php?title=C%E5%92%8CC%2B%2B%E9%81%8B%E7%AE%97%E5%AD%90&amp;action=edit&amp;section=6" rel="noopener">编辑</a><span class="mw-editsection-bracket">]</span></span></span></span></h3>
+<h3><span class="mw-headline">其它运算符</span></h3>
 
 </td>
 
