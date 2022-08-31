@@ -2,27 +2,24 @@
 title: DotNet 单例模式
 date: 2019-03-21 08:33:10
 tags:
-- CSharp基础
-- 单例模式
-- DotNet面试题解析
-categories: 
-- 设计模式
+  - CSharp基础
+  - 单例模式
+  - DotNet面试题解析
+categories:
+  - 设计模式
 ---
-# DotNet 单例模式
 
-单例模式涉及到的基础知识，包括静态构造函数，私有构造函数，锁，延时创建对象, readonly/const等等。
+单例模式涉及到的基础知识，包括静态构造函数，私有构造函数，锁，延时创建对象, readonly/const 等等。
 
-单例的优点：
-1.保证了所有的对象访问的都是同一个实例
-2.由于类是由自己类控制实例化的，所以有相应的伸缩性
+单例的优点： 1.保证了所有的对象访问的都是同一个实例 2.由于类是由自己类控制实例化的，所以有相应的伸缩性
 
-单例的缺点：
-1.额外的系统开销，因为每次使用类的实例的时候，都要检查实例是否存在，可以通过静态实例该解决。
-2.无法销毁对象，单例模式的特性决定了只有他自己才能销毁对象实例，但是一般情况下我们都没做这个事情。
+单例的缺点： 1.额外的系统开销，因为每次使用类的实例的时候，都要检查实例是否存在，可以通过静态实例该解决。 2.无法销毁对象，单例模式的特性决定了只有他自己才能销毁对象实例，但是一般情况下我们都没做这个事情。
 
-## 版本1
+<!--more-->
 
-主要问题，就是线程安全的问题，当2个请求同时方式这个类的实例的时候，可以会在同一时间点上都创建一个实例。
+## 版本 1
+
+主要问题，就是线程安全的问题，当 2 个请求同时方式这个类的实例的时候，可以会在同一时间点上都创建一个实例。
 
 ```cs
 using System;
@@ -48,12 +45,12 @@ public sealed class Singleton
 }
 ```
 
-## 版本2
+## 版本 2
 
-标记类为sealed是好的，可以防止被集成;
+标记类为 sealed 是好的，可以防止被集成;
 在首次访问静态成员之前以及在调用构造函数（如果有）之前，会初始化静态成员。
 
-静态私有字段上通过new的形式，来保证在该类第一次被调用的时候创建实例,但是，C#其实并不保证实例创建的时机，因为C#规范只是在IL里标记该静态字段是`BeforeFieldInit`，也就是说静态字段可能在第一次被使用的时候创建，也可能你没使用了，它也帮你创建了。
+静态私有字段上通过 new 的形式，来保证在该类第一次被调用的时候创建实例,但是，C#其实并不保证实例创建的时机，因为 C#规范只是在 IL 里标记该静态字段是`BeforeFieldInit`，也就是说静态字段可能在第一次被使用的时候创建，也可能你没使用了，它也帮你创建了。
 
 ```cs
 public sealed class Singleton
@@ -75,13 +72,13 @@ public sealed class Singleton
 }
 ```
 
-## 版本3
+## 版本 3
 
 volatile 关键字表示字段可能被多个并发执行线程修改。声明为 `volatile` 的字段不受编译器优化（假定由单个线程访问）的限制。这样可以确保该字段在任何时间呈现的都是最新的值。
 
 <font color=#ff0000 size=4 face="黑体">常见的实现方法，推荐使用</font>
 
-每个线程都会对线程辅助对象locker加锁之后再判断实例是否存在，对于这个操作完全没有必要的，因为当第一个线程创建了该类的实例之后，后面的线程此时只需要直接判断（instance==null）为假，此时完全没必要对线程辅助对象加锁之后再去判断，所以上面的实现方式增加了额外的开销，损失了性能，为了改进上面实现方式的缺陷，我们只需要在lock语句前面加一句（instance==null）的判断就可以避免锁所增加的额外开销，这种实现方式我们就叫它 “双重锁定”。
+每个线程都会对线程辅助对象 locker 加锁之后再判断实例是否存在，对于这个操作完全没有必要的，因为当第一个线程创建了该类的实例之后，后面的线程此时只需要直接判断（instance==null）为假，此时完全没必要对线程辅助对象加锁之后再去判断，所以上面的实现方式增加了额外的开销，损失了性能，为了改进上面实现方式的缺陷，我们只需要在 lock 语句前面加一句（instance==null）的判断就可以避免锁所增加的额外开销，这种实现方式我们就叫它 “双重锁定”。
 
 ```cs
 public sealed class Singleton
@@ -112,7 +109,7 @@ public sealed class Singleton
 }
 ```
 
-## 版本4
+## 版本 4
 
 通过加静态构造函数，确保是个延迟初始化的单例。
 
@@ -142,9 +139,9 @@ public class Singleton
 }
 ```
 
-## 版本5
+## 版本 5
 
-版本4的变体
+版本 4 的变体
 
 ```cs
 public sealed class Singleton
@@ -166,7 +163,7 @@ public sealed class Singleton
 }
 ```
 
-## 版本6
+## 版本 6
 
 `Lazy<T>`默认的设置就是线程安全。
 
@@ -195,27 +192,25 @@ public class Singleton
 ## 泛型单例
 
 ```cs
-public abstract class Singleton
+public abstract class Singleton<T> where T : class
 {
     private static readonly Lazy<T> _instance
-      = new Lazy<T>(() =>
-      {
-          var ctors = typeof(T).GetConstructors(
-              BindingFlags.Instance
-              | BindingFlags.NonPublic
-              | BindingFlags.Public);
-          if (ctors.Count() != 1)
-              throw new InvalidOperationException(String.Format("Type {0} must have exactly one constructor.", typeof(T)));
-          var ctor = ctors.SingleOrDefault(c => c.GetParameters().Count() == 0 && c.IsPrivate);
-          if (ctor == null)
-              throw new InvalidOperationException(String.Format("The constructor for {0} must be private and take no parameters.", typeof(T)));
-          return (T)ctor.Invoke(null);
-      });
+        = new Lazy<T>(() =>
+        {
+            var ctors = typeof(T).GetConstructors(
+                BindingFlags.Instance
+                | BindingFlags.NonPublic
+                | BindingFlags.Public);
+            if (ctors.Count() != 1)
+                throw new InvalidOperationException($"Type {typeof(T)} must have exactly one constructor.");
+            var ctor = ctors.SingleOrDefault(c => !c.GetParameters().Any() && c.IsPrivate);
+            if (ctor == null)
+                throw new InvalidOperationException(
+                    $"The constructor for {typeof(T)} must be private and take no parameters.");
+            return (T)ctor.Invoke(null);
+        });
 
-    public static T Instance
-    {
-        get { return _instance.Value; }
-    }
+    public static T Instance => _instance.Value;
 }
 ```
 
@@ -267,6 +262,6 @@ static void Main(string[] args)
 
 参考：
 
-[大叔手记（10）：别再让面试官问你单例（暨6种实现方式让你堵住面试官的嘴）](http://www.cnblogs.com/TomXu/archive/2011/12/19/2291448.html)
+[大叔手记（10）：别再让面试官问你单例（暨 6 种实现方式让你堵住面试官的嘴）](http://www.cnblogs.com/TomXu/archive/2011/12/19/2291448.html)
 
-[.NET线程同步之Volatile构造](https://blog.csdn.net/daguanjia11/article/details/74612674)
+[.NET 线程同步之 Volatile 构造](https://blog.csdn.net/daguanjia11/article/details/74612674)
