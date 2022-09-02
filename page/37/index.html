@@ -184,6 +184,146 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2017/05/27/%E4%BD%BF%E7%94%A8Apache%20Benchmark%E8%BF%9B%E8%A1%8C%E7%AB%99%E7%82%B9%E5%8E%8B%E5%8A%9B%E6%B5%8B%E8%AF%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2017/05/27/%E4%BD%BF%E7%94%A8Apache%20Benchmark%E8%BF%9B%E8%A1%8C%E7%AB%99%E7%82%B9%E5%8E%8B%E5%8A%9B%E6%B5%8B%E8%AF%95/" class="post-title-link" itemprop="url">使用Apache Benchmark进行站点压力测试</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2017-05-27 11:11:18" itemprop="dateCreated datePublished" datetime="2017-05-27T11:11:18+00:00">2017-05-27</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-09-02 05:28:26" itemprop="dateModified" datetime="2022-09-02T05:28:26+00:00">2022-09-02</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Apache-Benchmark/" itemprop="url" rel="index"><span itemprop="name">Apache Benchmark</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>2.6k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>2 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="使用ab进行站点压力测试"><a href="#使用ab进行站点压力测试" class="headerlink" title="使用ab进行站点压力测试"></a>使用ab进行站点压力测试</h1><h2 id="压力测试相关概念"><a href="#压力测试相关概念" class="headerlink" title="压力测试相关概念"></a>压力测试相关概念</h2><ul>
+<li><p>吞吐率（Requests per second）</p>
+<p>  概念：服务器并发处理能力的量化描述，单位是reqs/s，指的是某个并发用户数下单位时间内处理的请求数。某个并发用户数下单位时间内能处理的最大请求数，称之为最大吞吐率。<br>  计算公式：总请求数 / 处理完成这些请求数所花费的时间，即<br>  Request per second = Complete requests / Time taken for tests</p>
+</li>
+<li><p>并发连接数（The number of concurrent connections）</p>
+<p>  概念：某个时刻服务器所接受的请求数目，简单的讲，就是一个会话。</p>
+<p>  并发用户数（The number of concurrent users，Concurrency Level）</p>
+<p>  概念：要注意区分这个概念和并发连接数之间的区别，一个用户可能同时会产生多个会话，也即连接数。</p>
+</li>
+<li><p>用户平均请求等待时间（Time per request）</p>
+<p>  计算公式：处理完成所有请求数所花费的时间/ （总请求数 / 并发用户数），即<br>  Time per request = Time taken for tests /（ Complete requests / Concurrency Level）</p>
+</li>
+<li><p>服务器平均请求等待时间（Time per request: across all concurrent requests）</p>
+<p>  计算公式：处理完成所有请求数所花费的时间 / 总请求数，即<br>  Time taken for / testsComplete requests<br>  可以看到，它是吞吐率的倒数。<br>  同时，它也=用户平均请求等待时间/并发用户数，即<br>  Time per request / Concurrency Level</p>
+</li>
+</ul>
+<h3 id="下载工具"><a href="#下载工具" class="headerlink" title="下载工具"></a>下载工具</h3><p><a target="_blank" rel="noopener" href="https://www.apachelounge.com/download/" title="下载链接">官网下载网址</a> </p>
+<p>解压压缩包，进入到<code>httpd-2.4.25-win64-VC14\Apache24\bin</code>目录下，<br>打开命令行，输入命令</p>
+<h3 id="运行测试"><a href="#运行测试" class="headerlink" title="运行测试"></a>运行测试</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ab -n 100 -c 10 http://baidu.com/</span><br></pre></td></tr></table></figure>
+
+<p>其中－n表示请求数，－c表示并发数</p>
+<h3 id="测试结果"><a href="#测试结果" class="headerlink" title="测试结果"></a>测试结果</h3><p><img src="/img/ab%E6%B5%8B%E8%AF%95%E7%BB%93%E6%9E%9C.png" alt="测试结果"></p>
+<h3 id="完整测试报告"><a href="#完整测试报告" class="headerlink" title="完整测试报告"></a>完整测试报告</h3><h4 id="服务器信息"><a href="#服务器信息" class="headerlink" title="服务器信息"></a>服务器信息</h4><pre><code>显示服务器为apache,域名，端口；
+</code></pre>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Server Software:        Apache</span><br><span class="line">Server Hostname:        baidu.com</span><br><span class="line">Server Port:            80</span><br></pre></td></tr></table></figure>
+
+<h4 id="文档信息"><a href="#文档信息" class="headerlink" title="文档信息"></a>文档信息</h4><pre><code>所在位置“/”，文档的大小为338436 bytes（此为http响应的正文长度）
+</code></pre>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Document Path:          /</span><br><span class="line">Document Length:        81 bytes</span><br></pre></td></tr></table></figure>
+
+<h4 id="重要信息"><a href="#重要信息" class="headerlink" title="重要信息"></a>重要信息</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">Concurrency Level:      10</span><br><span class="line">Time taken for tests:   2.584 seconds</span><br><span class="line">Complete requests:      100</span><br><span class="line">Failed requests:        0</span><br><span class="line">Total transferred:      38100 bytes</span><br><span class="line">HTML transferred:       8100 bytes</span><br><span class="line">Requests per second:    38.70 [#/sec] (mean)</span><br><span class="line">Time per request:       258.374 [ms] (mean)</span><br><span class="line">Time per request:       25.837 [ms] (mean, across all concurrent requests)</span><br><span class="line">Transfer rate:          14.40 [Kbytes/sec] received</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">//并发请求数</span><br><span class="line">Concurrency Level: 10</span><br><span class="line"></span><br><span class="line">//整个测试持续的时间</span><br><span class="line">Time taken for tests: 2.584 seconds</span><br><span class="line"></span><br><span class="line">//完成的请求数</span><br><span class="line">Complete requests: 100</span><br><span class="line"></span><br><span class="line">//失败的请求数</span><br><span class="line">Failed requests: 0</span><br><span class="line"></span><br><span class="line">//整个场景中的网络传输量</span><br><span class="line">Total transferred: 13701482 bytes</span><br><span class="line"></span><br><span class="line">//整个场景中的HTML内容传输量</span><br><span class="line">HTML transferred: 13197000 bytes</span><br><span class="line"></span><br><span class="line">//吞吐率，大家最关心的指标之一，相当于 LR 中的每秒事务数，后面括号中的 mean 表示这是一个平均值</span><br><span class="line">Requests per second: 38.70 [#/sec] (mean)</span><br><span class="line"></span><br><span class="line">//用户平均请求等待时间，大家最关心的指标之二，相当于 LR 中的平均事务响应时间，后面括号中的 mean 表示这是一个平均值</span><br><span class="line">Time per request: 258.374 [ms] (mean)</span><br><span class="line"></span><br><span class="line">//服务器平均请求处理时间，大家最关心的指标之三</span><br><span class="line">Time per request: 25.837 [ms] (mean, across all concurrent requests)</span><br><span class="line"></span><br><span class="line">//平均每秒网络上的流量，可以帮助排除是否存在网络流量过大导致响应时间延长的问题</span><br><span class="line">Transfer rate: 14.40 [Kbytes/sec] received</span><br></pre></td></tr></table></figure>
+
+<h4 id="网络上消耗的时间的分解"><a href="#网络上消耗的时间的分解" class="headerlink" title="网络上消耗的时间的分解"></a>网络上消耗的时间的分解</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Connection Times (ms)</span><br><span class="line">              min  mean[+/-sd] median   max</span><br><span class="line">Connect:       12   25  38.9     20     408</span><br><span class="line">Processing:     8  223 120.3    196     591</span><br><span class="line">Waiting:        8  142 124.9    120     574</span><br><span class="line">Total:         29  248 125.7    217     609</span><br></pre></td></tr></table></figure>
+
+<h4 id="网络消耗时间"><a href="#网络消耗时间" class="headerlink" title="网络消耗时间"></a>网络消耗时间</h4><p>这段是每个请求处理时间的分布情况，50%的处理时间在217ms内，66%的处理时间在224ms内…，重要的是看90%的处理时间</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">Percentage of the requests served within a certain time (ms)</span><br><span class="line">  50%    217</span><br><span class="line">  66%    224</span><br><span class="line">  75%    246</span><br><span class="line">  80%    249</span><br><span class="line">  90%    595</span><br><span class="line">  95%    604</span><br><span class="line">  98%    609</span><br><span class="line">  99%    609</span><br><span class="line"> 100%    609 (longest request)</span><br></pre></td></tr></table></figure>
+
+<h4 id="登录的问题"><a href="#登录的问题" class="headerlink" title="登录的问题"></a>登录的问题</h4><pre><code>有时候进行压力测试需要用户登录，怎么办？
+请参考以下步骤：
+
+先用账户和密码登录后，用开发者工具找到标识这个会话的Cookie值（Session ID）记下来
+如果只用到一个Cookie，那么只需键入命令：
+ab －n 100 －C key＝value http://baidu.com/
+
+如果需要多个Cookie，就直接设Header：
+ab -n 100 -H “Cookie: Key1=Value1; Key2=Value2” http://baidu.com/
+
+同类型的压力测试工具还有：webbench、siege、http_load等
+</code></pre>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/lpfuture/p/5740831.html" title="参考1">http://www.cnblogs.com/lpfuture/p/5740831.html</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2017/05/25/win10%E5%AE%89%E8%A3%85openssl/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -215,7 +355,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-01 11:48:28" itemprop="dateModified" datetime="2022-09-01T11:48:28+00:00">2022-09-01</time>
+                <time title="修改时间：2022-09-02 05:28:26" itemprop="dateModified" datetime="2022-09-02T05:28:26+00:00">2022-09-02</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -311,7 +451,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-01 11:48:28" itemprop="dateModified" datetime="2022-09-01T11:48:28+00:00">2022-09-01</time>
+                <time title="修改时间：2022-09-02 05:28:26" itemprop="dateModified" datetime="2022-09-02T05:28:26+00:00">2022-09-02</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -406,7 +546,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-01 11:48:28" itemprop="dateModified" datetime="2022-09-01T11:48:28+00:00">2022-09-01</time>
+                <time title="修改时间：2022-09-02 05:28:26" itemprop="dateModified" datetime="2022-09-02T05:28:26+00:00">2022-09-02</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -527,7 +667,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-01 11:48:28" itemprop="dateModified" datetime="2022-09-01T11:48:28+00:00">2022-09-01</time>
+                <time title="修改时间：2022-09-02 05:28:26" itemprop="dateModified" datetime="2022-09-02T05:28:26+00:00">2022-09-02</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -645,7 +785,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-01 11:48:28" itemprop="dateModified" datetime="2022-09-01T11:48:28+00:00">2022-09-01</time>
+                <time title="修改时间：2022-09-02 05:28:26" itemprop="dateModified" datetime="2022-09-02T05:28:26+00:00">2022-09-02</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -833,7 +973,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-01 11:48:28" itemprop="dateModified" datetime="2022-09-01T11:48:28+00:00">2022-09-01</time>
+                <time title="修改时间：2022-09-02 05:28:26" itemprop="dateModified" datetime="2022-09-02T05:28:26+00:00">2022-09-02</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -927,7 +1067,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-01 11:48:28" itemprop="dateModified" datetime="2022-09-01T11:48:28+00:00">2022-09-01</time>
+                <time title="修改时间：2022-09-02 05:28:26" itemprop="dateModified" datetime="2022-09-02T05:28:26+00:00">2022-09-02</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1078,7 +1218,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-01 11:48:28" itemprop="dateModified" datetime="2022-09-01T11:48:28+00:00">2022-09-01</time>
+                <time title="修改时间：2022-09-02 05:28:26" itemprop="dateModified" datetime="2022-09-02T05:28:26+00:00">2022-09-02</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1206,7 +1346,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-01 11:48:28" itemprop="dateModified" datetime="2022-09-01T11:48:28+00:00">2022-09-01</time>
+                <time title="修改时间：2022-09-02 05:28:26" itemprop="dateModified" datetime="2022-09-02T05:28:26+00:00">2022-09-02</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1315,7 +1455,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-01 11:48:28" itemprop="dateModified" datetime="2022-09-01T11:48:28+00:00">2022-09-01</time>
+                <time title="修改时间：2022-09-02 05:28:26" itemprop="dateModified" datetime="2022-09-02T05:28:26+00:00">2022-09-02</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1438,7 +1578,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-01 11:48:28" itemprop="dateModified" datetime="2022-09-01T11:48:28+00:00">2022-09-01</time>
+                <time title="修改时间：2022-09-02 05:28:26" itemprop="dateModified" datetime="2022-09-02T05:28:26+00:00">2022-09-02</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1601,7 +1741,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-01 11:48:28" itemprop="dateModified" datetime="2022-09-01T11:48:28+00:00">2022-09-01</time>
+                <time title="修改时间：2022-09-02 05:28:26" itemprop="dateModified" datetime="2022-09-02T05:28:26+00:00">2022-09-02</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1734,7 +1874,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-01 11:48:28" itemprop="dateModified" datetime="2022-09-01T11:48:28+00:00">2022-09-01</time>
+                <time title="修改时间：2022-09-02 05:28:26" itemprop="dateModified" datetime="2022-09-02T05:28:26+00:00">2022-09-02</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1830,7 +1970,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-01 11:48:28" itemprop="dateModified" datetime="2022-09-01T11:48:28+00:00">2022-09-01</time>
+                <time title="修改时间：2022-09-02 05:28:26" itemprop="dateModified" datetime="2022-09-02T05:28:26+00:00">2022-09-02</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1880,152 +2020,6 @@
 
 <p>参考：</p>
 <p><a target="_blank" rel="noopener" href="http://blog.csdn.net/typa01_kk/article/details/49057073," title="mysql server卸载">http://blog.csdn.net/typa01_kk/article/details/49057073</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2017/02/15/Mysql-CentOS7%E5%8D%95%E6%9C%BA%E5%AE%89%E8%A3%85/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="syxdevcode的个人博客">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/02/15/Mysql-CentOS7%E5%8D%95%E6%9C%BA%E5%AE%89%E8%A3%85/" class="post-title-link" itemprop="url">Mysql-CentOS7单机安装</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2017-02-15 15:48:14" itemprop="dateCreated datePublished" datetime="2017-02-15T15:48:14+00:00">2017-02-15</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-01 11:48:28" itemprop="dateModified" datetime="2022-09-01T11:48:28+00:00">2022-09-01</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/MySql/" itemprop="url" rel="index"><span itemprop="name">MySql</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>2.4k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>2 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="Mysql-CentOS7单机安装"><a href="#Mysql-CentOS7单机安装" class="headerlink" title="Mysql-CentOS7单机安装"></a>Mysql-CentOS7单机安装</h1><p>文章正文</p>
-<p>在centos7单机安装mysql.</p>
-<p>官网：<a target="_blank" rel="noopener" href="https://www.mysql.com/cn/downloads/">https://www.mysql.com/cn/downloads/</a></p>
-<h2 id="检查MySql是否安装"><a href="#检查MySql是否安装" class="headerlink" title="检查MySql是否安装"></a>检查MySql是否安装</h2><p>方式1</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost toor]# yum list installed mysql* </span><br><span class="line">Loaded plugins: fastestmirror, langpacks</span><br><span class="line">Loading mirror speeds from cached hostfile</span><br><span class="line"> * base: mirrors.tuna.tsinghua.edu.cn</span><br><span class="line"> * extras: mirrors.tuna.tsinghua.edu.cn</span><br><span class="line"> * updates: mirrors.tuna.tsinghua.edu.cn</span><br><span class="line">Installed Packages</span><br><span class="line">mysql-community-client.x86_64             5.7.17-1.el7        @mysql57-community</span><br><span class="line">mysql-community-common.x86_64             5.7.17-1.el7        @mysql57-community</span><br><span class="line">mysql-community-libs.x86_64               5.7.17-1.el7        @mysql57-community</span><br><span class="line">mysql-community-libs-compat.x86_64        5.7.17-1.el7        @mysql57-community</span><br><span class="line">mysql-community-server.x86_64             5.7.17-1.el7        @mysql57-community</span><br><span class="line">mysql57-community-release.noarch          el7-9               installed         </span><br></pre></td></tr></table></figure>
-
-<p>方式2</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost toor]# rpm -qa|grep -i mysql</span><br><span class="line">mysql-community-libs-compat-5.7.17-1.el7.x86_64</span><br><span class="line">mysql-community-libs-5.7.17-1.el7.x86_64</span><br><span class="line">mysql57-community-release-el7-9.noarch</span><br><span class="line">mysql-community-client-5.7.17-1.el7.x86_64</span><br><span class="line">mysql-community-server-5.7.17-1.el7.x86_64</span><br><span class="line">mysql-community-common-5.7.17-1.el7.x86_64</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><p>注：选择root用户操作</p>
-<h3 id="下载rpm包"><a href="#下载rpm包" class="headerlink" title="下载rpm包"></a>下载rpm包</h3><p>选择下载目录后，打开终端，输入命令，如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># wget http://dev.mysql.com/get/mysql57-community-release-el7-7.noarch.rpm</span><br></pre></td></tr></table></figure>
-
-<h3 id="安装mysql57-community-release-el7-7-noarch-下载rpm包"><a href="#安装mysql57-community-release-el7-7-noarch-下载rpm包" class="headerlink" title="安装mysql57-community-release-el7-7.noarch.下载rpm包"></a>安装mysql57-community-release-el7-7.noarch.下载rpm包</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">#rpm -ivh mysql57-community-release-el7-7.noarch.rpm</span><br></pre></td></tr></table></figure>
-
-<h3 id="安装mysql"><a href="#安装mysql" class="headerlink" title="安装mysql"></a>安装mysql</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># yum install mysql-community-server</span><br></pre></td></tr></table></figure>
-
-<h3 id="启动mysql服务"><a href="#启动mysql服务" class="headerlink" title="启动mysql服务"></a>启动mysql服务</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># service mysqld start</span><br></pre></td></tr></table></figure>
-
-<p>检查mysql状态</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># service mysqld status</span><br></pre></td></tr></table></figure>
-
-<p>查看mysql版本</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># mysql --version</span><br></pre></td></tr></table></figure>
-
-<h3 id="验证mysql实例"><a href="#验证mysql实例" class="headerlink" title="验证mysql实例"></a>验证mysql实例</h3><p>输入命令，显示临时生成的密码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># grep &#x27;temporary password&#x27; /var/log/mysqld.log</span><br></pre></td></tr></table></figure>
-
-<p>设置root帐号（和系统root帐号不同）密码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># mysql_secure_installation</span><br></pre></td></tr></table></figure>
-
-<h3 id="连接到mysql-server"><a href="#连接到mysql-server" class="headerlink" title="连接到mysql server"></a>连接到mysql server</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># mysql -u root -p</span><br></pre></td></tr></table></figure>
-
-<h3 id="使用yum更新mysql"><a href="#使用yum更新mysql" class="headerlink" title="使用yum更新mysql"></a>使用yum更新mysql</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># yum update mysql-server</span><br></pre></td></tr></table></figure>
-
-<h3 id="开启远程访问端口"><a href="#开启远程访问端口" class="headerlink" title="开启远程访问端口"></a>开启远程访问端口</h3><blockquote>
-<p>开启端口：</p>
-</blockquote>
-<p><code>firewall-cmd --zone=public --add-port=3306/tcp --permanent</code></p>
-<p>命令含义：</p>
-<p>–zone #作用域</p>
-<p>–add-port=3306/tcp #添加端口，格式为：端口/通讯协议</p>
-<p>–permanent #永久生效，没有此参数重启后失效</p>
-<blockquote>
-<p>重启防火墙:</p>
-</blockquote>
-<p><code>firewall-cmd --reload</code></p>
-<h3 id="开机自动启动-取消"><a href="#开机自动启动-取消" class="headerlink" title="开机自动启动/取消"></a>开机自动启动/取消</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">systemctl is-enabled iptables.service</span><br><span class="line">systemctl is-enabled servicename.service #查询服务是否开机启动</span><br><span class="line">systemctl enable mysqld.service #开机运行服务</span><br><span class="line">systemctl disable mysqld.service #取消开机运行</span><br><span class="line">systemctl start *.service #启动服务</span><br><span class="line">systemctl stop *.service #停止服务</span><br><span class="line">systemctl restart *.service #重启服务</span><br><span class="line">systemctl reload *.service #重新加载服务配置文件</span><br><span class="line">systemctl status *.service #查询服务运行状态</span><br><span class="line">systemctl --failed #显示启动失败的服务</span><br></pre></td></tr></table></figure>
-
-<h3 id="GUI管理工具"><a href="#GUI管理工具" class="headerlink" title="GUI管理工具"></a>GUI管理工具</h3><ul>
-<li>workbench(工作台)</li>
-</ul>
-<p>下载地址：<a target="_blank" rel="noopener" href="https://dev.mysql.com/downloads/workbench/" title="下载地址">https://dev.mysql.com/downloads/workbench/</a></p>
-<p><img src="/img/mysql-workbench.png" alt="配置"></p>
-<p>参考：</p>
-<p>[<a target="_blank" rel="noopener" href="http://blog.csdn.net/typa01_kk/article/details/49057073][removeMysql]">http://blog.csdn.net/typa01_kk/article/details/49057073][removeMysql]</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.tecmint.com/install-latest-mysql-on-rhel-centos-and-fedora/," title="参考安装1">http://www.tecmint.com/install-latest-mysql-on-rhel-centos-and-fedora/</a></p>
-<p><a target="_blank" rel="noopener" href="http://tecadmin.net/install-mysql-5-7-centos-rhel/," title="参考安装2">http://tecadmin.net/install-mysql-5-7-centos-rhel/</a></p>
-<p><a target="_blank" rel="noopener" href="http://blog.csdn.net/typa01_kk/article/details/49057073" title="Mysql，检查安装，卸载">http://blog.csdn.net/typa01_kk/article/details/49057073</a></p>
 
       
     </div>
@@ -2112,7 +2106,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">556</span>
+          <span class="site-state-item-count">557</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -2175,7 +2169,7 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">26:52</span>
+    <span title="站点阅读时长">27:01</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
   </div>
