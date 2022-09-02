@@ -141,6 +141,14 @@ services:
 └── www
 ```
 
+## 权限配置
+
+授权www文件夹下执行权限：
+
+```shell
+chmod a+rwx www/*
+```
+
 ```shell
 # 启动
 docker compose up -d
