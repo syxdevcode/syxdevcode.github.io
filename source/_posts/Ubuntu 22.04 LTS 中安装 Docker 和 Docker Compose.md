@@ -4,6 +4,8 @@ date: 2022-08-24 16:26:10
 tags:
   - Docker Compose
   - Docker
+  - Ubuntu
+  - Linux
 categories:
   - Docker Compose
 ---
