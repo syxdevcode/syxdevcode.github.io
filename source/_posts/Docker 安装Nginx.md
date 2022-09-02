@@ -77,8 +77,8 @@ sudo apt autoremove --purge nginx
 ```shell
 cp -r /etc/nginx /lims/nginx
 cd /lims/nginx
-mkdir nginxconfig.io sites-available sites-enabled www ssl
-chmod 666 nginxconfig.io sites-available sites-enabled www ssl
+mkdir nginxconfig.io www ssl
+chmod 666 nginxconfig.io www ssl
 ```
 
 生成 Diffie-Hellman keys：
@@ -103,14 +103,13 @@ services:
     volumes:
       - /lims/nginx/www:/var/www
       - /lims/nginx/logs:/var/log/nginx
-      - /lims/nginx/modules-enabled:/etc/nginx/modules-enabled
-      - /lims/nginx/dhparam.pem:/etc/nginx/dhparam.pem
       - /lims/nginx:/etc/nginx
     ports:
       - 8080:80
       - 8081:443
     environment:
       - NGINX_PORT=80
+      - TZ=Asia/Shanghai
     privileged: true
 ```
 
@@ -135,10 +134,6 @@ services:
 │   ├── proxy.conf
 │   └── security.conf
 ├── scgi_params
-├── sites-available
-│   └── laas.ponytest.com.conf
-├── sites-enabled
-│   └── laas.ponytest.com.conf
 ├── ssl
 │   ├── laas.ponytest.com.crt
 │   └── laas.ponytest.com.key
@@ -244,7 +239,6 @@ http {
 
     # Load configs
     include /etc/nginx/conf.d/*.conf;
-    include /etc/nginx/sites-enabled/*;
 }
 ```
 
@@ -330,7 +324,7 @@ location ~ /\.(?!well-known) {
 }
 ```
 
-`sites-available/laas.ponytest.com.conf` 配置：
+`conf.d/laas.ponytest.com.conf` 配置：
 
 ```shell
 server {
