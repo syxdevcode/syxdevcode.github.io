@@ -338,7 +338,7 @@ server {
     ssl_certificate_key /etc/nginx/ssl/laas.ponytest.com.key;
 
     # security
-    include             nginxconfig.io/security.conf;
+    include             /etc/nginx/nginxconfig.io/security.conf;
 
     # logging
     access_log          /var/log/nginx/laas.ponytest.com.access.log;
@@ -355,7 +355,7 @@ server {
     location /api/ {
         proxy_pass   https://laas.ponytest.com:8082;   #转发请求的地址
         rewrite      ^/api/(.*)$ /$1 break;
-        include      nginxconfig.io/proxy.conf;
+        include      /etc/nginx/nginxconfig.io/proxy.conf;
     }
 
     location @router {
@@ -367,7 +367,7 @@ server {
     }
 
     # additional config
-    include nginxconfig.io/general.conf;
+    include /etc/nginx/nginxconfig.io/general.conf;
 }
 
 # HTTP redirect
