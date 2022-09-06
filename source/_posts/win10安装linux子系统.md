@@ -2,17 +2,17 @@
 title: win10安装linux子系统
 date: 2020-01-21 16:25:13
 tags:
-- Linux
-- Windows子系统
-- WSL
-- Linux基础命令
+  - Linux
+  - Windows子系统
+  - WSL
+  - Linux基础命令
 categories:
-- WSL
+  - WSL
 ---
 
 ## 简介
 
-**WSL1和WSL2**
+**WSL1 和 WSL2**
 相比于 WSL1，WSL2 通过虚拟机的方式带来了更完整的 Linux 内核，但这种方式也引入了一些问题，微软给出了下面的图表来展示这些不同：
 
 ![v2-bb7b8a23b362ba5329d66517f81fbca8_720w.jpg](/img/v2-bb7b8a23b362ba5329d66517f81fbca8_720w.jpg)
@@ -34,10 +34,12 @@ wsl --install -d <DistroName>
 
 `--install` 命令执行以下操作：
 
-* 启用可选的 WSL 和虚拟机平台组件
-* 下载并安装最新 Linux 内核
-* 将 WSL 2 设置为默认值
-* 下载并安装 Ubuntu Linux 发行版（可能需要重新启动)
+- 启用可选的 WSL 和虚拟机平台组件
+- 下载并安装最新 Linux 内核
+- 将 WSL 2 设置为默认值
+- 下载并安装 Ubuntu Linux 发行版（可能需要重新启动)
+
+<!--more-->
 
 ## 网络互通
 
@@ -55,9 +57,16 @@ WSL2 访问 Windows 文件系统依然通过挂载分区的方式，Windows 下�
 
 更加方便的一个方式是，在 Terminal 中，使用 explorer.exe . 可以直接调用资源管理器打开当前目录，有点类似 Mac 下的 `open .`。
 
+## 重置密码
+
+```shell
+wsl.exe --user root;
+passwd root
+```
+
 ## cmder
 
-cmder下载： [http://cmder.net/](http://cmder.net/)
+cmder 下载： [http://cmder.net/](http://cmder.net/)
 
 ## 修改源
 
@@ -84,7 +93,7 @@ sudo apt-get update
 sudo apt-get upgrade
 ```
 
-## ubuntu命令
+## ubuntu 命令
 
 ```bash
 // 系统
@@ -138,23 +147,10 @@ sudo apt-get upgrade
 # chkconfig --list | grep on    # 列出所有启动的系统服务
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 参考：
 
 [安装 WSL](https://docs.microsoft.com/zh-cn/windows/wsl/install)
 
 [面向开发者的 WSL2 安装指南](https://zhuanlan.zhihu.com/p/145488247)
 
-[Ubuntu修改apt-get源](https://www.cnblogs.com/TechSnail/p/7754969.html)
+[Ubuntu 修改 apt-get 源](https://www.cnblogs.com/TechSnail/p/7754969.html)

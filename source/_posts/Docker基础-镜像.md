@@ -2,14 +2,14 @@
 title: Docker基础-镜像
 date: 2018-05-09 09:00:50
 tags:
-- Linux
-- Docker
-- CentOS7
-categories: 
-- Docker
+  - Linux
+  - Docker
+  - CentOS7
+categories:
+  - Docker
 ---
 
-** 三大核心概念 **
+**三大核心概念:**
 
 镜像，容器，仓库
 
@@ -17,15 +17,17 @@ categories:
 本文将介绍镜像的具体操作，包括使用 pull 命令从 Docker Hub 的镜像仓库中拉取(下载)公共镜像；查看本地已有的镜像信息；使用 search 命令搜索镜像；删除镜像标签和镜像文件；创建用户自定义镜像并上传到 Docker Hub 镜像仓库。
 与镜像相关的操作都被定义在 **docker image** 子命令中，虽然不带 image 的格式依然被兼容，但带上 image 后会让命令更容易理解，也会有更好的自动补全效果。
 
+<!--more-->
+
 ## 获取镜像
 
 本地镜像是运行容器的前提，所以在运行容器前我们需要使用 docker image pull 命令从网络上的镜像仓库把镜像拉取到本地。该命令的格式为：
 
-** docker image pull [OPTIONS] NAME[:TAG|@DIGEST] **
+`docker image pull [OPTIONS] NAME[:TAG|@DIGEST]`
 
 如果只指定了镜像的名称，默认会选择拉取 latest 标签标记的镜像。比如我们要拉取最新的 ubuntu 镜像：
 
-``` docker
+```shell
 docker image pull ubuntu
 ```
 
@@ -33,19 +35,19 @@ docker image pull ubuntu
 
 该命令实际拉取的是 ubuntu:latest 镜像。从上图中可以看到，docker 的镜像其实被分成了很多的层，每层保存一些特定的文件。上面的命令实际相当于：
 
-``` docker
+```shell
 docker image pull registry.hub.docker.com/ubuntu:latest
 ```
 
 即从默认的数据仓库服务器 registry.hub.docker.com 中拉取 ubuntu 仓库中的最新镜像。如果我们感觉从 Docker Hub 上拉取镜像太慢，可选择从其它的数据仓库服务器上拉取，比如 Docker Hub 在国内部署的服务器：
 
-``` docker
+```shell
 docker image pull registry.docker-cn.com/library/ubuntu:latest
 ```
 
 镜像下载到本地后就可运行容器了，比如：
 
-``` docker
+```shell
 docker run --rm ubuntu echo hello docker
 ```
 
@@ -55,7 +57,7 @@ docker run --rm ubuntu echo hello docker
 
 ## 查看镜像信息
 
- `docker image ls` 或 `docker images` 命令可以列出本地存储的镜像
+`docker image ls` 或 `docker images` 命令可以列出本地存储的镜像
 ![2](/img/QQ截图20180509163307.png)
 
 输出的信息中包含的内容有：
@@ -78,7 +80,7 @@ TAG 信息用来标记来自同一个仓库(比如 ubuntu)的不同镜像。例�
 
 使用 `docker image tag` 命令为本地的镜像添加新的标签还可以方便我们的使用，比如为 ubuntu:latest 镜像添加下面的标签：
 
-``` docker
+```shell
 docker image tag ubuntu:latest oldubuntu
 ```
 
@@ -86,7 +88,7 @@ docker image tag ubuntu:latest oldubuntu
 
 使用`docker image inspect`命令可以查看镜像详细信息
 
-``` docker
+```shell
 docker image inspect ubuntu:latest
 ```
 
@@ -94,7 +96,7 @@ docker image inspect ubuntu:latest
 
 它输出的是一个 JSON 格式的信息，一般情况下我们会有的放矢的通过 -f 选项取其中的某一部分。比如只获取镜像的 Architecture 信息：
 
-``` docker
+```shell
 docker image inspect -f {{".Architecture"}} ubuntu:latest
 ```
 
@@ -102,7 +104,7 @@ docker image inspect -f {{".Architecture"}} ubuntu:latest
 
 除了直接在 Docker Hub 的官方网站上搜索镜像资源，还可以通 docker search 命令以命令行的方式进行搜索，比如搜索 mysql 镜像：
 
-``` docker
+```shell
 docker search mysql
 ```
 
@@ -110,7 +112,7 @@ docker search mysql
 
 ## 删除镜像
 
- docker image rm 命令传递镜像的标签或 ID，这两种方式略微有些区别。
+docker image rm 命令传递镜像的标签或 ID，这两种方式略微有些区别。
 
 ### 使用进行的标签删除镜像
 
@@ -118,7 +120,7 @@ docker search mysql
 
 ### 使用镜像 ID 删除镜像
 
- docker 检测到该镜像 ID 被引用了多次就机智的报错了，并且终止了删除操作。同样如果由其它的镜像引用了该 ID 的镜像， docker 同样会报错并终止删除操作。所以，只有当一个镜像不被多个标签引用，也没其它镜像引用它时，才可以被通过镜像 ID 删除。
+docker 检测到该镜像 ID 被引用了多次就机智的报错了，并且终止了删除操作。同样如果由其它的镜像引用了该 ID 的镜像， docker 同样会报错并终止删除操作。所以，只有当一个镜像不被多个标签引用，也没其它镜像引用它时，才可以被通过镜像 ID 删除。
 
 ## 创建镜像
 
@@ -128,11 +130,11 @@ docker search mysql
 
 我们先启动一个以 ubuntu:latest 为镜像的容器，然后在当前目录下创建一个名为 testfile 的文件:
 
-``` docker
+```shell
 docker run -it ubuntu:latest bash
 ```
 
-``` docker
+```shell
 [root@localhost Desktop]# docker run -it ubuntu:latest bash
 root@2a45b0b39bf8:/# touch testfile
 root@2a45b0b39bf8:/# ls
@@ -143,19 +145,19 @@ root@2a45b0b39bf8:/#
 
 在文件创建后退出容器，但要记住该容器的 ID 为： 2a45b0b39bf8 。然后执行下面的命令创建镜像：
 
-``` docker
+```shell
 docker container commit -m "add file testfile." 2a45b0b39bf8 testimage
 ```
 
 镜像创建成功后，你可以在镜像列表中看到名称为 testimage 的镜像
 
-```docker
+```shell
 docker images
 ```
 
 下面运行一个基于 testimage 的容器，看看 nickfile 是否存在。--rm：退出时自动删除
 
-```docker
+```shell
 docker run --rm testimage ls
 ```
 
@@ -169,13 +171,13 @@ docker run --rm testimage ls
 
 通过 `docker image save` 命令可以把镜像导出为本地文件，比如导出 ubuntu:latest 镜像为 ubuntu1804.tar：
 
-```docker
+```shell
 docker image save -o ubuntu1804.tar ubuntu:latest
 ```
 
 一般我们还会再压缩一下，这样最终的文件会小不少：
 
-```docker
+```shell
 tar -czf ubuntu1804.tar.gz ubuntu1804.tar
 ```
 
@@ -185,13 +187,13 @@ tar -czf ubuntu1804.tar.gz ubuntu1804.tar
 
 把 ubuntu1804.tar.gz 文件拷贝到目标系统上后先要解压出 ubuntu1804.tar 文件：
 
-``` linux
+```shell
 tar -xf ubuntu1804.tar.gz
 ```
 
 然后通过 docker image load 命令执行镜像的导入操作：
 
-``` linux
+```shell
 docker image load -i ubuntu1804.tar
 ```
 
@@ -201,13 +203,13 @@ docker image load -i ubuntu1804.tar
 
 可以使用 **`docker image push`** 命令把镜像上传到镜像仓库服务器，默认是上传到 Docker Hub 的镜像仓库，此时事先需要注册用户并进行登录。上传镜像的命令格式为：
 
-``` docker
+```shell
 docker image push NAME[:TAG]
 ```
 
 在 Docker Hub 注册账号，并通过 docker login 命令完成了登录操作(需要输入用户名和密码进行验证)。接下来就可把本地的镜像上传到镜像仓库服务器了。在上传前需要给镜像打上合法的标签(用户账号/仓库名称:TAG)，比如：
 
-``` linux
+```shell
 [root@localhost Desktop]# docker image tag --help
 
 Usage: docker image tag SOURCE_IMAGE[:TAG] TARGET_IMAGE[:TAG]
@@ -217,13 +219,13 @@ Create a tag TARGET_IMAGE that refers to SOURCE_IMAGE
 Options:
 ```
 
-``` docker
+```shell
 docker image tag azcli:1.0 ljfpower/azcli:latest
 ```
 
 最后上传这个标签就行了：
 
-``` docker
+```shell
 docker image push ljfpower/azcli:latest
 ```
 
