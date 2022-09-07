@@ -236,7 +236,7 @@ sentinel parallel-syncs limsmaster 2
 新建 `docker-compose.yml` 文件。
 
 ```yml
-version: '4.1'
+version: '3.1'
 
 services:
   redis-master:

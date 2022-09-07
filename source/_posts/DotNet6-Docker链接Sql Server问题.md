@@ -57,7 +57,9 @@ db.Aop.OnLogExecuting = (sql, pars) =>
 
 ## Dockerfile 设置
 
-SQL Server 不支持 TLS 1.2，但是在 Docker 映像容器、Unix 客户端或 Windows 客户端等客户端环境中，其中 TLS 1.2 是支持的最低 TLS 协议，所以需要设置 TLS 版本。
+SQL Server 2016、SQL Server 2017 和 SQL Server 2019 支持 TLS 1.2，无需设置。
+
+低版本 SQL Server 默认不支持 TLS 1.2（可以安装补丁包，详情：[KB3135244 - TLS 1.2 对 Microsoft SQL Server](https://support.microsoft.com/zh-cn/topic/kb3135244-tls-1-2-%E5%AF%B9-microsoft-sql-server-e4472ef8-90a9-13c1-e4d8-44aad198cdbe#:~:text=SQL%20Server%202016%E3%80%81SQL%20Server%202017%20%E5%92%8C%20SQL%20Server,%E5%BB%BA%E8%AE%AE%E5%8D%87%E7%BA%A7%E5%88%B0%20TLS%201.2%20%E4%BB%A5%E5%AE%89%E5%85%A8%E9%80%9A%E4%BF%A1%E3%80%82%20%E9%87%8D%E8%A6%81%EF%BC%9A%E6%9C%AA%E9%92%88%E5%AF%B9%20Microsoft%20TDS%20%E5%AE%9E%E7%8E%B0%E6%8A%A5%E5%91%8A%E4%BB%BB%E4%BD%95%E5%B7%B2%E7%9F%A5%E6%BC%8F%E6%B4%9E%E3%80%82)），但是在 Docker 映像容器、Unix 客户端或 Windows 客户端等客户端环境中，其中 TLS 1.2 是支持的最低 TLS 协议，所以需要设置 TLS 版本。
 
 ```Dockerfile
 #See https://aka.ms/containerfastmode to understand how Visual Studio uses this Dockerfile to build your images for faster debugging.

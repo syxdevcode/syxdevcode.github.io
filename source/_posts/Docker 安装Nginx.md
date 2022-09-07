@@ -1,7 +1,7 @@
 ---
 title: Docker安装Nginx
 date: 2022-09-02 11:34:44
-tags:  
+tags:
   - Docker Compose
   - Docker
   - Nginx
@@ -21,7 +21,7 @@ categories:
 sudo apt install curl gnupg2 ca-certificates lsb-release ubuntu-keyring
 ```
 
-导入官方nginx签名密钥，以便apt可以验证软件包的真实性。
+导入官方 nginx 签名密钥，以便 apt 可以验证软件包的真实性。
 
 ```shell
 curl https://nginx.org/keys/nginx_signing.key | gpg --dearmor \
@@ -34,7 +34,7 @@ curl https://nginx.org/keys/nginx_signing.key | gpg --dearmor \
 gpg --dry-run --quiet --import --import-options import-show /usr/share/keyrings/nginx-archive-keyring.gpg
 ```
 
-以稳定的nginx包设置apt存储库，请运行以下命令：
+以稳定的 nginx 包设置 apt 存储库，请运行以下命令：
 
 ```shell
 echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] \
@@ -42,7 +42,7 @@ http://nginx.org/packages/ubuntu `lsb_release -cs` nginx" \
     | sudo tee /etc/apt/sources.list.d/nginx.list
 ```
 
-使用主线nginx包，请运行以下命令：
+使用主线 nginx 包，请运行以下命令：
 
 ```shell
 echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] \
@@ -58,6 +58,7 @@ echo -e "Package: *\nPin: origin nginx.org\nPin: release o=nginx\nPin-Priority: 
 ```
 
 <!--more-->
+
 安装：
 
 ```shell
@@ -88,12 +89,12 @@ chmod 666 nginxconfig.io www ssl
 openssl dhparam -out dhparam.pem 2048
 ```
 
-## Docker Compose安装
+## Docker Compose 安装
 
 新建 `docker-compose.yml` 文件：
 
 ```yml
-version: '4.1'
+version: "3.1"
 
 services:
   nginx:
@@ -143,7 +144,7 @@ services:
 
 ## 权限配置
 
-授权www文件夹下执行权限：
+授权 www 文件夹下执行权限：
 
 ```shell
 chmod a+rwx www/*
@@ -159,7 +160,7 @@ docker-compose down -v
 docker ps | grep nginx
 ```
 
-## Nginx配置参考
+## Nginx 配置参考
 
 [Nginx1.22.0.7z](/file/Nginx1.22.0.7z)
 
@@ -358,7 +359,7 @@ server {
         index  index.html index.htm;
     error_page 405 =200 http://$host$request_uri;
     }
-    
+
     # reverse proxy
     location /api/ {
         proxy_pass   https://laas.ponytest.com:8082;   #转发请求的地址

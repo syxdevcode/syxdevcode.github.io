@@ -2,11 +2,11 @@
 title: Linux du命令
 date: 2021-04-06 13:30:14
 tags:
-- Linux
-- CentOS7
-- Linux基础命令
+  - Linux
+  - CentOS7
+  - Linux基础命令
 categories:
-- Linux基础命令
+  - Linux基础命令
 ---
 
 Linux du（英文全拼：disk usage）命令用于显示目录或文件的大小。du 侧重在文件夹和文件的磁盘占用方面，而 df 则侧重在文件系统级别的磁盘占用方面。
@@ -21,27 +21,45 @@ du 展示的是磁盘空间占用量。ls 展示的是文件内容的大小。
 du [-abcDhHklmsSx][-L <符号连接>][-X <文件>][--block-size]
 [--exclude=<目录或文件>][--max-depth=<目录层数>][--help][--version][目录或文件]
 ```
+
 <!--more-->
+
 参数说明：
 
-* -a或-all 显示目录中个别文件的大小。
-* -b或-bytes 显示目录或文件大小时，以byte为单位。
-* -c或--total 除了显示个别目录或文件的大小外，同时也显示所有目录或文件的总和。
-* -D或--dereference-args 显示指定符号连接的源文件大小。
-* -h或--human-readable 以K，M，G为单位，提高信息的可读性。
-* -H或--si 与-h参数相同，但是K，M，G是以1000为换算单位。
-* -k或--kilobytes 以1024 bytes为单位。
-* -l或--count-links 重复计算硬件连接的文件。
-* -L<符号连接>或--dereference<符号连接> 显示选项中所指定符号连接的源文件大小。
-* -m或--megabytes 以1MB为单位。
-* -s或--summarize 仅显示总计。
-* -S或--separate-dirs 显示个别目录的大小时，并不含其子目录的大小。
-* -x或--one-file-xystem 以一开始处理时的文件系统为准，若遇上其它不同的文件系统目录则略过。
-* -X<文件>或--exclude-from=<文件> 在<文件>指定目录或文件。
-* --exclude=<目录或文件> 略过指定的目录或文件。
-* --max-depth=<目录层数> 超过指定层数的目录后，予以忽略。
-* --help 显示帮助。
-* --version 显示版本信息。
+- -a 或-all 显示目录中个别文件的大小。
+- -b 或-bytes 显示目录或文件大小时，以 byte 为单位。
+- -c 或--total 除了显示个别目录或文件的大小外，同时也显示所有目录或文件的总和。
+- -D 或--dereference-args 显示指定符号连接的源文件大小。
+- -h 或--human-readable 以 K，M，G 为单位，提高信息的可读性。
+- -H 或--si 与-h 参数相同，但是 K，M，G 是以 1000 为换算单位。
+- -k 或--kilobytes 以 1024 bytes 为单位。
+- -l 或--count-links 重复计算硬件连接的文件。
+- -L<符号连接>或--dereference<符号连接> 显示选项中所指定符号连接的源文件大小。
+- -m 或--megabytes 以 1MB 为单位。
+- -s 或--summarize 仅显示总计。
+- -S 或--separate-dirs 显示个别目录的大小时，并不含其子目录的大小。
+- -x 或--one-file-xystem 以一开始处理时的文件系统为准，若遇上其它不同的文件系统目录则略过。
+- -X<文件>或--exclude-from=<文件> 在<文件>指定目录或文件。
+- --exclude=<目录或文件> 略过指定的目录或文件。
+- --max-depth=<目录层数> 超过指定层数的目录后，予以忽略。
+- --help 显示帮助。
+- --version 显示版本信息。
+
+常用命令
+
+```shell
+# 查看当前文件夹下所有文件大小
+du -h
+
+# 查看指定文件/文件夹大小
+du -h test.txt
+
+# 当前文件夹下所有文件总大小
+du -sh *
+
+# 计算当前文件夹下所有后缀是 tar.gz 的文件的磁盘使用量总和
+du -ch *.tar.gz
+```
 
 ## 单位名称
 
@@ -71,16 +89,17 @@ du
 8       ./test3
 1288    .
 ```
-只显示当前目录下面的子目录的目录大小和当前目录的总的大小，最下面的1288为当前目录的总大小
+
+只显示当前目录下面的子目录的目录大小和当前目录的总的大小，最下面的 1288 为当前目录的总大小
 
 2，显示指定文件所占空间
 
 ```sh
-# du log2012.log 
+# du log2012.log
 300     log2012.log
 ```
 
-3，方便阅读的格式显示test目录所占空间情况：
+3，方便阅读的格式显示 test 目录所占空间情况：
 
 ```sh
 # du -h test
@@ -111,7 +130,7 @@ du
 0       ./.bbc/ddd
 0       ./.bbc/.ccc
 51M     .
- 
+
 # 用--exclude的一个很简单的正则匹配
 [roc@roclinux ruanjian]$ du -ah --exclude="*/.*" .
 6.8M    ./wordpress-4.4.1.tar.gz
@@ -132,14 +151,13 @@ du -sh *|sort -nr
 du -ah .|sort -hr
 ```
 
-sort -h选项和-n选项的区别：
-* -n选项，按数值进行比较，只会傻傻地比较数字，它会认为 98 K大于 2G。
-* -h选项，会更加聪明，先优先比较单位（G>M>K），然后再对数值进行比较。
+sort -h 选项和-n 选项的区别：
 
+- -n 选项，按数值进行比较，只会傻傻地比较数字，它会认为 98 K 大于 2G。
+- -h 选项，会更加聪明，先优先比较单位（G>M>K），然后再对数值进行比较。
 
 参考：
 
 [Linux du 命令](https://www.runoob.com/linux/linux-comm-du.html)
 
-[du命令_Linux du命令：查看文件夹和文件的磁盘占用情况](http://c.biancheng.net/linux/du.html)
-
+[du 命令\_Linux du 命令：查看文件夹和文件的磁盘占用情况](http://c.biancheng.net/linux/du.html)
