@@ -2,38 +2,38 @@
 title: Linux LVM(逻辑卷管理)
 date: 2020-08-27 17:24:24
 tags:
-- 计算机基础
-- 硬盘
-- Linux
-- LVM
-- 计算机科学
+  - 计算机基础
+  - 硬盘
+  - Linux
+  - LVM
+  - 计算机科学
 categories: Linux LVM
 ---
 
 ## 简介
 
-LVM是逻辑盘卷管理( `Logical Volume Manager`)的简称，它是Linux环境下对磁盘分区进行管理的一种机制，LVM是建立在硬盘和 分区之上的一个逻辑层，来提高磁盘分区管理的灵活性。
+LVM 是逻辑盘卷管理( `Logical Volume Manager`)的简称，它是 Linux 环境下对磁盘分区进行管理的一种机制，LVM 是建立在硬盘和 分区之上的一个逻辑层，来提高磁盘分区管理的灵活性。
 
-通过LVM系统管理员可以轻松管理磁盘分区，如:将若干个磁盘分区连接为一个整块的卷组 (`volume group`)，形成一个存储池。
+通过 LVM 系统管理员可以轻松管理磁盘分区，如:将若干个磁盘分区连接为一个整块的卷组 (`volume group`)，形成一个存储池。
 
-管理员可以在卷组上随意创建逻辑卷组(`logical volumes`)，并进一步在逻辑卷组上创建文件系 统。管理员通过LVM可以方便的调整存储卷组的大小，并且可以对磁盘存储按照组的方式进行命名、管理和分配。
+管理员可以在卷组上随意创建逻辑卷组(`logical volumes`)，并进一步在逻辑卷组上创建文件系 统。管理员通过 LVM 可以方便的调整存储卷组的大小，并且可以对磁盘存储按照组的方式进行命名、管理和分配。
 
-例如按照使用用途进行定义:`development` 和 `sales`，而不是使用物理磁盘名 `sda` 和`sdb`。而且当系统添加了新的磁盘，通过LVM管理员就不必将磁盘的 文件移动到新的磁盘上以充分利用新的存储空间，而是直接扩展文件系统跨越磁盘即可。
+例如按照使用用途进行定义:`development` 和 `sales`，而不是使用物理磁盘名 `sda` 和`sdb`。而且当系统添加了新的磁盘，通过 LVM 管理员就不必将磁盘的 文件移动到新的磁盘上以充分利用新的存储空间，而是直接扩展文件系统跨越磁盘即可。
 
 ![58846-20160825131201304-610664422.jpg](/img/58846-20160825131201304-610664422.jpg)
 
-## LVM相关名词
+## LVM 相关名词
 
-* **PV(physical volume)**：`物理卷` 在逻辑卷管理系统最底层，可为整个物理硬盘或实际物理硬盘上的分区。
-* **VG(volume group)**：`卷组` 建立在物理卷上，一卷组中至少要包括一物理卷，卷组建立后可动态的添加卷到卷组中，一个逻辑卷管理系统工程中可有多个卷组。
-* **LV(logical volume)**：`逻辑卷` 建立在卷组基础上，卷组中未分配空间可用于建立新的逻辑卷，逻辑卷建立后可以动态扩展和缩小空间。
-* **PE(physical extent)**：`物理区域` 是物理卷中可用于分配的最小存储单元，物理区域大小在建立卷组时指定，一旦确定不能更改，同一卷组所有物理卷的物理区域大小需一致，新的pv加入到vg后，pe的大小自动更改为vg中定义的pe大小。
-* **LE(logical extent)**：`逻辑区域` 是逻辑卷中可用于分配的最小存储单元，逻辑区域的大小取决于逻辑卷所在卷组中的物理区域的大小。
-卷组描述区域：卷组描述区域存在于每个物理卷中，用于描述物理卷本身、物理卷所属卷组、卷组中逻辑卷、逻辑卷中物理区域的分配等所有信息，它是在使用pvcreate建立物理卷时建立的。
+- PV(physical volume)：`物理卷` 在逻辑卷管理系统最底层，可为整个物理硬盘或实际物理硬盘上的分区。
+- VG(volume group)：`卷组` 建立在物理卷上，一卷组中至少要包括一物理卷，卷组建立后可动态的添加卷到卷组中，一个逻辑卷管理系统工程中可有多个卷组。
+- LV(logical volume)：`逻辑卷` 建立在卷组基础上，卷组中未分配空间可用于建立新的逻辑卷，逻辑卷建立后可以动态扩展和缩小空间。
+- PE(physical extent)：`物理区域` 是物理卷中可用于分配的最小存储单元，物理区域大小在建立卷组时指定，一旦确定不能更改，同一卷组所有物理卷的物理区域大小需一致，新的 pv 加入到 vg 后，pe 的大小自动更改为 vg 中定义的 pe 大小。
+- LE(logical extent)：`逻辑区域` 是逻辑卷中可用于分配的最小存储单元，逻辑区域的大小取决于逻辑卷所在卷组中的物理区域的大小。
+  卷组描述区域：卷组描述区域存在于每个物理卷中，用于描述物理卷本身、物理卷所属卷组、卷组中逻辑卷、逻辑卷中物理区域的分配等所有信息，它是在使用 pvcreate 建立物理卷时建立的。
 
-**关于PV命令**
+**关于 PV 命令:**
 
-`pvcreate` 命令用于将物理硬盘分区初始化为物理卷，以便LVM使用。
+`pvcreate` 命令用于将物理硬盘分区初始化为物理卷，以便 LVM 使用。
 
 ```sh
 pvcreate：将物理分区制作成 物理卷 PV
@@ -42,7 +42,7 @@ pvdisplay：显示当前系统上的 PV 状态
 pvremove：将 PV 属性删除，让其不具有 PV 属性，成为一般的分区
 ```
 
-**关于VG下命令**
+**关于 VG 下命令:**
 
 ```sh
 vgcreate：建立 VG 。它的参数比较多，一会儿详细介绍
@@ -54,17 +54,17 @@ vgchange：设置 VG 是否启动（active）
 vgremove：删除一个卷组 VG 本身
 ```
 
-## 创建LVM过程
+## 创建 LVM 过程
 
 创建 LVM 过程 ：
 
-分区成LVM格式(8e)---PV创建--VG创建---LV创建---格式化分区---MOUNT分区----e2fsadm调整LV大小
+分区成 LVM 格式(8e)---PV 创建--VG 创建---LV 创建---格式化分区---MOUNT 分区----e2fsadm 调整 LV 大小
 
-在LVM发行包中有一个称为 `e2fsadm` 的工具，它同时包含了 `lvextend` 与 `resize2fs` 的功能。
+在 LVM 发行包中有一个称为 `e2fsadm` 的工具，它同时包含了 `lvextend` 与 `resize2fs` 的功能。
 
 ### 创建分区
 
-使用分区工具(如: `fdisk` 等)创建LVM分区，方法和创建其他一般分区的方式是一样的，区别仅仅是LVM的分区类型为8e。
+使用分区工具(如: `fdisk` 等)创建 LVM 分区，方法和创建其他一般分区的方式是一样的，区别仅仅是 LVM 的分区类型为 8e。
 
 ```sh
 fdisk /dev/vdb
@@ -110,13 +110,13 @@ pvdisplay
 vgcreate unicomvg /dev/vdb
 ```
 
-`vgcreate` 在创建卷组 `unicomvg` 以外，还设置使用大小为4MB的PE(默认为4MB)，这表示卷组上创建的所有逻辑卷都以4MB为增量单位来进行扩充 或缩减。
+`vgcreate` 在创建卷组 `unicomvg` 以外，还设置使用大小为 4MB 的 PE(默认为 4MB)，这表示卷组上创建的所有逻辑卷都以 4MB 为增量单位来进行扩充 或缩减。
 
-由于内核原因，PE大小决定了逻辑卷的最大大小，4MB的PE决定了单个逻辑卷最大容量为256GB，若希望使用大于256G的逻辑卷则创建卷组时指定更大的PE。
+由于内核原因，PE 大小决定了逻辑卷的最大大小，4MB 的 PE 决定了单个逻辑卷最大容量为 256GB，若希望使用大于 256G 的逻辑卷则创建卷组时指定更大的 PE。
 
-PE大小范围为8KB到512MB，并且必须总是2的倍数(使用-s指定，具体请参考 `manvgcreate` )。(centos 6.2系统已发现没有这种限制)
+PE 大小范围为 8KB 到 512MB，并且必须总是 2 的倍数(使用-s 指定，具体请参考 `manvgcreate` )。(centos 6.2 系统已发现没有这种限制)
 
-例如，如果希望使用 64MB 的PE创建卷组，这样逻辑卷最大容量就可以为 `4TB`，命令如下: 
+例如，如果希望使用 64MB 的 PE 创建卷组，这样逻辑卷最大容量就可以为 `4TB`，命令如下:
 
 ```sh
 vgcreate -64MB lvmdisk /dev/vdb1 /dev/vdc1
@@ -154,15 +154,15 @@ vgreduce unicomvg /dev/sda1
 
 ### 创建逻辑卷
 
-逻辑卷（Logical Volumes）简称 LV，是在卷组中划分的一个逻辑区域，类似于非LVM系统中的硬盘分区。 
-创建逻辑卷的命令为lvcreate，通过下面的命令。
+逻辑卷（Logical Volumes）简称 LV，是在卷组中划分的一个逻辑区域，类似于非 LVM 系统中的硬盘分区。
+创建逻辑卷的命令为 lvcreate，通过下面的命令。
 
-该命令就在卷组 `unicomvg` 上创建名字为 `unicomvol` ，大小为15000M（15G）的逻辑卷，并且设备入口为 `/dev/unicomvg/unicomvol` ( `unicomvg` 为卷组名，`unicomvol` 为逻辑卷名)。
+该命令就在卷组 `unicomvg` 上创建名字为 `unicomvol` ，大小为 15000M（15G）的逻辑卷，并且设备入口为 `/dev/unicomvg/unicomvol` ( `unicomvg` 为卷组名，`unicomvol` 为逻辑卷名)。
 
 创建逻辑卷的命令为 `lvcreate`:
 
-* -L：指定逻辑卷的大小，单位为“kKmMgGtT”字节；
-* -l：指定逻辑卷的大小（LE数）。
+- -L：指定逻辑卷的大小，单位为“kKmMgGtT”字节；
+- -l：指定逻辑卷的大小（LE 数）。
 
 ```sh
 lvcreate -L 15000 -n unicomvol unicomvg
@@ -174,7 +174,7 @@ lvcreate -l 100%VG  -n unicomvol unicomvg
 lvcreate -L 15G -n unicomvol unicomvg
 ```
 
-如果希望创建一个使用全部卷组的逻辑卷，则需要首先察看该卷组的PE数，然后在创建逻辑卷时指定:
+如果希望创建一个使用全部卷组的逻辑卷，则需要首先察看该卷组的 PE 数，然后在创建逻辑卷时指定:
 
 ```sh
 vgdisplay unicomvg | grep "TotalPE"
@@ -185,7 +185,7 @@ Total PE 45230
 lvcreate -l 45230 unicomvg -n unicomvol
 ```
 
-同卷组一样，逻辑卷在创建的过程中也被分成了一块一块的空间，这些空间称为 `LE（Logical Extents）`，在同一个卷组中，LE的大小和PE是相同的，并且一一对应。
+同卷组一样，逻辑卷在创建的过程中也被分成了一块一块的空间，这些空间称为 `LE（Logical Extents）`，在同一个卷组中，LE 的大小和 PE 是相同的，并且一一对应。
 
 ### 创建文件系统
 
@@ -212,12 +212,12 @@ echo  "/dev/mapper/unicomvg-unicomvol /unicom ext4 defaults 0 0 " >>/etc/fstab
 <device>   <dir>    <type>   <options>       <dump> <pass>
 ```
 
-* **device**：指定加载的磁盘分区或移动文件系统，除了指定设备文件外，也可以使用 `UUID、LABEL`来指定分区；
-* **dir**：指定挂载点的路径；
-* **type**：指定文件系统的类型，如 `ext3`，`ext4`等；
-* **options**：指定挂载的选项，默认为defaults，其他可用选项包括`acl`，`noauto`，`ro`等；
-* **dump**：表示该挂载后的文件系统能否被dump备份命令作用；0表示不能，1表示每天都进行dump备份，2表示不定期进行dump操作。
-* **pass**：表示开机过程中是否校验扇区；0表示不要校验，1表示优先校验（一般为根目录），2表示为在1级别校验完后再进行校验；
+- **device**：指定加载的磁盘分区或移动文件系统，除了指定设备文件外，也可以使用 `UUID、LABEL`来指定分区；
+- **dir**：指定挂载点的路径；
+- **type**：指定文件系统的类型，如 `ext3`，`ext4`等；
+- **options**：指定挂载的选项，默认为 defaults，其他可用选项包括`acl`，`noauto`，`ro`等；
+- **dump**：表示该挂载后的文件系统能否被 dump 备份命令作用；0 表示不能，1 表示每天都进行 dump 备份，2 表示不定期进行 dump 操作。
+- **pass**：表示开机过程中是否校验扇区；0 表示不要校验，1 表示优先校验（一般为根目录），2 表示为在 1 级别校验完后再进行校验；
 
 ## 删除一个逻辑卷
 
@@ -233,7 +233,7 @@ lvremove /dev/unicomvg/unicomvol
 
 ## 扩展逻辑卷大小
 
-LVM提供了方便调整逻辑卷大小的能力，扩展逻辑卷大小的命令是 `lvextend` :
+LVM 提供了方便调整逻辑卷大小的能力，扩展逻辑卷大小的命令是 `lvextend` :
 
 ```sh
 # 将逻辑卷unicomvol的大小扩招为12G
@@ -246,18 +246,18 @@ lvextend -L +1G /dev/unicomvg/unicomvol、
 lvextend -l 100%VG /dev/mapper/centos-root
 ```
 
-**调整文件系统大小**
+**调整文件系统大小:**
 
 resize2fs 命令是用来增大或者收缩未加载的 `ext2/ext3/ext4` 文件系统的大小。
 
 参数：
 
-* -d  打开调试特性
-* -p  打印已完成的百分比进度条
-* -f  强制执行调整大小操作，覆盖掉安全检查操作
-* -F  开始执行调整大小前，刷新文件系统设备的缓冲区
-* -M: 将文件系统缩小到最小值
-* -P: 显示文件系统的最小值
+- -d 打开调试特性
+- -p 打印已完成的百分比进度条
+- -f 强制执行调整大小操作，覆盖掉安全检查操作
+- -F 开始执行调整大小前，刷新文件系统设备的缓冲区
+- -M: 将文件系统缩小到最小值
+- -P: 显示文件系统的最小值
 
 ```sh
 # 建议最好将文件系统卸载，调整大小，然后再加载
@@ -273,10 +273,10 @@ mount  /dev/unicomvg/unicomvol /data/wwwroot
 
 ## 减少逻辑卷大小
 
-`lvreduce`命令用于减少LVM逻辑卷占用的空间大小。使用 `lvreduce` 命令收缩逻辑卷的空间大小有可能会删除逻辑卷上已有的数据，所以在操作前必须进行确认。
+`lvreduce`命令用于减少 LVM 逻辑卷占用的空间大小。使用 `lvreduce` 命令收缩逻辑卷的空间大小有可能会删除逻辑卷上已有的数据，所以在操作前必须进行确认。
 
-* -L：指定逻辑卷的大小，单位为“kKmMgGtT”字节；
-* -l：指定逻辑卷的大小（LE数）。
+- -L：指定逻辑卷的大小，单位为“kKmMgGtT”字节；
+- -l：指定逻辑卷的大小（LE 数）。
 
 需要首先将文件系统卸载:
 
@@ -287,12 +287,12 @@ umount /data/wwwroot
 lvreduce -L -2G /dev/unicomvg/unicomvol
 
 mount /dev/unicomvg/unicomvol /data/wwwroot
-````
+```
 
 参考：
 
 [LVM](https://baike.so.com/doc/5462643-5700974.html)
 
-[Linux-centos磁盘扩容](https://www.cnblogs.com/wangyongqiang/articles/12713877.html)
+[Linux-centos 磁盘扩容](https://www.cnblogs.com/wangyongqiang/articles/12713877.html)
 
-[LVM原理及PV、VG、LV、PE、LE关系图](https://www.cnblogs.com/stragon/p/5806388.html)
+[LVM 原理及 PV、VG、LV、PE、LE 关系图](https://www.cnblogs.com/stragon/p/5806388.html)
