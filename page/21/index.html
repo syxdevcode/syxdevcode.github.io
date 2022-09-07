@@ -184,6 +184,118 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/05/Linux%20Transparent%20HugePages(%E9%80%8F%E6%98%8E%E5%A4%A7%E9%A1%B5)/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/08/05/Linux%20Transparent%20HugePages(%E9%80%8F%E6%98%8E%E5%A4%A7%E9%A1%B5)/" class="post-title-link" itemprop="url">Linux Transparent HugePages(透明大页)</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-08-05 14:40:31" itemprop="dateCreated datePublished" datetime="2020-08-05T14:40:31+00:00">2020-08-05</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-09-07 03:16:59" itemprop="dateModified" datetime="2022-09-07T03:16:59+00:00">2022-09-07</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>1.8k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>2 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>什么是 Transparent Huge Pages？为提升性能，通过大内存页来替代传统的4K页，使用得管理虚拟地址数变少，加快从虚拟地址到物理地址的映射，以及摒弃内存页面的换入换出以提高内存的整体性能。内核 Kernel 将程序缓存内存中，每页内存以2M为单位。相应的系统进程为 khugepaged。</p>
+<p>在Linux中，有两种方式使用 Huge Pages，一种是2.6内核引入的 HugeTLBFS，另一种是2.6.36内核引入的THP。HugeTLBFS 主要用于数据库，THP广泛应用于应用程序。</p>
+<p>一般可以在 rc.local 或 /etc/default/grub 中对 Huge Pages 进行设置。</p>
+<p>Linux下的大页分为两种类型：标准大页（Huge Pages）和透明大页（Transparent Huge Pages）。Huge Pages有时候也翻译成大页/标准大页/传统大页，它们都是Huge Pages的不同中文翻译名而已。目的是使用更大的内存页面（memory page size） 以适应越来越大的系统内存，让操作系统可以支持现代硬件架构的大页面容量功能。透明大页（Transparent Huge Pages）缩写为THP，这个是RHEL 6（其它分支版本SUSE Linux Enterprise Server 11, and Oracle Linux 6 with earlier releases of Oracle Linux Unbreakable Enterprise Kernel 2 (UEK2)）开始引入的一个功能。具体可以参考官方文档。这两者的区别在于大页的分配机制，标准大页管理是预分配的方式，而透明大页管理则是动态分配的方式。</p>
+<h2 id="CentOS7-禁用Transparent-Huge-Pages"><a href="#CentOS7-禁用Transparent-Huge-Pages" class="headerlink" title="CentOS7 禁用Transparent Huge Pages"></a>CentOS7 禁用Transparent Huge Pages</h2><p>自CentOS6版本开始引入了Transparent Huge Pages(THP)，从 CentOS7 版本开始，该特性默认就会启用。尽管THP的本意是为提升内存的性能，不过某些数据库厂商还是建议直接关闭THP(比如说 ORACLE、MariaDB、MongoDB 等)，否则可能会导致性能出现下降。</p>
+<p>首先检查THP的启用状态：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]<span class="comment"># cat /sys/kernel/mm/transparent_hugepage/defrag</span></span><br><span class="line">[always] madvise never</span><br><span class="line">[root@localhost ~]<span class="comment"># cat /sys/kernel/mm/transparent_hugepage/enabled</span></span><br><span class="line">[always] madvise never</span><br></pre></td></tr></table></figure>
+<p>这个状态就说明都是启用的。</p>
+<p>我们这个时候当然可以逐个修改上述两文件，来禁用THP，但要想一劳永逸的令其永久生效，还是参考下列的步骤。</p>
+<p>编辑 rc.local 文件：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]# vim /etc/rc.local</span><br></pre></td></tr></table></figure>
+
+<p>增加下列内容：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> <span class="built_in">test</span> -f /sys/kernel/mm/transparent_hugepage/enabled; <span class="keyword">then</span></span><br><span class="line"><span class="built_in">echo</span> never &gt; /sys/kernel/mm/transparent_hugepage/enabled</span><br><span class="line"><span class="keyword">fi</span></span><br><span class="line"><span class="keyword">if</span> <span class="built_in">test</span> -f /sys/kernel/mm/transparent_hugepage/defrag; <span class="keyword">then</span></span><br><span class="line"><span class="built_in">echo</span> never &gt; /sys/kernel/mm/transparent_hugepage/defrag</span><br><span class="line"><span class="keyword">fi</span></span><br></pre></td></tr></table></figure>
+
+<p>保存退出，然后赋予 rc.local 文件执行权限：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]<span class="comment"># chmod +x /etc/rc.local</span></span><br></pre></td></tr></table></figure>
+
+<p>最后重启系统，以后再检查THP应该就是被禁用了</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost ~]<span class="comment"># cat /sys/kernel/mm/transparent_hugepage/enabled</span></span><br><span class="line">always madvise [never]</span><br><span class="line">[root@localhost ~]<span class="comment"># cat /sys/kernel/mm/transparent_hugepage/defrag </span></span><br><span class="line">always madvise [never]</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/kerrycode/p/7760026.html">Linux传统Huge Pages与Transparent Huge Pages再次学习总结</a></p>
+<p><a target="_blank" rel="noopener" href="http://blog.itpub.net/26736162/viewspace-2214374/">Huge pages (标准大页)和 Transparent Huge pages(透明大页)</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.jb51.net/article/98191.htm">CentOS7 禁用Transparent Huge Pages的实现方法</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/05/Linux%20OOM%E6%9C%BA%E5%88%B6%E7%AE%80%E4%BB%8B/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -215,7 +327,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-06 06:52:44" itemprop="dateModified" datetime="2022-09-06T06:52:44+00:00">2022-09-06</time>
+                <time title="修改时间：2022-09-07 03:16:59" itemprop="dateModified" datetime="2022-09-07T03:16:59+00:00">2022-09-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -327,7 +439,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-06 06:52:44" itemprop="dateModified" datetime="2022-09-06T06:52:44+00:00">2022-09-06</time>
+                <time title="修改时间：2022-09-07 03:16:59" itemprop="dateModified" datetime="2022-09-07T03:16:59+00:00">2022-09-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -453,7 +565,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-06 06:52:44" itemprop="dateModified" datetime="2022-09-06T06:52:44+00:00">2022-09-06</time>
+                <time title="修改时间：2022-09-07 03:16:59" itemprop="dateModified" datetime="2022-09-07T03:16:59+00:00">2022-09-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -550,7 +662,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-06 06:52:44" itemprop="dateModified" datetime="2022-09-06T06:52:44+00:00">2022-09-06</time>
+                <time title="修改时间：2022-09-07 03:16:59" itemprop="dateModified" datetime="2022-09-07T03:16:59+00:00">2022-09-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -665,7 +777,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-06 06:52:44" itemprop="dateModified" datetime="2022-09-06T06:52:44+00:00">2022-09-06</time>
+                <time title="修改时间：2022-09-07 03:16:59" itemprop="dateModified" datetime="2022-09-07T03:16:59+00:00">2022-09-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -923,7 +1035,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-06 06:52:44" itemprop="dateModified" datetime="2022-09-06T06:52:44+00:00">2022-09-06</time>
+                <time title="修改时间：2022-09-07 03:16:59" itemprop="dateModified" datetime="2022-09-07T03:16:59+00:00">2022-09-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1102,7 +1214,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-06 06:52:44" itemprop="dateModified" datetime="2022-09-06T06:52:44+00:00">2022-09-06</time>
+                <time title="修改时间：2022-09-07 03:17:00" itemprop="dateModified" datetime="2022-09-07T03:17:00+00:00">2022-09-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1300,7 +1412,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-06 06:52:44" itemprop="dateModified" datetime="2022-09-06T06:52:44+00:00">2022-09-06</time>
+                <time title="修改时间：2022-09-07 03:16:59" itemprop="dateModified" datetime="2022-09-07T03:16:59+00:00">2022-09-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1399,7 +1511,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-06 06:52:44" itemprop="dateModified" datetime="2022-09-06T06:52:44+00:00">2022-09-06</time>
+                <time title="修改时间：2022-09-07 03:16:59" itemprop="dateModified" datetime="2022-09-07T03:16:59+00:00">2022-09-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1508,7 +1620,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-06 06:52:44" itemprop="dateModified" datetime="2022-09-06T06:52:44+00:00">2022-09-06</time>
+                <time title="修改时间：2022-09-07 03:16:59" itemprop="dateModified" datetime="2022-09-07T03:16:59+00:00">2022-09-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1599,7 +1711,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-06 06:52:44" itemprop="dateModified" datetime="2022-09-06T06:52:44+00:00">2022-09-06</time>
+                <time title="修改时间：2022-09-07 03:17:00" itemprop="dateModified" datetime="2022-09-07T03:17:00+00:00">2022-09-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1689,7 +1801,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-06 06:52:44" itemprop="dateModified" datetime="2022-09-06T06:52:44+00:00">2022-09-06</time>
+                <time title="修改时间：2022-09-07 03:17:00" itemprop="dateModified" datetime="2022-09-07T03:17:00+00:00">2022-09-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1780,7 +1892,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-06 06:52:44" itemprop="dateModified" datetime="2022-09-06T06:52:44+00:00">2022-09-06</time>
+                <time title="修改时间：2022-09-07 03:17:00" itemprop="dateModified" datetime="2022-09-07T03:17:00+00:00">2022-09-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1889,7 +2001,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-06 06:52:44" itemprop="dateModified" datetime="2022-09-06T06:52:44+00:00">2022-09-06</time>
+                <time title="修改时间：2022-09-07 03:16:59" itemprop="dateModified" datetime="2022-09-07T03:16:59+00:00">2022-09-07</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1986,95 +2098,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/07/14/Java%E6%A0%BC%E5%BC%8F%E5%8C%96%E8%BE%93%E5%87%BAprintf%E4%BE%8B%E5%AD%90/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="syxdevcode的个人博客">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/07/14/Java%E6%A0%BC%E5%BC%8F%E5%8C%96%E8%BE%93%E5%87%BAprintf%E4%BE%8B%E5%AD%90/" class="post-title-link" itemprop="url">Java格式化输出printf例子</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-07-14 16:49:21" itemprop="dateCreated datePublished" datetime="2020-07-14T16:49:21+00:00">2020-07-14</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-06 06:52:44" itemprop="dateModified" datetime="2022-09-06T06:52:44+00:00">2022-09-06</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Java/" itemprop="url" rel="index"><span itemprop="name">Java</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>4.2k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>4 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>转载：</p>
-<p><a target="_blank" rel="noopener" href="https://www.runoob.com/w3cnote/java-printf-formate-demo.html">Java格式化输出printf例子</a></p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> java.util.Date;</span><br><span class="line"> </span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 使用printf输出</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="comment">/**关键技术点</span></span><br><span class="line"><span class="comment"> * 使用java.io.PrintStream的printf方法实现C风格的输出</span></span><br><span class="line"><span class="comment"> * printf 方法的第一个参数为输出的格式,第二个参数是可变长的,表示待输出的数据对象</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Printf</span> &#123;</span><br><span class="line"> </span><br><span class="line">       <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">              <span class="comment">/*** 输出字符串 ***/</span></span><br><span class="line">              <span class="comment">// %s表示输出字符串，也就是将后面的字符串替换模式中的%s</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%s&quot;</span>, <span class="keyword">new</span> <span class="title class_">Integer</span>(<span class="number">1212</span>));</span><br><span class="line">              <span class="comment">// %n表示换行</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%s%n&quot;</span>, <span class="string">&quot;end line&quot;</span>);</span><br><span class="line">              <span class="comment">// 还可以支持多个参数</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%s = %s%n&quot;</span>, <span class="string">&quot;Name&quot;</span>, <span class="string">&quot;Zhangsan&quot;</span>);</span><br><span class="line">              <span class="comment">// %S将字符串以大写形式输出</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%S = %s%n&quot;</span>, <span class="string">&quot;Name&quot;</span>, <span class="string">&quot;Zhangsan&quot;</span>);</span><br><span class="line">              <span class="comment">// 支持多个参数时，可以在%s之间插入变量编号，1$表示第一个字符串，3$表示第3个字符串</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$s = %3$s %2$s%n&quot;</span>, <span class="string">&quot;Name&quot;</span>, <span class="string">&quot;san&quot;</span>, <span class="string">&quot;Zhang&quot;</span>);</span><br><span class="line">             </span><br><span class="line">              <span class="comment">/*** 输出boolean类型 ***/</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;true = %b; false = &quot;</span>, <span class="literal">true</span>);</span><br><span class="line">              System.out.printf(<span class="string">&quot;%b%n&quot;</span>, <span class="literal">false</span>);</span><br><span class="line"> </span><br><span class="line">              <span class="comment">/*** 输出整数类型***/</span></span><br><span class="line">              <span class="type">Integer</span> <span class="variable">iObj</span> <span class="operator">=</span> <span class="number">342</span>;</span><br><span class="line">              <span class="comment">// %d表示将整数格式化为10进制整数</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%d; %d; %d%n&quot;</span>, -<span class="number">500</span>, <span class="number">2343L</span>, iObj);</span><br><span class="line">              <span class="comment">// %o表示将整数格式化为8进制整数</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%o; %o; %o%n&quot;</span>, -<span class="number">500</span>, <span class="number">2343L</span>, iObj);</span><br><span class="line">              <span class="comment">// %x表示将整数格式化为16进制整数</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%x; %x; %x%n&quot;</span>, -<span class="number">500</span>, <span class="number">2343L</span>, iObj);</span><br><span class="line">              <span class="comment">// %X表示将整数格式化为16进制整数，并且字母变成大写形式</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%X; %X; %X%n&quot;</span>, -<span class="number">500</span>, <span class="number">2343L</span>, iObj);</span><br><span class="line">             </span><br><span class="line">              <span class="comment">/*** 输出浮点类型***/</span></span><br><span class="line">              <span class="type">Double</span> <span class="variable">dObj</span> <span class="operator">=</span> <span class="number">45.6d</span>;</span><br><span class="line">              <span class="comment">// %e表示以科学技术法输出浮点数</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%e; %e; %e%n&quot;</span>, -<span class="number">756.403f</span>, <span class="number">7464.232641d</span>, dObj);</span><br><span class="line">              <span class="comment">// %E表示以科学技术法输出浮点数，并且为大写形式            </span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%E; %E; %E%n&quot;</span>, -<span class="number">756.403f</span>, <span class="number">7464.232641d</span>, dObj);</span><br><span class="line">              <span class="comment">// %f表示以十进制格式化输出浮点数</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%f; %f; %f%n&quot;</span>, -<span class="number">756.403f</span>, <span class="number">7464.232641d</span>, dObj);</span><br><span class="line">              <span class="comment">// 还可以限制小数点后的位数</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%.1f; %.3f; %f%n&quot;</span>, -<span class="number">756.403f</span>, <span class="number">7464.232641d</span>, dObj);</span><br><span class="line">             </span><br><span class="line">              <span class="comment">/*** 输出日期类型***/</span></span><br><span class="line">              <span class="comment">// %t表示格式化日期时间类型，%T是时间日期的大写形式，在%t之后用特定的字母表示不同的输出格式</span></span><br><span class="line">              <span class="type">Date</span> <span class="variable">date</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Date</span>();</span><br><span class="line">              <span class="type">long</span> <span class="variable">dataL</span> <span class="operator">=</span> date.getTime();</span><br><span class="line">              <span class="comment">// 格式化年月日</span></span><br><span class="line">              <span class="comment">// %t之后用y表示输出日期的年份（2位数的年，如99）</span></span><br><span class="line">              <span class="comment">// %t之后用m表示输出日期的月份，%t之后用d表示输出日期的日号</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$ty-%1$tm-%1$td; %2$ty-%2$tm-%2$td%n&quot;</span>, date, dataL);</span><br><span class="line">              <span class="comment">// %t之后用Y表示输出日期的年份（4位数的年），</span></span><br><span class="line">              <span class="comment">// %t之后用B表示输出日期的月份的完整名， %t之后用b表示输出日期的月份的简称</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$tY-%1$tB-%1$td; %2$tY-%2$tb-%2$td%n&quot;</span>, date, dataL);</span><br><span class="line">             </span><br><span class="line">              <span class="comment">// 以下是常见的日期组合</span></span><br><span class="line">              <span class="comment">// %t之后用D表示以 &quot;%tm/%td/%ty&quot;格式化日期</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$tD%n&quot;</span>, date);</span><br><span class="line">              <span class="comment">//%t之后用F表示以&quot;%tY-%tm-%td&quot;格式化日期</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$tF%n&quot;</span>, date);</span><br><span class="line">             </span><br><span class="line">              <span class="comment">/*** 输出时间类型***/</span></span><br><span class="line">              <span class="comment">// 输出时分秒</span></span><br><span class="line">              <span class="comment">// %t之后用H表示输出时间的时（24进制），%t之后用I表示输出时间的时（12进制），</span></span><br><span class="line">              <span class="comment">// %t之后用M表示输出时间的分，%t之后用S表示输出时间的秒</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$tH:%1$tM:%1$tS; %2$tI:%2$tM:%2$tS%n&quot;</span>, date, dataL);</span><br><span class="line">              <span class="comment">// %t之后用L表示输出时间的秒中的毫秒</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$tH:%1$tM:%1$tS %1$tL%n&quot;</span>, date);</span><br><span class="line">              <span class="comment">// %t之后p表示输出时间的上午或下午信息</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$tH:%1$tM:%1$tS %1$tL %1$tp%n&quot;</span>, date);</span><br><span class="line">             </span><br><span class="line">              <span class="comment">// 以下是常见的时间组合</span></span><br><span class="line">              <span class="comment">// %t之后用R表示以&quot;%tH:%tM&quot;格式化时间</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$tR%n&quot;</span>, date);</span><br><span class="line">              <span class="comment">// %t之后用T表示以&quot;%tH:%tM:%tS&quot;格式化时间</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$tT%n&quot;</span>, date);</span><br><span class="line">              <span class="comment">// %t之后用r表示以&quot;%tI:%tM:%tS %Tp&quot;格式化时间</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$tr%n&quot;</span>, date);</span><br><span class="line">             </span><br><span class="line">              <span class="comment">/*** 输出星期***/</span></span><br><span class="line">              <span class="comment">// %t之后用A表示得到星期几的全称</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$tF %1$tA%n&quot;</span>, date);</span><br><span class="line">              <span class="comment">// %t之后用a表示得到星期几的简称</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$tF %1$ta%n&quot;</span>, date);</span><br><span class="line">             </span><br><span class="line">              <span class="comment">// 输出时间日期的完整信息</span></span><br><span class="line">              System.out.printf(<span class="string">&quot;%1$tc%n&quot;</span>, date);</span><br><span class="line">       &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> *printf方法中,格式为&quot;%s&quot;表示以字符串的形式输出第二个可变长参数的第一个参数值;</span></span><br><span class="line"><span class="comment"> *格式为&quot;%n&quot;表示换行;格式为&quot;%S&quot;表示将字符串以大写形式输出;在&quot;%s&quot;之间用&quot;n$&quot;表示</span></span><br><span class="line"><span class="comment"> *输出可变长参数的第n个参数值.格式为&quot;%b&quot;表示以布尔值的形式输出第二个可变长参数</span></span><br><span class="line"><span class="comment"> *的第一个参数值.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 格式为&quot;%d&quot;表示以十进制整数形式输出;&quot;%o&quot;表示以八进制形式输出;&quot;%x&quot;表示以十六进制</span></span><br><span class="line"><span class="comment"> * 输出;&quot;%X&quot;表示以十六进制输出,并且将字母(A、B、C、D、E、F)换成大写.格式为&quot;%e&quot;表</span></span><br><span class="line"><span class="comment"> * 以科学计数法输出浮点数;格式为&quot;%E&quot;表示以科学计数法输出浮点数,而且将e大写;格式为</span></span><br><span class="line"><span class="comment"> * &quot;%f&quot;表示以十进制浮点数输出,在&quot;%f&quot;之间加上&quot;.n&quot;表示输出时保留小数点后面n位.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 格式为&quot;%t&quot;表示输出时间日期类型.&quot;%t&quot;之后用y表示输出日期的二位数的年份(如99)、用m</span></span><br><span class="line"><span class="comment"> * 表示输出日期的月份,用d表示输出日期的日号;&quot;%t&quot;之后用Y表示输出日期的四位数的年份</span></span><br><span class="line"><span class="comment"> * (如1999)、用B表示输出日期的月份的完整名,用b表示输出日期的月份的简称.&quot;%t&quot;之后用D</span></span><br><span class="line"><span class="comment"> * 表示以&quot;%tm/%td/%ty&quot;的格式输出日期、用F表示以&quot;%tY-%tm-%td&quot;的格式输出日期.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * &quot;%t&quot;之后用H表示输出时间的时(24进制),用I表示输出时间的时(12进制),用M表示输出时间</span></span><br><span class="line"><span class="comment"> * 分,用S表示输出时间的秒,用L表示输出时间的秒中的毫秒数、用 p 表示输出时间的是上午还是</span></span><br><span class="line"><span class="comment"> * 下午.&quot;%t&quot;之后用R表示以&quot;%tH:%tM&quot;的格式输出时间、用T表示以&quot;%tH:%tM:%tS&quot;的格式输出</span></span><br><span class="line"><span class="comment"> * 时间、用r表示以&quot;%tI:%tM:%tS %Tp&quot;的格式输出时间.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * &quot;%t&quot;之后用A表示输出日期的全称,用a表示输出日期的星期简称.</span></span><br><span class="line"><span class="comment"> */</span></span><br></pre></td></tr></table></figure>
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -2146,7 +2169,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">560</span>
+          <span class="site-state-item-count">561</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -2209,7 +2232,7 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">27:04</span>
+    <span title="站点阅读时长">27:05</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
   </div>
