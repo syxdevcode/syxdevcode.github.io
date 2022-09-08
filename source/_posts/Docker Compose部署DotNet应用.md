@@ -60,8 +60,6 @@ services:
       - net0
     volumes:
       - /etc/localtime:/etc/localtime
-    environment:
-      - adminConsole=true
     env_file:
       - ./var.env
   lims_node2:
@@ -112,5 +110,6 @@ docker-compose down -v
 # 重启
 docker-compose restart
 
-
+# 查看运行的容器
+docker ps
 ```

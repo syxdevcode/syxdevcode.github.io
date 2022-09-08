@@ -19,6 +19,7 @@ version: "3"
 services:
   agile_config_admin:
     image: "kklldog/agile_config"
+    restart: always
     ports:
       - "15000:5000"
     networks:
@@ -31,6 +32,7 @@ services:
       - ./var.env
   agile_config_node1:
     image: "kklldog/agile_config"
+    restart: always
     ports:
       - "15001:5000"
     networks:
@@ -43,6 +45,7 @@ services:
       - agile_config_admin
   agile_config_node2:
     image: "kklldog/agile_config"
+    restart: always
     ports:
       - "15002:5000"
     networks:
