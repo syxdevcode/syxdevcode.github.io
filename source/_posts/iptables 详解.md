@@ -14,15 +14,30 @@ categories:
 
 ## iptables 的结构
 
-iptables 由上而下，由 Tables，Chains，Rules 组成。
+iptables 是 Linux 防火墙系统的重要组成部分，iptables 的主要功能是实现对网络数据包进出设备及转发的控制。当数据包需要进入设备、从设备中流出或者由该设备转发、路由时，都可以使用 iptables 进行控制。
+
+iptables 是集成在 Linux 内核中的包过滤防火墙系统。使用 iptables 可以添加、删除具体的过滤规则，iptables 默认维护着 4 个表和 5 个链，所有的防火墙策略规则都被分别写入这些表与链中。
 
 ## iptables 的表 tables 与链 chains
 
-### iptables 有 Filter, NAT, Mangle, Raw 四种内建表
+“四表”是指 iptables 的功能，默认的 iptables 规则表有 filter 表（过滤规则表）、nat 表（地址转换规则表）、mangle（修改数据标记位规则表）、raw（跟踪数据表规则表）：
 
-#### Filter 表
+- filter 表：控制数据包是否允许进出及转发，可以控制的链路有 INPUT、FORWARD 和 OUTPUT。
+- nat 表：控制数据包中地址转换，可以控制的链路有 PREROUTING、INPUT、OUTPUT 和 POSTROUTING。
+- mangle：修改数据包中的原数据，可以控制的链路有 PREROUTING、INPUT、OUTPUT、FORWARD 和 POSTROUTING。
+- raw：控制 nat 表中连接追踪机制的启用状况，可以控制的链路有 PREROUTING、OUTPUT。
 
-Filter 是 iptables 的默认表，它有以下三种内建链(chains)：
+“五链”是指内核中控制网络的 NetFilter 定义的 5 个规则链。每个规则表中包含多个数据链：INPUT（入站数据过滤）、OUTPUT（出站数据过滤）、FORWARD（转发数据过滤）、PREROUTING（路由前过滤）和 POSTROUTING（路由后过滤），防火墙规则需要写入到这些具体的数据链中。
+
+- 如果是外部主机发送数据包给防火墙本机，数据将会经过 PREROUTING 链与 INPUT 链；
+- 如果是防火墙本机发送数据包到外部主机，数据将会经过 OUTPUT 链与 POSTROUTING 链；
+- 如果防火墙作为路由负责转发数据，则数据将经过 PREROUTING 链、FORWARD 链以及 POSTROUTING 链。
+
+<!--more-->
+
+### Filter 表
+
+Filter 是 iptables 的默认表,控制数据包是否允许进出及转发，它有以下三种内建链(chains)：
 
 - INPUT 链 – 处理来自外部的数据。
 - OUTPUT 链 – 处理向外发送的数据。
@@ -30,15 +45,15 @@ Filter 是 iptables 的默认表，它有以下三种内建链(chains)：
 
 <!--more-->
 
-#### NAT 表
+### NAT 表
 
-NAT 表有三种内建链：
+NAT 控制数据包中地址转换，表有三种内建链：
 
 - PREROUTING 链 – 处理刚到达本机并在路由转发前的数据包。它会转换数据包中的目标 IP 地址（destination ip address），通常用于 DNAT(destination NAT)。
 - POSTROUTING 链 – 处理即将离开本机的数据包。它会转换数据包中的源 IP 地址（source ip address），通常用于 SNAT（source NAT）。
 - OUTPUT 链 – 处理本机产生的数据包。
 
-#### Mangle 表
+### Mangle 表
 
 Mangle 表用于指定如何处理数据包。它能改变 TCP 头中的 QoS 位。Mangle 表具有 5 个内建链（chains）：
 
@@ -46,9 +61,11 @@ Mangle 表用于指定如何处理数据包。它能改变 TCP 头中的 QoS 位
 - OUTPUT
 - FORWARD
 - INPUT
-- POSTROUTING 4. Raw 表
+- POSTROUTING
 
-### Raw 表用于处理异常，它具有 2 个内建链：
+### Raw 表
+
+**Raw 表用于处理异常，它具有 2 个内建链:**
 
 - PREROUTING chain
 - OUTPUT chain
@@ -138,6 +155,10 @@ iptables -F
 iptables -t nat -F
 ```
 
+默认的 iptables 防火墙规则会立刻生效，但如果不保存，当计算机重启后所有的规则都会丢失，所以对防火墙规则进行及时保存的操作是非常必要的。
+
 参考：
+
+[Linux iptables 命令详解](https://zhuanlan.zhihu.com/p/513470164)
 
 [iptables 详解](https://zhuanlan.zhihu.com/p/441089738)
