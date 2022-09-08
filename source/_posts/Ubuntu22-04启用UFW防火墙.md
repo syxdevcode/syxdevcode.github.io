@@ -12,6 +12,8 @@ categories:
   - 防火墙
 ---
 
+UFW，或称 Uncomplicated Firewall，是 iptables 的一个接口，为不熟悉防火墙概念的初学者提供了易于使用的界面，同时支持 IPv4 和 IPv6，广受欢迎。
+
 ## 更新 Ubuntu
 
 ```shell

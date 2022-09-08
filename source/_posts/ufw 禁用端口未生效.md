@@ -14,7 +14,7 @@ categories:
   - 防火墙
 ---
 
-iptables-save 查看防火墙状态(节选):
+`iptables-save` 查看防火墙状态(节选):
 
 ```shell
 -A DOCKER ! -i br-fe67cfba7476 -p tcp -m tcp --dport 15000 -j DNAT --to-destination 192.168.224.2:5000

@@ -2,29 +2,30 @@
 title: iptables命令-Linux
 date: 2020-08-17 10:34:07
 tags:
-- Linux
-- CentOS7
-- Linux基础命令
+  - Linux
+  - CentOS7
+  - Linux基础命令
+  - iptables
+  - 安全策略
 categories:
-- Linux基础命令
+  - Linux基础命令
 ---
 
 ## 简介
 
-iptables命令是Linux上常用的防火墙软件，是netfilter项目的一部分。可以直接配置，也可以通过许多前端和图形界面配置。
+iptables 命令是 Linux 上常用的防火墙软件，是 netfilter 项目的一部分。可以直接配置，也可以通过许多前端和图形界面配置。
 
-
-**语法**
+**语法:**
 
 iptables (选项) (参数)
 
-**选项**
+**选项:**
 
 ```sh
 -t<表>：指定要操纵的表；
 -A：向规则链中添加条目；
 -D：从规则链中删除条目；
--i：向规则链中插入条目；
+-I：向规则链中插入条目；
 -R：替换规则链中的条目；
 -L：显示规则链中已有的条目；
 -F：清楚规则链中已有的条目；
@@ -39,7 +40,7 @@ iptables (选项) (参数)
 -o<网络接口>：指定数据包要离开本机所使用的网络接口。
 ```
 
-iptables命令选项输入顺序：
+iptables 命令选项输入顺序：
 
 ```
 iptables -t 表名 <-A/I/D/R> 规则链名 [规则号] <-i/o 网卡名> -p 协议名 <-s 源IP/源子网> --sport 源端口 <-d 目标IP/目标子网> --dport 目标端口 -j 动作
@@ -78,7 +79,7 @@ LOG：日志记录。
 
 ## 实例
 
-**清除已有iptables规则**
+**清除已有 iptables 规则:**
 
 ```sh
 iptables -F
@@ -86,7 +87,9 @@ iptables -X
 iptables -Z
 ```
 
-**开放指定的端口**
+**开放指定的端口:**
+
+用-A 往最后追加，最后匹配。
 
 ```sh
 iptables -A INPUT -s 127.0.0.1 -d 127.0.0.1 -j ACCEPT               #允许本地回环接口(即运行本机访问本机)
@@ -100,7 +103,9 @@ iptables -A INPUT -j reject       #禁止其他未允许的规则访问
 iptables -A FORWARD -j REJECT     #禁止其他未允许的规则访问
 ```
 
-**屏蔽IP**
+**屏蔽 IP:**
+
+用-I 往前追加，最先匹配。
 
 ```sh
 iptables -I INPUT -s 123.45.6.7 -j DROP       #屏蔽单个IP的命令
@@ -109,21 +114,21 @@ iptables -I INPUT -s 124.45.0.0/16 -j DROP    #封IP段即从123.45.0.1到123.45
 iptables -I INPUT -s 123.45.6.0/24 -j DROP    #封IP段即从123.45.6.1到123.45.6.254的命令是
 ```
 
-**查看已添加的iptables规则**
+**查看已添加的 iptables 规则**
 
 ```sh
 iptables -L -n -v
 ```
 
-**删除已添加的iptables规则**
+**删除已添加的 iptables 规则**
 
-将所有iptables以序号标记显示，执行：
+将所有 iptables 以序号标记显示，执行：
 
 ```sh
 iptables -L -n --line-numbers
 ```
 
-比如要删除INPUT里序号为8的规则，执行：
+比如要删除 INPUT 里序号为 8 的规则，执行：
 
 ```sh
 iptables -D INPUT 8
@@ -131,4 +136,4 @@ iptables -D INPUT 8
 
 参考：
 
-[iptables命令](https://man.linuxde.net/iptables)
+[iptables 命令](https://man.linuxde.net/iptables)
