@@ -4,6 +4,7 @@ date: 2020-08-17 10:34:07
 tags:
   - Linux
   - CentOS7
+  - Ubuntu
   - Linux基础命令
   - iptables
   - 安全策略
@@ -183,6 +184,11 @@ iptables -I INPUT -s 123.45.6.0/24 -j DROP    #封IP段即从123.45.6.1到123.45
 **修改规则:**
 
 在修改规则时需要使用-R 参数。
+
+```shell
+iptables -R INPUT 6 -s 194.168.10.5 -j ACCEPT
+iptables -nL --line-number
+```
 
 **查看已添加的 iptables 规则:**
 
