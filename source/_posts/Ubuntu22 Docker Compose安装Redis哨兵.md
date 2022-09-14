@@ -34,6 +34,7 @@ root@pony:/lims/redis# tree
 注意：新建的目录需要使用 `chmod` 命令授权。
 
 <!--more-->
+
 ## 移除 redis(可选)
 
 ```sh
@@ -196,7 +197,7 @@ sentinel announce-port 26379
 sentinel monitor limsmaster 10.10.0.106 36379 2
 requirepass PN4Hxgcm.
 sentinel auth-pass limsmaster PN4Hxgcm.
-sentinel down-after-milliseconds limsmaster 60000
+sentinel down-after-milliseconds limsmaster 30000
 sentinel failover-timeout limsmaster 180000
 sentinel parallel-syncs limsmaster 2
 ```
@@ -204,14 +205,14 @@ sentinel parallel-syncs limsmaster 2
 `sentinel-2.conf` 配置如下：
 
 ```shell
-port 26379
+port 26380
 dir "/tmp"
 sentinel announce-ip 10.10.0.106
 sentinel announce-port 26380
 sentinel monitor limsmaster 10.10.0.106 36379 2
 requirepass PN4Hxgcm.
 sentinel auth-pass limsmaster PN4Hxgcm.
-sentinel down-after-milliseconds limsmaster 60000
+sentinel down-after-milliseconds limsmaster 30000
 sentinel failover-timeout limsmaster 180000
 sentinel parallel-syncs limsmaster 2
 ```
@@ -219,24 +220,27 @@ sentinel parallel-syncs limsmaster 2
 `sentinel-3.conf` 配置如下：
 
 ```shell
-port 26379
+port 26381
 dir "/tmp"
 sentinel announce-ip 10.10.0.106
 sentinel announce-port 26381
 sentinel monitor limsmaster 10.10.0.106 36379 2
 requirepass PN4Hxgcm.
 sentinel auth-pass limsmaster PN4Hxgcm.
-sentinel down-after-milliseconds limsmaster 60000
+sentinel down-after-milliseconds limsmaster 30000
 sentinel failover-timeout limsmaster 180000
 sentinel parallel-syncs limsmaster 2
 ```
 
-## docker-compose配置
+## docker-compose 配置
 
 新建 `docker-compose.yml` 文件。
 
 ```yml
-version: '3.1'
+version: "3.1"
+
+networks:
+  net0:
 
 services:
   redis-master:
@@ -249,6 +253,8 @@ services:
       - /lims/redis/master/data:/data
     ports:
       - 36379:6379
+    networks:
+      net0:
     environment:
       - TZ=Asia/Shanghai # 时区配置亚洲上海
   redis-slave1:
@@ -261,6 +267,8 @@ services:
       - /lims/redis/slave1/data:/data
     ports:
       - 36380:6379
+    networks:
+      net0:
     environment:
       - TZ=Asia/Shanghai # 时区配置亚洲上海
   redis-slave2:
@@ -273,6 +281,8 @@ services:
       - /lims/redis/slave2/data:/data
     ports:
       - 36381:6379
+    networks:
+      net0:
     environment:
       - TZ=Asia/Shanghai # 时区配置亚洲上海
   redis-sentinel-1:
@@ -282,8 +292,11 @@ services:
     command: redis-sentinel /usr/local/etc/redis/sentinel.conf
     volumes:
       - /lims/redis/conf/sentinel-1.conf:/usr/local/etc/redis/sentinel.conf
+      - /lims/redis/conf:/usr/local/etc/redis/conf/
     ports:
       - 26379:26379
+    networks:
+      net0:
     environment:
       - TZ=Asia/Shanghai # 时区配置亚洲上海
     depends_on:
@@ -297,8 +310,11 @@ services:
     command: redis-sentinel /usr/local/etc/redis/sentinel.conf
     volumes:
       - /lims/redis/conf/sentinel-2.conf:/usr/local/etc/redis/sentinel.conf
+      - /lims/redis/conf:/usr/local/etc/redis/conf/
     ports:
       - 26380:26379
+    networks:
+      net0:
     environment:
       - TZ=Asia/Shanghai # 时区配置亚洲上海
     depends_on:
@@ -312,8 +328,11 @@ services:
     command: redis-sentinel /usr/local/etc/redis/sentinel.conf
     volumes:
       - /lims/redis/conf/sentinel-3.conf:/usr/local/etc/redis/sentinel.conf
+      - /lims/redis/conf:/usr/local/etc/redis/conf/
     ports:
       - 26381:26379
+    networks:
+      net0:
     environment:
       - TZ=Asia/Shanghai # 时区配置亚洲上海
     depends_on:
@@ -322,7 +341,7 @@ services:
       - "redis-slave2"
 ```
 
-## docker-compose命令
+## docker-compose 命令
 
 ```shell
 # 启动
