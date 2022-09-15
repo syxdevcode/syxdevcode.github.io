@@ -39,6 +39,7 @@ root@pony:/lims/redis# tree
 
 ```sh
 apt-get autoremove --purge redis-server
+apt-get autoremove --purge redis-sentinel
 ```
 
 ## 配置文件
@@ -187,6 +188,8 @@ repl-disable-tcp-nodelay no
 
 ### sentinel(哨兵)配置
 
+docker 部署内部端口可以是一样的，只改变对外映射的端口号即可。
+
 `sentinel-1.conf` 配置如下：
 
 ```shell
@@ -195,7 +198,7 @@ dir "/tmp"
 sentinel announce-ip 10.10.0.106
 sentinel announce-port 26379
 sentinel monitor limsmaster 10.10.0.106 36379 2
-requirepass PN4Hxgcm.
+requirepass Pd4Ervty3w6NmSB2Fm.
 sentinel auth-pass limsmaster PN4Hxgcm.
 sentinel down-after-milliseconds limsmaster 30000
 sentinel failover-timeout limsmaster 180000
@@ -205,12 +208,12 @@ sentinel parallel-syncs limsmaster 2
 `sentinel-2.conf` 配置如下：
 
 ```shell
-port 26380
+port 26379
 dir "/tmp"
 sentinel announce-ip 10.10.0.106
 sentinel announce-port 26380
 sentinel monitor limsmaster 10.10.0.106 36379 2
-requirepass PN4Hxgcm.
+requirepass Pd4Ervty3w6NmSB2Fm.
 sentinel auth-pass limsmaster PN4Hxgcm.
 sentinel down-after-milliseconds limsmaster 30000
 sentinel failover-timeout limsmaster 180000
@@ -220,12 +223,12 @@ sentinel parallel-syncs limsmaster 2
 `sentinel-3.conf` 配置如下：
 
 ```shell
-port 26381
+port 26379
 dir "/tmp"
 sentinel announce-ip 10.10.0.106
 sentinel announce-port 26381
 sentinel monitor limsmaster 10.10.0.106 36379 2
-requirepass PN4Hxgcm.
+requirepass Pd4Ervty3w6NmSB2Fm.
 sentinel auth-pass limsmaster PN4Hxgcm.
 sentinel down-after-milliseconds limsmaster 30000
 sentinel failover-timeout limsmaster 180000
