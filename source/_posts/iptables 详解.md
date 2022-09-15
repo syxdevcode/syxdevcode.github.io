@@ -43,8 +43,6 @@ Filter 是 iptables 的默认表,控制数据包是否允许进出及转发，�
 - OUTPUT 链 – 处理向外发送的数据。
 - FORWARD 链 – 将数据转发到本机的其他网卡设备上。
 
-<!--more-->
-
 ### NAT 表
 
 NAT 控制数据包中地址转换，表有三种内建链：
@@ -92,15 +90,12 @@ Mangle 表用于指定如何处理数据包。它能改变 TCP 头中的 QoS 位
 iptables -t filter --list
 
 # 查看 mangle 表：
-
 iptables -t mangle --list
 
 # 查看 NAT 表：
-
 iptables -t nat --list
 
 # 查看 RAW 表：
-
 iptables -t raw --list
 ```
 

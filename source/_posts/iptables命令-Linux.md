@@ -1,6 +1,6 @@
 ---
 title: iptables命令-Linux
-date: 2020-08-17 10:34:07
+date: 2022-09-08 15:57:51
 tags:
   - Linux
   - CentOS7
@@ -31,6 +31,7 @@ whereis iptables
 使用 -A 选项添加防火墙规则会将该规则追加到整个链的最后，
 使用 -I 选项添加的防火墙规则则会默认插入到链中作为第一条规则。
 
+<!--more-->
 **语法:**
 
 iptables (选项) (参数)
