@@ -184,6 +184,490 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/06/08/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B9%8B%E6%95%B0%E6%8D%AE%E5%BA%93%E5%92%8C%E7%BC%93%E5%AD%98%E5%8F%8C%E5%86%99%E4%B8%80%E8%87%B4%E6%80%A7%E6%96%B9%E6%A1%88/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/06/08/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B9%8B%E6%95%B0%E6%8D%AE%E5%BA%93%E5%92%8C%E7%BC%93%E5%AD%98%E5%8F%8C%E5%86%99%E4%B8%80%E8%87%B4%E6%80%A7%E6%96%B9%E6%A1%88/" class="post-title-link" itemprop="url">分布式之数据库和缓存双写一致性方案</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-06-08 17:14:48" itemprop="dateCreated datePublished" datetime="2018-06-08T17:14:48+00:00">2018-06-08</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-09-21 11:13:36" itemprop="dateModified" datetime="2022-09-21T11:13:36+00:00">2022-09-21</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BC%93%E5%AD%98/" itemprop="url" rel="index"><span itemprop="name">缓存</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>2.8k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>3 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="分布式之数据库和缓存双写一致性方案"><a href="#分布式之数据库和缓存双写一致性方案" class="headerlink" title="分布式之数据库和缓存双写一致性方案"></a>分布式之数据库和缓存双写一致性方案</h1><p>本文参考<a target="_blank" rel="noopener" href="https://www.cnblogs.com/rjzheng/p/9041659.html">【原创】分布式之数据库和缓存双写一致性方案解析</a>,做的进一步整理笔记。</p>
+<p>三种更新策略：</p>
+<p>1.先更新数据库，再更新缓存</p>
+<p>2.先删除缓存，再更新数据库</p>
+<p>3.先更新数据库，再删除缓存</p>
+<h2 id="1-先更新数据库，再更新缓存"><a href="#1-先更新数据库，再更新缓存" class="headerlink" title="(1)先更新数据库，再更新缓存"></a>(1)先更新数据库，再更新缓存</h2><p>这套方案，大家是普遍反对的。为什么呢？有如下两点原因。</p>
+<p>** 原因一（线程安全角度）**</p>
+<p>同时有请求A和请求B进行更新操作，那么会出现</p>
+<p>（1）线程A更新了数据库</p>
+<p>（2）线程B更新了数据库</p>
+<p>（3）线程B更新了缓存</p>
+<p>（4）线程A更新了缓存</p>
+<p>这就出现请求A更新缓存应该比请求B更新缓存早才对，但是因为网络等原因，B却比A更早更新了缓存。这就导致了脏数据，因此不考虑。</p>
+<p>** 原因二（业务场景角度）**</p>
+<p>有如下两点：</p>
+<p>（1）如果你是一个写数据库场景比较多，而读数据场景比较少的业务需求，采用这种方案就会导致，数据压根还没读到，缓存就被频繁的更新，浪费性能。</p>
+<p>（2）如果你写入数据库的值，并不是直接写入缓存的，而是要经过一系列复杂的计算再写入缓存。那么，每次写入数据库后，都再次计算写入缓存的值，无疑是浪费性能的。显然，删除缓存更为适合。</p>
+<p>接下来讨论的就是争议最大的，先删缓存，再更新数据库。还是先更新数据库，再删缓存的问题。</p>
+<h2 id="2-先删缓存，再更新数据库"><a href="#2-先删缓存，再更新数据库" class="headerlink" title="(2)先删缓存，再更新数据库"></a>(2)先删缓存，再更新数据库</h2><p>该方案会导致不一致的原因是。同时有一个请求A进行更新操作，另一个请求B进行查询操作。那么会出现如下情形:</p>
+<p>（1）请求A进行写操作，删除缓存</p>
+<p>（2）请求B查询发现缓存不存在</p>
+<p>（3）请求B去数据库查询得到旧值</p>
+<p>（4）请求B将旧值写入缓存</p>
+<p>（5）请求A将新值写入数据库</p>
+<p>上述情况就会导致不一致的情形出现。而且，如果不采用给缓存设置过期时间策略，该数据永远都是脏数据。<br>那么，如何解决呢？采用延时双删策略</p>
+<p>伪代码如下</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">public void write(string key,object data)</span><br><span class="line">&#123;</span><br><span class="line">    redis.delKey(key);</span><br><span class="line">    db.updateData(data);</span><br><span class="line">    Thread.sleep(1000);</span><br><span class="line">    redis.delKey(key);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>转化为中文描述就是</p>
+<p>（1）先淘汰缓存</p>
+<p>（2）再写数据库（这两步和原来一样）</p>
+<p>（3）休眠1秒，再次淘汰缓存</p>
+<p>这么做，可以将1秒内所造成的缓存脏数据，再次删除。</p>
+<p>** 那么，这个1秒怎么确定的，具体该休眠多久呢？**</p>
+<p>针对上面的情形，读者应该自行评估自己的项目的读数据业务逻辑的耗时。然后写数据的休眠时间则在读数据业务逻辑的耗时基础上，加几百ms即可。这么做的目的，就是确保读请求结束，写请求可以删除读请求造成的缓存脏数据。</p>
+<p>** 如果你用了mysql的读写分离架构怎么办？**</p>
+<p>ok，在这种情况下，造成数据不一致的原因如下，还是两个请求，一个请求A进行更新操作，另一个请求B进行查询操作。</p>
+<p>（1）请求A进行写操作，删除缓存</p>
+<p>（2）请求A将数据写入数据库了</p>
+<p>（3）请求B查询缓存发现，缓存没有值</p>
+<p>（4）请求B去从库查询，这时，还没有完成主从同步，因此查询到的是旧值</p>
+<p>（5）请求B将旧值写入缓存</p>
+<p>（6）数据库完成主从同步，从库变为新值</p>
+<p>上述情形，就是数据不一致的原因。还是使用双删延时策略。只是，睡眠时间修改为在主从同步的延时时间基础上，加几百ms。</p>
+<p>** 采用这种同步淘汰策略，吞吐量降低怎么办？**</p>
+<p>ok，那就将第二次删除作为异步的。自己起一个线程，异步删除。这样，写的请求就不用沉睡一段时间后了，再返回。这么做，加大吞吐量。</p>
+<p>** 第二次删除,如果删除失败怎么办？**</p>
+<p>这是个非常好的问题，因为第二次删除失败，就会出现如下情形。还是有两个请求，一个请求A进行更新操作，另一个请求B进行查询操作，为了方便，假设是单库：</p>
+<p>（1）请求A进行写操作，删除缓存</p>
+<p>（2）请求B查询发现缓存不存在</p>
+<p>（3）请求B去数据库查询得到旧值</p>
+<p>（4）请求B将旧值写入缓存</p>
+<p>（5）请求A将新值写入数据库</p>
+<p>（6）请求A试图去删除请求B写入对缓存值，结果失败了。</p>
+<p>ok,这也就是说。如果第二次删除缓存失败，会再次出现缓存和数据库不一致的问题。</p>
+<p>如何解决呢？<br>具体解决方案，且看对第(3)种更新策略的解析。</p>
+<h2 id="3-先更新数据库，再删缓存"><a href="#3-先更新数据库，再删缓存" class="headerlink" title="(3)先更新数据库，再删缓存"></a>(3)先更新数据库，再删缓存</h2><p>** Cache Aside Pattern **</p>
+<p>这是最常用最常用的pattern了。其具体逻辑如下：</p>
+<p>** 失效**：应用程序先从cache取数据，没有得到，则从数据库中取数据，成功后，放到缓存中。</p>
+<p>** 命中**：应用程序从cache中取数据，取到后返回。</p>
+<p>** 更新**：先把数据存到数据库中，成功后，再让缓存失效。</p>
+<p>注意，我们的更新是先更新数据库，成功后，让缓存失效。</p>
+<p>** 这种情况不存在并发问题么？**</p>
+<p>不是的。假设这会有两个请求，一个请求A做查询操作，一个请求B做更新操作，那么会有如下情形产生</p>
+<p>（1）缓存刚好失效</p>
+<p>（2）请求A查询数据库，得一个旧值</p>
+<p>（3）请求B将新值写入数据库</p>
+<p>（4）请求B删除缓存</p>
+<p>（5）请求A将查到的旧值写入缓存</p>
+<p>ok，如果发生上述情况，确实是会发生脏数据。</p>
+<p>** 然而，发生这种情况的概率又有多少呢？**</p>
+<p>发生上述情况有一个先天性条件，就是步骤（3）的写数据库操作比步骤（2）的读数据库操作耗时更短，才有可能使得步骤（4）先于步骤（5）。可是，大家想想，数据库的读操作的速度远快于写操作的（不然做读写分离干嘛，做读写分离的意义就是因为读操作比较快，耗资源少），因此步骤（3）耗时比步骤（2）更短，这一情形很难出现。</p>
+<p>** 如何解决上述并发问题？**</p>
+<p>首先，给缓存设有效时间是一种方案。其次，采用策略（2）里给出的异步延时删除策略，保证读请求完成以后，再进行删除操作。</p>
+<p>** 还有其他造成不一致的原因么？**</p>
+<p>有的，这也是缓存更新策略（2）和缓存更新策略（3）都存在的一个问题，如果删缓存失败了怎么办，那不是会有不一致的情况出现么。比如一个写数据请求，然后写入数据库了，删缓存失败了，这会就出现不一致的情况了。这也是缓存更新策略（2）里留下的最后一个疑问。</p>
+<p>** 如何解决？**</p>
+<p>提供一个保障的重试机制即可，这里给出两套方案。</p>
+<p>** 方案一：**</p>
+<p>流程如下所示</p>
+<p><img src="/img/o_update1.png" alt="o_update1.png"></p>
+<p>（1）更新数据库数据；</p>
+<p>（2）缓存因为种种问题删除失败</p>
+<p>（3）将需要删除的key发送至消息队列</p>
+<p>（4）自己消费消息，获得需要删除的key</p>
+<p>（5）继续重试删除操作，直到成功</p>
+<p>** 方案二：**</p>
+<p>流程如下所示：</p>
+<p><img src="/img/o_update2.png" alt="o_update2.png"></p>
+<p>（1）更新数据库数据</p>
+<p>（2）数据库会将操作信息写入binlog日志当中</p>
+<p>（3）订阅程序提取出所需要的数据以及key</p>
+<p>（4）另起一段非业务代码，获得该信息</p>
+<p>（5）尝试删除缓存操作，发现删除失败</p>
+<p>（6）将这些信息发送至消息队列</p>
+<p>（7）重新从消息队列中获得该数据，重试操作。</p>
+<p>备注说明：上述的订阅binlog程序在mysql中有现成的中间件叫canal，可以完成订阅binlog日志的功能。另外，重试机制，可以采用的是消息队列的方式。如果对一致性要求不是很高，直接在程序中另起一个线程，每隔一段时间去重试即可。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/rjzheng/p/9041659.html">【原创】分布式之数据库和缓存双写一致性方案解析</a></p>
+<p><a target="_blank" rel="noopener" href="https://coolshell.cn/articles/17416.html">缓存更新的套路</a></p>
+<p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s?__biz=MjM5ODYxMDA5OQ==&mid=404308725&idx=1&sn=1a25ce76dd1956014ceb8a011855268e&scene=21#wechat_redirect">主从DB与cache一致性</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/06/08/Redis%E8%AF%A6%E8%A7%A3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/06/08/Redis%E8%AF%A6%E8%A7%A3/" class="post-title-link" itemprop="url">Redis详解</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-06-08 16:01:34" itemprop="dateCreated datePublished" datetime="2018-06-08T16:01:34+00:00">2018-06-08</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-09-21 11:13:36" itemprop="dateModified" datetime="2022-09-21T11:13:36+00:00">2022-09-21</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>3.7k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>3 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="Redis详解"><a href="#Redis详解" class="headerlink" title="Redis详解"></a>Redis详解</h1><p>本文参考<a target="_blank" rel="noopener" href="http://www.cnblogs.com/rjzheng/p/9096228.html">【原创】分布式之redis复习精讲</a>,做的进一步整理笔记。</p>
+<h2 id="1、为什么使用redis"><a href="#1、为什么使用redis" class="headerlink" title="1、为什么使用redis"></a>1、为什么使用redis</h2><p>Redis 的优势：</p>
+<p>性能极高 – Redis 能读的速度是 110000 次/s，写的速度是 81000 次/s。</p>
+<p>丰富的数据类型 – Redis 支持二进制案例的 Strings, Lists, Hashes, Sets 及 Ordered Sets 数据类型操作。</p>
+<p>原子 – Redis 的所有操作都是原子性的，意思就是要么成功执行要么失败完全不执行。单个操作是原子性的。多个操作也支持事务，即原子性，通过 MULTI 和 EXEC 指令包起来。</p>
+<p>丰富的特性 – Redis 还支持 publish/subscribe, 通知, key 过期等等特性。</p>
+<h3 id="性能"><a href="#性能" class="headerlink" title="性能"></a>性能</h3><p>我们在碰到需要执行耗时特别久，且结果不频繁变动的SQL，就特别适合将运行结果放入缓存。这样，后面的请求就去缓存中读取，使得请求能够迅速响应。</p>
+<h3 id="并发"><a href="#并发" class="headerlink" title="并发"></a>并发</h3><p>在大并发的情况下，所有的请求直接访问数据库，数据库会出现连接异常。这个时候，就需要使用redis做一个缓冲操作，让请求先访问到redis，而不是直接访问数据库。</p>
+<h2 id="2、使用redis有什么缺点"><a href="#2、使用redis有什么缺点" class="headerlink" title="2、使用redis有什么缺点"></a>2、使用redis有什么缺点</h2><p>分析:大家用redis这么久，这个问题是必须要了解的，基本上使用redis都会碰到一些问题，常见的也就几个。</p>
+<p>回答:主要是四个问题</p>
+<p>(一)缓存和数据库双写一致性问题</p>
+<p>(二)缓存雪崩问题</p>
+<p>(三)缓存击穿问题</p>
+<p>(四)缓存的并发竞争问题</p>
+<h2 id="3、单线程的redis为什么这么快"><a href="#3、单线程的redis为什么这么快" class="headerlink" title="3、单线程的redis为什么这么快"></a>3、单线程的redis为什么这么快</h2><p>分析:这个问题其实是对redis内部机制的一个考察。</p>
+<p>回答:主要是以下三点</p>
+<p>(一)纯内存操作</p>
+<p>(二)单线程操作，避免了频繁的上下文切换</p>
+<p>(三)采用了非阻塞I/O多路复用机制</p>
+<h2 id="4、redis的数据类型，以及每种数据类型的使用场景"><a href="#4、redis的数据类型，以及每种数据类型的使用场景" class="headerlink" title="4、redis的数据类型，以及每种数据类型的使用场景"></a>4、redis的数据类型，以及每种数据类型的使用场景</h2><p>** 一共五种 **</p>
+<h3 id="String"><a href="#String" class="headerlink" title="String"></a>String</h3><p>最常规的set/get操作，value可以是String也可以是数字。一般做一些复杂的计数功能的缓存。</p>
+<h3 id="hash"><a href="#hash" class="headerlink" title="hash"></a>hash</h3><p>这里value存放的是结构化的对象，比较方便的就是操作其中的某个字段。在做单点登录的时候，就是用这种数据结构存储用户信息，以cookieId作为key，设置30分钟为缓存过期时间，能很好的模拟出类似session的效果。</p>
+<h3 id="list"><a href="#list" class="headerlink" title="list"></a>list</h3><p>使用List的数据结构，可以做简单的消息队列的功能。另外还有一个就是，可以利用lrange命令，做基于redis的分页功能，性能极佳，用户体验好。</p>
+<h3 id="set"><a href="#set" class="headerlink" title="set"></a>set</h3><p>因为set堆放的是一堆不重复值的集合。所以可以做全局去重的功能。</p>
+<h3 id="sorted-set"><a href="#sorted-set" class="headerlink" title="sorted set"></a>sorted set</h3><p>sorted set多了一个权重参数score,集合中的元素能够按score进行排列。可以做排行榜应用，取TOP N操作</p>
+<h2 id="5、redis的过期策略以及内存淘汰机制"><a href="#5、redis的过期策略以及内存淘汰机制" class="headerlink" title="5、redis的过期策略以及内存淘汰机制"></a>5、redis的过期策略以及内存淘汰机制</h2><p>分析:这个问题其实相当重要，到底redis有没用到家，这个问题就可以看出来。比如你redis只能存5G数据，可是你写了10G，那会删5G的数据。怎么删的，这个问题思考过么？还有，你的数据已经设置了过期时间，但是时间到了，内存占用率还是比较高，有思考过原因么?</p>
+<p>回答:<br>redis采用的是定期删除+惰性删除策略。</p>
+<h3 id="为什么不用定时删除策略"><a href="#为什么不用定时删除策略" class="headerlink" title="为什么不用定时删除策略"></a>为什么不用定时删除策略</h3><p>定时删除,用一个定时器来负责监视key,过期则自动删除。虽然内存及时释放，但是十分消耗CPU资源。在大并发请求下，CPU要将时间应用在处理请求，而不是删除key,因此没有采用这一策略.</p>
+<h3 id="定期删除-惰性删除是如何工作的呢"><a href="#定期删除-惰性删除是如何工作的呢" class="headerlink" title="定期删除+惰性删除是如何工作的呢"></a>定期删除+惰性删除是如何工作的呢</h3><p>定期删除，redis默认每个100ms检查，是否有过期的key,有过期key则删除。需要说明的是，redis不是每个100ms将所有的key检查一次，而是随机抽取进行检查(如果每隔100ms,全部key进行检查，redis岂不是卡死)。因此，如果只采用定期删除策略，会导致很多key到时间没有删除。<br>于是，惰性删除派上用场。也就是说在你获取某个key的时候，redis会检查一下，这个key如果设置了过期时间那么是否过期了？如果过期了此时就会删除。</p>
+<h3 id="采用定期删除-惰性删除就没其他问题了么"><a href="#采用定期删除-惰性删除就没其他问题了么" class="headerlink" title="采用定期删除+惰性删除就没其他问题了么"></a>采用定期删除+惰性删除就没其他问题了么</h3><p>不是的，如果定期删除没删除key。然后你也没即时去请求key，也就是说惰性删除也没生效。这样，redis的内存会越来越高。那么就应该采用内存淘汰机制。<br>在redis.conf中有一行配置</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"># maxmemory-policy volatile-lru</span><br></pre></td></tr></table></figure>
+
+<p>该配置就是配内存淘汰策略的</p>
+<p>1）noeviction：当内存不足以容纳新写入数据时，新写入操作会报错。** 不推荐**</p>
+<p>2）allkeys-lru：当内存不足以容纳新写入数据时，在键空间中，移除最近最少使用的key。** 推荐使用。**</p>
+<p>3）allkeys-random：当内存不足以容纳新写入数据时，在键空间中，随机移除某个key。** 不推荐。**</p>
+<p>4）volatile-lru：当内存不足以容纳新写入数据时，在设置了过期时间的键空间中，移除最近最少使用的key。这种情况一般是把redis既当缓存，又做持久化存储的时候才用。** 不推荐 **</p>
+<p>5）volatile-random：当内存不足以容纳新写入数据时，在设置了过期时间的键空间中，随机移除某个key。** 不推荐**</p>
+<p>6）volatile-ttl：当内存不足以容纳新写入数据时，在设置了过期时间的键空间中，有更早过期时间的key优先移除。** 不推荐**</p>
+<p>ps：如果没有设置 expire 的key, 不满足先决条件(prerequisites); 那么 volatile-lru, volatile-random 和 volatile-ttl 策略的行为, 和 noeviction(不删除) 基本上一致。</p>
+<h2 id="6、redis和数据库双写一致性问题"><a href="#6、redis和数据库双写一致性问题" class="headerlink" title="6、redis和数据库双写一致性问题"></a>6、redis和数据库双写一致性问题</h2><p>分析:一致性问题是分布式常见问题，还可以再分为最终一致性和强一致性。数据库和缓存双写，就必然会存在不一致的问题。答这个问题，先明白一个前提。就是如果对数据有强一致性要求，不能放缓存。我们所做的一切，只能保证最终一致性。另外，我们所做的方案其实从根本上来说，只能说降低不一致发生的概率，无法完全避免。因此，有强一致性要求的数据，不能放缓存。</p>
+<p>回答: 参考 《<a target="_blank" rel="noopener" href="https://syxdevcode.github.io/2018/06/08/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B9%8B%E6%95%B0%E6%8D%AE%E5%BA%93%E5%92%8C%E7%BC%93%E5%AD%98%E5%8F%8C%E5%86%99%E4%B8%80%E8%87%B4%E6%80%A7%E6%96%B9%E6%A1%88/">分布式之数据库和缓存双写一致性方案解析</a>》首先，采取正确更新策略，先更新数据库，再删缓存。其次，因为可能存在删除缓存失败的问题，提供一个补偿措施即可，例如利用消息队列。</p>
+<h2 id="7、如何应对缓存穿透和缓存雪崩问题"><a href="#7、如何应对缓存穿透和缓存雪崩问题" class="headerlink" title="7、如何应对缓存穿透和缓存雪崩问题"></a>7、如何应对缓存穿透和缓存雪崩问题</h2><p>分析:一般中小型传统软件企业，很难碰到这个问题。如果有大并发的项目，流量有几百万左右。这两个问题一定要深刻考虑。</p>
+<p>回答:如下所示</p>
+<h3 id="缓存穿透"><a href="#缓存穿透" class="headerlink" title="缓存穿透"></a>缓存穿透</h3><p>即黑客故意去请求缓存中不存在的数据，导致所有的请求都怼到数据库上，从而数据库连接异常。</p>
+<p>** 解决方案:**</p>
+<p>(一)利用互斥锁，缓存失效的时候，先去获得锁，得到锁了，再去请求数据库。没得到锁，则休眠一段时间重试</p>
+<p>(二)采用异步更新策略，无论key是否取到值，都直接返回。value值中维护一个缓存失效时间，缓存如果过期，异步起一个线程去读数据库，更新缓存。需要做缓存预热(项目启动前，先加载缓存)操作。</p>
+<p>(三)提供一个能迅速判断请求是否有效的拦截机制，比如，利用布隆过滤器，内部维护一系列合法有效的key。迅速判断出，请求所携带的Key是否合法有效。如果不合法，则直接返回。</p>
+<h3 id="缓存雪崩"><a href="#缓存雪崩" class="headerlink" title="缓存雪崩"></a>缓存雪崩</h3><p>即缓存同一时间大面积的失效，这个时候又来了一波请求，结果请求都怼到数据库上，从而导致数据库连接异常。</p>
+<p>解决方案:</p>
+<p>(一)给缓存的失效时间，加上一个随机值，避免集体失效。</p>
+<p>(二)使用互斥锁，但是该方案吞吐量明显下降了。</p>
+<p>(三)双缓存。我们有两个缓存，缓存A和缓存B。缓存A的失效时间为20分钟，缓存B不设失效时间。自己做缓存预热操作。然后细分以下几个小点</p>
+<p>I 从缓存A读数据库，有则直接返回</p>
+<p>II A没有数据，直接从B读数据，直接返回，并且异步启动一个更新线程。</p>
+<p>III 更新线程同时更新缓存A和缓存B。</p>
+<h2 id="8、如何解决redis的并发竞争问题"><a href="#8、如何解决redis的并发竞争问题" class="headerlink" title="8、如何解决redis的并发竞争问题"></a>8、如何解决redis的并发竞争问题</h2><p>分析:同时有多个子系统去set一个key。s不推荐使用redis的事务机制。因为生产环境，基本都是redis集群环境，做了数据分片操作。你一个事务中有涉及到多个key操作的时候，这多个key不一定都存储在同一个redis-server上。因此，redis的事务机制，十分鸡肋。</p>
+<p>回答:如下所示</p>
+<p>(1)如果对这个key操作，不要求顺序</p>
+<p>这种情况下，准备一个分布式锁，大家去抢锁，抢到锁就做set操作即可，比较简单。</p>
+<p>(2)如果对这个key操作，要求顺序</p>
+<p>假设有一个key1,系统A需要将key1设置为valueA,系统B需要将key1设置为valueB,系统C需要将key1设置为valueC.</p>
+<p>期望按照key1的value值按照 valueA–&gt;valueB–&gt;valueC的顺序变化。这种时候我们在数据写入数据库的时候，需要保存一个时间戳。假设时间戳如下</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">系统A key 1 &#123;valueA  3:00&#125;</span><br><span class="line">系统B key 1 &#123;valueB  3:05&#125;</span><br><span class="line">系统C key 1 &#123;valueC  3:10&#125;</span><br></pre></td></tr></table></figure>
+
+<p>那么，假设这会系统B先抢到锁，将key1设置为{valueB 3:05}。接下来系统A抢到锁，发现自己的valueA的时间戳早于缓存中的时间戳，那就不做set操作了。以此类推。</p>
+<p>其他方法，比如利用队列，将set方法变成串行访问也可以。总之，灵活变通。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/rjzheng/p/9096228.html">【原创】分布式之redis复习精讲</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/05/28/Redis%E6%8C%81%E4%B9%85%E5%8C%96/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/05/28/Redis%E6%8C%81%E4%B9%85%E5%8C%96/" class="post-title-link" itemprop="url">Redis持久化</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-05-28 08:46:39" itemprop="dateCreated datePublished" datetime="2018-05-28T08:46:39+00:00">2018-05-28</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-09-21 11:13:36" itemprop="dateModified" datetime="2022-09-21T11:13:36+00:00">2022-09-21</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>4.3k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>4 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="redis持久化"><a href="#redis持久化" class="headerlink" title="redis持久化"></a>redis持久化</h1><p>Redis虽然是一种内存型数据库，一旦服务器进程退出，数据库的数据就会丢失，为了解决这个问题Redis提供了两种持久化的方案，将内存中的数据保存到磁盘中，避免数据的丢失。</p>
+<h2 id="AOF与RDB对比"><a href="#AOF与RDB对比" class="headerlink" title="AOF与RDB对比"></a>AOF与RDB对比</h2><p>** AOF **更安全，可将数据及时同步到文件中，但需要较多的磁盘IO，AOF文件尺寸较大，文件内容恢复相对较慢， 也更完整。</p>
+<p>** RDB **持久化，安全性较差，它是正常时期数据备份及 master-slave数据同步的最佳手段，文件尺寸较小，恢复数度较快。</p>
+<h2 id="RDB持久化"><a href="#RDB持久化" class="headerlink" title="RDB持久化"></a>RDB持久化</h2><p>redis提供了RDB持久化的功能，这个功能可以将redis在内存中的的状态保存到硬盘中，它可以手动执行，也可以再redis.conf中配置，定期执行。</p>
+<p>RDB持久化产生的RDB文件是一个经过压缩的二进制文件，这个文件被保存在硬盘中，redis可以通过这个文件还原数据库当时的状态。</p>
+<h3 id="RDB的创建与载入"><a href="#RDB的创建与载入" class="headerlink" title="RDB的创建与载入"></a>RDB的创建与载入</h3><p>RDB文件可以通过两个命令来生成：</p>
+<p><code>SAVE</code>：阻塞redis的服务器进程，直到RDB文件被创建完毕。<br><code>BGSAVE</code>：派生(fork)一个子进程来创建新的RDB文件，记录接收到BGSAVE当时的数据库状态，父进程继续处理接收到的命令，子进程完成文件的创建之后，会发送信号给父进程，而与此同时，父进程处理命令的同时，通过轮询来接收子进程的信号。<br>而RDB文件的载入一般情况是自动的，redis服务器启动的时候，redis服务器再启动的时候如果检测到RDB文件的存在，那么redis会自动载入这个文件。</p>
+<p>如果服务器开启了AOF持久化，那么服务器会优先使用AOF文件来还原数据库状态。</p>
+<p>RDB是通过保存键值对来记录数据库状态的，采用copy on write的模式，每次都是全量的备份。</p>
+<h3 id="自动保存间隔"><a href="#自动保存间隔" class="headerlink" title="自动保存间隔"></a>自动保存间隔</h3><p><code>BGSAVE</code>可以在不阻塞主进程的情况下完成数据的备份。可以通过redis.conf中设置多个自动保存条件，只要有一个条件被满足，服务器就会执行BGSAVE命令。</p>
+<p>相关配置</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"># 以下配置表示的条件：</span><br><span class="line"># 服务器在900秒之内被修改了1次</span><br><span class="line">save 900 1</span><br><span class="line"># 服务器在300秒之内被修改了10次</span><br><span class="line">save 300 10</span><br><span class="line"># 服务器在60秒之内被修改了10000次</span><br><span class="line">save 60 10000</span><br></pre></td></tr></table></figure>
+
+<h2 id="AOF持久化"><a href="#AOF持久化" class="headerlink" title="AOF持久化"></a>AOF持久化</h2><p>AOF持久化（Append-Only-File），与RDB持久化不同，AOF持久化是通过保存Redis服务器锁执行的写状态来记录数据库的</p>
+<p>具体来说，RDB持久化相当于备份数据库状态，而AOF持久化是备份数据库接收到的命令，所有被写入AOF的命令都是以redis的协议格式来保存的。</p>
+<p>在AOF持久化的文件中，数据库会记录下所有变更数据库状态的命令，除了指定数据库的select命令，其他的命令都是来自client的，这些命令会以追加(append)的形式保存到文件中。</p>
+<p>** appendfsync** 影响服务器多久完成一次命令的记录</p>
+<p><code>always</code>：将缓存区的内容总是即时写到AOF文件中。</p>
+<p><code>everysec</code>：将缓存区的内容每隔一秒写入AOF文件中。</p>
+<p><code>no</code> ：写入AOF文件中的操作由操作系统决定，一般而言为了提高效率，操作系统会等待缓存区被填满，才会开始同步数据到磁盘</p>
+<p>redis默认<code>everysec</code></p>
+<p>redis在载入AOF文件的时候，会创建一个虚拟的client，把AOF中每一条命令都执行一遍，最终还原回数据库的状态，它的载入也是自动的。在RDB和AOF备份文件都有的情况下，redis会优先载入AOF备份文件</p>
+<p>AOF文件可能会随着服务器运行的时间越来越大，可以利用AOF重写的功能，来控制AOF文件的大小。AOF重写功能会首先读取数据库中现有的键值对状态，然后根据类型使用一条命令来替代前的键值对多条命令。</p>
+<p>AOF重写功能有大量写入操作，所以redis才用子进程来处理AOF重写。这里带来一个新的问题，由于处理重新的是子进程，这样意味着如果主线程的数据在此时被修改，备份的数据和主库的数据将会有不一致的情况发生。因此redis还设置了一个AOF重写缓冲区，这个缓冲区在子进程被创建开始之后开始使用，这个期间，所有的命令会被存两份，一份在AOF缓存空间，一份在AOF重写缓冲区，当AOF重写完成之后，子进程发送信号给主进程，通知主进程将AOF重写缓冲区的内容添加到AOF文件中。</p>
+<p>相关配置：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">#AOF 和 RDB 持久化方式可以同时启动并且无冲突。</span><br><span class="line">#如果AOF开启，启动redis时会加载aof文件，这些文件能够提供更好的保证。</span><br><span class="line">appendonly yes</span><br><span class="line"></span><br><span class="line"># 只增文件的文件名称。（默认是appendonly.aof）</span><br><span class="line"># appendfilename appendonly.aof </span><br><span class="line">#redis支持三种不同的写入方式：</span><br><span class="line">#</span><br><span class="line"># no:不调用，之等待操作系统来清空缓冲区当操作系统要输出数据时。很快。</span><br><span class="line"># always: 每次更新数据都写入仅增日志文件。慢，但是最安全。</span><br><span class="line"># everysec: 每秒调用一次。折中。</span><br><span class="line">appendfsync everysec</span><br><span class="line"></span><br><span class="line"># 设置为yes表示rewrite期间对新写操作不fsync,暂时存在内存中,等rewrite完成后再写入.官方文档建议如果你有特殊的情况可以配置为&#x27;yes&#x27;。但是配置为&#x27;no&#x27;是最为安全的选择。</span><br><span class="line">no-appendfsync-on-rewrite no</span><br><span class="line"></span><br><span class="line"># 自动重写只增文件。</span><br><span class="line"># redis可以自动盲从的调用‘BGREWRITEAOF’来重写日志文件，如果日志文件增长了指定的百分比。</span><br><span class="line"># 当前AOF文件大小是上次日志重写得到AOF文件大小的二倍时，自动启动新的日志重写过程。</span><br><span class="line">auto-aof-rewrite-percentage 100</span><br><span class="line"># 当前AOF文件启动新的日志重写过程的最小值，避免刚刚启动Reids时由于文件尺寸较小导致频繁的重写。</span><br><span class="line">auto-aof-rewrite-min-size 64mb</span><br></pre></td></tr></table></figure>
+
+<h3 id="目录结构"><a href="#目录结构" class="headerlink" title="目录结构"></a>目录结构</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">test1</span><br><span class="line"> |--data</span><br><span class="line"> |--docker-compose.yml</span><br><span class="line"> |--Dockerfile</span><br><span class="line"> |--redis.conf</span><br></pre></td></tr></table></figure>
+
+<h3 id="新建redis-conf"><a href="#新建redis-conf" class="headerlink" title="新建redis.conf"></a>新建redis.conf</h3><p>具体配置如下：</p>
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 使用守护进程模式</span></span><br><span class="line"><span class="attribute">daemonize</span> <span class="literal">no</span></span><br><span class="line"><span class="comment"># 非保护模式，可以外网访问</span></span><br><span class="line">protected-mode <span class="literal">no</span></span><br><span class="line">timeout <span class="number">300</span></span><br><span class="line">databases <span class="number">16</span></span><br><span class="line">rdbcompression <span class="literal">yes</span></span><br><span class="line"><span class="comment"># 学习开发，使用最大日志级别，能够看到最多的日志信息</span></span><br><span class="line">loglevel <span class="literal">debug</span></span><br><span class="line">port <span class="number">6380</span></span><br><span class="line"><span class="comment">##授权密码，各个配置保持一致</span></span><br><span class="line"><span class="comment">##暂且禁用指令重命名</span></span><br><span class="line"><span class="comment">##rename-command</span></span><br><span class="line"><span class="comment">##开启AOF，禁用snapshot</span></span><br><span class="line">slave-read-only <span class="literal">yes</span></span><br><span class="line">maxclients <span class="number">10000</span></span><br><span class="line">maxmemory 1000mb</span><br><span class="line"></span><br><span class="line"><span class="comment">#AOF 和 RDB 持久化方式可以同时启动并且无冲突。</span></span><br><span class="line"><span class="comment">#如果AOF开启，启动redis时会加载aof文件，这些文件能够提供更好的保证。</span></span><br><span class="line">appendonly <span class="literal">yes</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 只增文件的文件名称。（默认是appendonly.aof）</span></span><br><span class="line"><span class="comment"># appendfilename appendonly.aof</span></span><br><span class="line"><span class="comment">#redis支持三种不同的写入方式：</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># no:不调用，之等待操作系统来清空缓冲区当操作系统要输出数据时。很快。</span></span><br><span class="line"><span class="comment"># always: 每次更新数据都写入仅增日志文件。慢，但是最安全。</span></span><br><span class="line"><span class="comment"># everysec: 每秒调用一次。折中。</span></span><br><span class="line">appendfsync everysec</span><br><span class="line"></span><br><span class="line"><span class="comment"># 设置为yes表示rewrite期间对新写操作不fsync,暂时存在内存中,等rewrite完成后再写入.官方文档建议如果你有特殊的情况可以配置为&#x27;yes&#x27;。但是配置为&#x27;no&#x27;是最为安全的选择。</span></span><br><span class="line"><span class="literal">no</span>-appendfsync-<span class="literal">on</span>-rewrite <span class="literal">no</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 自动重写只增文件。</span></span><br><span class="line"><span class="comment"># redis可以自动盲从的调用‘BGREWRITEAOF’来重写日志文件，如果日志文件增长了指定的百分比。</span></span><br><span class="line"><span class="comment"># 当前AOF文件大小是上次日志重写得到AOF文件大小的二倍时，自动启动新的日志重写过程。</span></span><br><span class="line">auto-aof-rewrite-percentage <span class="number">100</span></span><br><span class="line"><span class="comment"># 当前AOF文件启动新的日志重写过程的最小值，避免刚刚启动Reids时由于文件尺寸较小导致频繁的重写。</span></span><br><span class="line">auto-aof-rewrite-min-size 64mb</span><br></pre></td></tr></table></figure>
+
+<h3 id="新建Dockerfile"><a href="#新建Dockerfile" class="headerlink" title="新建Dockerfile"></a>新建Dockerfile</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">FROM</span> redis:<span class="number">4</span>-alpine</span><br><span class="line"></span><br><span class="line"><span class="comment">#设置时区</span></span><br><span class="line"><span class="keyword">RUN</span><span class="language-bash"> apk add --update tzdata</span></span><br><span class="line"><span class="keyword">ENV</span> TZ=Asia/Shanghai</span><br><span class="line"><span class="keyword">RUN</span><span class="language-bash"> <span class="built_in">ln</span> -snf /usr/share/zoneinfo/<span class="variable">$TZ</span> /etc/localtime &amp;&amp; <span class="built_in">echo</span> <span class="variable">$TZ</span> &gt; /etc/timezone</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">COPY</span><span class="language-bash"> redis.conf /conf/redis.conf</span></span><br><span class="line"><span class="keyword">RUN</span><span class="language-bash"> <span class="built_in">chown</span> redis:redis /conf/*</span></span><br></pre></td></tr></table></figure>
+
+<p>** 生成镜像**</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker build -t redis:v2 .</span><br></pre></td></tr></table></figure>
+
+<h3 id="新建docker-compose-yml"><a href="#新建docker-compose-yml" class="headerlink" title="新建docker-compose.yml"></a>新建docker-compose.yml</h3><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">version: <span class="string">&#x27;3&#x27;</span></span><br><span class="line"></span><br><span class="line">services:</span><br><span class="line">  redis-master:</span><br><span class="line">    container_name: redis_server</span><br><span class="line">    volumes:</span><br><span class="line">      - $PWD/data:/data</span><br><span class="line">    image: redis:v2</span><br><span class="line">    command: [<span class="string">&quot;redis-server&quot;</span>, <span class="string">&quot;/conf/redis.conf&quot;</span>]</span><br><span class="line">    ports:</span><br><span class="line">      - <span class="string">&quot;6380:6380&quot;</span></span><br><span class="line">    <span class="keyword">expose</span>:</span><br><span class="line">      - <span class="string">&quot;6380&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>** 执行**</p>
+<figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker-compose up -d</span><br></pre></td></tr></table></figure>
+
+<h3 id="验证"><a href="#验证" class="headerlink" title="验证"></a>验证</h3><p>在data目录查看是否有.aof文件生成</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[root@localhost redistest1]# cd data</span><br><span class="line">[root@localhost data]# ls</span><br><span class="line">appendonly.aof</span><br></pre></td></tr></table></figure>
+
+<h4 id="获取容器IP"><a href="#获取容器IP" class="headerlink" title="获取容器IP"></a>获取容器IP</h4><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">docker inspect -f <span class="string">&#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27;</span> redis_server</span><br><span class="line"><span class="number">172.19</span>.<span class="number">0.2</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="连接Redis"><a href="#连接Redis" class="headerlink" title="连接Redis"></a>连接Redis</h4><figure class="highlight docker"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker exec -it redis_server redis-cli -h <span class="number">172.19</span>.<span class="number">0.2</span> -p <span class="number">6380</span></span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/bedec93e5a7b">Redis 持久化</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/kismetv/p/9137897.html">深入学习Redis（2）：持久化</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/05/25/Docker%E4%BF%AE%E6%94%B9%E6%97%B6%E5%8C%BA/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -215,7 +699,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-20 07:03:05" itemprop="dateModified" datetime="2022-09-20T07:03:05+00:00">2022-09-20</time>
+                <time title="修改时间：2022-09-21 11:13:36" itemprop="dateModified" datetime="2022-09-21T11:13:36+00:00">2022-09-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -305,7 +789,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-20 07:03:05" itemprop="dateModified" datetime="2022-09-20T07:03:05+00:00">2022-09-20</time>
+                <time title="修改时间：2022-09-21 11:13:36" itemprop="dateModified" datetime="2022-09-21T11:13:36+00:00">2022-09-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -472,7 +956,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-20 07:03:05" itemprop="dateModified" datetime="2022-09-20T07:03:05+00:00">2022-09-20</time>
+                <time title="修改时间：2022-09-21 11:13:36" itemprop="dateModified" datetime="2022-09-21T11:13:36+00:00">2022-09-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -716,7 +1200,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-20 07:03:05" itemprop="dateModified" datetime="2022-09-20T07:03:05+00:00">2022-09-20</time>
+                <time title="修改时间：2022-09-21 11:13:36" itemprop="dateModified" datetime="2022-09-21T11:13:36+00:00">2022-09-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -847,7 +1331,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-20 07:03:05" itemprop="dateModified" datetime="2022-09-20T07:03:05+00:00">2022-09-20</time>
+                <time title="修改时间：2022-09-21 11:13:36" itemprop="dateModified" datetime="2022-09-21T11:13:36+00:00">2022-09-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -980,7 +1464,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-20 07:03:05" itemprop="dateModified" datetime="2022-09-20T07:03:05+00:00">2022-09-20</time>
+                <time title="修改时间：2022-09-21 11:13:36" itemprop="dateModified" datetime="2022-09-21T11:13:36+00:00">2022-09-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1116,7 +1600,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-20 07:03:05" itemprop="dateModified" datetime="2022-09-20T07:03:05+00:00">2022-09-20</time>
+                <time title="修改时间：2022-09-21 11:13:36" itemprop="dateModified" datetime="2022-09-21T11:13:36+00:00">2022-09-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1540,7 +2024,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-20 07:03:05" itemprop="dateModified" datetime="2022-09-20T07:03:05+00:00">2022-09-20</time>
+                <time title="修改时间：2022-09-21 11:13:36" itemprop="dateModified" datetime="2022-09-21T11:13:36+00:00">2022-09-21</time>
               </span>
 
           <br>
@@ -1618,7 +2102,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-20 07:03:05" itemprop="dateModified" datetime="2022-09-20T07:03:05+00:00">2022-09-20</time>
+                <time title="修改时间：2022-09-21 11:13:36" itemprop="dateModified" datetime="2022-09-21T11:13:36+00:00">2022-09-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1796,7 +2280,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-20 07:03:05" itemprop="dateModified" datetime="2022-09-20T07:03:05+00:00">2022-09-20</time>
+                <time title="修改时间：2022-09-21 11:13:36" itemprop="dateModified" datetime="2022-09-21T11:13:36+00:00">2022-09-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1887,7 +2371,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-20 07:03:05" itemprop="dateModified" datetime="2022-09-20T07:03:05+00:00">2022-09-20</time>
+                <time title="修改时间：2022-09-21 11:13:36" itemprop="dateModified" datetime="2022-09-21T11:13:36+00:00">2022-09-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2026,7 +2510,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-20 07:03:05" itemprop="dateModified" datetime="2022-09-20T07:03:05+00:00">2022-09-20</time>
+                <time title="修改时间：2022-09-21 11:13:36" itemprop="dateModified" datetime="2022-09-21T11:13:36+00:00">2022-09-21</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -2080,332 +2564,6 @@
 <p>如果有很多 输出时，您可以通过管道将其转到’less’上阅读：<br><code>$ grep magic /usr/src/Linux/Documentation/* | less</code><br>这样，您就可以更方便地阅读。</p>
 <p>参考：</p>
 <p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/end/archive/2012/02/21/2360965.html">http://www.cnblogs.com/end/archive/2012/02/21/2360965.html</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/05/10/Linux-shell%E4%B8%AD%E7%9A%84%E7%AB%96%E7%BA%BF%EF%BC%88-%EF%BC%89%E2%80%94%E2%80%94%E7%AE%A1%E9%81%93%E7%AC%A6%E5%8F%B7/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="syxdevcode的个人博客">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/05/10/Linux-shell%E4%B8%AD%E7%9A%84%E7%AB%96%E7%BA%BF%EF%BC%88-%EF%BC%89%E2%80%94%E2%80%94%E7%AE%A1%E9%81%93%E7%AC%A6%E5%8F%B7/" class="post-title-link" itemprop="url">Linux shell中的竖线（|）——管道符号</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-05-10 10:18:29" itemprop="dateCreated datePublished" datetime="2018-05-10T10:18:29+00:00">2018-05-10</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-20 07:03:05" itemprop="dateModified" datetime="2022-09-20T07:03:05+00:00">2022-09-20</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Linux%E5%9F%BA%E7%A1%80%E5%91%BD%E4%BB%A4/" itemprop="url" rel="index"><span itemprop="name">Linux基础命令</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>520</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>1 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="Linux-shell中的竖线（-）——管道符号"><a href="#Linux-shell中的竖线（-）——管道符号" class="headerlink" title="Linux shell中的竖线（|）——管道符号"></a>Linux shell中的竖线（|）——管道符号</h1><p>在Linux系统中管道线是由竖杠（|）隔开的若干个命令组成的序列，在管道线中，每个命令运行时都有一个独立的进程。前一个命令的输出正是下一个命令的输入。而管道线中有一类命令也称作“过滤器”，过滤器首先读取输入，然后将输入以某种简单方式进行变换（相当于过滤），再将处理结果输出，例如grep、tail、sort和wc等命令就称为过滤器。</p>
-<p>一个管道线中可以包括多条命令。</p>
-<p>用法: <code>command 1 | command 2</code></p>
-<p>他的功能是把第一个命令command 1执行的结果作为command 2的输入传给command 2</p>
-<p>例如：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ls -s|sort -nr</span><br></pre></td></tr></table></figure>
-
-<p>-s 是file size，-n是numeric-sort，-r是reverse，反转</p>
-<p>该命令列出当前目录中的文档(含size)，并把输出送给sort命令作为输入，sort命令按数字递减的顺序把ls的输出排序。</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ls -s|sort -n</span><br></pre></td></tr></table></figure>
-
-<p>按从小到大的顺序输出。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://blog.sina.com.cn/s/blog_6d09b5750100vley.html">http://blog.sina.com.cn/s/blog_6d09b5750100vley.html</a></p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/kaosini/article/details/6578115">https://blog.csdn.net/kaosini/article/details/6578115</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/05/09/Docker%E5%9F%BA%E7%A1%80-%E9%95%9C%E5%83%8F/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="syxdevcode的个人博客">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/05/09/Docker%E5%9F%BA%E7%A1%80-%E9%95%9C%E5%83%8F/" class="post-title-link" itemprop="url">Docker基础-镜像</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-05-09 09:00:50" itemprop="dateCreated datePublished" datetime="2018-05-09T09:00:50+00:00">2018-05-09</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-20 07:03:05" itemprop="dateModified" datetime="2022-09-20T07:03:05+00:00">2022-09-20</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Docker/" itemprop="url" rel="index"><span itemprop="name">Docker</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>3.6k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>3 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p><strong>三大核心概念:</strong></p>
-<p>镜像，容器，仓库</p>
-<p><strong>镜像是 Docker 的三大核心概念之一</strong>。Docker 运行容器前需要本地存在对应的镜像，如果本地没有对应的镜像，Docker 会尝试从默认的镜像仓库下载。当然用户也可以通过配置，使用自定义的镜像仓库。<br>本文将介绍镜像的具体操作，包括使用 pull 命令从 Docker Hub 的镜像仓库中拉取(下载)公共镜像；查看本地已有的镜像信息；使用 search 命令搜索镜像；删除镜像标签和镜像文件；创建用户自定义镜像并上传到 Docker Hub 镜像仓库。<br>与镜像相关的操作都被定义在 <strong>docker image</strong> 子命令中，虽然不带 image 的格式依然被兼容，但带上 image 后会让命令更容易理解，也会有更好的自动补全效果。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2018/05/09/Docker%E5%9F%BA%E7%A1%80-%E9%95%9C%E5%83%8F/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/05/08/CentOS7-Docker-Jenkins-DotNetCore%E9%A1%B9%E7%9B%AE%E9%85%8D%E7%BD%AE/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="syxdevcode的个人博客">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/05/08/CentOS7-Docker-Jenkins-DotNetCore%E9%A1%B9%E7%9B%AE%E9%85%8D%E7%BD%AE/" class="post-title-link" itemprop="url">CentOS7 & Docker & Jenkins & DotNetCore项目配置</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-05-08 13:54:33" itemprop="dateCreated datePublished" datetime="2018-05-08T13:54:33+00:00">2018-05-08</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-20 07:03:05" itemprop="dateModified" datetime="2022-09-20T07:03:05+00:00">2022-09-20</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Jenkins/" itemprop="url" rel="index"><span itemprop="name">Jenkins</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>5.5k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>5 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="CentOS7-amp-Docker-amp-Jenkins-amp-DotNetCore项目配置"><a href="#CentOS7-amp-Docker-amp-Jenkins-amp-DotNetCore项目配置" class="headerlink" title="CentOS7 &amp; Docker &amp; Jenkins &amp; DotNetCore项目配置"></a>CentOS7 &amp; Docker &amp; Jenkins &amp; DotNetCore项目配置</h1><h2 id="GitHub配置"><a href="#GitHub配置" class="headerlink" title="GitHub配置"></a>GitHub配置</h2><h3 id="SercretText"><a href="#SercretText" class="headerlink" title="SercretText"></a>SercretText</h3><p>注：此处需要一个对项目有写权限的账户</p>
-<p>进入SGithub –&gt; Setting –&gt; Developer settings –&gt; Personal access tokens</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180508141541.png" alt="1"></p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180508141948.png" alt="2"></p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180508142138.png" alt="3"></p>
-<p>自己先保存此token，如果丢失，之后再也无法找到这个token。</p>
-<h2 id="配置GitHub-Plugin"><a href="#配置GitHub-Plugin" class="headerlink" title="配置GitHub Plugin"></a>配置GitHub Plugin</h2><p>系统管理 –&gt; 系统设置 –&gt; GitHub –&gt; GitHub Plugin</p>
-<p>配置github用户名，邮箱</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180508144549.png" alt="4"></p>
-<h2 id="配置Jenkins"><a href="#配置Jenkins" class="headerlink" title="配置Jenkins"></a>配置Jenkins</h2><h3 id="新建任务："><a href="#新建任务：" class="headerlink" title="新建任务："></a>新建任务：</h3><p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180508145651.png" alt="5"></p>
-<h3 id="General-通常"><a href="#General-通常" class="headerlink" title="General(通常)"></a>General(通常)</h3><p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180508145841.png" alt="6"></p>
-<h3 id="源码管理"><a href="#源码管理" class="headerlink" title="源码管理"></a>源码管理</h3><p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180508145941.png" alt="7"></p>
-<p>点击Add：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180508150102.png" alt="8"></p>
-<h3 id="构建触发器："><a href="#构建触发器：" class="headerlink" title="构建触发器："></a>构建触发器：</h3><p><code>H/2 * * * *</code></p>
-<p>具体参考：</p>
-<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/brave_insist/article/details/78434877">https://blog.csdn.net/brave_insist/article/details/78434877</a></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">每15分钟构建一次：H/15 * * * *   或*/5 * * * *</span><br><span class="line"></span><br><span class="line">每天8点构建一次：0 8 * * *</span><br><span class="line"></span><br><span class="line">每天8点~17点，两小时构建一次：0 8-17/2 * * *</span><br><span class="line"></span><br><span class="line">周一到周五，8点~17点，两小时构建一次：0 8-17/2 * * 1-5</span><br><span class="line"></span><br><span class="line">每月1号、15号各构建一次，除12月：H H 1,15 1-11 *</span><br><span class="line"></span><br><span class="line">*/5 * * * * （每5分钟检查一次源码变化）</span><br><span class="line"></span><br><span class="line">0 2 * * * （每天2:00 必须build一次源码）</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">每个部分代表的含义以及取值范围</span><br><span class="line"></span><br><span class="line">分钟，取值范围（0~59）：若其他值不做设定，则表示每个设定的分钟都会构建</span><br><span class="line">如：5 * * * * ，表示每个小时的第5分钟都会构建一次</span><br><span class="line"></span><br><span class="line">小时，取值范围（0~23）：若其他值不做设定，则表示每个设定小时的每分钟都会构建</span><br><span class="line">如：* 5 * * * ，表示在每天5点的时候，一小时内每一分钟都会构建一次</span><br><span class="line"></span><br><span class="line">日期，取值范围（1~31）：若其他值不做设定，则表示每个月的那一天每分钟都会构建一次</span><br><span class="line">如：* * 5 * *，表示在每个月5号的时候，0点开始每分钟构建一次</span><br><span class="line"></span><br><span class="line">月份，取值范围（1~12）：若其他值不做设定，则表示每年的那个月每分钟都会构建一次</span><br><span class="line">如：* * * 5 *，表示在每年的5月份，1号0点开始每分钟构建一次</span><br><span class="line"></span><br><span class="line">星期，取值范围（0 ~ 7）：若其他值不做设定，则表示每周的那一天几每分钟都会构建一次</span><br><span class="line">如：* * * * 5，表示每周五0点开始每分钟构建一次</span><br></pre></td></tr></table></figure>
-
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180508150645.png" alt="9"></p>
-<h3 id="构建环境"><a href="#构建环境" class="headerlink" title="构建环境"></a>构建环境</h3><p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180508151257.png" alt="10"></p>
-<p>点击Add：</p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180508152137.png" alt="10"></p>
-<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180508152518.png" alt="11"></p>
-<h3 id="构建"><a href="#构建" class="headerlink" title="构建"></a>构建</h3><p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180508152609.png" alt="12"></p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#!/bin/bash</span></span><br><span class="line"><span class="comment"># 获取短版本号</span></span><br><span class="line"></span><br><span class="line">GITHASH=`git rev-parse --short HEAD`</span><br><span class="line"><span class="built_in">echo</span> ---------------Remove-Orphans------------------</span><br><span class="line">docker-compose -f ./docker-compose.yml -f ./docker-compose.override.yml  -p dotnetcoreapp1 down --rmi <span class="built_in">local</span> --remove-orphans</span><br><span class="line"><span class="built_in">echo</span> ------------------Config-----------------------</span><br><span class="line">docker-compose -f ./docker-compose.ci.build.yml -p dotnetcoreapp1 config</span><br><span class="line"><span class="built_in">echo</span> ------------------Build------------------------</span><br><span class="line">docker-compose -f ./docker-compose.ci.build.yml -p dotnetcoreapp1 up --build</span><br><span class="line"><span class="built_in">echo</span> ---------------Publishing...------------------</span><br><span class="line">docker-compose -f <span class="string">&quot;./docker-compose.yml&quot;</span> -f <span class="string">&quot;./docker-compose.override.yml&quot;</span>  -p dotnetcoreapp1 up -d --build</span><br><span class="line"><span class="built_in">echo</span> ---------------Clear-Images...------------------</span><br><span class="line">docker rmi -f $(docker images -f <span class="string">&quot;dangling=true&quot;</span> -q)</span><br><span class="line"><span class="built_in">echo</span> ---------------Clear-Containers...------------------</span><br><span class="line">docker <span class="built_in">rm</span> dotnetcoreapp1_ci-build_1</span><br></pre></td></tr></table></figure>
-
-<p>命令说明：</p>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">-f, --file FILE 指定使用的 Compose 模板文件，默认为 docker-compose.yml，可以多次指定。</span><br><span class="line"></span><br><span class="line">-p, --project-name NAME 指定项目名称，默认将使用所在目录名称作为项目名。</span><br></pre></td></tr></table></figure>
-
-<p>修改docker-compose.override.yml文件：</p>
-<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">version:</span> <span class="string">&#x27;3&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="attr">services:</span></span><br><span class="line">  <span class="attr">dotnetcoreapp:</span></span><br><span class="line">    <span class="attr">environment:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">ASPNETCORE_ENVIRONMENT=Development</span></span><br><span class="line">    <span class="attr">ports:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">&quot;8081:80&quot;</span></span><br></pre></td></tr></table></figure>
-
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br></pre></td><td class="code"><pre><span class="line">[MvcTest] $ /bin/bash /tmp/jenkins3923627102865574973.sh</span><br><span class="line">---------------Remove-Orphans------------------</span><br><span class="line"></span><br><span class="line">Removing network dotnetcoreapp1_default</span><br><span class="line">------------------Config-----------------------</span><br><span class="line"></span><br><span class="line">services:</span><br><span class="line">  ci-build:</span><br><span class="line">    <span class="built_in">command</span>: /bin/bash -c <span class="string">&quot;dotnet restore ./DotNetCoreApp.sln &amp;&amp; dotnet publish ./DotNetCoreApp.sln</span></span><br><span class="line"><span class="string">      -c Release -o ./obj/Docker/publish&quot;</span></span><br><span class="line">    image: microsoft/aspnetcore-build:1.0-2.0</span><br><span class="line">    volumes:</span><br><span class="line">    - /var/jenkins_home/workspace/MvcTest:/src:rw</span><br><span class="line">    working_dir: /src</span><br><span class="line">version: <span class="string">&#x27;3.0&#x27;</span></span><br><span class="line"></span><br><span class="line">------------------Build------------------------</span><br><span class="line"></span><br><span class="line">Creating network <span class="string">&quot;dotnetcoreapp1_default&quot;</span> with the default driver</span><br><span class="line"></span><br><span class="line">Creating dotnetcoreapp1_ci-build_1 ... </span><br><span class="line"></span><br><span class="line">[1A[2K</span><br><span class="line">Creating dotnetcoreapp1_ci-build_1 ... [32mdone[0m</span><br><span class="line">[1BAttaching to dotnetcoreapp1_ci-build_1</span><br><span class="line">[36mci-build_1  |[0m   Restoring packages <span class="keyword">for</span> /src/DotNetCoreApp/DotNetCoreApp.csproj...</span><br><span class="line"></span><br><span class="line">[36mci-build_1  |[0m   Generating MSBuild file /src/DotNetCoreApp/obj/DotNetCoreApp.csproj.nuget.g.props.</span><br><span class="line"></span><br><span class="line">[36mci-build_1  |[0m   Generating MSBuild file /src/DotNetCoreApp/obj/DotNetCoreApp.csproj.nuget.g.targets.</span><br><span class="line">[36mci-build_1  |[0m   Restore completed <span class="keyword">in</span> 30.06 sec <span class="keyword">for</span> /src/DotNetCoreApp/DotNetCoreApp.csproj.</span><br><span class="line">[36mci-build_1  |[0m   Restoring packages <span class="keyword">for</span> /src/DotNetCoreApp/DotNetCoreApp.csproj...</span><br><span class="line"></span><br><span class="line">[36mci-build_1  |[0m   Restore completed <span class="keyword">in</span> 2.64 sec <span class="keyword">for</span> /src/DotNetCoreApp/DotNetCoreApp.csproj.</span><br><span class="line"></span><br><span class="line">[36mci-build_1  |[0m Microsoft (R) Build Engine version 15.6.84.34536 <span class="keyword">for</span> .NET Core</span><br><span class="line">[36mci-build_1  |[0m Copyright (C) Microsoft Corporation. All rights reserved.</span><br><span class="line">[36mci-build_1  |[0m </span><br><span class="line"></span><br><span class="line">[36mci-build_1  |[0m   Restore completed <span class="keyword">in</span> 97.25 ms <span class="keyword">for</span> /src/DotNetCoreApp/DotNetCoreApp.csproj.</span><br><span class="line">[36mci-build_1  |[0m   Restore completed <span class="keyword">in</span> 24.37 ms <span class="keyword">for</span> /src/DotNetCoreApp/DotNetCoreApp.csproj.</span><br><span class="line"></span><br><span class="line">[36mci-build_1  |[0m   DotNetCoreApp -&gt; /src/DotNetCoreApp/bin/Release/netcoreapp2.0/DotNetCoreApp.dll</span><br><span class="line"></span><br><span class="line">[36mci-build_1  |[0m   DotNetCoreApp -&gt; /src/DotNetCoreApp/obj/Docker/publish/</span><br><span class="line"></span><br><span class="line">[36mdotnetcoreapp1_ci-build_1 exited with code 0</span><br><span class="line"></span><br><span class="line">[0m---------------Publishing...------------------</span><br><span class="line"></span><br><span class="line">Building dotnetcoreapp</span><br><span class="line"></span><br><span class="line">Step 1/6 : FROM microsoft/aspnetcore:2.0</span><br><span class="line"> ---&gt; c4ca78cf9dca</span><br><span class="line">Step 2/6 : ARG <span class="built_in">source</span></span><br><span class="line"> ---&gt; Using cache</span><br><span class="line"> ---&gt; 5ccef217b449</span><br><span class="line">Step 3/6 : WORKDIR /app</span><br><span class="line"> ---&gt; Using cache</span><br><span class="line"> ---&gt; 21ca58736a23</span><br><span class="line">Step 4/6 : EXPOSE 80</span><br><span class="line"> ---&gt; Using cache</span><br><span class="line"> ---&gt; fa9898960c84</span><br><span class="line">Step 5/6 : COPY <span class="variable">$&#123;source:-obj/Docker/publish&#125;</span> .</span><br><span class="line"></span><br><span class="line"> ---&gt; a7d0c6386eb4</span><br><span class="line">Step 6/6 : ENTRYPOINT [<span class="string">&quot;dotnet&quot;</span>, <span class="string">&quot;DotNetCoreApp.dll&quot;</span>]</span><br><span class="line"> ---&gt; Running <span class="keyword">in</span> dd4cfb6f5cb8</span><br><span class="line"></span><br><span class="line">Removing intermediate container dd4cfb6f5cb8</span><br><span class="line"> ---&gt; d8dea36554b4</span><br><span class="line">Successfully built d8dea36554b4</span><br><span class="line">Successfully tagged dotnetcoreapp:latest</span><br><span class="line">Recreating dotnetcoreapp2_dotnetcoreapp_1 ... </span><br><span class="line"></span><br><span class="line">[1A[2K</span><br><span class="line">Recreating dotnetcoreapp2_dotnetcoreapp_1 ... [32mdone[0m</span><br><span class="line">[1B---------------Clear-Images...------------------</span><br><span class="line"></span><br><span class="line">Deleted: sha256:238c39ae8c13a1d6816361946429024cb46e6911329dad2d714033d2578da618</span><br><span class="line">Deleted: sha256:12dfe61eae3ee68775237340f3e50e19554a653357baec0de52a50d0cff96652</span><br><span class="line">Deleted: sha256:3f6beb8ffd03ee5d3b9fd0e9e5b46074d270cdb707fa07056087194a53be1dd4</span><br><span class="line">---------------Clear-Containers...------------------</span><br><span class="line"></span><br><span class="line">dotnetcoreapp1_ci-build_1</span><br><span class="line">Finished: SUCCESS</span><br></pre></td></tr></table></figure>
-
-<p>最后通过浏览器访问<code>http://localhost:8081</code></p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/stulzq/p/8627824.html">http://www.cnblogs.com/stulzq/p/8627824.html</a><br><a target="_blank" rel="noopener" href="https://github.com/muyinchen/woker/blob/master/%E9%9B%86%E6%88%90%E6%B5%8B%E8%AF%95%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/%E6%89%8B%E6%8A%8A%E6%89%8B%E6%95%99%E4%BD%A0%E6%90%AD%E5%BB%BAJenkins%2BGithub%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E7%8E%AF%E5%A2%83.md">https://github.com/muyinchen/woker/blob/master/%E9%9B%86%E6%88%90%E6%B5%8B%E8%AF%95%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA/%E6%89%8B%E6%8A%8A%E6%89%8B%E6%95%99%E4%BD%A0%E6%90%AD%E5%BB%BAJenkins%2BGithub%E6%8C%81%E7%BB%AD%E9%9B%86%E6%88%90%E7%8E%AF%E5%A2%83.md</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/LongJiangXie/p/7517909.html">http://www.cnblogs.com/LongJiangXie/p/7517909.html</a></p>
-<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/JacZhu/p/6814848.html">http://www.cnblogs.com/JacZhu/p/6814848.html</a></p>
 
       
     </div>
@@ -2492,20 +2650,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">572</span>
+          <span class="site-state-item-count">575</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">141</span>
+        <span class="site-state-item-count">142</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">213</span>
+        <span class="site-state-item-count">214</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -2555,7 +2713,7 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">27:24</span>
+    <span title="站点阅读时长">27:37</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
   </div>

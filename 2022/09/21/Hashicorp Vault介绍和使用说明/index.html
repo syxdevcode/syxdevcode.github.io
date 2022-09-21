@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.2">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"syxdevcode.github.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="1.概述在本文中，我们将探索Hashicorp的Vault - 一种用于在现代应用程序体系结构中安全地管理机密信息的流行工具。 我们将讨论的主要议题包括：  Vault试图解决什么问题 Vault的架构和主要概念 设置一个简单的测试环境 使用命令行工具与Vault交互  2.机密信息问题在深入了解Vault之前，让我们试着了解它试图解决的问题：机密信息管理。 大多数应用程序需要访问机密数据才能正常">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Hashicorp Vault介绍和使用说明">
+<meta property="og:url" content="https://syxdevcode.github.com/2022/09/21/Hashicorp%20Vault%E4%BB%8B%E7%BB%8D%E5%92%8C%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="1.概述在本文中，我们将探索Hashicorp的Vault - 一种用于在现代应用程序体系结构中安全地管理机密信息的流行工具。 我们将讨论的主要议题包括：  Vault试图解决什么问题 Vault的架构和主要概念 设置一个简单的测试环境 使用命令行工具与Vault交互  2.机密信息问题在深入了解Vault之前，让我们试着了解它试图解决的问题：机密信息管理。 大多数应用程序需要访问机密数据才能正常">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2022-09-21T18:22:20.000Z">
+<meta property="article:modified_time" content="2022-09-21T11:13:36.980Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="Linux">
+<meta property="article:tag" content="Ubuntu">
+<meta property="article:tag" content="RockyLinux">
+<meta property="article:tag" content="Hashicorp Vault">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://syxdevcode.github.com/2022/09/21/Hashicorp%20Vault%E4%BB%8B%E7%BB%8D%E5%92%8C%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Hashicorp Vault介绍和使用说明 | syxdevcode博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">syxdevcode博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/syxdevcode" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2022/09/21/Hashicorp%20Vault%E4%BB%8B%E7%BB%8D%E5%92%8C%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Hashicorp Vault介绍和使用说明
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-09-21 18:22:20 / 修改时间：11:13:36" itemprop="dateCreated datePublished" datetime="2022-09-21T18:22:20+00:00">2022-09-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Hashicorp-Vault/" itemprop="url" rel="index"><span itemprop="name">Hashicorp Vault</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>11k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>10 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="1-概述"><a href="#1-概述" class="headerlink" title="1.概述"></a>1.概述</h2><p>在本文中，我们将探索Hashicorp的Vault - 一种用于在现代应用程序体系结构中安全地管理机密信息的流行工具。</p>
+<p>我们将讨论的主要议题包括：</p>
+<ul>
+<li>Vault试图解决什么问题</li>
+<li>Vault的架构和主要概念</li>
+<li>设置一个简单的测试环境</li>
+<li>使用命令行工具与Vault交互</li>
+</ul>
+<h2 id="2-机密信息问题"><a href="#2-机密信息问题" class="headerlink" title="2.机密信息问题"></a>2.机密信息问题</h2><p>在深入了解Vault之前，让我们试着了解它试图解决的问题：机密信息管理。</p>
+<p>大多数应用程序需要访问机密数据才能正常工作。例如，电子商务应用程序可以在某处配置用户名/密码以便连接到其数据库。它还可能需要API密钥才能与其他服务提供商集成，例如支付网关，物流和其他业务合作伙伴。</p>
+<p>数据库凭证和API密钥就是我们需要以安全的方式存储和提供给我们的应用程序的机密信息。</p>
+<p>一个简单的解决方案是将这些信息存储在配置文件中，并在启动时读取它们。但是这种方法的问题显而易见：有权访问此文件的人共享我们的应用程序具有的数据库权限 - 通常可以完全访问所有存储的数据。</p>
+<p>我们可以尝试通过加密这些文件来使事情变得更加困难。但是，这种方法在整体安全性方面不会增加太多。主要是因为我们的应用程序必须能够访问主密钥。当以这种方式使用时，加密仅是一种“错误”的安全感。</p>
+<p>现代应用程序和云环境往往会增加一些额外的复杂性：分布式服务，多个数据库，消息传递系统等等，所有敏感信息都在各处传播，从而增加了安全漏洞的风险。</p>
+<span id="more"></span>
+<h2 id="3-什么是Vault？"><a href="#3-什么是Vault？" class="headerlink" title="3.什么是Vault？"></a>3.什么是Vault？</h2><p>Hashicorp Vault解决了管理敏感信息的问题 - 在Vault的用语中使用 “secret”。在这种情况下，“管理”意味着Vault控制敏感信息的所有方面：它的生成，存储，使用以及最后它的撤销。</p>
+<p>Hashicorp提供两种版本的Vault。本文中使用的开源版本可以免费使用，即使在商业环境中也是如此。同时还提供付费版本，其中包括不同SLA的技术支持和其他功能，例如HSM（硬件安全模块）支持。</p>
+<h3 id="3-1-架构和主要特点"><a href="#3-1-架构和主要特点" class="headerlink" title="3.1 架构和主要特点"></a>3.1 架构和主要特点</h3><p>Vault的架构非常简单。其主要组成部分是：</p>
+<ul>
+<li>持久性后端 - 存储所有机密</li>
+<li>一种API服务器 - 用于处理客户端请求并对机密执行操作</li>
+<li>许多secret引擎 - 支持不同的机密类型</li>
+</ul>
+<p>通过将所有机密处理委派给Vault，我们可以缓解一些安全问题：<br>我们的应用程序不再需要存储它们 ，只需在需要时询问Vault并在使用后将其丢弃<br>我们可以短暂的使用机密数据，从而限制攻击者盗取秘密的“机会之窗”</p>
+<p>Vault会在将所有数据写入存储之前使用加密密钥对所有数据进行加密。此加密密钥由另一个密钥加密 - 主密钥，主密钥仅在启动时使用。</p>
+<p>Vault实现的一个关键点是它不会将主密钥存储在服务器中。 这意味着即使Vault也无法在启动后访问其保存的数据。 此时，Vault实例被称为处于“密封”状态。</p>
+<p>稍后，我们将完成生成主密钥和解封Vault实例所需的步骤。</p>
+<p>一旦启封，Vault就可以接受API请求了。当然，这些请求需要身份验证，这使我们控制Vault如何对客户端进行身份验证并决定他们可以做什么或不做什么。</p>
+<h3 id="3-2-认证"><a href="#3-2-认证" class="headerlink" title="3.2 认证"></a>3.2 认证</h3><p>要访问Vault中的机密，客户端需要使用一种受支持的方法对自身进行身份验证。最简单的方法使用Tokens，它只是使用特殊HTTP头在每个API请求上发送的字符串。</p>
+<p>最初安装时，Vault会自动生成“根令牌”。此令牌与Linux系统中的超级用户等效，因此应将其使用限制在最低限度。作为最佳实践，我们应该使用此根令牌来创建具有较少权限的其他令牌，然后撤消它。但这不是问题，因为我们以后可以使用unseal键生成另一个根令牌。</p>
+<p>Vault还支持其他身份验证机制，如LDAP，JWT，TLS证书等。所有这些机制都建立在基本令牌机制之上：一旦Vault验证了我们的客户端，它将提供一个令牌，然后我们可以使用它来访问其他API。</p>
+<p>令牌有一些与之相关的属性。主要属性是：</p>
+<ul>
+<li>一组关联的策略</li>
+<li>有效期</li>
+<li>是否强制更新</li>
+<li>最大使用次数</li>
+</ul>
+<p>除非另有说明，否则由Vault创建的令牌将形成父子关系。子令牌最多可以与父令牌具有相同级别的权限。</p>
+<p>通常的情况是，我们可以创建具有限制性策略的子令牌。关于此关系的另一个关键点：当我们使令牌无效时，所有子令牌及其后代也会失效。</p>
+<h3 id="3-3-策略"><a href="#3-3-策略" class="headerlink" title="3.3 策略"></a>3.3 策略</h3><p>策略确切地定义了客户端可以访问哪些秘密以及它们可以使用它们执行哪些操作。让我们看看一个简单的策略是如何定义的：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">path <span class="string">&quot;secret/accounting&quot;</span>&#123;</span><br><span class="line">capabilities = [ <span class="string">&quot;read&quot;</span>]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在这里，我们使用HCL（Hashicorp的配置语言）语法来定义我们的策略。Vault还支持JSON格式，但我们将在示例中坚持使用HCL，因为它更易于阅读。</p>
+<p>Vault中的策略是“默认拒绝”。附加到此示例策略的令牌将访问secret/accounting下存储的秘密，而不是其他内容。在创建时，令牌可以附加到多个策略。这非常有用，因为它允许我们创建和测试较小的策略，然后根据需要应用它们。</p>
+<p>策略的另一个重要方面是他们使用懒惰评估。这意味着我们可以更新给定的策略，所有令牌都会立即受到影响。</p>
+<p>到目前为止描述的策略也称为访问控制列表策略或ACL策略。Vault还支持两种其他策略类型：EGP和RGP策略。这些仅在付费版本中可用，并使用Sentinel支持扩展基本策略语法。</p>
+<p>扩展基本策略允许我们在策略中考虑其他属性，例如一天中的时间，多个身份验证因素，客户端网络来源等。例如，我们可以定义一个允许仅在工作时间访问某指定机密的策略。</p>
+<p>我们可以在Vault的文档中找到有关策略语法的更多详细信息 。</p>
+<h2 id="4-Secret类型"><a href="#4-Secret类型" class="headerlink" title="4.Secret类型"></a>4.Secret类型</h2><p>Vault支持一系列不同的秘密类型，可以解决不同的用例：</p>
+<ul>
+<li>Key-Value： 简单的静态键值对</li>
+<li>动态生成的凭据：由Vault根据客户端请求生成</li>
+<li>加密密钥：用于使用客户端数据执行加密功能</li>
+</ul>
+<p>每种秘密类型由以下属性定义：</p>
+<ul>
+<li>一个挂载点，定义了它的REST API前缀</li>
+<li>通过相应的API公开的一组操作</li>
+<li>一组配置参数</li>
+</ul>
+<p>可以通过路径访问给定的秘密实例 ，非常类似于文件系统中的目录树。此路径的第一个组件对应于此类型的所有机密所在的安装点。</p>
+<p>例如，字符串 secret/my-application 对应于我们可以在其中找到 my-application 的键值对的路径 。</p>
+<h3 id="4-1-Key-Value-Secrets"><a href="#4-1-Key-Value-Secrets" class="headerlink" title="4.1 Key-Value Secrets"></a>4.1 Key-Value Secrets</h3><p>顾名思义，键值Secrets是指在给定路径下可用的简单键值对。例如，我们可以在 path/secret/my-application 下 存储 foo=bar 对 。</p>
+<p>稍后，我们使用相同的路径来检索相同的一对或多对 - 多对可以存储在同一路径下。</p>
+<p>Vault支持三种Key-Value机密：</p>
+<ul>
+<li>非版本化键值对，其中更新替换现有值</li>
+<li>版本化键值对，可保持可配置数量的旧版本</li>
+<li>Cubbyhole，一种特殊类型的非版本化密钥对，其值的范围限定为给定的访问令牌（稍后将详细介绍）。</li>
+</ul>
+<p>密钥值秘密本质上是静态的，因此没有到期的概念与它们相关联。这种秘密的主要使用场景是存储凭证以访问外部系统，例如API密钥。</p>
+<p>在这种情况下，凭据更新是半手动过程，通常需要有人获取新凭据并使用Vault的命令行或其UI来输入新值。</p>
+<h3 id="4-2-动态生成的Secrets"><a href="#4-2-动态生成的Secrets" class="headerlink" title="4.2 动态生成的Secrets"></a>4.2 动态生成的Secrets</h3><p>当应用程序请求时，Vault会动态生成动态机密。Vault支持多种类型的动态机密，包括以下几种：</p>
+<ul>
+<li>数据库凭证</li>
+<li>SSH密钥对</li>
+<li>X.509证书</li>
+<li>AWS凭证</li>
+<li>Google Cloud服务帐户</li>
+<li>Active Directory帐户</li>
+</ul>
+<p>所有这些都遵循相同的使用模式。首先，我们使用连接到关联服务所需的详细信息配置secret引擎。然后，我们定义一个或多个角色， 描述实际的secret创建。</p>
+<p>我们以数据库secret引擎为例。首先，我们必须使用所有用户数据库连接详细信息配置Vault，包括来自具有管理员权限的预先存在的用户的凭据以创建新用户。</p>
+<p>然后，我们创建一个或多个角色（Vault角色，而不是数据库角色），其中包含用于创建新用户的实际SQL语句。这些通常不仅包括用户创建语句，还包括访问模式对象（表，视图等）以及所有必需的 grant 语句。</p>
+<p>当客户端访问相应的API时，Vault将使用提供的语句在数据库中创建新的临时用户并返回其凭据。然后，客户端可以使用这些凭据在请求角色的生存时间属性定义的时间段内访问数据库。</p>
+<p>凭证到达其到期时间后，Vault将自动撤消与此用户关联的任何权限。客户端还可以请求Vault续订这些凭据。只有在特定数据库驱动程序支持且相关策略允许的情况下，才会进行续订过程。</p>
+<h3 id="4-3-加密密钥"><a href="#4-3-加密密钥" class="headerlink" title="4.3 加密密钥"></a>4.3 加密密钥</h3><p>这个类型的秘密引擎处理加密，解密，签名等加密功能。所有这些操作都使用Vault内部生成和存储的加密密钥。除非明确告知，否则Vault将永远不会公开给定的加密密钥。</p>
+<p>关联的API允许客户端发送Vault纯文本数据并接收其加密版本。相反的情况也是可能的：我们可以发送加密数据并取回原始文本。</p>
+<p>目前，只有一种这种类型的引擎：Transit引擎。此引擎支持流行的密钥类型，如RSA和ECDSA，还支持 Convergent Encryption。使用此模式时，给定的明文值始终会产生相同的密文结果，这种属性在某些应用程序中非常有用。</p>
+<p>例如，我们可以使用此模式加密事务日志表中的信用卡号。使用收敛加密，每次插入新事务时，加密的信用卡值都是相同的，因此允许使用常规SQL查询进行报告，搜索等。</p>
+<h2 id="5-Vault设置"><a href="#5-Vault设置" class="headerlink" title="5.Vault设置"></a>5.Vault设置</h2><p>在本节中，我们将创建一个本地测试环境，以便测试Vault的功能。</p>
+<p>Vault的部署很简单：只需下载与我们的操作系统对应的软件包，并将其可执行文件（Windows上的vault 或vault.exe ）提取到PATH上的某个目录。此可执行文件包含服务器，也是标准客户端。</p>
+<p>Vault支持一种development 模式，适用于某些快速测试并习惯其命令行工具，但对于实际使用情况来说太简单了：重启时所有数据都丢失，API访问使用普通HTTP。</p>
+<p>相反，我们将使用基于文件的持久存储和设置HTTPS，以便我们可以探索一些可能导致问题的真实配置细节。</p>
+<h3 id="5-1-启动Vault-Server"><a href="#5-1-启动Vault-Server" class="headerlink" title="5.1 启动Vault Server"></a>5.1 启动Vault Server</h3><p>Vault使用HCL或JSON格式的配置文件。以下文件定义了使用文件存储和自签名证书启动服务器所需的所有配置：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">// Enable UI</span><br><span class="line">ui = <span class="literal">true</span></span><br><span class="line"></span><br><span class="line">// Filesystem storage</span><br><span class="line">storage <span class="string">&quot;file&quot;</span> &#123;</span><br><span class="line">  path    = <span class="string">&quot;./vault-data&quot;</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// TCP Listener using a self-signed certificate</span><br><span class="line">listener <span class="string">&quot;tcp&quot;</span> &#123;</span><br><span class="line">  address     = <span class="string">&quot;127.0.0.1:8200&quot;</span></span><br><span class="line">  tls_cert_file = <span class="string">&quot;localhost.cert&quot;</span></span><br><span class="line">  tls_key_file = <span class="string">&quot;localhost.key&quot;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>现在，让我们运行Vault。打开命令shell，转到包含我们的配置文件的目录并运行以下命令：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vault server -config ./vault-test.hcl</span><br></pre></td></tr></table></figure>
+
+<p>Vault将启动并显示一些初始化消息。它们将包括其版本，一些配置详细信息以及API可用的地址。就是这样我们的Vault服务器启动并运行。</p>
+<h3 id="5-2-Vault初始化"><a href="#5-2-Vault初始化" class="headerlink" title="5.2 Vault初始化"></a>5.2 Vault初始化</h3><p>我们的Vault服务器现在正在运行，但由于这是它的第一次运行，我们需要初始化它。</p>
+<p>让我们打开一个新的shell并执行以下命令来实现这个目的：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> VAULT_ADDR=https://localhost:8200</span><br><span class="line"><span class="built_in">export</span> VAULT_CACERT=localhost.cert</span><br><span class="line">vault operator init</span><br></pre></td></tr></table></figure>
+
+<p>这里我们定义了一些环境变量，因此我们不必每次都将它们作为参数传递给Vault：</p>
+<ul>
+<li>VAULT_ADDR：我们的API服务器将为其提供请求的基URI</li>
+<li>VAULT_CACERT：服务器证书公钥的路径</li>
+</ul>
+<p>在我们的例子中，我们使用VAULT_CACERT， 因此我们可以使用HTTPS访问Vault的API。我们需要这个，因为我们使用的是自签名证书。对于我们通常可以访问CA签名证书的制作环境而言，这不是必需的。</p>
+<p>发出上述命令后，我们应该看到如下消息：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Unseal Key 1: kHcMDI6lwIfX1xdcThrDF5jR00gDOc1a7t6kr+fCXWcN</span><br><span class="line">Unseal Key 2: 6xsSLornxUqfMUSoq7XPIb9PLIFnzPPMR+UMTzWP0m0o</span><br><span class="line">Unseal Key 3: pgrhB6wtrnINh3SY4mS2cWjEzmuiMRWmg+SIp50/4DQs</span><br><span class="line">Unseal Key 4: BpR1Lzuogn9AJYJADxXuCit5yxGYtM2qF0BxHn1g/Zw8</span><br><span class="line">Unseal Key 5: Vj7W6HYcCZvtkCnjNdR+4fuw+aCmlfQ+IZMTc70cyzIh</span><br><span class="line"></span><br><span class="line">Initial Root Token: 2HgD0nKyaDjI5TICz9pObW2T</span><br></pre></td></tr></table></figure>
+
+<p>前5行是我们稍后用于解开Vault存储的主密钥。 请注意，Vault仅在初始化期间显示解封密钥 - 以后永远不会出现。记下并安全地存储它们，否则在服务器重启时我们将无法访问我们的机密信息！</p>
+<p>另外，请注意根令牌，因为我们稍后会需要它。与unseal键不同，root令牌可以在以后轻松生成，因此一旦完成所有配置任务就可以安全地销毁它。由于我们稍后将发出需要身份验证令牌的命令，因此我们现在将根令牌保存在环境变量中：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> VAULT_TOKEN= 2HgD0nKyaDjI5TICz9pObW2T</span><br></pre></td></tr></table></figure>
+
+<p>现在让我们看看我们的服务器状态，我们已经使用以下命令对其进行了初始化：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">$ vault status</span><br><span class="line">Key                Value</span><br><span class="line">---                -----</span><br><span class="line">Seal Type          shamir</span><br><span class="line">Sealed             <span class="literal">true</span></span><br><span class="line">Total Shares       5</span><br><span class="line">Threshold          3</span><br><span class="line">Unseal Progress    0/3</span><br><span class="line">Unseal Nonce       n/a</span><br><span class="line">Version            0.11.3</span><br><span class="line">HA Enabled         <span class="literal">false</span></span><br></pre></td></tr></table></figure>
+
+<p>我们可以看到Vault仍然是密封的。Unseal Progress ：“0/3”意味着Vault需要三个，但到目前为止还没有开启。</p>
+<h3 id="5-3-Vault-Unseal"><a href="#5-3-Vault-Unseal" class="headerlink" title="5.3 Vault Unseal"></a>5.3 Vault Unseal</h3><p>我们现在开启Vault，以便我们可以开始使用其秘密服务。为了完成开封过程，我们需要提供五个关键股中的任意三个：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">vault operator unseal kHcMDI6lwIfX1xdcThrDF5jR00gDOc1a7t6kr+fCXWcN</span><br><span class="line">vault operator unseal 6xsSLornxUqfMUSoq7XPIb9PLIFnzPPMR+UMTzWP0m0o</span><br><span class="line">vault operator unseal pgrhB6wtrnINh3SY4mS2cWjEzmuiMRWmg+SIp50/4DQs</span><br></pre></td></tr></table></figure>
+
+<p>发出每个命令后，Vault将打印启封进度，包括它需要多少个共享。发送最后一个密钥共享后，我们会看到如下消息：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">Key             Value</span><br><span class="line">---             -----</span><br><span class="line">Seal Type       shamir</span><br><span class="line">Initialized     <span class="literal">true</span></span><br><span class="line">Sealed          <span class="literal">false</span></span><br><span class="line">Total Shares    5</span><br><span class="line">Threshold       3</span><br><span class="line">Version         0.11.3</span><br><span class="line">Cluster Name    vault-cluster-6c90f68f</span><br><span class="line">Cluster ID      a1259a6b-aa24-b02a-1d36-b64907ea3570</span><br><span class="line">HA Enabled      <span class="literal">false</span></span><br></pre></td></tr></table></figure>
+
+<p>在这种情况下，“密封”属性为“假”，这意味着Vault已准备好接受命令。</p>
+<h2 id="6-测试Vault"><a href="#6-测试Vault" class="headerlink" title="6.测试Vault"></a>6.测试Vault</h2><p>在本节中，我们将使用其支持的两种Secret类型测试我们的Vault设置：键值对和数据库。我们还将展示如何创建附加了特定策略的新令牌。</p>
+<h3 id="6-1-使用键-值Secret"><a href="#6-1-使用键-值Secret" class="headerlink" title="6.1 使用键/值Secret"></a>6.1 使用键/值Secret</h3><p>首先，让我们存储秘密的键值对并将其读回。<br>假设用于初始化Vault的命令shell仍处于打开状态，我们使用以下命令将这些键值对存储在secret / fakebank路径下：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vault kv put secret/fakebank api_key=abc1234 api_secret=1a2b3c4d</span><br></pre></td></tr></table></figure>
+
+<p>我们现在可以使用以下命令随时读取这些键值对：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ vault kv get secret/fakebank</span><br><span class="line">======= Data =======</span><br><span class="line">Key           Value</span><br><span class="line">---           -----</span><br><span class="line">api_key       abc1234</span><br><span class="line">api_secret    1a2b3c4d</span><br></pre></td></tr></table></figure>
+
+<p>这个简单的测试向我们展示了Vault正在按预期工作。我们现在可以测试一些额外的功能。</p>
+<h3 id="6-2-创建新令牌"><a href="#6-2-创建新令牌" class="headerlink" title="6.2 创建新令牌"></a>6.2 创建新令牌</h3><p>到目前为止，我们已经使用了根令牌来验证我们的请求。由于根令牌 的方式太强大了，它被认为是使用较少的特权和更短的时间生存令牌的最佳实践。</p>
+<p>让我们创建一个新的令牌，我们可以像根令牌一样使用它，但在一分钟后过期：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ vault token create -ttl 1m</span><br><span class="line">Key                  Value</span><br><span class="line">---                  -----</span><br><span class="line">token                Luc1pGxZxKkNEwpCLD3Ea4VX</span><br><span class="line">token_accessor       1Zzp7g1FJYW5nvqACZFQtRRx</span><br><span class="line">token_duration       1m</span><br><span class="line">token_renewable      <span class="literal">true</span></span><br><span class="line">token_policies       [<span class="string">&quot;root&quot;</span>]</span><br><span class="line">identity_policies    []</span><br><span class="line">policies             [<span class="string">&quot;root&quot;</span>]</span><br></pre></td></tr></table></figure>
+
+<p>让我们测试一下这个令牌，用它来读取我们之前创建的键/值对：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">export</span> VAULT_TOKEN=Luc1pGxZxKkNEwpCLD3Ea4VX</span><br><span class="line">$ vault kv get secret/fakebank</span><br><span class="line">======= Data =======</span><br><span class="line">Key           Value</span><br><span class="line">---           -----</span><br><span class="line">api_key       abc1234</span><br><span class="line">api_secret    1a2b3c4d</span><br></pre></td></tr></table></figure>
+
+<p>如果我们等待一分钟并尝试重新发出此命令，我们会收到一条错误消息：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ vault kv get secret/fakebank</span><br><span class="line">Error making API request.</span><br><span class="line">URL: GET https://localhost:8200/v1/sys/internal/ui/mounts/secret/fakebank</span><br><span class="line">Code: 403. Errors:</span><br><span class="line">* permission denied</span><br></pre></td></tr></table></figure>
+
+<p>该消息表明我们的令牌不再有效，这正是我们所期望的。</p>
+<h3 id="6-3-测试策略"><a href="#6-3-测试策略" class="headerlink" title="6.3 测试策略"></a>6.3 测试策略</h3><p>我们在上一节中创建的示例令牌虽是短暂存在，但仍然非常强大。现在让我们使用策略来创建更多受限制的令牌。</p>
+<p>例如，让我们定义一个策略，该策略只允许对我们之前使用的 secret/fakebank 路径进行读访问：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">cat</span>&gt; sample-policy.hcl &lt;</span><br><span class="line">path <span class="string">&quot;secret/fakebank&quot;</span>&#123;</span><br><span class="line">capabilities = [<span class="string">&quot;read&quot;</span>]</span><br><span class="line">&#125;</span><br><span class="line">EOF</span><br><span class="line">$ <span class="built_in">export</span> VAULT_TOKEN=2HgD0nKyaDjI5TICz9pObW2T</span><br><span class="line">$ vault policy write fakebank-ro ./sample-policy.hcl</span><br><span class="line">Success! Uploaded policy: fakebank-ro</span><br></pre></td></tr></table></figure>
+
+<p>现在，我们使用以下命令使用此策略创建令牌：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">$ vault token create -policy=fakebank-ro</span><br><span class="line">Key                  Value</span><br><span class="line">---                  -----</span><br><span class="line">token                &lt;token value&gt;</span><br><span class="line">token_accessor       &lt;token accessor value&gt;</span><br><span class="line">token_duration       768h</span><br><span class="line">token_renewable      <span class="literal">true</span></span><br><span class="line">token_policies       [<span class="string">&quot;default&quot;</span><span class="string">&quot;fakebank-ro&quot;</span>]</span><br><span class="line">identity_policies    []</span><br><span class="line">policies             [<span class="string">&quot;default&quot;</span><span class="string">&quot;fakebank-ro&quot;</span>]</span><br></pre></td></tr></table></figure>
+
+<p>正如我们之前所做的那样，让我们​​使用此标记读取我们的秘密值：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">export</span> VAULT_TOKEN=&lt;token value&gt;</span><br><span class="line">$ vault kv get secret/fakebank</span><br><span class="line">======= Data =======</span><br><span class="line">Key           Value</span><br><span class="line">---           -----</span><br><span class="line">api_key       abc1234</span><br><span class="line">api_secret    1a2b3c4d</span><br></pre></td></tr></table></figure>
+
+<p>到现在为止还挺好。我们可以按预期读取数据。让我们看看当我们尝试更新这个秘密时会发生什么：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ vault kv put secret/fakebank api_key=foo api_secret=bar</span><br><span class="line">Error writing data to secret/fakebank: Error making API request.</span><br><span class="line">URL: PUT https://127.0.0.1:8200/v1/secret/fakebank</span><br><span class="line">Code: 403. Errors:</span><br><span class="line">* permission denied</span><br></pre></td></tr></table></figure>
+
+<p>由于我们的策略未授予允许写入，因此Vault将返回403 - 拒绝访问状态代码。</p>
+<h3 id="6-4-使用动态数据库凭据"><a href="#6-4-使用动态数据库凭据" class="headerlink" title="6.4 使用动态数据库凭据"></a>6.4 使用动态数据库凭据</h3><p>作为本文的最后一个示例，让我们使用Vault的数据库秘密引擎来创建动态凭据。我们假设我们在本地有一个MySQL服务器，我们可以使用“root”权限访问它。我们还将使用一个非常简单的模式，该模式由一个表 - 帐户组成。</p>
+<p>用于创建此架构的SQL脚本和特权用户可在此处获得。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">--</span><br><span class="line">-- Sample schema <span class="keyword">for</span> testing vault database secrets</span><br><span class="line">--</span><br><span class="line">create schema fakebank;</span><br><span class="line">use fakebank;</span><br><span class="line">create table account( </span><br><span class="line">  <span class="built_in">id</span> decimal(16,0), </span><br><span class="line">  name varchar(30),</span><br><span class="line">  branch_id decimal(16,0),</span><br><span class="line">  customer_id decimal(16,0),</span><br><span class="line">  primary key (<span class="built_in">id</span>));</span><br><span class="line">  </span><br><span class="line">--</span><br><span class="line">-- MySQL user that will be used by Vault to create other <span class="built_in">users</span> on demand</span><br><span class="line">--</span><br><span class="line">create user <span class="string">&#x27;fakebank-admin&#x27;</span>@<span class="string">&#x27;%&#x27;</span> identified by <span class="string">&#x27;Sup&amp;rSecre7!&#x27;</span>;</span><br><span class="line">grant all privileges on fakebank.* to <span class="string">&#x27;fakebank-admin&#x27;</span>@<span class="string">&#x27;%&#x27;</span> with grant option;</span><br><span class="line">grant create user on *.* to <span class="string">&#x27;fakebank-admin&#x27;</span> with grant option;</span><br><span class="line"></span><br><span class="line">flush privileges;</span><br></pre></td></tr></table></figure>
+
+<p>现在，让我们配置Vault以使用此数据库。默认情况下未启用数据库密钥引擎，因此我们必须先解决此问题，然后才能继续：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ vault secrets <span class="built_in">enable</span> database</span><br><span class="line">Success! Enabled the database secrets engine at: database/</span><br></pre></td></tr></table></figure>
+
+<p>我们现在创建一个数据库配置资源：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vault write database/config/mysql-fakebank plugin_name=mysql-legacy-database-plugin connection_url=<span class="string">&quot;&#123;&#123;username&#125;&#125;:&#123;&#123;password&#125;&#125;@tcp(127.0.0.1:3306)/fakebank&quot;</span> allowed_roles=<span class="string">&quot;*&quot;</span> username=<span class="string">&quot;fakebank-admin&quot;</span> password=<span class="string">&quot;Sup&amp;rSecre7!&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>路径前缀 database/config 是必须存储所有数据库配置的地方。我们选择名称 mysql-fakebank， 以便我们可以轻松找出此配置所指的数据库。至于配置键：</p>
+<ul>
+<li>plugin_name：定义将使用哪个数据库插件。Vault的文档中描述了可用的插件名称</li>
+<li>connection_url：这是插件在连接数据库时使用的模板。请注意和模板占位符。连接到数据库时，Vault将按实际值替换这些占位符</li>
+<li>allowed_roles：定义哪些Vault角色（上面讨论过）可以使用此配置。在我们的例子中，我们使用“*”，因此它可用于所有角色<br>用户名和密码：这是Vault用于执行数据库操作的帐户，例如创建新用户和撤消其权限</li>
+</ul>
+<p><strong>Vault数据库角色设置:</strong></p>
+<p>最终配置任务是创建包含创建用户所需的SQL命令的Vault数据库角色资源。根据我们的安全要求，我们可以根据需要创建任意数量的角色。</p>
+<p>在这里，我们创建一个角色，授予对fakebank模式的所有表的只读访问权限：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vault write database/roles/fakebank-accounts-ro db_name=mysql-fakebank creation_statements=<span class="string">&quot;CREATE USER &#x27;&#123;&#123;name&#125;&#125;&#x27;@&#x27;%&#x27; IDENTIFIED BY &#x27;&#123;&#123;password&#125;&#125;&#x27;;GRANT SELECT ON fakebank.* TO &#x27;&#123;&#123;name&#125;&#125;&#x27;@&#x27;%&#x27;;&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>数据库引擎将路径前缀数据库/角色 定义为存储角色的位置。 fakebank-accounts-ro是我们稍后在创建动态凭据时使用的角色名称。我们还提供以下属性：</p>
+<ul>
+<li>db_name：现有数据库配置的名称。对应于我们在创建配置资源时使用的路径的最后部分</li>
+<li>creation_statements： Vault将用于创建新用户的SQL语句模板列表</li>
+</ul>
+<p><strong>创建动态凭据:</strong></p>
+<p>一旦我们准备好数据库角色及其相应的配置，我们就会使用以下命令生成新的动态凭据：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ vault <span class="built_in">read</span> database/creds/fakebank-accounts-ro</span><br><span class="line">Key                Value</span><br><span class="line">---                -----</span><br><span class="line">lease_id           database/creds/fakebank-accounts-ro/t4RQeXdyAVq75jNmbaQfPM6n</span><br><span class="line">lease_duration     768h</span><br><span class="line">lease_renewable    <span class="literal">true</span></span><br><span class="line">password           A1a-24NNCeaazWCp2EE7</span><br><span class="line">username           v-fake-60fSchsFo       </span><br></pre></td></tr></table></figure>
+
+<p>该数据库 /creds 前缀用于生成可用角色凭据。由于我们使用了 fakebank-accounts-ro 角色，因此返回的用户名/密码将仅限于选择操作。有效期为1个小时。</p>
+<p>我们可以通过使用提供的凭据连接到数据库然后执行一些SQL命令来验证这一点：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ mysql -h 127.0.0.1 -u v-fake-60fSchsFo -p fakebank</span><br><span class="line">Enter password:</span><br><span class="line">mysql&gt; select * from account;</span><br><span class="line">Empty <span class="built_in">set</span> (0.00 sec)</span><br><span class="line"></span><br><span class="line">mysql&gt; delete from account;</span><br><span class="line">ERROR 1142 (42000): DELETE <span class="built_in">command</span> denied to user <span class="string">&#x27;v-fake-60fSchsFo&#x27;</span>@<span class="string">&#x27;localhost&#x27;</span> <span class="keyword">for</span> table <span class="string">&#x27;account&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p>我们可以看到第一个select成功完成，但是我们无法执行delete语句。最后，如果我们等待一个小时并尝试使用相同的凭据进行连接，我们将无法再连接到数据库。Vault已自动撤消此用户的所有权限。</p>
+<p>转发：</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/peterwanghao/article/details/83181932">Hashicorp Vault介绍和使用说明</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/Linux/" rel="tag"><i class="fa fa-tag"></i> Linux</a>
+              <a href="/tags/Ubuntu/" rel="tag"><i class="fa fa-tag"></i> Ubuntu</a>
+              <a href="/tags/RockyLinux/" rel="tag"><i class="fa fa-tag"></i> RockyLinux</a>
+              <a href="/tags/Hashicorp-Vault/" rel="tag"><i class="fa fa-tag"></i> Hashicorp Vault</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/09/20/Nginx%E9%85%8D%E7%BD%AE%E8%B4%9F%E8%BD%BD%E5%AE%9E%E4%BE%8B/" rel="prev" title="Nginx配置负载实例">
+      <i class="fa fa-chevron-left"></i> Nginx配置负载实例
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E6%A6%82%E8%BF%B0"><span class="nav-number">1.</span> <span class="nav-text">1.概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%9C%BA%E5%AF%86%E4%BF%A1%E6%81%AF%E9%97%AE%E9%A2%98"><span class="nav-number">2.</span> <span class="nav-text">2.机密信息问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BB%80%E4%B9%88%E6%98%AFVault%EF%BC%9F"><span class="nav-number">3.</span> <span class="nav-text">3.什么是Vault？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E6%9E%B6%E6%9E%84%E5%92%8C%E4%B8%BB%E8%A6%81%E7%89%B9%E7%82%B9"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 架构和主要特点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E8%AE%A4%E8%AF%81"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 认证</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E7%AD%96%E7%95%A5"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 策略</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-Secret%E7%B1%BB%E5%9E%8B"><span class="nav-number">4.</span> <span class="nav-text">4.Secret类型</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-Key-Value-Secrets"><span class="nav-number">4.1.</span> <span class="nav-text">4.1 Key-Value Secrets</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E5%8A%A8%E6%80%81%E7%94%9F%E6%88%90%E7%9A%84Secrets"><span class="nav-number">4.2.</span> <span class="nav-text">4.2 动态生成的Secrets</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E5%8A%A0%E5%AF%86%E5%AF%86%E9%92%A5"><span class="nav-number">4.3.</span> <span class="nav-text">4.3 加密密钥</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-Vault%E8%AE%BE%E7%BD%AE"><span class="nav-number">5.</span> <span class="nav-text">5.Vault设置</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-%E5%90%AF%E5%8A%A8Vault-Server"><span class="nav-number">5.1.</span> <span class="nav-text">5.1 启动Vault Server</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-Vault%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="nav-number">5.2.</span> <span class="nav-text">5.2 Vault初始化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-3-Vault-Unseal"><span class="nav-number">5.3.</span> <span class="nav-text">5.3 Vault Unseal</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E6%B5%8B%E8%AF%95Vault"><span class="nav-number">6.</span> <span class="nav-text">6.测试Vault</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#6-1-%E4%BD%BF%E7%94%A8%E9%94%AE-%E5%80%BCSecret"><span class="nav-number">6.1.</span> <span class="nav-text">6.1 使用键&#x2F;值Secret</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-2-%E5%88%9B%E5%BB%BA%E6%96%B0%E4%BB%A4%E7%89%8C"><span class="nav-number">6.2.</span> <span class="nav-text">6.2 创建新令牌</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-3-%E6%B5%8B%E8%AF%95%E7%AD%96%E7%95%A5"><span class="nav-number">6.3.</span> <span class="nav-text">6.3 测试策略</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-4-%E4%BD%BF%E7%94%A8%E5%8A%A8%E6%80%81%E6%95%B0%E6%8D%AE%E5%BA%93%E5%87%AD%E6%8D%AE"><span class="nav-number">6.4.</span> <span class="nav-text">6.4 使用动态数据库凭据</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="syxdevcode"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description">syxdevcode的个人博客</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">575</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">142</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">214</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">1.8m</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">27:37</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
