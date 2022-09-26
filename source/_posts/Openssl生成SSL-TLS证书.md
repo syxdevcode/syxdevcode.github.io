@@ -9,7 +9,6 @@ tags:
 categories:
 - Openssl
 ---
-# openssl生成SSL/TLS证书
 
 官网：[https://www.openssl.org/](https://www.openssl.org/)
 
@@ -85,15 +84,11 @@ crt是CA认证后的证书文件（windows下面的csr，其实是crt），签�
 #### 编码格式(也用作扩展)
 
 * **.PEM**- PEM扩展名用于不同类型的X.509v3文件,全称Privacy Enhanced Mail,打开看文本格式,以"-----BEGIN..."开头, "-----END..."结尾,内容是ASCII(BASE64)编码.
-
     查看PEM格式证书的信息: `openssl x509 -in certificate.pem -text -noout`
-
-    Apache和*NIX服务器偏向于使用这种编码格式.
+    Apache和Nginx服务器偏向于使用这种编码格式.
 
 * **.DER** - DER扩展用于二进制DER编码证书,全称Distinguished Encoding Rules,打开看是二进制格式,不可读,这些文件也可能带有CER或CRT扩展名.
-
     查看DER格式证书的信息: `openssl x509 -in certificate.der -inform der -text -noout`
-
     Java和Windows服务器偏向于使用这种编码格式.
 
 例如：
@@ -119,6 +114,8 @@ crt是CA认证后的证书文件（windows下面的csr，其实是crt），签�
 * **.csr/.p10格式**：证书签名请求（证书请求文件），含有公钥信息，certificate signing request的缩写,PKCS#10标准定义
 
 * **.crt格式**：证书文件，certificate的缩写,CRT扩展名用于证书，只有公钥没有私钥。证书可以编码为二进制DER或ASCII PEM。CER和CRT扩展几乎是同义词
+
+* **.cert .cer .crt**：文件通常包含单个证书，单独且没有任何包装（没有私钥，没有密码保护，只有证书）
 
 * **.cer格式**：证书文件,常见于Windows系统，certificate缩写，只有公钥没有私钥,可能是PEM编码,也可能是DER编码,大多数应该是DER编码,crt文件和cer文件只有在使用相同编码的时候才可以安全地相互替代。
 
@@ -366,6 +363,34 @@ openssl genrsa -out ca.key 2048
 openssl req -passin pass:1111 -new -x509 -days 365 -key ca.key -out ca.crt -subj "/C=CN/ST=JS/L=ZJ/O=zx/OU=test/CN=root"
 ```
 
+数字证书主题含义：
+
+```txt
+DC=domainComponent         # 域名 
+CN=CommonName              # 通用名
+OU=OrganizationUnitName    # 组织部门名
+O=OrganizationName         # 组织名
+L=localityName             # 地址
+S=stateName                # 州名/省份
+C=country                  # 国家字母缩写
+
+CN：公用名称 (Common Name) ，对于 SSL 证书，一般为网站域名或IP地址；而对于代码签名证书则为申请单位名称；而对于客户端证书则为证书申请者的姓名；
+O：单位名称 (Organization Name) ，对于 SSL 证书，一般为网站域名；而对于代码签名证书则为申请单位名称；而对于客户端单位证书则为证书申请者所在单位名称；
+
+证书申请单位所在地：
+L：所在城市 (Locality) 简称：L 字段
+S：所在省份/州名 (State/Provice) 简称：S 字段
+C：所在国家 (Country) ，是国家字母缩写，如中国：CN
+
+其他一些字段：
+E：电子邮件 (Email) 
+G：多个姓名字段
+Description：介绍
+Phone：电话号码，格式要求 + 国家区号 城市区号 电话号码，如： +86 732 88888888
+STREET：街道
+PostalCode：邮政编码
+```
+
 ### 用户证书
 
 生成私钥（.key）-->生成证书请求（.csr）-->用CA根证书签名得到证书（.crt）
@@ -382,6 +407,10 @@ openssl pkcs12 -export -out server.pfx -inkey server.key -in server.crt -certfil
 ```
 
 #### 客户端证书
+
+如果需要做双向验证的，也就是服务端要验证客户端证书的情况。那么需要在同一个根证书下再生成一个客户端证书。
+
+需要在客户端设置根证书，并信任根证书。因为服务端的证书是自签的证书，公共的CA是无法认证自签的证书的。所以需要在客户端添加并信任自己的根证书后才能通过https访问服务端。如果服务器上部署的是公共CA签发的证书，则不需要设置，因为系统中已经内置了大部分公共CA的证书
 
 ```bash
 openssl genrsa -passout pass:1111 -des3 -out client.key 2048

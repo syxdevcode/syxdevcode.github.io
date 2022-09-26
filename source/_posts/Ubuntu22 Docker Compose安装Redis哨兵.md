@@ -34,7 +34,6 @@ root@pony:/lims/redis# tree
 注意：新建的目录需要使用 `chmod` 命令授权。
 
 <!--more-->
-
 ## 移除 redis(可选)
 
 ```sh
@@ -45,6 +44,13 @@ apt-get autoremove --purge redis-sentinel
 ## 配置文件
 
 ### 主从配置
+
+**loglevel 安装默认的设置为 verbose：**
+
+* 1）debug：会打印出很多信息，适用于开发和测试阶段
+* 2）verbose（冗长的）：包含很多不太有用的信息，但比debug要清晰一些
+* 3）notice：适用于生产模式
+* 4）warning : 警告信息
 
 `master.conf` 配置如下：
 
@@ -57,7 +63,7 @@ timeout 300
 databases 16
 rdbcompression yes
 # 学习开发，使用最大日志级别，能够看到最多的日志信息
-loglevel debug
+loglevel notice
 #bind 127.0.0.1
 #bind 10.10.0.106
 port 6379
@@ -103,7 +109,7 @@ timeout 300
 databases 16
 rdbcompression yes
 # 学习开发，使用最大日志级别，能够看到最多的日志信息
-loglevel debug
+loglevel notice
 #bind 127.0.0.1
 port 6379
 
@@ -151,7 +157,7 @@ timeout 300
 databases 16
 rdbcompression yes
 # 学习开发，使用最大日志级别，能够看到最多的日志信息
-loglevel debug
+loglevel notice
 # bind 127.0.0.1
 port 6379
 
