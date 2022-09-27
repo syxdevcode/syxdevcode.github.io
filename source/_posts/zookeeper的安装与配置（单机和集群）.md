@@ -4,13 +4,12 @@ date: 2017-05-31 10:05:13
 tags:
 - Linux
 - CentOS7
-- zookeeper
+- Zookeeper
 - 安装部署
 - 分布式
 categories:
-- zookeeper 
+- Zookeeper 
 ---
-# zookeeper的安装与配置（单机和集群）
 
 ## 单机安装
 
