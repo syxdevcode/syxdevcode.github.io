@@ -184,6 +184,408 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/02/19/ASP-NET-MVC-%E9%A1%B5%E9%9D%A2%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/02/19/ASP-NET-MVC-%E9%A1%B5%E9%9D%A2%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/" class="post-title-link" itemprop="url">ASP.NET MVC 页面生命周期</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-02-19 15:10:11" itemprop="dateCreated datePublished" datetime="2019-02-19T15:10:11+00:00">2019-02-19</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-09-27 07:12:46" itemprop="dateModified" datetime="2022-09-27T07:12:46+00:00">2022-09-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/MVC-Web-API/" itemprop="url" rel="index"><span itemprop="name">MVC/Web API</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>5.2k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>5 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="ASP-NET-MVC-页面生命周期"><a href="#ASP-NET-MVC-页面生命周期" class="headerlink" title="ASP.NET MVC 页面生命周期"></a>ASP.NET MVC 页面生命周期</h1><p>整个ASP.NET MVC框架是通过自定义的 <code>HttpModule</code> 和 <code>HttpHandler</code> 对ASP.NET 进行扩展构建起来的。</p>
+<ul>
+<li>自定义的 <code>HttpModule</code> : <code>UrlRoutingModule</code></li>
+<li>自定义的 <code>HttpHandler</code>: <code>MvcHandler</code></li>
+</ul>
+<p><img src="/img/1458860-5d9e4724f9e32ccb.png" alt="1458860-5d9e4724f9e32ccb.png"></p>
+<p><img src="/img/190104561291113.png" alt="190104561291113.png"></p>
+<h2 id="HttpApplication与HttpModule"><a href="#HttpApplication与HttpModule" class="headerlink" title="HttpApplication与HttpModule"></a>HttpApplication与HttpModule</h2><p>HTTP请求由ASP.NET运行时接管之后，<code>HttpRuntime</code> 会利用 <code>HttpApplicationFactory</code> 创建或从 <code>HttpApplication</code>对象池中取出一个<code>HttpApplication</code>对象，同时ASP.NET会根据配置文件来初始化注册的<code>HttpModule</code>，<code>HttpModule</code>在初始化时会订阅<code>HttpApplication</code>中的事件来实现对HTTP请求的处理。</p>
+<p><img src="/img/190047183794497.png" alt="190047183794497.png"></p>
+<p><font color=#ff0000 size=4 face="黑体">ASP.NET MVC的入口在<code>UrlRoutingModule</code>,它订阅了<code>HttpApplication</code>的第7个管道事件<code>PostResolveRequestCahce</code>，并且在<code>HtttpApplication</code>的第7个管道事件处对请求进行了拦截。</font></p>
+<h2 id="UrlRoutingModule"><a href="#UrlRoutingModule" class="headerlink" title="UrlRoutingModule"></a>UrlRoutingModule</h2><p>通过在全局Web.Config中注册 <code>System.Web.Routing.UrlRoutingModule</code>，IIS请求处理管道接到请求后，就会加载 <code>UrlRoutingModule</code>类型的Init()方法，第7个管道事件 <code>PostResolveRequestCahce</code> 对请求进行了拦截。</p>
+<p>当请求到达 <code>UrlRoutingModule</code> 的时候，<code>UrlRoutingModule</code> 取出请求中的 Controller、Action等RouteData信息，与路由表中的所有规则进行匹配，若匹配，把请求交给 <code>IRouteHandler</code>，即 <code>MVCRouteHandler</code>。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//通过RouteCollection的静态方法GetRouteData获取到封装路由信息的RouteData实例</span></span><br><span class="line">RouteData routeData = <span class="keyword">this</span>.RouteCollection.GetRouteData(context);</span><br><span class="line"></span><br><span class="line"><span class="comment">//再从RouteData中获取MVCRouteHandler</span></span><br><span class="line">IRouteHandler routeHandler = routeData.RouteHandler;</span><br></pre></td></tr></table></figure>
+
+<h2 id="MVCRouteHadnler"><a href="#MVCRouteHadnler" class="headerlink" title="MVCRouteHadnler"></a>MVCRouteHadnler</h2><p><code>MvcRouteHandler</code> 在HttpApplication的第一个管道事件，使用 <code>MapRoute()</code> 方法注册路由的时候，通过<code>Route</code>类的构造函数把<code>MVCRouteHandler</code>注入到路由中。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Route <span class="title">MapRoute</span>(<span class="params"><span class="keyword">this</span> RouteCollection routes, <span class="built_in">string</span> name, <span class="built_in">string</span> url, <span class="built_in">object</span> defaults, <span class="built_in">object</span> constraints, <span class="built_in">string</span>[] namespaces</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">if</span> (routes == <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentNullException(<span class="string">&quot;routes&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (url == <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentNullException(<span class="string">&quot;url&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// MvcRouteHandler</span></span><br><span class="line">    Route route = <span class="keyword">new</span> Route(url, <span class="keyword">new</span> MvcRouteHandler()) &#123;</span><br><span class="line">        Defaults = <span class="keyword">new</span> RouteValueDictionary(defaults),</span><br><span class="line">        Constraints = <span class="keyword">new</span> RouteValueDictionary(constraints),</span><br><span class="line">        DataTokens = <span class="keyword">new</span> RouteValueDictionary()</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> ((namespaces != <span class="literal">null</span>) &amp;&amp; (namespaces.Length &gt; <span class="number">0</span>)) &#123;</span><br><span class="line">        route.DataTokens[<span class="string">&quot;Namespaces&quot;</span>] = namespaces;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    routes.Add(name, route);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> route;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>MVCRouteHandler</code>是用来生成实现<code>IHttpHandler</code>接口的<code>MvcHandler</code>。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">namespace</span> <span class="title">System.Web.Routing</span></span><br><span class="line">&#123;  </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">interface</span> <span class="title">IRouteHandler</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function">IHttpHandler <span class="title">GetHttpHandler</span>(<span class="params">RequestContext requestContext</span>)</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="MvcHandler"><a href="#MvcHandler" class="headerlink" title="MvcHandler"></a>MvcHandler</h2><p>第7个事件生成了 <code>MvcHandler</code>。</p>
+<p>第11和第12个事件之间调用了<code>MvcHandler</code>的<code>ProcessRequest</code>方法。</p>
+<p>通过<code>RouteHandler</code>的 <code>GetHttpHandler()</code>方法获取到实现了<code>IHttpHandler</code>接口的<code>MVCHandler</code>。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">IHttpHandler httpHandler = routeHandler.GetHttpHandler(requestContext);</span><br><span class="line">context.RemapHandler(httpHandler);</span><br></pre></td></tr></table></figure>
+
+<p><code>MvcHandler</code> 部分源码:</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">MvcHandler</span> : <span class="title">IHttpAsyncHandler</span>, <span class="title">IHttpHandler</span>, <span class="title">IRequiresSessionState</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="keyword">internal</span> <span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">ProcessRequest</span>(<span class="params">HttpContextBase httpContext</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        SecurityUtil.ProcessInApplicationTrust(() =&gt;</span><br><span class="line">        &#123;</span><br><span class="line">            IController controller;</span><br><span class="line">            IControllerFactory factory;</span><br><span class="line">            ProcessRequestInit(httpContext, <span class="keyword">out</span> controller, <span class="keyword">out</span> factory);<span class="comment">//初始化了ControllerFactory</span></span><br><span class="line">            <span class="keyword">try</span></span><br><span class="line">            &#123;</span><br><span class="line">                controller.Execute(RequestContext);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">finally</span></span><br><span class="line">            &#123;</span><br><span class="line">                factory.ReleaseController(controller);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">     <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">ProcessRequestInit</span>(<span class="params">HttpContextBase httpContext, <span class="keyword">out</span> IController controller, <span class="keyword">out</span> IControllerFactory factory</span>)</span> &#123;</span><br><span class="line">        <span class="built_in">bool</span>? isRequestValidationEnabled = ValidationUtility.IsValidationEnabled(HttpContext.Current);</span><br><span class="line">        <span class="keyword">if</span> (isRequestValidationEnabled == <span class="literal">true</span>) &#123;</span><br><span class="line">            ValidationUtility.EnableDynamicValidation(HttpContext.Current);</span><br><span class="line">        &#125;</span><br><span class="line">        AddVersionHeader(httpContext);</span><br><span class="line">        RemoveOptionalRoutingParameters();</span><br><span class="line">        <span class="built_in">string</span> controllerName = RequestContext.RouteData.GetRequiredString(<span class="string">&quot;controller&quot;</span>);</span><br><span class="line">        factory = ControllerBuilder.GetControllerFactory();</span><br><span class="line">        controller = factory.CreateController(RequestContext, controllerName);</span><br><span class="line">        <span class="keyword">if</span> (controller == <span class="literal">null</span>) &#123;</span><br><span class="line">          <span class="keyword">throw</span> <span class="keyword">new</span> InvalidOperationException(String.Format(CultureInfo.CurrentCulture,MvcResources.ControllerBuilder_FactoryReturnedNull,factory.GetType(),controllerName));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="ControllerFactory"><a href="#ControllerFactory" class="headerlink" title="ControllerFactory"></a>ControllerFactory</h2><p>通过<code>ControllerBuilder</code>的静态方法<code>GetControllerFactory</code>获取到实现<code>IControllerFactory</code>接口的<code>ControllerFactory</code>。通过<code>ControllerFactory</code>来创建指定名称的控制器，最后将控制器作为out参数传递出去。</p>
+<h2 id="ActionInvoker"><a href="#ActionInvoker" class="headerlink" title="ActionInvoker"></a>ActionInvoker</h2><p>ActionInvoker实现了IActionInvoker接口：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title">IActionInvoker</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="function"><span class="built_in">bool</span> <span class="title">InvokeAction</span>(<span class="params">ControllerContext controllerContext, <span class="built_in">string</span> actionName</span>)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>MVC默认的ActionInvoker是ControllerActionInvoker。</p>
+<p>ActionInvoker在执行InvokeAction()方法时会需要有关Controller和Action的相关信息，实际上，Controller信息(比如Controller的名称、类型、包含的Action等)被封装在ControllerDescriptor这个类中，Action信息(比如Action的名称、参数、属性、过滤器等)被封装在ActionDescriptor中。ActionDescriptor还提供了一个FindAction()方法，用来找到需要被执行的Action。</p>
+<h2 id="Filters"><a href="#Filters" class="headerlink" title="Filters"></a>Filters</h2><p>Filter-&gt;Action-&gt;Filter-&gt;Result</p>
+<p>在ASP.NET MVC5中有常用的过滤器有5个：<code>IAuthenticationFilter</code>、<code>IAuthorizationFilter</code>、<code>IActionFilter</code>、<code>IResultFilter</code>、<code>IExceptionFilter</code>。<br>在ASP.NET MVC中所有的过滤器最终都会被封装为Filter对象，该对象中FilterScope类型的属性Scope和int类型属性Order用于决定过滤器执行的先后顺序，具体规则如下：</p>
+<ul>
+<li>Order和FilterScope的数值越小，过滤器的执行优先级越高；</li>
+<li>Order比FilterScope具有更高的优先级，在Order属性值相同时FilterScope才会被考虑</li>
+</ul>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//数值越小，执行优先级越高</span></span><br><span class="line"><span class="keyword">public</span> <span class="built_in">enum</span> FilterScope</span><br><span class="line">&#123;</span><br><span class="line">    Action= <span class="number">30</span>,</span><br><span class="line">    Controller= <span class="number">20</span>,</span><br><span class="line">    First= <span class="number">0</span>,</span><br><span class="line">    Global= <span class="number">10</span>,</span><br><span class="line">    Last= <span class="number">100</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="ActionResult"><a href="#ActionResult" class="headerlink" title="ActionResult"></a>ActionResult</h2><p>ActionResult是一个抽象类：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title">ActionResult</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">void</span> <span class="title">ExecuteResult</span>(<span class="params">ControllerContext context</span>)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如果ActionResult是非ViewResult，比如JsonResult, ContentResult，这些内容将直接被输送到Response响应流中，显示给客户端；如果是ViewResult，就会进入下一个渲染视图环节。</p>
+<h2 id="ViewEngine"><a href="#ViewEngine" class="headerlink" title="ViewEngine"></a>ViewEngine</h2><p>默认的有<code>Razor View Engine</code>和<code>Web Form View Engine</code>，实现IViewEngine接口。</p>
+<p>IViewEngine接口方法：</p>
+<ul>
+<li>FindPartialView</li>
+<li>FindView</li>
+<li>ReleaseView</li>
+</ul>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/Cwj-XFH/p/6752177.html">ASP.NET MVC5请求管道和生命周期</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/edisonchou/p/4226558.html">ASP.Net请求处理机制初步探索之旅 - Part 5 ASP.Net MVC请求处理流程</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/darrenji/p/3795690.html">ASP.NET MVC请求处理管道生命周期的19个关键环节(13-19)</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/artech/archive/2012/04/10/how-mvc-works.html">How ASP.NET MVC Works?</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/artech/archive/2012/08/06/action-filter.html">ASP.NET MVC中的ActionFilter是如何执行的？</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/artech/archive/2012/07/02/AuthorizationFilter.html">认识ASP.NET MVC的5种AuthorizationFilter</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/artech/archive/2012/08/22/view-engine-01.html">ASP.NET MVC的View是如何被呈现出来的？[设计篇]</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/artech/archive/2012/08/23/view-engine-02.html">ASP.NET MVC的View是如何呈现出来的[实例篇]</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/02/19/WebForm%E4%B9%8BViewState%E4%B8%8EUpdatePannel%E8%AF%A6%E8%A7%A3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/02/19/WebForm%E4%B9%8BViewState%E4%B8%8EUpdatePannel%E8%AF%A6%E8%A7%A3/" class="post-title-link" itemprop="url">WebForm之ViewState与UpdatePannel详解</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-02-19 14:16:35" itemprop="dateCreated datePublished" datetime="2019-02-19T14:16:35+00:00">2019-02-19</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-09-27 07:12:46" itemprop="dateModified" datetime="2022-09-27T07:12:46+00:00">2022-09-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/WebForm/" itemprop="url" rel="index"><span itemprop="name">WebForm</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>3.5k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>3 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="WebForm之ViewState与UpdatePannel详解"><a href="#WebForm之ViewState与UpdatePannel详解" class="headerlink" title="WebForm之ViewState与UpdatePannel详解"></a>WebForm之ViewState与UpdatePannel详解</h1><h2 id="ViewState"><a href="#ViewState" class="headerlink" title="ViewState"></a>ViewState</h2><h3 id="ViewState简介"><a href="#ViewState简介" class="headerlink" title="ViewState简介"></a>ViewState简介</h3><p>1,类似于Dictionary的一种数据结构</p>
+<p>ViewState通过String类型的数据作为索引。ViewState对应项中的值可以存储任何类型的值（参数是Object类型），任何类型的值存储到ViewState中都会被装箱为Object类型。</p>
+<p>注：ViewState不能存储所有的数据类型，仅支持以下的这几种：<br>String、Integer、Boolean、Array、ArrayList、Hashtable以及一些自定义类型。</p>
+<p>2，ViewState存储在浏览器的页面之中</p>
+<p>ViewState的作用域是页面，消耗服务器资源相对较少。</p>
+<p>服务器在向浏览器返回html之前，对ViewState中的内容进行了Base64的加密编码。VIEWSTATE适用于同一个页面在不关闭的情况下多次与服务器交互（PostBack）</p>
+<p>当用户点击页面中的某个按钮提交表单时，浏览器会将这个_VIEWSTATE的隐藏域也一起提交到服务端；服务器端在解析请求时，会将浏览器提交过来的ViewState进行反序列化后填充到ViewState属性中；再根据业务处理需要，从这个属性中根据索引找到具体的Value值并对其进行操作；操作完成后，再将ViewState进行Base64编码再次返回给浏览器端；</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;input type=<span class="string">&quot;hidden&quot;</span> name=<span class="string">&quot;__VIEWSTATE&quot;</span> id=<span class="string">&quot;__VIEWSTATE&quot;</span> <span class="keyword">value</span>=<span class="string">&quot;/wEPDwUKLTg4NTU3NzYwOGRkbQwtdx3+TX000hqmVYIcP3+P3zcihvV0deiDjaSgFRQ=&quot;</span> /&gt;</span><br></pre></td></tr></table></figure>
+
+<h3 id="ViewState存在的问题"><a href="#ViewState存在的问题" class="headerlink" title="ViewState存在的问题"></a>ViewState存在的问题</h3><p>当 <code>Repeater</code>等控件使用时，存储较大的值，用户请求显示页面的速度会减慢。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;input type=<span class="string">&quot;hidden&quot;</span> name=<span class="string">&quot;__VIEWSTATE&quot;</span> id=<span class="string">&quot;__VIEWSTATE&quot;</span> <span class="keyword">value</span>=<span class="string">&quot;/wEPDwUJLTQ2OTExMTk1D2QWAgIBD2QWBAIBDxAPFgYeDkRhdGFWYWx1ZUZpZWxkBQJJRB4NRGF0YVRleHRGaWVsZAUETmFtZR4LXyFEYXRhQm91vZflubPop4Lpn7PooZfmsp/pgJoxMDDljoUn5LqR5Y2X6L+q5L+h6YCa572X5bmz6LSi5a+M5rKf6YCaMTAw5Y6FKuS6keWNl+i/quS/oUCBTExNDczBTExNDczZAIDDw8WAh8FBQUxMTQ3M2RkAgUPDxYCHwUFCzE4Mzg4MDM4MTY1ZGQCBQ8PFgIeC1JlY29yZGNvdW50AvIDZGRkmmJuzxcRIKhlTny8ibiHOR92G/JYSgGwzO69sFxoLV8=&quot;</span> /&gt;</span><br></pre></td></tr></table></figure>
+
+<h3 id="禁用ViewState"><a href="#禁用ViewState" class="headerlink" title="禁用ViewState"></a>禁用ViewState</h3><p>1,页面级禁用，在Page指令集中添加EnableViewState=”false”。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&lt;%@ Page Language=<span class="string">&quot;C#&quot;</span> AutoEventWireup=<span class="string">&quot;true&quot;</span> CodeBehind=<span class="string">&quot;RepeaterViewState.aspx.cs&quot;</span></span><br><span class="line">    Inherits=<span class="string">&quot;WebForm1.RepeaterViewState&quot;</span> EnableViewState=<span class="string">&quot;false&quot;</span> %&gt;</span><br></pre></td></tr></table></figure>
+
+<p>注：禁用之后页面依然存在ViewState，但数据量已经减小。</p>
+<p>2，控件级禁用ViewState</p>
+<p>控件设置一个属性EnableViewState=”false”。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&lt;asp:Repeater ID=<span class="string">&quot;repeaterProducts&quot;</span> runat=<span class="string">&quot;server&quot;</span> EnableViewState=<span class="string">&quot;false&quot;</span>&gt;</span><br><span class="line">&lt;/asp:Repeater&gt;</span><br></pre></td></tr></table></figure>
+
+<p>3,全局级禁用ViewState</p>
+<p>Web.config的system.web中增加一句配置</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;pages enableViewState=<span class="string">&quot;false&quot;</span> /&gt;</span><br></pre></td></tr></table></figure>
+
+<p>4,单独控制禁用与启用</p>
+<p>ASP.NET4.0之前，控件的视图只有在 Page 的 ViewState 启用的前提下才可以单独控制。</p>
+<p>ASP.NET4.0供了一个叫做 ViewStateMode 的新属性，这个属性可以单独设置控件的视图状态。即使页面的 <code>ViewState</code> 没有启用，控件依然可以启用视图状态。</p>
+<p>ViewStateMode 属性有三种取值：</p>
+<ul>
+<li>Inherit：视图状态从父控件继承；</li>
+<li>Enabled：即使父控件的视图状态没有启用，也启用该控件的视图状态；</li>
+<li>Disabled：即使父控件的视图状态启用了，也禁用此控件的视图状态。</li>
+</ul>
+<h2 id="UpdatePanel控件"><a href="#UpdatePanel控件" class="headerlink" title="UpdatePanel控件"></a>UpdatePanel控件</h2><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"> &lt;form id=<span class="string">&quot;form1&quot;</span> runat=<span class="string">&quot;server&quot;</span>&gt;</span><br><span class="line">    &lt;div align=<span class="string">&quot;center&quot;</span>&gt;</span><br><span class="line">        &lt;asp:ScriptManager ID=<span class="string">&quot;scriptManager&quot;</span> runat=<span class="string">&quot;server&quot;</span>&gt;</span><br><span class="line">        &lt;/asp:ScriptManager&gt;</span><br><span class="line">        &lt;asp:UpdatePanel ID=<span class="string">&quot;updatePanel&quot;</span> runat=<span class="string">&quot;server&quot;</span>&gt;</span><br><span class="line">            &lt;ContentTemplate&gt;</span><br><span class="line">                &lt;asp:TextBox ID=<span class="string">&quot;txtNumber1&quot;</span> runat=<span class="string">&quot;server&quot;</span>&gt;&lt;/asp:TextBox&gt;</span><br><span class="line">                &lt;asp:DropDownList ID=<span class="string">&quot;ddlFunc&quot;</span> runat=<span class="string">&quot;server&quot;</span>&gt;</span><br><span class="line">                    &lt;asp:ListItem Value=<span class="string">&quot;0&quot;</span>&gt;+&lt;/asp:ListItem&gt;</span><br><span class="line">                    &lt;asp:ListItem Value=<span class="string">&quot;1&quot;</span>&gt;-&lt;/asp:ListItem&gt;</span><br><span class="line">                    &lt;asp:ListItem Value=<span class="string">&quot;2&quot;</span>&gt;*&lt;/asp:ListItem&gt;</span><br><span class="line">                    &lt;asp:ListItem Value=<span class="string">&quot;3&quot;</span>&gt;/&lt;/asp:ListItem&gt;</span><br><span class="line">                &lt;/asp:DropDownList&gt;</span><br><span class="line">                &lt;asp:TextBox ID=<span class="string">&quot;txtNumber2&quot;</span> runat=<span class="string">&quot;server&quot;</span>&gt;&lt;/asp:TextBox&gt;</span><br><span class="line">                &lt;asp:Button ID=<span class="string">&quot;btnGetResult&quot;</span> runat=<span class="string">&quot;server&quot;</span> Text=<span class="string">&quot;=&quot;</span> Width=<span class="string">&quot;50&quot;</span> OnClick=<span class="string">&quot;btnGetResult_Click&quot;</span> /&gt;</span><br><span class="line">                &lt;asp:Label ID=<span class="string">&quot;lblResult&quot;</span> runat=<span class="string">&quot;server&quot;</span> Text=<span class="string">&quot;&quot;</span> Font-Bold=<span class="string">&quot;true&quot;</span>&gt;&lt;/asp:Label&gt;</span><br><span class="line">            &lt;/ContentTemplate&gt;</span><br><span class="line">        &lt;/asp:UpdatePanel&gt;</span><br><span class="line">    &lt;/div&gt;</span><br><span class="line">&lt;/form&gt;</span><br></pre></td></tr></table></figure>
+
+<p>UpdatePanel本质封装了以XmlHttpRequest为核心的一系列方法帮我们将CodeBehind中的同步事件变为了异步操作，并通过DOM更新指定的HTML内容，使得我们可以方便地实现AJAX效果。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/edisonchou/p/3901559.html">ASP.Net WebForm温故知新学习笔记：二、ViewState与UpdatePanel探秘</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/freeflying/archive/2009/12/28/1634229.html">禁掉VIEWSTATE之后（一）</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/yukaizhao/archive/2010/05/22/asp-net-new-feature-pure-html.html">Asp.Net 4.0 新特性，输出更纯净的Html代码 ClientIDMode，ViewStateMode等</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/02/18/ASP-NET-WebForm%E9%A1%B5%E9%9D%A2%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2019/02/18/ASP-NET-WebForm%E9%A1%B5%E9%9D%A2%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/" class="post-title-link" itemprop="url">ASP.NET WebForm页面生命周期</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-02-18 11:32:37" itemprop="dateCreated datePublished" datetime="2019-02-18T11:32:37+00:00">2019-02-18</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-09-27 07:12:46" itemprop="dateModified" datetime="2022-09-27T07:12:46+00:00">2022-09-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/WebForm/" itemprop="url" rel="index"><span itemprop="name">WebForm</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>1.5k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>1 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="ASP-NET-WebForm页面生命周期"><a href="#ASP-NET-WebForm页面生命周期" class="headerlink" title="ASP.NET WebForm页面生命周期"></a>ASP.NET WebForm页面生命周期</h1><h2 id="生命周期阶段"><a href="#生命周期阶段" class="headerlink" title="生命周期阶段"></a>生命周期阶段</h2><h3 id="1、请求页面"><a href="#1、请求页面" class="headerlink" title="1、请求页面"></a>1、请求页面</h3><p>页请求发生在页生命周期开始之前。</p>
+<h3 id="2、开始阶段"><a href="#2、开始阶段" class="headerlink" title="2、开始阶段"></a>2、开始阶段</h3><p>1，Page类的ProcessRequest方法作为页面生命周期的入口；<br>2，BuildControlTree：构造页面控件树；<br>3，设置IsPostBack属性是否第一次请求该页面；</p>
+<h3 id="3、初始化页面"><a href="#3、初始化页面" class="headerlink" title="3、初始化页面"></a>3、初始化页面</h3><p>页面初始化期间，可以使用页中的控件，并将设置每个控件的UniqueID属性。如果当前请求是回发请求，则回发数据尚未加载，并且控件属性值尚未还原为视图状态中的值。</p>
+<p>事件：<code>PreInit--&gt;Init--&gt;InitComplete</code></p>
+<p>** PreInit**</p>
+<p>PreInit 是页面生命周期的第一个事件。它检查 IsPostBack 属性并决定页面是否是回发。它设置主题及主版页，创建动态控件，并且获取和设置值配置文件属性值。此事件可通过重载 OnPreInit 方法或者创建一个 Page_PreInit 处理程序进行处置。</p>
+<p>** Init**</p>
+<p>Init 事件初始化控件属性，并且建立控件树。此事件可通过重载 OnInit 方法或者创建一个 Page_Init处理程序进行处置。</p>
+<p>** InitComplete**</p>
+<p>InitComplete 事件允许对视图状态的跟踪。所有的控件开启视图状态下的跟踪。</p>
+<h3 id="4、加载页面"><a href="#4、加载页面" class="headerlink" title="4、加载页面"></a>4、加载页面</h3><p>设置控件属性，使用视图状态和控件状态值。</p>
+<p>事件：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">（LoadState--&gt;ProcessPostData--&gt;）PreLoad--&gt;Load--&gt;</span><br><span class="line">（ProcessPostData--&gt;RaiseChangedEvents--&gt;RaisePostBackEvent--&gt;）LoadComplete</span><br></pre></td></tr></table></figure>
+
+<p>** LoadViewState**</p>
+<p>允许加载视图状态信息到控件中。</p>
+<p>** LoadPostData**</p>
+<p>对所有由 \ 标签定义的输入字段的内容进行处理。</p>
+<p>** PreLoad**</p>
+<p>PreLoad 在回发数据加载在控件中之前发生。此事件可以通过重载 OnPreLoad 方法或者创建一个 Pre_Load 处理程序进行处置。</p>
+<p>** Load **</p>
+<p>Load 事件被页面最先引发，然后递归地引发所有子控件。控件树中的控件就被创建好了。此事件可通过重载 OnLoad 方法或者创建一个 Page_Load 处理程序来进行处置。</p>
+<h3 id="5、验证"><a href="#5、验证" class="headerlink" title="5、验证"></a>5、验证</h3><p>在验证期间，将调用所有验证程序控件的Validate方法，此方法将设置各个验证程序控件和页的IsValid属性为 true。</p>
+<p>** LoadComplete**</p>
+<p>加载进程完成，控件事件处理程序运行，页面验证发生。此事件可通过重载 OnLoad 方法或者创建一个 Page_LoadComplete 处理程序来进行处置。</p>
+<h3 id="6、回发事件处理"><a href="#6、回发事件处理" class="headerlink" title="6、回发事件处理"></a>6、回发事件处理</h3><p>如果请求是回发请求，则将调用所有事件处理程序。</p>
+<h3 id="7、呈现页面"><a href="#7、呈现页面" class="headerlink" title="7、呈现页面"></a>7、呈现页面</h3><p>页面的视图状态和所有控件被保存。页面为每一个控件调用显示方法，并且呈现的输出被写入页面响应属性中的 OutputStream 类。</p>
+<p>** PreRender**</p>
+<p>PreRender 事件就在输出显示之前发生。通过处理此事件，页面和控件可以在输出显示之前执行任何更新。</p>
+<p>** PreRenderComplete**</p>
+<p>当 PreRender 事件为所有子控件被循环引发，此事件确保了显示前阶段的完成</p>
+<p>** SaveStateComplete**</p>
+<p>页面控件状态被保存。个性化、控件状态以及视图状态信息被保存。</p>
+<h3 id="8、卸载页面"><a href="#8、卸载页面" class="headerlink" title="8、卸载页面"></a>8、卸载页面</h3><p>显示过的页面被送达客户端以及页面属性，例如响应和请求，被卸载并全部清除完毕。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/zhaoyang/archive/2011/11/16/2251200.html">用三张图片详解Asp.Net 全生命周期</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/edisonchou/p/4216337.html">ASP.Net请求处理机制初步探索之旅 - Part 4 WebForm页面生命周期</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.w3cschool.cn/aspnet/1wiv1j2g.html">ASP.NET 页面生命周期</a></p>
+<p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/28318813">Asp.Net WebForm生命周期的详解</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/02/17/ASP-NET%E8%AF%B7%E6%B1%82%E5%A4%84%E7%90%86%E7%AE%A1%E9%81%93/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -215,7 +617,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-26 06:43:28" itemprop="dateModified" datetime="2022-09-26T06:43:28+00:00">2022-09-26</time>
+                <time title="修改时间：2022-09-27 07:12:46" itemprop="dateModified" datetime="2022-09-27T07:12:46+00:00">2022-09-27</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -358,7 +760,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-26 06:43:28" itemprop="dateModified" datetime="2022-09-26T06:43:28+00:00">2022-09-26</time>
+                <time title="修改时间：2022-09-27 07:12:46" itemprop="dateModified" datetime="2022-09-27T07:12:46+00:00">2022-09-27</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -496,7 +898,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-26 06:43:28" itemprop="dateModified" datetime="2022-09-26T06:43:28+00:00">2022-09-26</time>
+                <time title="修改时间：2022-09-27 07:12:46" itemprop="dateModified" datetime="2022-09-27T07:12:46+00:00">2022-09-27</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -613,7 +1015,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-26 06:43:28" itemprop="dateModified" datetime="2022-09-26T06:43:28+00:00">2022-09-26</time>
+                <time title="修改时间：2022-09-27 07:12:46" itemprop="dateModified" datetime="2022-09-27T07:12:46+00:00">2022-09-27</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -715,7 +1117,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-26 06:43:28" itemprop="dateModified" datetime="2022-09-26T06:43:28+00:00">2022-09-26</time>
+                <time title="修改时间：2022-09-27 07:12:46" itemprop="dateModified" datetime="2022-09-27T07:12:46+00:00">2022-09-27</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -905,7 +1307,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-26 06:43:28" itemprop="dateModified" datetime="2022-09-26T06:43:28+00:00">2022-09-26</time>
+                <time title="修改时间：2022-09-27 07:12:46" itemprop="dateModified" datetime="2022-09-27T07:12:46+00:00">2022-09-27</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -995,7 +1397,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-26 06:43:28" itemprop="dateModified" datetime="2022-09-26T06:43:28+00:00">2022-09-26</time>
+                <time title="修改时间：2022-09-27 07:12:46" itemprop="dateModified" datetime="2022-09-27T07:12:46+00:00">2022-09-27</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1086,7 +1488,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-26 06:43:28" itemprop="dateModified" datetime="2022-09-26T06:43:28+00:00">2022-09-26</time>
+                <time title="修改时间：2022-09-27 07:12:46" itemprop="dateModified" datetime="2022-09-27T07:12:46+00:00">2022-09-27</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1290,7 +1692,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-26 06:43:28" itemprop="dateModified" datetime="2022-09-26T06:43:28+00:00">2022-09-26</time>
+                <time title="修改时间：2022-09-27 07:12:46" itemprop="dateModified" datetime="2022-09-27T07:12:46+00:00">2022-09-27</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1381,7 +1783,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-26 06:43:28" itemprop="dateModified" datetime="2022-09-26T06:43:28+00:00">2022-09-26</time>
+                <time title="修改时间：2022-09-27 07:12:46" itemprop="dateModified" datetime="2022-09-27T07:12:46+00:00">2022-09-27</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1476,7 +1878,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-26 06:43:28" itemprop="dateModified" datetime="2022-09-26T06:43:28+00:00">2022-09-26</time>
+                <time title="修改时间：2022-09-27 07:12:46" itemprop="dateModified" datetime="2022-09-27T07:12:46+00:00">2022-09-27</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1571,7 +1973,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-26 06:43:28" itemprop="dateModified" datetime="2022-09-26T06:43:28+00:00">2022-09-26</time>
+                <time title="修改时间：2022-09-27 07:12:46" itemprop="dateModified" datetime="2022-09-27T07:12:46+00:00">2022-09-27</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1623,297 +2025,6 @@
 <p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.reflection.emit.opcodes?view=netframework-4.7.2">OpCodes</a></p>
 <p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.reflection.emit?view=netframework-4.7.2">System.Reflection.Emit</a></p>
 
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/01/13/CSharp%E5%8F%8D%E5%B0%84-%E4%BD%BF%E7%94%A8%E5%8F%8D%E5%B0%84%E8%BF%9E%E6%8E%A5%E5%A7%94%E6%89%98/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="syxdevcode的个人博客">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/01/13/CSharp%E5%8F%8D%E5%B0%84-%E4%BD%BF%E7%94%A8%E5%8F%8D%E5%B0%84%E8%BF%9E%E6%8E%A5%E5%A7%94%E6%89%98/" class="post-title-link" itemprop="url">CSharp反射-使用反射连接委托</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-01-13 16:10:21" itemprop="dateCreated datePublished" datetime="2019-01-13T16:10:21+00:00">2019-01-13</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-26 06:43:28" itemprop="dateModified" datetime="2022-09-26T06:43:28+00:00">2022-09-26</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%8F%8D%E5%B0%84/" itemprop="url" rel="index"><span itemprop="name">反射</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>8.6k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>8 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>使用反射加载和运行程序集时，不能使用 C# += 运算符将事件挂钩。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2019/01/13/CSharp%E5%8F%8D%E5%B0%84-%E4%BD%BF%E7%94%A8%E5%8F%8D%E5%B0%84%E8%BF%9E%E6%8E%A5%E5%A7%94%E6%89%98/">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/01/13/CSharp%E5%9F%BA%E7%A1%80-%E8%AE%A4%E8%AF%86%E5%8F%8D%E5%B0%84-%E4%B8%8B/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="syxdevcode的个人博客">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/01/13/CSharp%E5%9F%BA%E7%A1%80-%E8%AE%A4%E8%AF%86%E5%8F%8D%E5%B0%84-%E4%B8%8B/" class="post-title-link" itemprop="url">CSharp基础-认识反射-下</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-01-13 10:50:33" itemprop="dateCreated datePublished" datetime="2019-01-13T10:50:33+00:00">2019-01-13</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-26 06:43:28" itemprop="dateModified" datetime="2022-09-26T06:43:28+00:00">2022-09-26</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%8F%8D%E5%B0%84/" itemprop="url" rel="index"><span itemprop="name">反射</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>1k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>1 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="CSharp基础-认识反射-下"><a href="#CSharp基础-认识反射-下" class="headerlink" title="CSharp基础-认识反射-下"></a>CSharp基础-认识反射-下</h1><h2 id="访问自定义特性"><a href="#访问自定义特性" class="headerlink" title="访问自定义特性"></a>访问自定义特性</h2><p>参考：<a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/framework/reflection-and-codedom/accessing-custom-attributes">访问自定义特性</a></p>
-<h3 id="仅反射上下文"><a href="#仅反射上下文" class="headerlink" title="仅反射上下文"></a>仅反射上下文</h3><p>加载到仅反射上下文中的代码无法执行。在仅反射上下文中加载和检查自定义特性，使用 <code>CustomAttributeData</code> 类。通过使用静态 <code>CustomAttributeData.GetCustomAttributes</code> 方法的相应重载来获取此类的实例。</p>
-<h3 id="执行上下文"><a href="#执行上下文" class="headerlink" title="执行上下文"></a>执行上下文</h3><p>用于查询执行上下文中的特性的主要反射方法是 <code>MemberInfo.GetCustomAttributes</code> 和 <code>Attribute.GetCustomAttributes</code>。</p>
-<p>自定义特性的可访问性根据附加该特性的程序集来进行检查。</p>
-<p><code>Assembly.GetCustomAttributes(Boolean)</code> 等方法检查类型参数的可见性和可访问性。 只有包含用户定义类型的程序集中的代码才能使用 <code>GetCustomAttributes</code> 检索该类型的自定义特性。</p>
-<p>自定义特性反射模型可能会在定义类型的程序集外泄漏用户定义类型的实例。 为了防止客户端发现关于用户定义的自定义特性类型的信息，请将该类型的成员定义为非公共成员。</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">ExampleAttribute</span> : <span class="title">Attribute</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="built_in">string</span> stringVal;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">ExampleAttribute</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        stringVal = <span class="string">&quot;This is the default string.&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">string</span> StringValue</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span> &#123; <span class="keyword">return</span> stringVal; &#125;</span><br><span class="line">        <span class="keyword">set</span> &#123; stringVal = <span class="keyword">value</span>; &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">[<span class="meta">Example(StringValue=<span class="string">&quot;This is a string.&quot;</span>)</span>]</span><br><span class="line"><span class="keyword">class</span> <span class="title">Class1</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        System.Reflection.MemberInfo info = <span class="keyword">typeof</span>(Class1);</span><br><span class="line">        <span class="keyword">foreach</span> (<span class="built_in">object</span> attrib <span class="keyword">in</span> info.GetCustomAttributes(<span class="literal">true</span>))</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(attrib);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="指定完全限定的类型名称"><a href="#指定完全限定的类型名称" class="headerlink" title="指定完全限定的类型名称"></a>指定完全限定的类型名称</h2><p>参考：<a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/framework/reflection-and-codedom/specifying-fully-qualified-type-names">指定完全限定的类型名称</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/01/12/CSharp%E5%9F%BA%E7%A1%80-%E8%AE%A4%E8%AF%86%E5%8F%8D%E5%B0%84-%E4%B8%AD/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="syxdevcode的个人博客">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2019/01/12/CSharp%E5%9F%BA%E7%A1%80-%E8%AE%A4%E8%AF%86%E5%8F%8D%E5%B0%84-%E4%B8%AD/" class="post-title-link" itemprop="url">CSharp基础-认识反射-中</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2019-01-12 15:52:24" itemprop="dateCreated datePublished" datetime="2019-01-12T15:52:24+00:00">2019-01-12</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-26 06:43:28" itemprop="dateModified" datetime="2022-09-26T06:43:28+00:00">2022-09-26</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E5%8F%8D%E5%B0%84/" itemprop="url" rel="index"><span itemprop="name">反射</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>14k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>13 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="CSharp基础-认识反射-中"><a href="#CSharp基础-认识反射-中" class="headerlink" title="CSharp基础-认识反射-中"></a>CSharp基础-认识反射-中</h1><p>本文包括动态加载和使用类型，将程序集加载到仅反射上下文中；</p>
-<h2 id="动态加载和使用类型"><a href="#动态加载和使用类型" class="headerlink" title="动态加载和使用类型"></a>动态加载和使用类型</h2><h3 id="自定义绑定"><a href="#自定义绑定" class="headerlink" title="自定义绑定"></a>自定义绑定</h3><p>参考：<a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/framework/reflection-and-codedom/dynamically-loading-and-using-types#custom-binding">自定义绑定</a></p>
-<p>反射可在代码中显式用于完成后期绑定。在通过反射实现的后期绑定中，必须由自定义绑定来控制该绑定。 <code>Binder</code> 类提供对成员选择和调用的自定义控制。</p>
-<p>使用自定义绑定可以在运行时加载程序集、获取该程序集中有关类型的信息、指定所需类型，并在之后调用该类型上的方法或访问该类型上的字段或属性。 如果在编译时不知道对象的类型，则此方法非常有用，例如当对象类型取决于用户输入时。</p>
-<p>实例：</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">namespace</span> <span class="title">ClassLibrary1</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">class</span> <span class="title">MySimpleClass</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">MyMethod</span>(<span class="params"><span class="built_in">string</span> str, <span class="built_in">int</span> i</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;MyMethod parameters: &#123;0&#125;, &#123;1&#125;&quot;</span>, str, i);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">MyMethod</span>(<span class="params"><span class="built_in">string</span> str, <span class="built_in">int</span> i, <span class="built_in">int</span> j</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;MyMethod parameters: &#123;0&#125;, &#123;1&#125;, &#123;2&#125;&quot;</span>,</span><br><span class="line">                str, i, j);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">using</span> ClassLibrary1;</span><br><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Globalization;</span><br><span class="line"><span class="keyword">using</span> System.Reflection;</span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">ConsoleApp1</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">internal</span> <span class="keyword">class</span> <span class="title">MyMainClass</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>()</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="comment">// Get the type of MySimpleClass.</span></span><br><span class="line">            Type myType = <span class="keyword">typeof</span>(MySimpleClass);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// Get an instance of MySimpleClass.</span></span><br><span class="line">            MySimpleClass myInstance = <span class="keyword">new</span> MySimpleClass();</span><br><span class="line">            MyCustomBinder myCustomBinder = <span class="keyword">new</span> MyCustomBinder();</span><br><span class="line"></span><br><span class="line">            <span class="comment">// Get the method information for the particular overload</span></span><br><span class="line">            <span class="comment">// being sought.</span></span><br><span class="line">            MethodInfo myMethod = myType.GetMethod(<span class="string">&quot;MyMethod&quot;</span>,</span><br><span class="line">                BindingFlags.Public | BindingFlags.Instance,</span><br><span class="line">                myCustomBinder, <span class="keyword">new</span> Type[] &#123;<span class="keyword">typeof</span>(<span class="built_in">string</span>),</span><br><span class="line">                <span class="keyword">typeof</span>(<span class="built_in">int</span>)&#125;, <span class="literal">null</span>);</span><br><span class="line">            Console.WriteLine(myMethod.ToString());</span><br><span class="line"></span><br><span class="line">            <span class="comment">// Invoke the overload.</span></span><br><span class="line">            myType.InvokeMember(<span class="string">&quot;MyMethod&quot;</span>, BindingFlags.InvokeMethod,</span><br><span class="line">                myCustomBinder, myInstance,</span><br><span class="line">                <span class="keyword">new</span> Object[] &#123; <span class="string">&quot;Testing...&quot;</span>, (<span class="built_in">int</span>)<span class="number">32</span> &#125;);</span><br><span class="line"></span><br><span class="line">            Console.ReadKey();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// ****************************************************</span></span><br><span class="line">    <span class="comment">//  A simple custom binder that provides no</span></span><br><span class="line">    <span class="comment">//  argument type conversion.</span></span><br><span class="line">    <span class="comment">// ****************************************************</span></span><br><span class="line">    <span class="keyword">internal</span> <span class="keyword">class</span> <span class="title">MyCustomBinder</span> : <span class="title">Binder</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> MethodBase <span class="title">BindToMethod</span>(<span class="params"></span></span></span><br><span class="line"><span class="params"><span class="function">            BindingFlags bindingAttr,</span></span></span><br><span class="line"><span class="params"><span class="function">            MethodBase[] match,</span></span></span><br><span class="line"><span class="params"><span class="function">            <span class="keyword">ref</span> <span class="built_in">object</span>[] args,</span></span></span><br><span class="line"><span class="params"><span class="function">            ParameterModifier[] modifiers,</span></span></span><br><span class="line"><span class="params"><span class="function">            CultureInfo culture,</span></span></span><br><span class="line"><span class="params"><span class="function">            <span class="built_in">string</span>[] names,</span></span></span><br><span class="line"><span class="params"><span class="function">            <span class="keyword">out</span> <span class="built_in">object</span> state</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (match == <span class="literal">null</span>)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentNullException(<span class="string">&quot;match&quot;</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">// Arguments are not being reordered.</span></span><br><span class="line">            state = <span class="literal">null</span>;</span><br><span class="line">            <span class="comment">// Find a parameter match and return the first method with</span></span><br><span class="line">            <span class="comment">// parameters that match the request.</span></span><br><span class="line">            <span class="keyword">foreach</span> (MethodBase mb <span class="keyword">in</span> match)</span><br><span class="line">            &#123;</span><br><span class="line">                ParameterInfo[] parameters = mb.GetParameters();</span><br><span class="line"></span><br><span class="line">                <span class="keyword">if</span> (ParametersMatch(parameters, args))</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="keyword">return</span> mb;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> FieldInfo <span class="title">BindToField</span>(<span class="params">BindingFlags bindingAttr,</span></span></span><br><span class="line"><span class="params"><span class="function">            FieldInfo[] match, <span class="built_in">object</span> <span class="keyword">value</span>, CultureInfo culture</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (match == <span class="literal">null</span>)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentNullException(<span class="string">&quot;match&quot;</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">foreach</span> (FieldInfo fi <span class="keyword">in</span> match)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">if</span> (fi.GetType() == <span class="keyword">value</span>.GetType())</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="keyword">return</span> fi;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> MethodBase <span class="title">SelectMethod</span>(<span class="params"></span></span></span><br><span class="line"><span class="params"><span class="function">            BindingFlags bindingAttr,</span></span></span><br><span class="line"><span class="params"><span class="function">            MethodBase[] match,</span></span></span><br><span class="line"><span class="params"><span class="function">            Type[] types,</span></span></span><br><span class="line"><span class="params"><span class="function">            ParameterModifier[] modifiers</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (match == <span class="literal">null</span>)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentNullException(<span class="string">&quot;match&quot;</span>);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// Find a parameter match and return the first method with</span></span><br><span class="line">            <span class="comment">// parameters that match the request.</span></span><br><span class="line">            <span class="keyword">foreach</span> (MethodBase mb <span class="keyword">in</span> match)</span><br><span class="line">            &#123;</span><br><span class="line">                ParameterInfo[] parameters = mb.GetParameters();</span><br><span class="line">                <span class="keyword">if</span> (ParametersMatch(parameters, types))</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="keyword">return</span> mb;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> PropertyInfo <span class="title">SelectProperty</span>(<span class="params"></span></span></span><br><span class="line"><span class="params"><span class="function">            BindingFlags bindingAttr,</span></span></span><br><span class="line"><span class="params"><span class="function">            PropertyInfo[] match,</span></span></span><br><span class="line"><span class="params"><span class="function">            Type returnType,</span></span></span><br><span class="line"><span class="params"><span class="function">            Type[] indexes,</span></span></span><br><span class="line"><span class="params"><span class="function">            ParameterModifier[] modifiers</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (match == <span class="literal">null</span>)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentNullException(<span class="string">&quot;match&quot;</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">foreach</span> (PropertyInfo pi <span class="keyword">in</span> match)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">if</span> (pi.GetType() == returnType &amp;&amp;</span><br><span class="line">                    ParametersMatch(pi.GetIndexParameters(), indexes))</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="keyword">return</span> pi;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> <span class="built_in">object</span> <span class="title">ChangeType</span>(<span class="params"></span></span></span><br><span class="line"><span class="params"><span class="function">            <span class="built_in">object</span> <span class="keyword">value</span>,</span></span></span><br><span class="line"><span class="params"><span class="function">            Type myChangeType,</span></span></span><br><span class="line"><span class="params"><span class="function">            CultureInfo culture</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">try</span></span><br><span class="line">            &#123;</span><br><span class="line">                <span class="built_in">object</span> newType;</span><br><span class="line">                newType = Convert.ChangeType(<span class="keyword">value</span>, myChangeType);</span><br><span class="line">                <span class="keyword">return</span> newType;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">// Throw an InvalidCastException if the conversion cannot</span></span><br><span class="line">            <span class="comment">// be done by the Convert.ChangeType method.</span></span><br><span class="line">            <span class="keyword">catch</span> (InvalidCastException)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> <span class="keyword">void</span> <span class="title">ReorderArgumentArray</span>(<span class="params"><span class="keyword">ref</span> <span class="built_in">object</span>[] args,</span></span></span><br><span class="line"><span class="params"><span class="function">            <span class="built_in">object</span> state</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="comment">// No operation is needed here because BindToMethod does not</span></span><br><span class="line">            <span class="comment">// reorder the args array. The most common implementation</span></span><br><span class="line">            <span class="comment">// of this method is shown below.</span></span><br><span class="line"></span><br><span class="line">            <span class="comment">// ((BinderState)state).args.CopyTo(args, 0);</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Returns true only if the type of each object in a matches</span></span><br><span class="line">        <span class="comment">// the type of each corresponding object in b.</span></span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="built_in">bool</span> <span class="title">ParametersMatch</span>(<span class="params">ParameterInfo[] a, <span class="built_in">object</span>[] b</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (a.Length != b.Length)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; a.Length; i++)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">if</span> (a[i].ParameterType != b[i].GetType())</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Returns true only if the type of each object in a matches</span></span><br><span class="line">        <span class="comment">// the type of each corresponding entry in b.</span></span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="built_in">bool</span> <span class="title">ParametersMatch</span>(<span class="params">ParameterInfo[] a, Type[] b</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (a.Length != b.Length)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; a.Length; i++)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">if</span> (a[i].ParameterType != b[i])</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="InvokeMember-和-CreateInstance"><a href="#InvokeMember-和-CreateInstance" class="headerlink" title="InvokeMember 和 CreateInstance"></a>InvokeMember 和 CreateInstance</h3><p>使用 <code>Type.InvokeMember</code> 调用类型的成员。<code>InvokeMember</code> 可以创建指定类型的新实例，而各种类的 <code>CreateInstance</code> 方法（例如 <code>Activator.CreateInstance</code> 和 <code>Assembly.CreateInstance</code>）是 <code>InvokeMember</code> 的专用形式。 <code>Binder</code> 类可在这些方法中用于重载解析和参数强制转换。</p>
-<p>实例：</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">CustomBinderDriver</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        Type t = <span class="keyword">typeof</span>(CustomBinderDriver);</span><br><span class="line">        CustomBinder binder = <span class="keyword">new</span> CustomBinder();</span><br><span class="line">        BindingFlags flags = BindingFlags.InvokeMethod | BindingFlags.Instance |</span><br><span class="line">            BindingFlags.Public | BindingFlags.Static;</span><br><span class="line">        <span class="built_in">object</span>[] args;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Case 1. Neither argument coercion nor member selection is needed.</span></span><br><span class="line">        args = <span class="keyword">new</span> <span class="built_in">object</span>[] &#123;&#125;;</span><br><span class="line">        t.InvokeMember(<span class="string">&quot;PrintBob&quot;</span>, flags, binder, <span class="literal">null</span>, args);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Case 2. Only member selection is needed.</span></span><br><span class="line">        args = <span class="keyword">new</span> <span class="built_in">object</span>[] &#123;<span class="number">42</span>&#125;;</span><br><span class="line">        t.InvokeMember(<span class="string">&quot;PrintValue&quot;</span>, flags, binder, <span class="literal">null</span>, args);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// Case 3. Only argument coercion is needed.</span></span><br><span class="line">        args = <span class="keyword">new</span> <span class="built_in">object</span>[] &#123;<span class="string">&quot;5.5&quot;</span>&#125;;</span><br><span class="line">        t.InvokeMember(<span class="string">&quot;PrintNumber&quot;</span>, flags, binder, <span class="literal">null</span>, args);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">PrintBob</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;PrintBob&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">PrintValue</span>(<span class="params"><span class="built_in">long</span> <span class="keyword">value</span></span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;PrintValue(&#123;0&#125;)&quot;</span>, <span class="keyword">value</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">PrintValue</span>(<span class="params"><span class="built_in">string</span> <span class="keyword">value</span></span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;PrintValue\&quot;&#123;0&#125;\&quot;)&quot;</span>, <span class="keyword">value</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">PrintNumber</span>(<span class="params"><span class="built_in">double</span> <span class="keyword">value</span></span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;PrintNumber (&#123;0&#125;)&quot;</span>, <span class="keyword">value</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="将程序集加载到仅反射上下文中"><a href="#将程序集加载到仅反射上下文中" class="headerlink" title="将程序集加载到仅反射上下文中"></a>将程序集加载到仅反射上下文中</h2><p>参考：<a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/framework/reflection-and-codedom/how-to-load-assemblies-into-the-reflection-only-context">如何：将程序集加载到仅反射上下文中</a></p>
-<p>通过仅反射加载上下文，可检查为其他平台或 .NET Framework 的其他版本编译的程序集。 只能检查，不能执行加载到此上下文中的代码。 这意味着无法创建对象，因为无法执行构造函数。 因为该代码无法执行，所以不会自动加载依赖项。 如果该程序集具有依赖项，<code>ReflectionOnlyLoad</code> 方法不会加载这些依赖项。如果需要对依赖项进行检查，必须自行加载。使用 <code>CustomAttributeData.GetCustomAttributes</code> 方法的适当重载获取表示应用于程序集、成员、模块或参数的特性的 <code>CustomAttributeData</code> 对象。</p>
-<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Reflection;</span><br><span class="line"><span class="keyword">using</span> System.Collections.Generic;</span><br><span class="line"><span class="keyword">using</span> System.Collections.ObjectModel;</span><br><span class="line"></span><br><span class="line"><span class="comment">// The example attribute is applied to the assembly.</span></span><br><span class="line">[<span class="meta">assembly:Example(ExampleKind.ThirdKind, Note=<span class="string">&quot;This is a note on the assembly.&quot;</span>)</span>]</span><br><span class="line"></span><br><span class="line"><span class="comment">// An enumeration used by the ExampleAttribute class.</span></span><br><span class="line"><span class="keyword">public</span> <span class="built_in">enum</span> ExampleKind</span><br><span class="line">&#123;</span><br><span class="line">    FirstKind, </span><br><span class="line">    SecondKind, </span><br><span class="line">    ThirdKind, </span><br><span class="line">    FourthKind</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">// An example attribute. The attribute can be applied to all</span></span><br><span class="line"><span class="comment">// targets, from assemblies to parameters.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line">[<span class="meta">AttributeUsage(AttributeTargets.All)</span>]</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">ExampleAttribute</span> : <span class="title">Attribute</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// Data for properties.</span></span><br><span class="line">    <span class="keyword">private</span> ExampleKind kindValue;</span><br><span class="line">    <span class="keyword">private</span> <span class="built_in">string</span> noteValue;</span><br><span class="line">    <span class="keyword">private</span> <span class="built_in">string</span>[] arrayStrings;</span><br><span class="line">    <span class="keyword">private</span> <span class="built_in">int</span>[] arrayNumbers;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Constructors. The parameterless constructor (.ctor) calls</span></span><br><span class="line">    <span class="comment">// the constructor that specifies ExampleKind and an array of </span></span><br><span class="line">    <span class="comment">// strings, and supplies the default values.</span></span><br><span class="line">    <span class="comment">//</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">ExampleAttribute</span>(<span class="params">ExampleKind initKind, <span class="built_in">string</span>[] initStrings</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        kindValue = initKind;</span><br><span class="line">        arrayStrings = initStrings;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">ExampleAttribute</span>(<span class="params">ExampleKind initKind</span>) : <span class="title">this</span>(<span class="params">initKind, <span class="literal">null</span></span>)</span> &#123;&#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">ExampleAttribute</span>() : <span class="title">this</span>(<span class="params">ExampleKind.FirstKind, <span class="literal">null</span></span>)</span> &#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Properties. The Note and Numbers properties must be read/write, so they</span></span><br><span class="line">    <span class="comment">// can be used as named parameters.</span></span><br><span class="line">    <span class="comment">//</span></span><br><span class="line">    <span class="keyword">public</span> ExampleKind Kind &#123; <span class="keyword">get</span> &#123; <span class="keyword">return</span> kindValue; &#125;&#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">string</span>[] Strings &#123; <span class="keyword">get</span> &#123; <span class="keyword">return</span> arrayStrings; &#125;&#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">string</span> Note</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span> &#123; <span class="keyword">return</span> noteValue; &#125;</span><br><span class="line">        <span class="keyword">set</span> &#123; noteValue = <span class="keyword">value</span>; &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">int</span>[] Numbers</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span> &#123; <span class="keyword">return</span> arrayNumbers; &#125;</span><br><span class="line">        <span class="keyword">set</span> &#123; arrayNumbers = <span class="keyword">value</span>; &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// The example attribute is applied to the test class.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line">[<span class="meta">Example(ExampleKind.SecondKind, </span></span><br><span class="line"><span class="meta">         new string[</span>] &#123; <span class="string">&quot;String array argument, line 1&quot;</span>, </span><br><span class="line">                        <span class="string">&quot;String array argument, line 2&quot;</span>, </span><br><span class="line">                        <span class="string">&quot;String array argument, line 3&quot;</span> &#125;, </span><br><span class="line">         Note=<span class="string">&quot;This is a note on the class.&quot;</span>,</span><br><span class="line">         Numbers = <span class="keyword">new</span> <span class="built_in">int</span>[] &#123; <span class="number">53</span>, <span class="number">57</span>, <span class="number">59</span> &#125;)] </span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Test</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// The example attribute is applied to a method, using the</span></span><br><span class="line">    <span class="comment">// parameterless constructor and supplying a named argument.</span></span><br><span class="line">    <span class="comment">// The attribute is also applied to the method parameter.</span></span><br><span class="line">    <span class="comment">//</span></span><br><span class="line">    [<span class="meta">Example(Note=<span class="string">&quot;This is a note on a method.&quot;</span>)</span>]</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">TestMethod</span>(<span class="params">[Example] <span class="built_in">object</span> arg</span>)</span> &#123; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Main() gets objects representing the assembly, the test</span></span><br><span class="line">    <span class="comment">// type, the test method, and the method parameter. Custom</span></span><br><span class="line">    <span class="comment">// attribute data is displayed for each of these.</span></span><br><span class="line">    <span class="comment">//</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        Assembly asm = Assembly.ReflectionOnlyLoad(<span class="string">&quot;Source&quot;</span>);</span><br><span class="line">        Type t = asm.GetType(<span class="string">&quot;Test&quot;</span>);</span><br><span class="line">        MethodInfo m = t.GetMethod(<span class="string">&quot;TestMethod&quot;</span>);</span><br><span class="line">        ParameterInfo[] p = m.GetParameters();</span><br><span class="line"></span><br><span class="line">        Console.WriteLine(<span class="string">&quot;\r\nAttributes for assembly: &#x27;&#123;0&#125;&#x27;&quot;</span>, asm);</span><br><span class="line">        ShowAttributeData(CustomAttributeData.GetCustomAttributes(asm));</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;\r\nAttributes for type: &#x27;&#123;0&#125;&#x27;&quot;</span>, t);</span><br><span class="line">        ShowAttributeData(CustomAttributeData.GetCustomAttributes(t));</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;\r\nAttributes for member: &#x27;&#123;0&#125;&#x27;&quot;</span>, m);</span><br><span class="line">        ShowAttributeData(CustomAttributeData.GetCustomAttributes(m));</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;\r\nAttributes for parameter: &#x27;&#123;0&#125;&#x27;&quot;</span>, p);</span><br><span class="line">        ShowAttributeData(CustomAttributeData.GetCustomAttributes(p[<span class="number">0</span>]));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">ShowAttributeData</span>(<span class="params"></span></span></span><br><span class="line"><span class="params"><span class="function">        IList&lt;CustomAttributeData&gt; attributes</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">foreach</span>( CustomAttributeData cad <span class="keyword">in</span> attributes )</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;   &#123;0&#125;&quot;</span>, cad);</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;      Constructor: &#x27;&#123;0&#125;&#x27;&quot;</span>, cad.Constructor);</span><br><span class="line"></span><br><span class="line">            Console.WriteLine(<span class="string">&quot;      Constructor arguments:&quot;</span>);</span><br><span class="line">            <span class="keyword">foreach</span>( CustomAttributeTypedArgument cata </span><br><span class="line">                <span class="keyword">in</span> cad.ConstructorArguments )</span><br><span class="line">            &#123;</span><br><span class="line">                ShowValueOrArray(cata);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            Console.WriteLine(<span class="string">&quot;      Named arguments:&quot;</span>);</span><br><span class="line">            <span class="keyword">foreach</span>( CustomAttributeNamedArgument cana </span><br><span class="line">                <span class="keyword">in</span> cad.NamedArguments )</span><br><span class="line">            &#123;</span><br><span class="line">                Console.WriteLine(<span class="string">&quot;         MemberInfo: &#x27;&#123;0&#125;&#x27;&quot;</span>, </span><br><span class="line">                    cana.MemberInfo);</span><br><span class="line">                ShowValueOrArray(cana.TypedValue);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">ShowValueOrArray</span>(<span class="params">CustomAttributeTypedArgument cata</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (cata.Value.GetType() == <span class="keyword">typeof</span>(ReadOnlyCollection&lt;CustomAttributeTypedArgument&gt;))</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;         Array of &#x27;&#123;0&#125;&#x27;:&quot;</span>, cata.ArgumentType);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">foreach</span> (<span class="function">CustomAttributeTypedArgument cataElement <span class="title">in</span> </span></span><br><span class="line"><span class="function">                (<span class="params">ReadOnlyCollection&lt;CustomAttributeTypedArgument&gt;</span>) cata.Value)</span></span><br><span class="line">            &#123;</span><br><span class="line">                Console.WriteLine(<span class="string">&quot;             Type: &#x27;&#123;0&#125;&#x27;  Value: &#x27;&#123;1&#125;&#x27;&quot;</span>,</span><br><span class="line">                    cataElement.ArgumentType, cataElement.Value);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span></span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;         Type: &#x27;&#123;0&#125;&#x27;  Value: &#x27;&#123;1&#125;&#x27;&quot;</span>, </span><br><span class="line">                cata.ArgumentType, cata.Value);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* This code example produces output similar to the following:</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">Attributes for assembly: &#x27;source, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null&#x27;</span></span><br><span class="line"><span class="comment">   [System.Runtime.CompilerServices.CompilationRelaxationsAttribute((Int32)8)]</span></span><br><span class="line"><span class="comment">      Constructor: &#x27;Void .ctor(Int32)&#x27;</span></span><br><span class="line"><span class="comment">      Constructor arguments:</span></span><br><span class="line"><span class="comment">         Type: &#x27;System.Int32&#x27;  Value: &#x27;8&#x27;</span></span><br><span class="line"><span class="comment">      Named arguments:</span></span><br><span class="line"><span class="comment">   [System.Runtime.CompilerServices.RuntimeCompatibilityAttribute(WrapNonExceptionThrows = True)]</span></span><br><span class="line"><span class="comment">      Constructor: &#x27;Void .ctor()&#x27;</span></span><br><span class="line"><span class="comment">      Constructor arguments:</span></span><br><span class="line"><span class="comment">      Named arguments:</span></span><br><span class="line"><span class="comment">         MemberInfo: &#x27;Boolean WrapNonExceptionThrows&#x27;</span></span><br><span class="line"><span class="comment">         Type: &#x27;System.Boolean&#x27;  Value: &#x27;True&#x27;</span></span><br><span class="line"><span class="comment">   [ExampleAttribute((ExampleKind)2, Note = &quot;This is a note on the assembly.&quot;)]</span></span><br><span class="line"><span class="comment">      Constructor: &#x27;Void .ctor(ExampleKind)&#x27;</span></span><br><span class="line"><span class="comment">      Constructor arguments:</span></span><br><span class="line"><span class="comment">         Type: &#x27;ExampleKind&#x27;  Value: &#x27;2&#x27;</span></span><br><span class="line"><span class="comment">      Named arguments:</span></span><br><span class="line"><span class="comment">         MemberInfo: &#x27;System.String Note&#x27;</span></span><br><span class="line"><span class="comment">         Type: &#x27;System.String&#x27;  Value: &#x27;This is a note on the assembly.&#x27;</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">Attributes for type: &#x27;Test&#x27;</span></span><br><span class="line"><span class="comment">   [ExampleAttribute((ExampleKind)1, new String[3] &#123; &quot;String array argument, line 1&quot;, &quot;String array argument, line 2&quot;, &quot;String array argument, line 3&quot; &#125;, Note = &quot;This is a note on the class.&quot;, Numbers = new Int32[3] &#123; 53, 57, 59 &#125;)]</span></span><br><span class="line"><span class="comment">      Constructor: &#x27;Void .ctor(ExampleKind, System.String[])&#x27;</span></span><br><span class="line"><span class="comment">      Constructor arguments:</span></span><br><span class="line"><span class="comment">         Type: &#x27;ExampleKind&#x27;  Value: &#x27;1&#x27;</span></span><br><span class="line"><span class="comment">         Array of &#x27;System.String[]&#x27;:</span></span><br><span class="line"><span class="comment">             Type: &#x27;System.String&#x27;  Value: &#x27;String array argument, line 1&#x27;</span></span><br><span class="line"><span class="comment">             Type: &#x27;System.String&#x27;  Value: &#x27;String array argument, line 2&#x27;</span></span><br><span class="line"><span class="comment">             Type: &#x27;System.String&#x27;  Value: &#x27;String array argument, line 3&#x27;</span></span><br><span class="line"><span class="comment">      Named arguments:</span></span><br><span class="line"><span class="comment">         MemberInfo: &#x27;System.String Note&#x27;</span></span><br><span class="line"><span class="comment">         Type: &#x27;System.String&#x27;  Value: &#x27;This is a note on the class.&#x27;</span></span><br><span class="line"><span class="comment">         MemberInfo: &#x27;Int32[] Numbers&#x27;</span></span><br><span class="line"><span class="comment">         Array of &#x27;System.Int32[]&#x27;:</span></span><br><span class="line"><span class="comment">             Type: &#x27;System.Int32&#x27;  Value: &#x27;53&#x27;</span></span><br><span class="line"><span class="comment">             Type: &#x27;System.Int32&#x27;  Value: &#x27;57&#x27;</span></span><br><span class="line"><span class="comment">             Type: &#x27;System.Int32&#x27;  Value: &#x27;59&#x27;</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">Attributes for member: &#x27;Void TestMethod(System.Object)&#x27;</span></span><br><span class="line"><span class="comment">   [ExampleAttribute(Note = &quot;This is a note on a method.&quot;)]</span></span><br><span class="line"><span class="comment">      Constructor: &#x27;Void .ctor()&#x27;</span></span><br><span class="line"><span class="comment">      Constructor arguments:</span></span><br><span class="line"><span class="comment">      Named arguments:</span></span><br><span class="line"><span class="comment">         MemberInfo: &#x27;System.String Note&#x27;</span></span><br><span class="line"><span class="comment">         Type: &#x27;System.String&#x27;  Value: &#x27;This is a note on a method.&#x27;</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">Attributes for parameter: &#x27;System.Object arg&#x27;</span></span><br><span class="line"><span class="comment">   [ExampleAttribute()]</span></span><br><span class="line"><span class="comment">      Constructor: &#x27;Void .ctor()&#x27;</span></span><br><span class="line"><span class="comment">      Constructor arguments:</span></span><br><span class="line"><span class="comment">      Named arguments:</span></span><br><span class="line"><span class="comment">*/</span></span><br></pre></td></tr></table></figure>
       
     </div>
 
@@ -1999,20 +2110,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">576</span>
+          <span class="site-state-item-count">579</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">142</span>
+        <span class="site-state-item-count">143</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">214</span>
+        <span class="site-state-item-count">215</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -2057,12 +2168,12 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">1.8m</span>
+    <span title="站点总字数">1.9m</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">27:48</span>
+    <span title="站点阅读时长">28:05</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
   </div>
