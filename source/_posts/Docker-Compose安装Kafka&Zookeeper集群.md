@@ -1,5 +1,5 @@
 ---
-title: Docker-Compose安装Kafka,Zookeeper集群
+title: Docker-Compose安装Kafka&Zookeeper集群
 date: 2022-09-26 17:42:57
 tags:
   - Ubuntu
