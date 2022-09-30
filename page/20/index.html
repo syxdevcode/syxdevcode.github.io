@@ -184,6 +184,149 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/09/15/Linux%E7%B3%BB%E7%BB%9F%E5%AE%9E%E7%8E%B0%E9%AB%98%E5%B9%B6%E5%8F%91%E5%86%85%E6%A0%B8%E4%BC%98%E5%8C%96/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/09/15/Linux%E7%B3%BB%E7%BB%9F%E5%AE%9E%E7%8E%B0%E9%AB%98%E5%B9%B6%E5%8F%91%E5%86%85%E6%A0%B8%E4%BC%98%E5%8C%96/" class="post-title-link" itemprop="url">Linux系统实现高并发内核优化</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-09-15 11:50:00" itemprop="dateCreated datePublished" datetime="2020-09-15T11:50:00+00:00">2020-09-15</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-09-30 08:57:48" itemprop="dateModified" datetime="2022-09-30T08:57:48+00:00">2022-09-30</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>7.7k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>7 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="Linux-文件打开最大数"><a href="#Linux-文件打开最大数" class="headerlink" title="Linux 文件打开最大数"></a>Linux 文件打开最大数</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">vi /etc/security/limits.conf</span><br><span class="line">* soft <span class="built_in">nproc</span> 65535</span><br><span class="line">* hard <span class="built_in">nproc</span> 65535</span><br><span class="line">* soft nofile 65535</span><br><span class="line">* hard nofile 65535</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看当前打开文件数</span></span><br><span class="line">lsof | <span class="built_in">wc</span> -l</span><br></pre></td></tr></table></figure>
+
+<p>参考：<a href="/2020/08/04/Linux%E6%9C%80%E5%A4%A7%E6%96%87%E4%BB%B6%E6%89%93%E5%BC%80%E6%95%B0/" title="Linux最大文件打开数">Linux最大文件打开数</a></p>
+<h2 id="内核优化"><a href="#内核优化" class="headerlink" title="内核优化"></a>内核优化</h2><p>方法一：修改 <code>/proc</code> 下内核参数文件内容，不能使用编辑器来修改内核参数文件，理由是由于内核随时可能更改这些文件中的任意一个，另外，这些内核参数文件都是虚拟文件，实际中不存在，因此不能使用编辑器进行编辑，而是使用echo命令，然后从命令行将输出重定向至 <code>/proc</code> 下所选定的文件中。如：将 <code>timeout_timewait</code> 参数设置为30秒：</p>
+<p><code>echo 30 &gt; /proc/sys/net/ipv4/tcp_fin_timeout</code></p>
+<p>参数修改后立即生效，但是重启系统后，该参数又恢复成默认值。因此，想永久更改内核参数，需要修改/etc/sysctl.conf文件</p>
+<p>方法二．修改 <code>/etc/sysctl.conf</code> 文件</p>
+<p>优化适合<code>apache</code>，<code>nginx</code>，<code>squid</code> 多种等web应用。</p>
+<p>文件：<code>/etc/sysctl.conf</code></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 表示套接字由本端要求关闭，这个参数决定了它保持在FIN-wAIT-2状态的时间，默认值是60秒</span></span><br><span class="line"><span class="comment"># server端主动发起断开连接后保持在FIN-WAIT-2状态的时间（建议30s）</span></span><br><span class="line"><span class="comment"># 该参数对应系统路径为：/proc/sys/net/ipv4/tcp_fin_timeout 60</span></span><br><span class="line">net.ipv4.tcp_fin_timeout = 30</span><br><span class="line"></span><br><span class="line"><span class="comment">## reuse和recycle这俩个参数是为防止生产环境下 web，nginx 等业务服务器 time_wait 网络状态数量过多设置的</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 表示开启重用，允许TIME-wAIT sockets重新用于新的TCP链接，默认值为0</span></span><br><span class="line"><span class="comment"># 表示关闭，该参数对应系统路径为：/proc/sys/net/ipv4/tcp_tw_reuse 0</span></span><br><span class="line">net.ipv4.tcp_tw_reuse = 1</span><br><span class="line"></span><br><span class="line"><span class="comment"># 表示开启TCP链接中TIME_WAIT sockets的快速回收，</span></span><br><span class="line"><span class="comment"># 该参数对应系统路径为：/proc/sys/net/ipv4/tcp_tw_recycle</span></span><br><span class="line"><span class="comment"># 默认为0 表示关闭，建议为0</span></span><br><span class="line">net.ipv4.tcp_tw_recycle = 0</span><br></pre></td></tr></table></figure>
+
+<details>
+  <summary>reuse/recycle注解：</summary>
+
+<p>因为TCP连接是双向的，所以在关闭连接的时候，两个方向各自都需要关闭。先发 <code>FIN</code> 包的一方执行的是 <code>主动关闭</code>；后发 <code>FIN</code> 包的一方执行的是 <code>被动关闭</code>。主动关闭的一方会进入<code>TIME_WAIT</code> 状态，并且在此状态停留两倍的 <code>MSL</code> maximum segment lifetime(<code>最大分节生命期</code>或<code>最大报文存活时间</code>，这是一个IP数据包能在互联网上生存的最长时间，超过这个时间IP数据包将在网络中消失 。MSL在RFC 1122上建议是2分钟，而源自berkeley的TCP实现传统上使用30秒。一般Linux内核设置30秒 )时长。<code>TIME_WAIT</code> 状态维持时间是两个MSL时间长度，也就是在1-4分钟。Windows操作系统就是4分钟。</p>
+<p>等待 <code>2MSL</code> 原因：</p>
+<p>TCP目的是可靠传输,主动关闭的一方发出 <code>FIN</code>,被动方回复<code>ACK</code>,接着被动方发送 <code>FIN</code> ,主动方收到被动关闭的一方发出的 <code>FIN</code> 包后，回应 <code>ACK</code> 包，同时进入 <code>TIME_WAIT</code> 状态。但是因为网络原因，主动关闭的一方发送的这个 <code>ACK</code> 包很可能延迟，从而触发被动连接一方重传 <code>FIN</code> 包。极端情况下，这一去( <code>ACK</code> 去被动方)一回(重传 <code>FIN</code> 回来)，就是两倍的 <code>MSL</code> 时长。</p>
+<p>如果主动关闭的一方跳过 <code>TIME_WAIT</code> 直接进入 <code>CLOSED</code> ，或者在 <code>TIME_WAIT</code> 停留的时长不足两倍的 <code>MSL</code> ，那么当被动关闭的一方早先发出的 <code>FIN</code> 延迟包到达或者重传 <code>FIN</code> 包到达后，就可能出现类似下面的问题：</p>
+<ul>
+<li>主动方旧的TCP连接已经不存在了，主动方只能返回RST包</li>
+<li>主动方新的TCP连接被建立起来了，延迟包可能干扰新的连接</li>
+</ul>
+<p><strong>减少TIME_WAIT</strong></p>
+<p><code>TIME_WAIT</code> 期间,资源不会释放,现在都追求高性能高并发,快速释放资源是躲不掉的.对于客户端因为有端口 <code>65535</code> 问题，<code>TIME_WAIT</code> 过多直接影响处理能力. 对于服务器,无端口数量限制的问题,Linux优化也很给力,每个处于 <code>TIME_WAIT</code> 状态下连接内存消耗很少, 而且也能通过 <code>tcp_max_tw_buckets = $&#123;你要的阈值&#125;</code> 配置最大上限，但是对于短连接为主的web服务器,几十万的连接,基数很大,耗得内存也不小，快速释放总是好的。</p>
+<p><strong>tcp_tw_recycle:回收TIME_WAIT连接</strong></p>
+<p>对客户端和服务器同时起作用，开启后在 3.5*RTO 内回收，RTO 200ms~ 120s 具体时间视网络状况。RTO(Retransmission TimeOut)重传超时时间。内网状况比 <code>tcp_tw_reuse</code> 稍快，公网尤其移动网络大多要比 <code>tcp_tw_reuse</code> 慢，优点就是能够回收服务端的 <code>TIME_WAIT</code> 数量。</p>
+<p>但是，需要注意的是:当多个客户端通过NAT方式联网并与服务端交互时，服务端看到的是同一个IP，也就是说对服务端而言这些客户端实际上等同于一个，可惜由于这些客户端的时间戳可能存在差异，于是乎从服务端的视角看，便可能出现时间戳错乱的现象，进而直接导致时间戳小的数据包被丢弃。客户端处于NAT很常见，基本公司家庭网络都走NAT。</p>
+<p><code>tcp_tw_reuse</code>:复用 <code>TIME_WAIT</code> 连接 只对客户端起作用,1秒后才能复用，当创建新连接的时候，如果可能的话会考虑复用相应的 <code>TIME_WAIT</code> 连接。通常认为 <code>tcp_tw_reuse </code>比<code>tcp_tw_recycle</code> 安全一些，这是因为一来 <code>TIME_WAIT</code> 创建时间必须超过一秒才可能会被复用；二来只有连接的时间戳是递增的时候才会被复用。</p>
+<p>客户端请求服务器,服务器响应后主动关闭连接,<code>TIME_WAIT</code> 存在于服务器,服务器是被连接者,没有复用一说,所以只对客户端起作用.如果是客户端主动关闭, <code>TIME_WAIT</code> 存在于客户端,这个时候再次连接服务器,可以复用之前 <code>TIME_WAIT</code> 留下的半废品。</p>
+<p><code>tcp_timestamps</code>:以上两点,必须在客户端和服务端 <code>timestamps</code> 开启时才管用(默认开启) 需要根据 <code>timestamp</code> 的递增性来区分是否新连接</p>
+<p><strong>总结</strong></p>
+<p>客户端 <code>tcp_tw_reuse</code> 复用连接管用, <code>tcp_tw_recycle</code> 有用,但是客户端主要不是接受连接,用处不大<br>服务器 <code>tcp_tw_recycle</code> 回收连接管用,<code>tcp_tw_reuse</code> 复用无效.为了减少 <code>TIME_WAIT</code> 留在服务器,可以在服务器开启 <code>KeepAlive</code> ,尽量不让服务器主动关闭,而是客户端主动关闭,减少<code>TIME_WAIT</code> 产生。</p>
+</details>
+
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 表示开启SYN Cookies功能，当出现SYN等待队列溢出时，启用Cookies来处理，可防范少量SYN攻击，</span></span><br><span class="line"><span class="comment"># 该参数对应系统路径为：/proc/sys/net/ipv4/tcp_syncookies，默认为1，表示开启</span></span><br><span class="line">net.ipv4.tcp_syncookies = 1</span><br><span class="line"></span><br><span class="line"><span class="comment"># 表示当keepalive启用时，TCP发送keepalive消息的频度，默认是2小时，建议更改为5分钟，</span></span><br><span class="line"><span class="comment"># 该参数对应系统路径为：/proc/sys/net/ipv4/tcp_keepalive_time，默认为7200秒</span></span><br><span class="line">net.ipv4.tcp_keepalive_time = 300</span><br><span class="line"></span><br><span class="line"><span class="comment"># 该选项用来设定允许系统打开的端口范围，用于向外链接的端口范围，</span></span><br><span class="line"><span class="comment"># 每个TCP客户端连接都要占用一个唯一的本地端口号(此端口号在系统的本地端口号范围限制中)，</span></span><br><span class="line"><span class="comment"># 如果现有的TCP客户端连接已将所有的本地端口号占满。将不能创建新的TCP连接。</span></span><br><span class="line"><span class="comment"># 该参数对应系统路径为：/proc/sys/net/ipv4/ip_local_port_range 默认，32768 60999</span></span><br><span class="line"><span class="comment"># 理论上单独一个进程最多可以同时建立60000多个TCP客户端连接。</span></span><br><span class="line"><span class="comment"># 影响 CLOSE_WAIT 数量</span></span><br><span class="line">net.ipv4.ip_local_port_range = 1024 65000</span><br><span class="line"></span><br><span class="line"><span class="comment"># 表示SYN队列的长度，默认为1024，建议加大队列的长度，为8182或更多，这样可以容纳更多等待链接的网络连接数，</span></span><br><span class="line"><span class="comment"># 该参数为服务器端用于记录那些尚未收到客户端确认信息的链接请求的最大值，</span></span><br><span class="line"><span class="comment"># 该参数对应系统路径为：/proc/sys/net/ipv4/tcp_max_syn_backlog</span></span><br><span class="line">net.ipv4.tcp_max_syn_backlog = 262144</span><br><span class="line"></span><br><span class="line"><span class="comment"># 该选项默认值是128，这个参数用于调节系统同时发起的TCP连接数，</span></span><br><span class="line"><span class="comment"># 在高并发的请求中，默认的值可能会导致链接超时或重传，因此，需要结合并发请求数来调节此值，</span></span><br><span class="line"><span class="comment"># 该参数对应系统路径为：/proc/sys/net/ipv4/somaxconn 128   </span></span><br><span class="line"><span class="comment"># 默认没有这个配置，需要自己生成，somaxconn值不应超过65535</span></span><br><span class="line">net.core.somaxconn = 32768</span><br></pre></td></tr></table></figure>
+
+<p>listen方法指定的backlog是在用户态指定的，内核态的参数优先级高于用户态的参数，所以即使在listen方法里面指定backlog是一个大于somaxconn的值，socket在内核态运行时还会检查一次somaxconn，如果连接数超过somaxconn就会等待。</p>
+<p><strong>在没有调优的centOS7.4版本的服务器上，由于受到系统级别的限制，在该服务器上运行的服务端程序，在同一时间，最大只能接受128个客户端发起持久连接，并且只能处理128个客户端的数据通信。</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 表示系统同时保持 TIME_WAIT 套接字的最大数量，如果超过这个数值，TIME_WAIT 套接字将立刻被清除并打印警告信息，</span></span><br><span class="line"><span class="comment"># 对于Aapache，Nginx等服务器来说可以将其调低一点，如改为 5000-30000，不用业务的服务器也可以给大一点，</span></span><br><span class="line"><span class="comment"># 比如LVS，Squid，该参数对应系统路径为：/proc/sys/net/ipv4/tcp_max_tw_buckets</span></span><br><span class="line"><span class="comment"># #1st低于此值,TCP没有内存压力,2nd进入内存压力阶段,3rdTCP拒绝分配socket(单位：内存页)</span></span><br><span class="line">net.ipv4.tcp_max_tw_buckets = 30000</span><br><span class="line"></span><br><span class="line"><span class="comment"># 外向syn握手重试次数</span></span><br><span class="line"><span class="comment"># 该参数对应系统路径为：/proc/sys/net/ipv4/tcp_syn_retries，默认是6</span></span><br><span class="line">net.ipv4.tcp_syn_retries = 1</span><br><span class="line"></span><br><span class="line"><span class="comment"># 为了打开对端的连接，内核需要发送一个 SYN 并附带一个回应前面一个 SYN 的 ACK。也就是所谓三次握手中的第二次握手。</span></span><br><span class="line"><span class="comment"># 该参数对应系统路径为：/proc/sys/net/ipv4/tcp_synack_retries，默认是5</span></span><br><span class="line"><span class="comment"># syn-ack握手状态重试次数，默认5，遭受SYN Flood [(SYN洪水) 是种典型的DoS (Denial of Service，拒绝服务)]攻击时改为1或2</span></span><br><span class="line">net.ipv4.tcp_synack_retries = 1</span><br><span class="line"></span><br><span class="line"><span class="comment"># 网卡设备将请求放入队列的长度</span></span><br><span class="line"><span class="comment"># 表示当每个网络接口接收数据包的速率比内核处理这些包的速率快时，允许发送到队列的数据包最大数，</span></span><br><span class="line"><span class="comment"># 该参数对应系统路径为：/proc/sys/net/ipv4/netdev_max_backlog</span></span><br><span class="line"><span class="comment"># 默认没有这个配置，需要自己生成</span></span><br><span class="line">net.core.netdev_max_backlog = 2000</span><br><span class="line"></span><br><span class="line"><span class="comment"># 用于设定系统中最多有多少个TCP套接字不被关联到任何一个用户文件句柄上，</span></span><br><span class="line"><span class="comment"># 如果超过这个数值，孤立链接将立即被复位并打印出警号信息，这个限制只是为了防止简单的DoS攻击，不能过分依靠这个限制甚至</span></span><br><span class="line"><span class="comment"># 人为减小这个值，更多的情况是增加这个值，该参数对应系统路径为：/proc/sys/net/ipv4/tcp_max_orphans</span></span><br><span class="line">net.ipv4.tcp_max_orphans = 3276800</span><br><span class="line"></span><br><span class="line"><span class="comment">#开启窗口缩放功能，要支持超过64KB的TCP窗口，必须启用该值,TCP连接双方都启用时才生效</span></span><br><span class="line">net.ipv4.tcp_window_scaling = 1</span><br><span class="line"></span><br><span class="line"><span class="comment"># 表示套接字接收缓冲区的内存最大值</span></span><br><span class="line">net.core.rmem_max = 5242880</span><br><span class="line"></span><br><span class="line"><span class="comment"># 表示套接字发送缓冲区大小的最大值,会覆盖 net.ipv4.tcp_wmem的MAX值</span></span><br><span class="line">net.core.wmem_max = 5242880</span><br><span class="line"></span><br><span class="line"><span class="comment"># 接受缓冲的大小:MIN，DEFAULT,MAX</span></span><br><span class="line"><span class="comment"># 即TCP读取缓冲区，单位为字节byte</span></span><br><span class="line">net.ipv4.tcp_rmem = 16384 32768 5242880</span><br><span class="line"></span><br><span class="line"><span class="comment"># socket的发送缓存区分配的MIN，DEFAULT,MAX</span></span><br><span class="line"><span class="comment"># 发送缓冲区，单位是字节byte</span></span><br><span class="line">net.ipv4.tcp_wmem = 16384 32768 5242880</span><br><span class="line"></span><br><span class="line"><span class="comment"># 1低于此值,TCP没有内存压力,2在此值下,进入内存压力阶段，3高于此值,TCP拒绝分配socket.</span></span><br><span class="line"><span class="comment"># net.ipv4.tcp_mem[0]:低于此值，TCP没有内存压力。</span></span><br><span class="line"><span class="comment"># net.ipv4.tcp_mem[1]:在此值下，进入内存压力阶段。</span></span><br><span class="line"><span class="comment"># net.ipv4.tcp_mem[2]:高于此值，TCP拒绝分配socket。</span></span><br><span class="line"><span class="comment"># 内存单位是页，1页等于4096字节，1 Page = 4096 Bytes</span></span><br><span class="line"><span class="comment"># 32GB内存机器,最小值、压力值、最大值：8G  12G  16G</span></span><br><span class="line">net.ipv4.tcp_mem = 2097152 3145728 4194304</span><br><span class="line"></span><br><span class="line"><span class="comment"># 禁用时间戳，时间戳可以避免序列号的卷绕</span></span><br><span class="line">net.ipv4.tcp_timestamps = 0</span><br><span class="line"></span><br><span class="line"><span class="comment"># 定义SYN重试次数</span></span><br><span class="line"><span class="comment"># 避免重复发送数据包</span></span><br><span class="line">net.ipv4.tcp_sack = 1</span><br><span class="line"></span><br><span class="line"><span class="comment"># 单独一个进程最多可以同时建立20000多个TCP客户端连接</span></span><br><span class="line"><span class="comment"># 不建议自行设置</span></span><br><span class="line">net.ipv4.ip_conntrack_max = 20000</span><br></pre></td></tr></table></figure>
+
+<p>/etc/sysctl.conf</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">net.ipv4.tcp_fin_timeout = 30</span><br><span class="line">net.ipv4.tcp_tw_reuse = 1</span><br><span class="line">net.ipv4.tcp_tw_recycle = 1</span><br><span class="line">net.ipv4.tcp_syncookies = 1</span><br><span class="line">net.ipv4.ip_local_port_range = 1024 65000</span><br><span class="line">net.ipv4.tcp_max_syn_backlog = 262144</span><br><span class="line">net.core.somaxconn = 65535</span><br><span class="line">net.ipv4.tcp_max_tw_buckets = 30000</span><br><span class="line">net.ipv4.tcp_syn_retries = 1</span><br><span class="line">net.ipv4.tcp_synack_retries = 1</span><br><span class="line">net.core.netdev_max_backlog = 2000</span><br><span class="line">net.ipv4.tcp_window_scaling = 1</span><br><span class="line">net.core.rmem_max = 5242880</span><br><span class="line">net.core.rmem_default = 256960</span><br><span class="line">net.core.wmem_max = 5242880</span><br><span class="line">net.core.wmem_default = 256960</span><br><span class="line">net.ipv4.tcp_rmem = 16384 32768 5242880</span><br><span class="line">net.ipv4.tcp_wmem = 16384 32768 5242880</span><br><span class="line">net.ipv4.tcp_mem = 2097152 3145728 4194304</span><br><span class="line">net.ipv4.tcp_keepalive_time = 300</span><br><span class="line">net.ipv4.tcp_timestamps = 0</span><br><span class="line">net.ipv4.tcp_sack = 1</span><br></pre></td></tr></table></figure>
+
+<p>查看系统级文件句柄修改，是否生效</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sysctl -p</span><br></pre></td></tr></table></figure>
+
+<p>备忘录：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 获取操作系统参数的类型</span></span><br><span class="line">sysctl -a|awk -F <span class="string">&quot;.&quot;</span> <span class="string">&#x27;&#123;print $1&#125;&#x27;</span>|<span class="built_in">sort</span> -k1|<span class="built_in">uniq</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 获取net类型下的子类型</span></span><br><span class="line">sysctl -a|grep <span class="string">&quot;^net.&quot;</span>|awk -F <span class="string">&quot;[.| ]&quot;</span> <span class="string">&#x27;&#123;print $2&#125;&#x27;</span>|<span class="built_in">sort</span> -k1|<span class="built_in">uniq</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 获取有关服务器套接字缓冲区的信息</span></span><br><span class="line">sysctl -a|grep <span class="string">&quot;^net.&quot;</span>|grep <span class="string">&quot;[r|w|_]mem[_| ]&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看当前的连接数状况</span></span><br><span class="line"><span class="comment"># SYN_RECV表示正在等待处理的请求数；ESTABLISHED表示正常数据传输状态；TIME_WAIT表示处理完毕，等待超时结束的请求数</span></span><br><span class="line">netstat -nat|awk <span class="string">&#x27;&#123;print awk $NF&#125;&#x27;</span>|<span class="built_in">sort</span>|<span class="built_in">uniq</span> -c|<span class="built_in">sort</span> -n</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看IP连接数状况</span></span><br><span class="line">netstat -nat|grep <span class="string">&quot;:8011&quot;</span>|awk <span class="string">&#x27;&#123;print $5&#125;&#x27;</span> |awk -F: <span class="string">&#x27;&#123;print $1&#125;&#x27;</span> | <span class="built_in">sort</span>| <span class="built_in">uniq</span> -c|<span class="built_in">sort</span> -n</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看活动连接数</span></span><br><span class="line">ss -n | grep ESTAB | <span class="built_in">wc</span> -l</span><br><span class="line"></span><br><span class="line"><span class="comment"># 获取当前socket连接状态统计信息</span></span><br><span class="line"><span class="built_in">cat</span> /proc/net/sockstat</span><br><span class="line"></span><br><span class="line"><span class="comment"># 统计当前各种状态的连接的数量的命令</span></span><br><span class="line">netstat -n | awk <span class="string">&#x27;/^tcp/ &#123;++S[$NF]&#125; END &#123;for(a in S) print a, S[a]&#125;&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 返回结果如下：</span></span><br><span class="line">LAST_ACK 14</span><br><span class="line">SYN_RECV 348</span><br><span class="line">ESTABLISHED 70</span><br><span class="line">FIN_WAIT1 229</span><br><span class="line">FIN_WAIT2 30</span><br><span class="line">CLOSING 33</span><br><span class="line">TIME_WAIT 18122</span><br><span class="line"></span><br><span class="line"><span class="comment"># 对上述结果的解释：</span></span><br><span class="line">CLOSED：无连接是活动的或正在进行</span><br><span class="line">LISTEN：服务器在等待进入呼叫</span><br><span class="line">SYN_RECV：一个连接请求已经到达，等待确认</span><br><span class="line">SYN_SENT：应用已经开始，打开一个连接</span><br><span class="line">ESTABLISHED：正常数据传输状态</span><br><span class="line">FIN_WAIT1：应用说它已经完成</span><br><span class="line">FIN_WAIT2：另一边已同意释放</span><br><span class="line">ITMED_WAIT：等待所有分组死掉</span><br><span class="line">CLOSING：两边同时尝试关闭</span><br><span class="line">TIME_WAIT：另一边已初始化一个释放</span><br><span class="line">LAST_ACK：等待所有分组死掉</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/zengkefu/p/5749009.html">Linux内核 TCP/IP、Socket参数调优</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/liluxiang/p/9318493.html">Linux系统优化实现高并发</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/augusite/p/10774014.html">Linux内核优化</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/heping1314/p/11214638.html">Linux 下高并发系统内核优化</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/jokerbj/p/9133093.html">centos7之系统优化方案</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/fa35d91b727b">Linux 内核优化-调大TCP最大连接数</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/09/09/ERROR-2002-HY000-Can-t-connect-to-local-MySQL-server-through-socket-tmp-sock-2/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -215,7 +358,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-28 05:26:22" itemprop="dateModified" datetime="2022-09-28T05:26:22+00:00">2022-09-28</time>
+                <time title="修改时间：2022-09-30 08:57:48" itemprop="dateModified" datetime="2022-09-30T08:57:48+00:00">2022-09-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -316,7 +459,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-28 05:26:22" itemprop="dateModified" datetime="2022-09-28T05:26:22+00:00">2022-09-28</time>
+                <time title="修改时间：2022-09-30 08:57:48" itemprop="dateModified" datetime="2022-09-30T08:57:48+00:00">2022-09-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -406,7 +549,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-28 05:26:22" itemprop="dateModified" datetime="2022-09-28T05:26:22+00:00">2022-09-28</time>
+                <time title="修改时间：2022-09-30 08:57:48" itemprop="dateModified" datetime="2022-09-30T08:57:48+00:00">2022-09-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -510,7 +653,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-28 05:26:22" itemprop="dateModified" datetime="2022-09-28T05:26:22+00:00">2022-09-28</time>
+                <time title="修改时间：2022-09-30 08:57:48" itemprop="dateModified" datetime="2022-09-30T08:57:48+00:00">2022-09-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -615,7 +758,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-28 05:26:22" itemprop="dateModified" datetime="2022-09-28T05:26:22+00:00">2022-09-28</time>
+                <time title="修改时间：2022-09-30 08:57:48" itemprop="dateModified" datetime="2022-09-30T08:57:48+00:00">2022-09-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -705,7 +848,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-28 05:26:22" itemprop="dateModified" datetime="2022-09-28T05:26:22+00:00">2022-09-28</time>
+                <time title="修改时间：2022-09-30 08:57:48" itemprop="dateModified" datetime="2022-09-30T08:57:48+00:00">2022-09-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -802,7 +945,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-28 05:26:22" itemprop="dateModified" datetime="2022-09-28T05:26:22+00:00">2022-09-28</time>
+                <time title="修改时间：2022-09-30 08:57:48" itemprop="dateModified" datetime="2022-09-30T08:57:48+00:00">2022-09-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -898,7 +1041,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-28 05:26:22" itemprop="dateModified" datetime="2022-09-28T05:26:22+00:00">2022-09-28</time>
+                <time title="修改时间：2022-09-30 08:57:48" itemprop="dateModified" datetime="2022-09-30T08:57:48+00:00">2022-09-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -999,7 +1142,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-28 05:26:22" itemprop="dateModified" datetime="2022-09-28T05:26:22+00:00">2022-09-28</time>
+                <time title="修改时间：2022-09-30 08:57:48" itemprop="dateModified" datetime="2022-09-30T08:57:48+00:00">2022-09-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1193,7 +1336,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-28 05:26:22" itemprop="dateModified" datetime="2022-09-28T05:26:22+00:00">2022-09-28</time>
+                <time title="修改时间：2022-09-30 08:57:48" itemprop="dateModified" datetime="2022-09-30T08:57:48+00:00">2022-09-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1306,7 +1449,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-28 05:26:22" itemprop="dateModified" datetime="2022-09-28T05:26:22+00:00">2022-09-28</time>
+                <time title="修改时间：2022-09-30 08:57:48" itemprop="dateModified" datetime="2022-09-30T08:57:48+00:00">2022-09-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1411,7 +1554,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-28 05:26:22" itemprop="dateModified" datetime="2022-09-28T05:26:22+00:00">2022-09-28</time>
+                <time title="修改时间：2022-09-30 08:57:48" itemprop="dateModified" datetime="2022-09-30T08:57:48+00:00">2022-09-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1532,7 +1675,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-28 05:26:22" itemprop="dateModified" datetime="2022-09-28T05:26:22+00:00">2022-09-28</time>
+                <time title="修改时间：2022-09-30 08:57:48" itemprop="dateModified" datetime="2022-09-30T08:57:48+00:00">2022-09-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1632,7 +1775,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-28 05:26:22" itemprop="dateModified" datetime="2022-09-28T05:26:22+00:00">2022-09-28</time>
+                <time title="修改时间：2022-09-30 08:57:48" itemprop="dateModified" datetime="2022-09-30T08:57:48+00:00">2022-09-30</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1687,161 +1830,6 @@
 
 <p>参考：</p>
 <p><a target="_blank" rel="noopener" href="https://man.linuxde.net/lsblk">Linux lsblk命令</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/27/mysql%E4%B8%ADbinlog-format%E6%A0%BC%E5%BC%8F%E7%AE%80%E4%BB%8B/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="syxdevcode的个人博客">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/08/27/mysql%E4%B8%ADbinlog-format%E6%A0%BC%E5%BC%8F%E7%AE%80%E4%BB%8B/" class="post-title-link" itemprop="url">mysql中binlog format格式简介</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-08-27 09:34:41" itemprop="dateCreated datePublished" datetime="2020-08-27T09:34:41+00:00">2020-08-27</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-09-28 05:26:22" itemprop="dateModified" datetime="2022-09-28T05:26:22+00:00">2022-09-28</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/MySql/" itemprop="url" rel="index"><span itemprop="name">MySql</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>2.5k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>2 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看binlog的格式的脚本</span></span><br><span class="line">show GLOBAL variables like <span class="string">&#x27;%binlog_format%&#x27;</span>;</span><br><span class="line">+---------------+-------+</span><br><span class="line">| Variable_name | Value |</span><br><span class="line">+---------------+-------+</span><br><span class="line">| binlog_format | ROW   |</span><br><span class="line">+---------------+-------+</span><br><span class="line">1 row <span class="keyword">in</span> <span class="built_in">set</span> (0.01 sec)</span><br></pre></td></tr></table></figure>
-
-<p>mysql复制主要有三种方式：<br>基于SQL语句的复制(<code>statement-based replication, SBR</code>)<br>基于行的复制(<code>row-based replication, RBR</code>)<br>混合模式复制(<code>mixed-based replication, MBR</code>)。</p>
-<p>对应的 <code>binlog</code> 的格式也有三种：<code>STATEMENT</code>，<code>ROW</code>，<code>MIXED</code>。</p>
-<h3 id="STATEMENT模式（SBR）"><a href="#STATEMENT模式（SBR）" class="headerlink" title="STATEMENT模式（SBR）"></a>STATEMENT模式（SBR）</h3><p>每一条会修改数据的sql语句会记录到 <code>binlog</code> 中。优点是并不需要记录每一条sql语句和每一行的数据变化，减少了 <code>binlog</code> 日志量，节约IO，提高性能。缺点是在某些情况下会导致<code>master-slave</code> 中的数据不一致(如 <code>sleep()</code> 函数， <code>last_insert_id()</code>，以及 <code>user-defined functions(udf)</code> 等会出现问题)</p>
-<h3 id="ROW模式（RBR）"><a href="#ROW模式（RBR）" class="headerlink" title="ROW模式（RBR）"></a>ROW模式（RBR）</h3><p>不记录每条sql语句的上下文信息，仅需记录哪条数据被修改了，修改成什么样了。而且不会出现某些特定情况下的存储过程、或 <code>function</code>、或 <code>trigger</code> 的调用和触发无法被正确复制的问题。缺点是会产生大量的日志，尤其是 <code>alter table</code> 的时候会让日志暴涨。</p>
-<h3 id="MIXED模式（MBR）"><a href="#MIXED模式（MBR）" class="headerlink" title="MIXED模式（MBR）"></a>MIXED模式（MBR）</h3><p>以上两种模式的混合使用，一般的复制使用 <code>STATEMENT</code> 模式保存 <code>binlog</code> ，对于 <code>STATEMENT</code> 模式无法复制的操作使用ROW模式保存 <code>binlog</code>，MySQL会根据执行的SQL语句选择日志保存方式。</p>
-<p><code>binlog</code> 复制配置</p>
-<p>在mysql的配置文件my.cnf中，可以通过一下选项配置 <code>binglog</code> 相关</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"># binlog日志格式，mysql默认采用ROW，建议使用mixed</span><br><span class="line">binlog_format=MIXED</span><br><span class="line"></span><br><span class="line"># binlog日志文件</span><br><span class="line">log-bin=/usr/local/mysql/binlogs/bin-log</span><br><span class="line"></span><br><span class="line"># binlog过期清理时间</span><br><span class="line">expire_logs_days=7</span><br><span class="line"></span><br><span class="line"># binlog每个日志文件大小</span><br><span class="line">max_binlog_size=100m</span><br><span class="line"></span><br><span class="line"># binlog缓存大小</span><br><span class="line">binlog_cache_size=4m</span><br><span class="line"></span><br><span class="line"># 最大binlog缓存大小</span><br><span class="line">max_binlog_cache_size=512m</span><br></pre></td></tr></table></figure>
-
-<p><strong>MIXED说明</strong></p>
-<p>对于执行的SQL语句中包含 <code>now()</code> 这样的时间函数，会在日志中产生对应的 <code>unix_timestamp()*1000</code> 的时间字符串，<code>slave</code> 在完成同步时，取用的是 <code>sqlEvent</code> 发生的时间来保证数据的准确性。另外对于一些功能性函数 <code>slave</code> 能完成相应的数据同步，而对于上面指定的一些类似于 <code>UDF</code> 函数，导致 <code>Slave</code>无法知晓的情况，则会采用 <code>ROW</code> 格式存储这些 <code>Binlog</code> ，以保证产生的 <code>Binlog</code> 可以供 <code>Slave</code> 完成数据同步。</p>
-<p>比较以下 <code>SBR</code> 和 <code>RBR</code> 两种模式各自的优缺点：</p>
-<p><strong>SBR 的优点：</strong></p>
-<ul>
-<li>历史悠久，技术成熟</li>
-<li><code>binlog</code> 文件较小</li>
-<li><code>binlog</code> 中包含了所有数据库更改信息，可以据此来审核数据库的安全等情况</li>
-<li><code>binlog</code> 可以用于实时的还原，而不仅仅用于复制</li>
-<li>主从版本可以不一样，从服务器版本可以比主服务器版本高</li>
-</ul>
-<p><strong>SBR 的缺点：</strong></p>
-<p>不是所有的 <code>UPDATE</code> 语句都能被复制，尤其是包含不确定操作的时候。<br>调用具有不确定因素的 <code>UDF</code> 时复制也可能出问题<br>使用以下函数的语句也无法被复制：</p>
-<ul>
-<li>LOAD_FILE()</li>
-<li>UUID()</li>
-<li>USER()</li>
-<li>FOUND_ROWS()</li>
-<li>SYSDATE() (除非启动时启用了 <code>--sysdate-is-now</code> 选项)</li>
-</ul>
-<p>SBR：</p>
-<ul>
-<li><code>INSERT ... SELECT</code> 会产生比 <code>RBR</code> 更多的行级锁</li>
-<li>复制需要进行全表扫描(<code>WHERE</code> 语句中没有使用到索引)的 <code>UPDATE</code> 时，需要比 <code>RBR</code> 请求更多的行级锁</li>
-<li>对于有 <code>AUTO_INCREMENT</code> 字段的 <code>InnoDB</code> 表而言，<code>INSERT</code> 语句会阻塞其他 <code>INSERT</code> 语句</li>
-<li>对于一些复杂的语句，在从服务器上的耗资源情况会更严重，而 <code>RBR</code> 模式下，只会对那个发生变化的记录产生影响</li>
-<li>存储函数(不是存储过程)在被调用的同时也会执行一次 <code>NOW()</code> 函数，这个可以说是坏事也可能是好事</li>
-<li>确定了的 <code>UDF</code> 也需要在从服务器上执行</li>
-<li>数据表必须几乎和主服务器保持一致才行，否则可能会导致复制出错</li>
-<li>执行复杂语句如果出错的话，会消耗更多资源</li>
-</ul>
-<p><strong>RBR 的优点：</strong></p>
-<p>任何情况都可以被复制，这对复制来说是最安全可靠的<br>和其他大多数数据库系统的复制技术一样<br>多数情况下，从服务器上的表如果有主键的话，复制就会快了很多<br>复制以下几种语句时的行锁更少：</p>
-<ul>
-<li>INSERT … SELECT</li>
-<li>包含 <code>AUTO_INCREMENT</code> 字段的 <code>INSERT</code></li>
-<li>没有附带条件或者并没有修改很多记录的 <code>UPDATE</code> 或 <code>DELETE</code> 语句</li>
-<li>执行 <code>INSERT</code>，<code>UPDATE</code>，<code>DELETE</code> 语句时锁更少</li>
-<li>从服务器上采用多线程来执行复制成为可能</li>
-</ul>
-<p><strong>RBR 的缺点：</strong></p>
-<ul>
-<li><code>binlog</code> 大了很多</li>
-<li>复杂的回滚时 <code>binlog</code> 中会包含大量的数据</li>
-<li>主服务器上执行 <code>UPDATE</code> 语句时，所有发生变化的记录都会写到 <code>binlog</code> 中，而 <code>SBR</code> 只会写一次，这会导致频繁发生 <code>binlog</code> 的并发写问题</li>
-<li><code>UDF</code> 产生的大 <code>BLOB</code> 值会导致复制变慢</li>
-<li>无法从 <code>binlog</code> 中看到都复制了写什么语句</li>
-<li>当在非事务表上执行一段堆积的SQL语句时，最好采用 <code>SBR</code> 模式，否则很容易导致主从服务器的数据不一致情况发生</li>
-</ul>
-<p>另外，针对系统库 <code>mysql</code> 里面的表发生变化时的处理规则如下：</p>
-<ul>
-<li>如果是采用 <code>INSERT</code>，<code>UPDATE</code>，<code>DELETE</code> 直接操作表的情况，则日志格式根据 <code>binlog_format</code> 的设定而记录</li>
-<li>如果是采用 <code>GRANT</code>，<code>REVOKE</code>，<code>SET PASSWORD</code> 等管理语句来做的话，那么无论如何都采用 <code>SBR</code> 模式记录</li>
-</ul>
-<p>注：采用 <code>RBR</code> 模式后，能解决很多原先出现的主键重复问题。</p>
-<p>参考：</p>
-<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/langtianya/p/5504774.html">mysql中binlog_format模式与配置详解</a></p>
 
       
     </div>
@@ -1928,7 +1916,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">579</span>
+          <span class="site-state-item-count">580</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
