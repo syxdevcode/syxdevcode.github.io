@@ -2,15 +2,15 @@
 title: OpenSSL生成CA，二级CA，服务器证书
 date: 2022-09-23 10:30:28
 tags:
-- Openssl
-- https
-- 加密
-- SSL/TLS
+  - Openssl
+  - https
+  - 加密
+  - SSL/TLS
 categories:
-- Openssl
+  - Openssl
 ---
 
-## 查看openssl版本和配置文件位置
+## 查看 openssl 版本和配置文件位置
 
 ```sh
 $ openssl version -a
@@ -32,19 +32,22 @@ openssl s_client -help 2>&1  > /dev/null | egrep "\-(ssl|tls)[^a-z]"
 
 ## 证书认证相关
 
-**1. https单项认证：**
+**1. https 单项认证：**
 
 server: server.crt + server.key
 client: server_ca.crt
 
-**2. https双向认证：**
+**2. https 双向认证：**
 
 server: server.crt + server.key + client_ca.crt
 client: server_ca.crt + client.crt + client.key
 
-在使用CA证书进行签署证书时加入`-extfile`和`-extensions`选项，具体命令如下：
+在使用 CA 证书进行签署证书时加入`-extfile`和`-extensions`选项，具体命令如下：
 
-`openssl x509 -req  -days 365 -sha256 -extfile openssl.cnf -extensions v3_req -in server.csr -signkey server.key -out server.crt`
+```sh
+openssl x509 -req  -days 365 -sha256 -extfile openssl.cnf -extensions v3_req
+ -in server.csr -signkey server.key -out server.crt
+```
 
 证书详情信息：
 
@@ -64,10 +67,10 @@ Subject Public Key Info: 主体公钥信息
 
 一般证书的签发流程是：
 
-申请者把自己的申请做成证书申请文件csr(csr中放入了申请者的公钥以及申请者的信息)
-然后把csr发送给签发者CA进行证书签发，签发过程就是CA用自己的私钥给csr生成签名，然后制作为证书文件(.crt或.pem)
+申请者把自己的申请做成证书申请文件 csr(csr 中放入了申请者的公钥以及申请者的信息)
+然后把 csr 发送给签发者 CA 进行证书签发，签发过程就是 CA 用自己的私钥给 csr 生成签名，然后制作为证书文件(.crt 或.pem)
 
-nginx判定证书的时候，是根据证书中的两个字段：Issuer 和 Subject
+nginx 判定证书的时候，是根据证书中的两个字段：Issuer 和 Subject
 如果 Issuer == Subject 那么 nginx 就会认为这是一个自签名的根证书
 如果 Issuer != Subject 那么 nginx 就会认为这不是一个自签名的证书，验证时需要带上签发这个证书的根证书
 
@@ -75,9 +78,9 @@ nginx判定证书的时候，是根据证书中的两个字段：Issuer 和 Subj
 
 ## 证书生成
 
-流程：自签CA，由自签CA签发二级CA，最后由二级CA签发网站证书。
+流程：自签 CA，由自签 CA 签发二级 CA，最后由二级 CA 签发网站证书。
 
-openssl参数参考：
+openssl 参数参考：
 
 ```sh
 -extensions v3_req 指定 X.509 v3版本
@@ -86,10 +89,11 @@ openssl参数参考：
 ```
 
 <!--more-->
+
 **证书生成:**
 
 ```sh
-# 生成ROOT CA 
+# 生成ROOT CA
 # 5年有效期
 openssl genrsa -out /opt/certs/root_ca.key 4096
 openssl req -passin pass:1111 -x509 -new -nodes -key /opt/certs/root_ca.key -subj "/C=CN/ST=BJ/L=ZJ/O=Pony/OU=Pony/CN=PonyTest ROOT CA" -days 1825 -out /opt/certs/root_ca.crt
@@ -136,18 +140,18 @@ cat root_ca.crt server_ca.crt client_ca.crt > caAll.crt
 
 实例：
 
-在Nginx 配置参考：
+在 Nginx 配置参考：
 
 ```conf
 server {
         listen       443 ssl;
         server_name  httpstst.com;
-        
+
         ssl_certificate      certs/server.crt;
         ssl_certificate_key  certs/server.key;
         ssl_client_certificate  certs/caAll.crt;
         ssl_verify_client on;
-        
+
         #ssl_session_cache    shared:SSL:1m;
         ssl_session_timeout  5m;
 
@@ -174,7 +178,7 @@ openssl x509 -noout -text -in server.crt
 
 ## 自定义配置文件
 
-### 创建根CA
+### 创建根 CA
 
 **1,创建目录：**
 
@@ -261,9 +265,9 @@ openssl ca -selfsign -in /opt/certs/root/key/ca.csr -out /opt/certs/root/key/cac
 openssl x509 -text -in /opt/certs/root/key/cacert.crt
 ```
 
-经过以上几个步骤，就生成了根CA的相关证书和私钥，可以用于签发其他的CA（二级CA），不可签发服务器证书。
+经过以上几个步骤，就生成了根 CA 的相关证书和私钥，可以用于签发其他的 CA（二级 CA），不可签发服务器证书。
 
-### 创建二级CA
+### 创建二级 CA
 
 **1，创建目录：**
 
@@ -350,9 +354,9 @@ openssl ca -in /opt/certs/agent/key/ca.csr -out /opt/certs/agent/key/cacert.crt 
 openssl x509 -text -in /opt/certs/agent/key/cacert.crt
 ```
 
-经过以上几个步骤，就生成了一个二级CA，这个二级CA可以签发服务器证书（不能签发其他的CA）。
+经过以上几个步骤，就生成了一个二级 CA，这个二级 CA 可以签发服务器证书（不能签发其他的 CA）。
 
-### 使用二级CA签发服务器端证书
+### 使用二级 CA 签发服务器端证书
 
 **1，创建目录：**
 
@@ -409,7 +413,7 @@ openssl req -new -key /opt/certs/vault/privkey.pem -out /opt/certs/vault/vault.c
 # 3，使用二级CA进行签发证书（这里不能用根CA签发）
 openssl ca -in /opt/certs/vault/vault.csr -out /opt/certs/vault/vault.crt -config /opt/certs/agent/openssl.cnf -days 1825
 
-# 4，聚合证书（重要） 
+# 4，聚合证书（重要）
 # PS：注意顺序
 # 由于是二级CA颁发的证书，所以，服务器需要把根CA、二级CA等证书都要发送给浏览器，所以给到web服务器的证书是要一个聚合的证书
 cat /opt/certs/vault/vault.crt /opt/certs/agent/key/cacert.crt /opt/certs/root/key/cacert.crt | tee /opt/certs/vault/vault_all.crt
@@ -418,9 +422,9 @@ cat /opt/certs/vault/vault.crt /opt/certs/agent/key/cacert.crt /opt/certs/root/k
 openssl x509 -text -in /opt/certs/vault/vault_all.crt
 ```
 
-经过以上几个步骤，就生成了由二级CA签发的证书了
+经过以上几个步骤，就生成了由二级 CA 签发的证书了
 
-## 25519证书
+## 25519 证书
 
 编辑配置文件：
 
@@ -460,9 +464,9 @@ openssl x509 -req -days 1825 -extfile openssl-25519.cnf -extensions v3_req -in s
 openssl x509 -in server.crt -text -noout
 ```
 
-## CA和证书区别
+## CA 和证书区别
 
-CA和证书是有区别的，CA是用来颁发证书和签发二级CA的，且两者是互斥的。也就是说，一个CA要么是用来签发二级CA的，要么是用来签发证书的。
+CA 和证书是有区别的，CA 是用来颁发证书和签发二级 CA 的，且两者是互斥的。也就是说，一个 CA 要么是用来签发二级 CA 的，要么是用来签发证书的。
 
 如何判断？
 
@@ -476,25 +480,25 @@ basicConstraints = CA:TRUE
 basicConstraints = CA:TRUE
 ```
 
-usr_cert下面的basicConstraints代表的是当前CA的配置，
+usr_cert 下面的 basicConstraints 代表的是当前 CA 的配置，
 
-CA:TRUE是当前CA签发的是CA（二级CA），不能签发证书，
-CA:FALSE是当前CA签发的是证书，不能签发CA（二级CA）
+CA:TRUE 是当前 CA 签发的是 CA（二级 CA），不能签发证书，
+CA:FALSE 是当前 CA 签发的是证书，不能签发 CA（二级 CA）
 
-v3_ca下面的basicConstraints代表的是请求的证书是CA还是证书
+v3_ca 下面的 basicConstraints 代表的是请求的证书是 CA 还是证书
 
-CA:TRUE表示当前请求的是CA（二级CA）
-CA:FALSE表示当前请求的是证书
+CA:TRUE 表示当前请求的是 CA（二级 CA）
+CA:FALSE 表示当前请求的是证书
 
-如果是CA（二级CA），则证书请求中的commonName不需要填写域名，可以填写组织机构
-如果是证书，则证书请求中的commonName需要填写域名（一般是主域名），当然了，这个主域名也要在后面的subjectAltName属性中
+如果是 CA（二级 CA），则证书请求中的 commonName 不需要填写域名，可以填写组织机构
+如果是证书，则证书请求中的 commonName 需要填写域名（一般是主域名），当然了，这个主域名也要在后面的 subjectAltName 属性中
 
 参考:
 
-[podman+openresty+openssl，https双向认证demo测试](https://www.cnblogs.com/brian-sun/p/16703271.html)
+[podman+openresty+openssl，https 双向认证 demo 测试](https://www.cnblogs.com/brian-sun/p/16703271.html)
 
-[OpenSSL自建CA和签发二级CA及颁发SSL证书](https://dandelioncloud.cn/article/details/1509464689456263169)
+[OpenSSL 自建 CA 和签发二级 CA 及颁发 SSL 证书](https://dandelioncloud.cn/article/details/1509464689456263169)
 
-[使用OpenSsl自己CA根证书,二级根证书和颁发证书(亲测步骤)](https://www.cnblogs.com/lzpong/p/10450293.html)
+[使用 OpenSsl 自己 CA 根证书,二级根证书和颁发证书(亲测步骤)](https://www.cnblogs.com/lzpong/p/10450293.html)
 
 [Create ED25519 certificates for TLS with OpenSSL](https://blog.pinterjann.is/ed25519-certificates.html)
