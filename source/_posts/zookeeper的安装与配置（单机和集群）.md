@@ -7,6 +7,8 @@ tags:
 - Zookeeper
 - 安装部署
 - 分布式
+- Docker Compose
+- Docker
 categories:
 - Zookeeper 
 ---
@@ -210,7 +212,7 @@ myid文件:
 
 server.1=10.1.39.43:2888:3888，很多人不理解为啥后面有两个端口？解释一下：
 
-2888：标识这个服务器与集群中的leader服务器交换信息的端口 
+2888：标识这个服务器与集群中的leader服务器交换信息的端口
 
 3888：leader挂掉时专门用来进行选举leader所用的端口
 

@@ -9,6 +9,8 @@ tags:
   - Linux
   - 安装部署
   - 分布式
+  - Docker Compose
+  - Docker
 categories:
   - Kafka
 ---
