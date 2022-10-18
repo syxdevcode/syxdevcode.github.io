@@ -13,17 +13,27 @@ categories: MySql
 
 我的电脑->属性->高级->环境变量
 选择PATH,在其后面添加: mysql 安装文件下面的bin文件夹
-(如: `D:\mysql-5.7.34-winx64\bin` )(注意不要删除其他的东西)
+(如: `D:\mysql-5.7.40-winx64\bin` )(注意不要删除其他的东西)
 
 4.新建 my.ini 文件
 5.编辑my.ini文件
 
 ```ini
+[client]
+# 设置mysql客户端默认字符集
+default-character-set=utf8
+
 [mysqld]
-basedir=D:\mysql-5.7.34-winx64\
-datadir=D:\mysql-5.7.34-winx64\data\
+# 设置3306端口
 port=3306
-skip-grant-tables
+character_set_server=utf8
+# 解压目录
+basedir=D:\mysql-5.7.40-winx64\
+# 解压目录下data目录
+datadir=D:\mysql-5.7.40-winx64\data\
+default-storage-engine=INNODB
+
+#skip-grant-tables
 
 #basedir表示mysql安装路径
 #datadir表示mysql数据文件存储路径
@@ -35,9 +45,12 @@ skip-grant-tables
 
 ```sh
 mysqld –install
+
+#　移除mysql
+# mysqld –remove
 ```
 
-7.再输入 `mysqld --initialize;` 初始化数据文件
+7.再输入 `mysqld --initialize` 初始化数据文件
 
 8.输入 `net start mysql` 启动mysql服务
 
@@ -55,6 +68,10 @@ ALTER USER 'root'@'localhost' IDENTIFIED BY 'root';
 
 # 或者
 update mysql.user set authentication_string=password('123456') where user='root' and Host = 'localhost';
+
+create user 'test'@'%' identified by '1Pon%$6';
+
+GRANT SELECT,INSERT,CREATE  ON healthcheck.*  TO  'test'@'%'    WITH GRANT OPTION;
 ```
 
 123456 为新密码。
