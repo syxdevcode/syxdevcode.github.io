@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.2">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"syxdevcode.github.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="创建对应目录12345mkdir -p &#x2F;opt&#x2F;grafana&#x2F;loki&#x2F;configmkdir -p &#x2F;opt&#x2F;grafana&#x2F;promtail&#x2F;logmkdir -p &#x2F;opt&#x2F;grafana&#x2F;confmkdir -p &#x2F;opt&#x2F;grafana&#x2F;datamkdir -p &#x2F;opt&#x2F;grafana&#x2F;log  创建配置文件loki配置文件路径：&#x2F;opt&#x2F;grafana&#x2F;loki&#x2F;config&#x2F;l">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Grafana-Loki-Promtail使用Docker-Compose安装">
+<meta property="og:url" content="https://syxdevcode.github.com/2022/10/24/Grafana-Loki-Promtail%E4%BD%BF%E7%94%A8Docker-Compose%E5%AE%89%E8%A3%85/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="创建对应目录12345mkdir -p &#x2F;opt&#x2F;grafana&#x2F;loki&#x2F;configmkdir -p &#x2F;opt&#x2F;grafana&#x2F;promtail&#x2F;logmkdir -p &#x2F;opt&#x2F;grafana&#x2F;confmkdir -p &#x2F;opt&#x2F;grafana&#x2F;datamkdir -p &#x2F;opt&#x2F;grafana&#x2F;log  创建配置文件loki配置文件路径：&#x2F;opt&#x2F;grafana&#x2F;loki&#x2F;config&#x2F;l">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2022-10-24T17:50:52.000Z">
+<meta property="article:modified_time" content="2022-10-24T11:00:55.215Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="Docker">
+<meta property="article:tag" content="Ubuntu">
+<meta property="article:tag" content="Docker Compose">
+<meta property="article:tag" content="Grafana">
+<meta property="article:tag" content="Loki">
+<meta property="article:tag" content="Promtail">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://syxdevcode.github.com/2022/10/24/Grafana-Loki-Promtail%E4%BD%BF%E7%94%A8Docker-Compose%E5%AE%89%E8%A3%85/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Grafana-Loki-Promtail使用Docker-Compose安装 | syxdevcode博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">syxdevcode博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/syxdevcode" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2022/10/24/Grafana-Loki-Promtail%E4%BD%BF%E7%94%A8Docker-Compose%E5%AE%89%E8%A3%85/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Grafana-Loki-Promtail使用Docker-Compose安装
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-10-24 17:50:52 / 修改时间：11:00:55" itemprop="dateCreated datePublished" datetime="2022-10-24T17:50:52+00:00">2022-10-24</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Grafana/" itemprop="url" rel="index"><span itemprop="name">Grafana</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>3.5k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>3 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="创建对应目录"><a href="#创建对应目录" class="headerlink" title="创建对应目录"></a>创建对应目录</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">mkdir</span> -p /opt/grafana/loki/config</span><br><span class="line"><span class="built_in">mkdir</span> -p /opt/grafana/promtail/log</span><br><span class="line"><span class="built_in">mkdir</span> -p /opt/grafana/conf</span><br><span class="line"><span class="built_in">mkdir</span> -p /opt/grafana/data</span><br><span class="line"><span class="built_in">mkdir</span> -p /opt/grafana/log</span><br></pre></td></tr></table></figure>
+
+<h2 id="创建配置文件"><a href="#创建配置文件" class="headerlink" title="创建配置文件"></a>创建配置文件</h2><h3 id="loki配置文件"><a href="#loki配置文件" class="headerlink" title="loki配置文件"></a>loki配置文件</h3><p>路径：<code>/opt/grafana/loki/config/local-config.yaml</code> :</p>
+<span id="more"></span>
+<figure class="highlight yml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">auth_enabled:</span> <span class="literal">false</span></span><br><span class="line"></span><br><span class="line"><span class="attr">server:</span></span><br><span class="line">  <span class="attr">http_listen_port:</span> <span class="number">3100</span></span><br><span class="line">  <span class="attr">grpc_server_max_recv_msg_size:</span> <span class="number">157286400</span> <span class="comment"># 150M</span></span><br><span class="line">  <span class="attr">grpc_server_max_send_msg_size:</span> <span class="number">157286400</span> <span class="comment"># 150M</span></span><br><span class="line"></span><br><span class="line"><span class="attr">common:</span></span><br><span class="line">  <span class="attr">path_prefix:</span> <span class="string">/loki</span></span><br><span class="line">  <span class="attr">storage:</span></span><br><span class="line">    <span class="attr">filesystem:</span></span><br><span class="line">      <span class="attr">chunks_directory:</span> <span class="string">/loki/chunks</span></span><br><span class="line">      <span class="attr">rules_directory:</span> <span class="string">/loki/rules</span></span><br><span class="line">  <span class="attr">replication_factor:</span> <span class="number">1</span></span><br><span class="line">  <span class="attr">ring:</span></span><br><span class="line">    <span class="attr">kvstore:</span></span><br><span class="line">      <span class="attr">store:</span> <span class="string">inmemory</span></span><br><span class="line"></span><br><span class="line"><span class="attr">schema_config:</span></span><br><span class="line">  <span class="attr">configs:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">from:</span> <span class="number">2020-10-24</span></span><br><span class="line">      <span class="attr">store:</span> <span class="string">boltdb-shipper</span></span><br><span class="line">      <span class="attr">object_store:</span> <span class="string">filesystem</span></span><br><span class="line">      <span class="attr">schema:</span> <span class="string">v11</span></span><br><span class="line">      <span class="attr">index:</span></span><br><span class="line">        <span class="attr">prefix:</span> <span class="string">loki_index_</span></span><br><span class="line">        <span class="attr">period:</span> <span class="string">24h</span></span><br><span class="line"></span><br><span class="line"><span class="attr">limits_config:</span></span><br><span class="line">  <span class="attr">ingestion_rate_strategy:</span> <span class="string">local</span>  </span><br><span class="line">  <span class="attr">ingestion_rate_mb:</span> <span class="number">15</span> <span class="comment"># 每个用户每秒的采样率限制</span></span><br><span class="line">  <span class="attr">ingestion_burst_size_mb:</span> <span class="number">30</span> <span class="comment"># 每个用户允许的采样突发大小</span></span><br><span class="line">  <span class="attr">reject_old_samples:</span> <span class="literal">true</span>   <span class="comment"># 是否拒绝旧样本</span></span><br><span class="line">  <span class="attr">reject_old_samples_max_age:</span> <span class="string">720h</span>   <span class="comment"># 720小时之前的样本被拒绝</span></span><br><span class="line"></span><br><span class="line"><span class="attr">storage_config:</span></span><br><span class="line">  <span class="attr">boltdb_shipper:</span></span><br><span class="line">    <span class="attr">active_index_directory:</span> <span class="string">/loki/boltdb-shipper-active</span></span><br><span class="line">    <span class="attr">cache_location:</span> <span class="string">/loki/boltdb-shipper-cache</span></span><br><span class="line">    <span class="attr">cache_ttl:</span> <span class="string">24h</span></span><br><span class="line">    <span class="attr">shared_store:</span> <span class="string">filesystem</span></span><br><span class="line">  <span class="attr">filesystem:</span></span><br><span class="line">    <span class="attr">directory:</span> <span class="string">/loki/chunks</span></span><br><span class="line"></span><br><span class="line"><span class="attr">compactor:</span></span><br><span class="line">  <span class="attr">working_directory:</span> <span class="string">/loki/retention</span></span><br><span class="line">  <span class="attr">shared_store:</span> <span class="string">filesystem</span></span><br><span class="line">  <span class="attr">compaction_interval:</span> <span class="string">10m</span></span><br><span class="line">  <span class="attr">retention_enabled:</span> <span class="literal">true</span></span><br><span class="line">  <span class="attr">retention_delete_delay:</span> <span class="string">2h</span></span><br><span class="line">  <span class="attr">retention_delete_worker_count:</span> <span class="number">150</span></span><br><span class="line">  </span><br><span class="line"><span class="attr">chunk_store_config:</span></span><br><span class="line">  <span class="attr">max_look_back_period:</span> <span class="string">4320h</span></span><br><span class="line">  </span><br><span class="line"><span class="attr">table_manager:</span></span><br><span class="line">  <span class="attr">retention_deletes_enabled:</span> <span class="literal">true</span>   <span class="comment"># 保留删除开启</span></span><br><span class="line">  <span class="attr">retention_period:</span> <span class="string">4320h</span>  <span class="comment"># 超过4320h的块数据将被删除</span></span><br><span class="line"></span><br><span class="line"><span class="attr">ruler:</span></span><br><span class="line">  <span class="attr">alertmanager_url:</span> <span class="string">http://localhost:9093</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="promtail配置文件"><a href="#promtail配置文件" class="headerlink" title="promtail配置文件"></a>promtail配置文件</h3><p>路径：</p>
+<p>参考：<a target="_blank" rel="noopener" href="https://grafana.com/docs/loki/latest/clients/promtail/configuration/">https://grafana.com/docs/loki/latest/clients/promtail/configuration/</a></p>
+<figure class="highlight yml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">server:</span></span><br><span class="line">  <span class="attr">http_listen_port:</span> <span class="number">9080</span></span><br><span class="line">  <span class="attr">grpc_listen_port:</span> <span class="number">0</span></span><br><span class="line">  <span class="attr">grpc_server_max_recv_msg_size:</span> <span class="number">157286400</span> <span class="comment"># 150M</span></span><br><span class="line">  <span class="attr">grpc_server_max_send_msg_size:</span> <span class="number">157286400</span> <span class="comment"># 150M</span></span><br><span class="line"></span><br><span class="line"><span class="attr">positions:</span></span><br><span class="line">  <span class="attr">filename:</span> <span class="string">/tmp/positions.yaml</span></span><br><span class="line"></span><br><span class="line"><span class="attr">clients:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">url:</span> <span class="string">http://loki:3100/loki/api/v1/push</span></span><br><span class="line"></span><br><span class="line"><span class="attr">scrape_configs:</span></span><br><span class="line"><span class="bullet">-</span> <span class="attr">job_name:</span> <span class="string">system</span></span><br><span class="line">  <span class="attr">static_configs:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="attr">targets:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">localhost</span></span><br><span class="line">    <span class="attr">labels:</span></span><br><span class="line">      <span class="attr">job:</span> <span class="string">varlogs</span></span><br><span class="line">      <span class="attr">__path__:</span> <span class="string">/var/log/*log</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="创建用户和用户组"><a href="#创建用户和用户组" class="headerlink" title="创建用户和用户组"></a>创建用户和用户组</h2><p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://grafana.com/docs/grafana/latest/setup-grafana/installation/docker/">Run Grafana Docker image</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/sfccl/p/12936282.html">docker环境下的Grafana安装</a></p>
+<p>1，宿主机新增用户 <code>grafana</code>，并修改UID和GID都为472（因为容器内的运行用户也是grafana，且UID和GID都是472）</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">useradd grafana</span><br><span class="line">vi /etc/passwd <span class="comment"># 编辑用户Id</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 参考： -------</span></span><br><span class="line">grafana:x:472:472::/home/grafana:/bin/sh</span><br></pre></td></tr></table></figure>
+
+<p>2，编辑用户组</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">vi /etc/group</span><br><span class="line"></span><br><span class="line"><span class="comment"># 参考： -------</span></span><br><span class="line">grafana:x:472:</span><br></pre></td></tr></table></figure>
+
+<p>3，修改目录所有者为<code>grafana</code></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">chown</span> -R grafana:grafana /opt/grafana/conf &amp;&amp; \</span><br><span class="line"><span class="built_in">chmod</span> -R a+r /opt/grafana/conf &amp;&amp; \</span><br><span class="line"><span class="built_in">chmod</span> -R a+r /opt/grafana/data &amp;&amp; \</span><br><span class="line"><span class="built_in">chown</span> -R grafana:grafana /opt/grafana/data</span><br></pre></td></tr></table></figure>
+
+<h2 id="创建docker网络"><a href="#创建docker网络" class="headerlink" title="创建docker网络"></a>创建docker网络</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker network create --driver bridge --subnet 10.10.13.0/24 --gateway 10.10.13.1 docker_compose_net</span><br></pre></td></tr></table></figure>
+
+<h2 id="编排docker-compose"><a href="#编排docker-compose" class="headerlink" title="编排docker-compose"></a>编排docker-compose</h2><figure class="highlight yml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">version:</span> <span class="string">&quot;3&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="attr">networks:</span></span><br><span class="line">  <span class="attr">default:</span></span><br><span class="line">    <span class="attr">external:</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">docker_compose_net</span></span><br><span class="line"></span><br><span class="line"><span class="attr">services:</span></span><br><span class="line">  <span class="attr">loki:</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">grafana/loki:2.6.0</span></span><br><span class="line">    <span class="attr">restart:</span> <span class="string">unless-stopped</span></span><br><span class="line">    <span class="attr">container_name:</span> <span class="string">loki</span></span><br><span class="line">    <span class="attr">ports:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">&quot;3100:3100&quot;</span></span><br><span class="line">    <span class="attr">volumes:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">/opt/grafana/loki/:/etc/loki/</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">/opt/grafana/loki/config/:/etc/loki/config</span></span><br><span class="line">    <span class="attr">command:</span> <span class="string">-config.file=/etc/loki/config/local-config.yaml</span></span><br><span class="line">    <span class="attr">environment:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">TZ=Asia/Shanghai</span> <span class="comment"># 时区配置亚洲上海</span></span><br><span class="line"></span><br><span class="line">  <span class="attr">promtail:</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">grafana/promtail:2.6.0</span></span><br><span class="line">    <span class="attr">restart:</span> <span class="string">unless-stopped</span></span><br><span class="line">    <span class="attr">container_name:</span> <span class="string">promtail</span></span><br><span class="line">    <span class="attr">volumes:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">/opt/grafana/promtail/log:/var/log</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">/opt/grafana/promtail/:/etc/promtail/</span></span><br><span class="line">    <span class="attr">command:</span> <span class="string">-config.file=/etc/promtail/config.yml</span></span><br><span class="line">    <span class="attr">environment:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">TZ=Asia/Shanghai</span> <span class="comment"># 时区配置亚洲上海</span></span><br><span class="line"></span><br><span class="line">  <span class="attr">grafana:</span></span><br><span class="line">    <span class="attr">image:</span> <span class="string">grafana/grafana:latest</span></span><br><span class="line">    <span class="attr">restart:</span> <span class="string">unless-stopped</span></span><br><span class="line">    <span class="attr">container_name:</span> <span class="string">grafana</span></span><br><span class="line">    <span class="attr">volumes:</span></span><br><span class="line">      <span class="comment"># - /opt/grafana/conf/:/etc/grafana/ # 不指定配置文件,使用默认配置文件</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">/opt/grafana/data/:/var/lib/grafana/</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">/opt/grafana/log/:/var/log/grafana/</span></span><br><span class="line">    <span class="attr">ports:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">&quot;3000:3000&quot;</span></span><br><span class="line">    <span class="attr">user:</span> <span class="string">&#x27;472&#x27;</span></span><br><span class="line">    <span class="attr">environment:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="string">TZ=Asia/Shanghai</span> <span class="comment"># 时区配置亚洲上海</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="启动-amp-移除"><a href="#启动-amp-移除" class="headerlink" title="启动&amp;移除"></a>启动&amp;移除</h2><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 启动</span></span><br><span class="line">docker-compose up -d</span><br><span class="line"></span><br><span class="line"><span class="comment"># 移除</span></span><br><span class="line">docker-compose down -v</span><br></pre></td></tr></table></figure>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/Docker/" rel="tag"><i class="fa fa-tag"></i> Docker</a>
+              <a href="/tags/Ubuntu/" rel="tag"><i class="fa fa-tag"></i> Ubuntu</a>
+              <a href="/tags/Docker-Compose/" rel="tag"><i class="fa fa-tag"></i> Docker Compose</a>
+              <a href="/tags/Grafana/" rel="tag"><i class="fa fa-tag"></i> Grafana</a>
+              <a href="/tags/Loki/" rel="tag"><i class="fa fa-tag"></i> Loki</a>
+              <a href="/tags/Promtail/" rel="tag"><i class="fa fa-tag"></i> Promtail</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/10/13/Docker-Compose%E4%BD%BF%E7%94%A8%E8%87%AA%E5%AE%9A%E4%B9%89%E7%9A%84%E7%BD%91%E6%AE%B5/" rel="prev" title="Docker-Compose使用自定义的网段">
+      <i class="fa fa-chevron-left"></i> Docker-Compose使用自定义的网段
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA%E5%AF%B9%E5%BA%94%E7%9B%AE%E5%BD%95"><span class="nav-number">1.</span> <span class="nav-text">创建对应目录</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6"><span class="nav-number">2.</span> <span class="nav-text">创建配置文件</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#loki%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6"><span class="nav-number">2.1.</span> <span class="nav-text">loki配置文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#promtail%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6"><span class="nav-number">2.2.</span> <span class="nav-text">promtail配置文件</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA%E7%94%A8%E6%88%B7%E5%92%8C%E7%94%A8%E6%88%B7%E7%BB%84"><span class="nav-number">3.</span> <span class="nav-text">创建用户和用户组</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9B%E5%BB%BAdocker%E7%BD%91%E7%BB%9C"><span class="nav-number">4.</span> <span class="nav-text">创建docker网络</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%96%E6%8E%92docker-compose"><span class="nav-number">5.</span> <span class="nav-text">编排docker-compose</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%90%AF%E5%8A%A8-amp-%E7%A7%BB%E9%99%A4"><span class="nav-number">6.</span> <span class="nav-text">启动&amp;移除</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="syxdevcode"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description">syxdevcode的个人博客</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">583</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">144</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">218</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">1.9m</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">28:13</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
