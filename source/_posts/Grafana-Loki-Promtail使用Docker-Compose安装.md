@@ -16,6 +16,7 @@ categories:
 
 ```sh
 mkdir -p /opt/grafana/loki/config
+mkdir -p /opt/grafana/loki/data
 mkdir -p /opt/grafana/promtail/log
 mkdir -p /opt/grafana/conf
 mkdir -p /opt/grafana/data
@@ -158,6 +159,12 @@ chmod -R a+r /opt/grafana/data && \
 chown -R grafana:grafana /opt/grafana/data
 ```
 
+Loki数据目录权限：
+
+```sh
+chmod 777 /opt/grafana/loki/data
+```
+
 ## 创建docker网络
 
 ```sh
@@ -183,6 +190,7 @@ services:
       - "3100:3100"
     volumes:
       - /opt/grafana/loki/:/etc/loki/
+      - /opt/grafana/loki/data:/loki/
       - /opt/grafana/loki/config/:/etc/loki/config
     command: -config.file=/etc/loki/config/local-config.yaml
     environment:
