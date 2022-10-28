@@ -29,14 +29,16 @@ mkdir -p /opt/grafana/log
 
 路径：`/opt/grafana/loki/config/local-config.yaml` :
 
+参考：[Configuring Grafana Loki](https://grafana.com/docs/loki/latest/configuration/)
+
 <!--more-->
 ```yml
 auth_enabled: false
 
 server:
   http_listen_port: 3100
-  grpc_server_max_recv_msg_size: 157286400 # 150M
-  grpc_server_max_send_msg_size: 157286400 # 150M
+  grpc_server_max_recv_msg_size: 157286400  # 150M 可接收的最大 gRPC 消息大小
+  grpc_server_max_send_msg_size: 157286400  # 150M 可以发送的最大 gRPC 消息大小
 
 common:
   path_prefix: /loki
@@ -60,11 +62,12 @@ schema_config:
         period: 24h
 
 limits_config:
+  retention_period: 5760h
   ingestion_rate_strategy: local  
   ingestion_rate_mb: 15 # 每个用户每秒的采样率限制
   ingestion_burst_size_mb: 30 # 每个用户允许的采样突发大小
   reject_old_samples: true   # 是否拒绝旧样本
-  reject_old_samples_max_age: 720h   # 720小时之前的样本被拒绝
+  reject_old_samples_max_age: 4320h   # 4320小时之前的样本被拒绝
 
 storage_config:
   boltdb_shipper:
@@ -78,17 +81,17 @@ storage_config:
 compactor:
   working_directory: /loki/retention
   shared_store: filesystem
-  compaction_interval: 10m
+  compaction_interval: 60m
   retention_enabled: true
-  retention_delete_delay: 2h
+  retention_delete_delay: 72h
   retention_delete_worker_count: 150
-  
-chunk_store_config:
-  max_look_back_period: 4320h
   
 table_manager:
   retention_deletes_enabled: true   # 保留删除开启
-  retention_period: 4320h  # 超过4320h的块数据将被删除
+  retention_period: 5760h  # 超过5760h的块数据将被删除
+
+chunk_store_config:
+  max_look_back_period: 4320h # 限制可以查询回溯数据的长度
 
 ruler:
   alertmanager_url: http://localhost:9093
