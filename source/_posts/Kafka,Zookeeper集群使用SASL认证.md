@@ -413,7 +413,7 @@ services:
       - "/opt/kafka/data3/:/kafka"
       - "/opt/sasl/:/opt/kafka/conf/"
   kafka-manager: # Kafka 图形管理界面
-    image: sheepkiller/kafka-manager:latest
+    image: deltaprojects/kafka-manager:latest
     restart: unless-stopped
     container_name: kafka-manager
     hostname: kafka-manager
@@ -433,6 +433,7 @@ services:
       TZ: Asia/Shanghai
       ZK_HOSTS: zoo1:2181,zoo2:2181,zoo3:2181
       KAFKA_BROKERS: kafka1:9092,kafka2:9093,kafka3:9094
+      KAFKA_MANAGER_AUTH_ENABLED: true
       KAFKA_MANAGER_USERNAME: admin
       KAFKA_MANAGER_PASSWORD: 12345678
 ```
@@ -543,6 +544,8 @@ using (var consumer = new ConsumerBuilder<Ignore, string>(config).Build())
 ```
 
 参考：
+
+[给 Kafka 配置 SASL/PLAIN 认证](https://kyle.ai/blog/7631.html)
 
 [Docker搭建带SASL用户密码验证的Kafka](https://www.cnblogs.com/zhouj850/p/15630101.html)
 
