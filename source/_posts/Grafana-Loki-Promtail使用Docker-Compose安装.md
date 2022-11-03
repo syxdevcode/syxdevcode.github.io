@@ -67,7 +67,8 @@ limits_config:
   ingestion_rate_mb: 15 # 每个用户每秒的采样率限制
   ingestion_burst_size_mb: 30 # 每个用户允许的采样突发大小
   reject_old_samples: true   # 是否拒绝旧样本
-  reject_old_samples_max_age: 4320h   # 4320小时之前的样本被拒绝
+  reject_old_samples_max_age: 4440h   # 4440h小时之前的样本被拒绝
+  max_query_length: 4440h  # 块存储查询的长度限制。禁用=0h，默认default = 721h
 
 storage_config:
   boltdb_shipper:
@@ -91,7 +92,7 @@ table_manager:
   retention_period: 5760h  # 超过5760h的块数据将被删除
 
 chunk_store_config:
-  max_look_back_period: 4320h # 限制可以查询回溯数据的长度
+  max_look_back_period: 4440h # 限制可以查询回溯数据的长度
 
 ruler:
   alertmanager_url: http://localhost:9093

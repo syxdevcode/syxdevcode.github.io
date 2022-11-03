@@ -132,7 +132,7 @@ services:
       TZ: Asia/Shanghai
       ZOO_MY_ID: 1
       ZOO_SERVERS: server.1=0.0.0.0:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=zoo3:2888:3888;2181
-      SERVER_JVMFLAGS: -Djava.security.auth.login.config=/apache-zookeeper-3.8.0-bin/conf/server_jaas.conf
+      SERVER_JVMFLAGS: -Djava.security.auth.login.config=/apache-zookeeper-3.8.0-bin/conf/server_jaas_zoo.conf
   zoo2:
     image: zookeeper:latest
     container_name: zoo2
@@ -148,7 +148,7 @@ services:
       TZ: Asia/Shanghai
       ZOO_MY_ID: 2
       ZOO_SERVERS: server.1=zoo1:2888:3888;2181 server.2=0.0.0.0:2888:3888;2181 server.3=zoo3:2888:3888;2181
-      SERVER_JVMFLAGS: -Djava.security.auth.login.config=/apache-zookeeper-3.8.0-bin/conf/server_jaas.conf
+      SERVER_JVMFLAGS: -Djava.security.auth.login.config=/apache-zookeeper-3.8.0-bin/conf/server_jaas_zoo.conf
   zoo3:
     image: zookeeper:latest
     container_name: zoo3
@@ -164,7 +164,7 @@ services:
       TZ: Asia/Shanghai
       ZOO_MY_ID: 3
       ZOO_SERVERS: server.1=zoo1:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=0.0.0.0:2888:3888;2181
-      SERVER_JVMFLAGS: -Djava.security.auth.login.config=/apache-zookeeper-3.8.0-bin/conf/server_jaas.conf
+      SERVER_JVMFLAGS: -Djava.security.auth.login.config=/apache-zookeeper-3.8.0-bin/conf/server_jaas_zoo.conf
 ```
 
 `zoo.cfg` 配置如下：
@@ -200,6 +200,10 @@ autopurge.snapRetainCount=3
 # Purge task interval in hours
 # Set to "0" to disable auto purge feature
 autopurge.purgeInterval=1
+
+# zk3.6.0版本中添加，为true时要求客户端连接zk时必须进行SASL认证才可以连接成功，
+# 也就是说没有进行SASL认证的匿名用户就无法连接了，相当于在连接时设置了一个登录密码
+sessionRequireClientSASLAuth=true
 
 authProvider.1=org.apache.zookeeper.server.auth.SASLAuthenticationProvider
 
@@ -412,30 +416,27 @@ services:
     volumes:
       - "/opt/kafka/data3/:/kafka"
       - "/opt/sasl/:/opt/kafka/conf/"
-  kafka-manager: # Kafka 图形管理界面
-    image: deltaprojects/kafka-manager:latest
+  kafka-ui: # Kafka 图形管理界面
+    image: provectuslabs/kafka-ui
     restart: unless-stopped
-    container_name: kafka-manager
-    hostname: kafka-manager
+    container_name: kafka-ui
+    hostname: kafka-ui
     ports:
-      - "9000:9000"
+      - "9000:8080"
     links:            # 连接本compose文件创建的container
       - kafka1
       - kafka2
       - kafka3
-    external_links:   # 连接外部compose文件创建的container
-      - zoo1
-      - zoo2
-      - zoo3
-    volumes:
-      - "/opt/kafka/conf/application.conf:/kafka-manager-1.3.1.8/conf/application.conf"
     environment:
-      TZ: Asia/Shanghai
-      ZK_HOSTS: zoo1:2181,zoo2:2181,zoo3:2181
-      KAFKA_BROKERS: kafka1:9092,kafka2:9093,kafka3:9094
-      KAFKA_MANAGER_AUTH_ENABLED: true
-      KAFKA_MANAGER_USERNAME: admin
-      KAFKA_MANAGER_PASSWORD: 12345678
+      SERVER_SERVLET_CONTEXT_PATH: /kafkaui # 访问地址：host:port/kafkaui/ui
+      AUTH_TYPE: "LOGIN_FORM"
+      SPRING_SECURITY_USER_NAME: suPerAdmin
+      SPRING_SECURITY_USER_PASSWORD: suPerAdmin
+      KAFKA_CLUSTERS_0_NAME: 10.10.0.106-kafka
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka1:9092,kafka2:9093,kafka3:9094
+      KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      KAFKA_CLUSTERS_0_PROPERTIES_SASL_MECHANISM: PLAIN
+      KAFKA_CLUSTERS_0_PROPERTIES_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin";'
 ```
 
 相关命令：
@@ -546,6 +547,8 @@ using (var consumer = new ConsumerBuilder<Ignore, string>(config).Build())
 参考：
 
 [给 Kafka 配置 SASL/PLAIN 认证](https://kyle.ai/blog/7631.html)
+
+[kafka-ui DOCKER_COMPOSE](https://github.com/provectus/kafka-ui/blob/master/documentation/compose/DOCKER_COMPOSE.md)
 
 [Docker搭建带SASL用户密码验证的Kafka](https://www.cnblogs.com/zhouj850/p/15630101.html)
 

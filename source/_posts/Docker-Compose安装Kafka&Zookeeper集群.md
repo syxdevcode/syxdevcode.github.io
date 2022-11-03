@@ -202,24 +202,27 @@ services:
       KAFKA_DELETE_RETENTION_MS: 1000
     volumes:
       - "/opt/kafka/data3/:/kafka"
-  kafka-manager: # Kafka 图形管理界面
-    image: sheepkiller/kafka-manager:latest
+  kafka-ui: # Kafka 图形管理界面
+    image: provectuslabs/kafka-ui
     restart: unless-stopped
-    container_name: kafka-manager
-    hostname: kafka-manager
+    container_name: kafka-ui
+    hostname: kafka-ui
     ports:
-      - "9000:9000"
+      - "9000:8080"
     links:            # 连接本compose文件创建的container
       - kafka1
       - kafka2
       - kafka3
-    external_links:   # 连接外部compose文件创建的container
-      - zoo1
-      - zoo2
-      - zoo3
     environment:
-      ZK_HOSTS: zoo1:2181,zoo2:2181,zoo3:2181
-      KAFKA_BROKERS: kafka1:9092,kafka2:9093,kafka3:9094
+      SERVER_SERVLET_CONTEXT_PATH: /kafkaui # 访问地址：host:port/kafkaui/ui
+      AUTH_TYPE: "LOGIN_FORM"
+      SPRING_SECURITY_USER_NAME: suPerAdmin
+      SPRING_SECURITY_USER_PASSWORD: suPerAdmin
+      KAFKA_CLUSTERS_0_NAME: 10.10.0.106-kafka
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka1:9092,kafka2:9093,kafka3:9094
+      KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      KAFKA_CLUSTERS_0_PROPERTIES_SASL_MECHANISM: PLAIN
+      KAFKA_CLUSTERS_0_PROPERTIES_SASL_JAAS_CONFIG: 'org.apache.kafka.common.security.plain.PlainLoginModule required username="admin" password="admin";'
 ```
 
 ## 测试运行状态
