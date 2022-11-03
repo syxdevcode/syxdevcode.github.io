@@ -16,6 +16,7 @@ categories:
 
 ```yml
 version: "3"
+
 services:
   hangfire:
     image: hangfire:0.0.10
@@ -32,6 +33,7 @@ services:
       - adminConsole=true
     env_file:
       - ./var.env
+
 networks:
   net0:
 ```
@@ -111,6 +113,7 @@ br-7922dab0a99d: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
 
 ```yml
 version: "3"
+
 services:
   hangfire:
     image: hangfire:0.0.10
@@ -186,6 +189,39 @@ networks:
 ]
 ```
 
+## 使用外部网络
+
+创建网络：
+
+```sh
+docker network create --driver bridge --subnet 10.10.13.0/24 --gateway 10.10.13.1 docker_compose_net
+```
+
+```yml
+version: "3"
+
+networks:
+  default:
+    external:
+      name: docker_compose_net
+
+services:
+  hangfire:
+    image: hangfire:0.0.10
+    restart: always
+    hostname: hangfire
+    container_name: hangfire
+    ports:
+      - "8100:80"
+    networks:
+      - net0
+    volumes:
+      - /etc/localtime:/etc/localtime
+    environment:
+      - adminConsole=true
+    env_file:
+      - ./var.env
+```
 
 参考：
 
