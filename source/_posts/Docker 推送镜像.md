@@ -21,6 +21,21 @@ vim /etc/docker/daemon.json
 }
 ```
 
+示例：
+
+```json
+{
+  "registry-mirrors": ["https://lhao27k5.mirror.aliyuncs.com"],
+  "insecure-registries" : ["10.10.0.105:8080"]
+}
+```
+
+重启docker 服务
+
+```sh
+systemctl restart docker
+```
+
 ## 登录 Docker Hub
 
 ```shell
