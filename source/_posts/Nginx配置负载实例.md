@@ -12,8 +12,6 @@ categories:
   - Nginx
 ---
 
-注意：配置upstream负载 与 单节点 配置有区别，实测发现配置upstream负载的，在location 中 配置 rewrite 不生效，而且需要添加匹配参数。
-
 例如：
 
 配置 upstream 的 location 代码：注意添加了 `~*`
@@ -40,7 +38,7 @@ categories:
 
 <!--more-->
 
-## 实例代码
+## 实例代码1
 
 ```conf
 upstream apicluster{
@@ -51,7 +49,8 @@ upstream apicluster{
 }
 
 server {
-    listen              443;
+    listen              443;    
+    # listen              443 ssl http2; # 注意：加上证书后需要这样配置
     # listen              [::]:4433 http2;
     server_name         10.10.0.106;
 
@@ -82,6 +81,69 @@ server {
         include      /etc/nginx/nginxconfig.io/proxy.conf;
     }
 
+    location @router {
+        rewrite ^.*$ /index.html last;
+    }
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   html;
+    }
+
+    # additional config
+    include /etc/nginx/nginxconfig.io/general.conf;
+}
+```
+
+## 实例代码2
+
+```conf
+upstream apicluster{
+    server 10.10.0.117:30008;
+    server 10.10.0.119:30008;
+}
+
+server {
+    listen              443 ssl http2;
+    listen              [::]:433 http2;
+    server_name         ilims.mylims.com;
+    root                /var/www/limsweb/public;
+
+    charset utf-8;
+
+    # SSL
+    ssl_certificate     /etc/nginx/ssl/ilims.mylims.com_bundle.crt;
+    ssl_certificate_key /etc/nginx/ssl/ilims.mylims.com.key;
+
+    # security
+    include             /etc/nginx/nginxconfig.io/security.conf;
+    
+    # logging
+    access_log          /var/log/nginx/limsweb.access.log;
+    error_log           /var/log/nginx/limsweb.error.log warn;
+
+    # index.html fallback
+    location / {
+            # root    /var/www/limsweb/public;
+            try_files $uri $uri/ @router;
+            index  index.html index.htm;
+            error_page 405 =200 http://$host$request_uri;
+    }
+    #代理后端接口
+    location /api/ {
+        proxy_pass   http://apicluster;   #转发请求的地址
+        rewrite      ^/api/(.*)$ /$1 break;
+        include      /etc/nginx/nginxconfig.io/proxy.conf;
+    }
+
+    location /limscap/ {
+        return 404;
+    }
+
+    #
+    location /hubs/ {
+        proxy_pass http://apicluster;   #转发请求的地址
+        include      /etc/nginx/nginxconfig.io/proxy.conf;
+    }
     location @router {
         rewrite ^.*$ /index.html last;
     }

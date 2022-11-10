@@ -267,6 +267,7 @@ location = /robots.txt {
 }
 
 # assets, media
+# 如果代理 minio等文件服务器，需要删除通用规则，添加到具体 server 配置中； 
 location ~* \.(?:css(\.map)?|js(\.map)?|jpe?g|png|gif|ico|cur|heic|webp|tiff?|mp3|m4a|aac|ogg|midi?|wav|mp4|mov|webm|mpe?g|avi|ogv|flv|wmv)$ {
     expires    7d;
     access_log off;
@@ -357,7 +358,7 @@ server {
     location / {
         try_files $uri $uri/ @router;
         index  index.html index.htm;
-    error_page 405 =200 http://$host$request_uri;
+        error_page 405 =200 http://$host$request_uri;
     }
 
     # reverse proxy
