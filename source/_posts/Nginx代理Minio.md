@@ -111,11 +111,11 @@ server {
     # 代理minio
     location /s3/ {
        rewrite      ^/s3/(.*)$ /$1 break;
-       # proxy_set_header Host $http_host;
               
        # Proxy headers
        proxy_set_header Upgrade           $http_upgrade;
        proxy_set_header Connection        $connection_upgrade;
+       # proxy_set_header Host              $http_host;
        proxy_set_header Host              $host;
        proxy_set_header X-Real-IP         $remote_addr;
        proxy_set_header Forwarded         $proxy_add_forwarded;
