@@ -13,7 +13,8 @@ categories:
 ## 语法
 
 ```sh
-unzip [-cflptuvz][-agCjLMnoqsVX][-P <密码>][.zip文件][文件][-d <目录>][-x <文件>] 或 unzip [-Z]
+unzip [-cflptuvz][-agCjLMnoqsVX][-P <密码>]
+[.zip文件][文件][-d <目录>][-x <文件>] 或 unzip [-Z]
 ```
 
 参数：
