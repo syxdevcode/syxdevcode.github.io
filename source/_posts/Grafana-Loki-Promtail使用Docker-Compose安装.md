@@ -74,10 +74,18 @@ storage_config:
   boltdb_shipper:
     active_index_directory: /loki/boltdb-shipper-active
     cache_location: /loki/boltdb-shipper-cache
-    cache_ttl: 24h
+    cache_ttl: 168h
     shared_store: filesystem
   filesystem:
     directory: /loki/chunks
+
+query_range:
+  results_cache:
+    cache:
+      embedded_cache:
+        enabled: true
+        max_size_mb: 1500
+        ttl: 168h
 
 compactor:
   working_directory: /loki/retention
@@ -1441,7 +1449,7 @@ networks:
 
 services:
   loki:
-    image: grafana/loki:2.6.0
+    image: grafana/loki:2.7.0
     restart: unless-stopped
     container_name: loki
     ports:
