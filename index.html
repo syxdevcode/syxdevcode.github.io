@@ -184,6 +184,97 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2022/11/23/Prometheus%E4%BD%BF%E7%94%A8Docker-Compose%E5%AE%89%E8%A3%85/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2022/11/23/Prometheus%E4%BD%BF%E7%94%A8Docker-Compose%E5%AE%89%E8%A3%85/" class="post-title-link" itemprop="url">Prometheus监控Linux和Docker</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-11-23 15:21:10 / 修改时间：11:03:19" itemprop="dateCreated datePublished" datetime="2022-11-23T15:21:10+00:00">2022-11-23</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Grafana/" itemprop="url" rel="index"><span itemprop="name">Grafana</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>4k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>4 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>prometheus：负责收集和存储时间序列数据<br>alertmanager: 警告信息通知<br>node-exporter：负责暴露主机 metrics 数据给 prometheus<br>cadvisor： 收集docker容器信息<br>grafana：负责展示数据</p>
+<h2 id="Docker-Compose安装Prometheus"><a href="#Docker-Compose安装Prometheus" class="headerlink" title="Docker-Compose安装Prometheus"></a>Docker-Compose安装Prometheus</h2><p><code>docker-compose.yml</code> 配置：</p>
+<figure class="highlight yml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">version:</span> <span class="string">&#x27;3.7&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="attr">networks:</span></span><br><span class="line">  <span class="attr">default:</span></span><br><span class="line">    <span class="attr">external:</span></span><br><span class="line">      <span class="attr">name:</span> <span class="string">docker_compose_net</span></span><br><span class="line"></span><br><span class="line"><span class="attr">services:</span></span><br><span class="line">    <span class="attr">prometheus:</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">prom/prometheus</span></span><br><span class="line">        <span class="attr">container_name:</span> <span class="string">prometheus</span></span><br><span class="line">        <span class="attr">hostname:</span> <span class="string">prometheus</span></span><br><span class="line">        <span class="attr">restart:</span> <span class="string">unless-stopped</span></span><br><span class="line">        <span class="attr">volumes:</span></span><br><span class="line">            <span class="bullet">-</span> <span class="string">/opt/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml</span></span><br><span class="line">            <span class="bullet">-</span> <span class="string">/opt/prometheus/node_down.yml:/etc/prometheus/node_down.yml</span></span><br><span class="line">        <span class="attr">ports:</span></span><br><span class="line">            <span class="bullet">-</span> <span class="string">&quot;9990:9090&quot;</span></span><br><span class="line">        <span class="attr">environment:</span></span><br><span class="line">            <span class="bullet">-</span> <span class="string">TZ=Asia/Shanghai</span> <span class="comment"># 时区配置亚洲上海</span></span><br><span class="line"></span><br><span class="line">    <span class="attr">alertmanager:</span></span><br><span class="line">        <span class="attr">image:</span> <span class="string">prom/alertmanager</span></span><br><span class="line">        <span class="attr">container_name:</span> <span class="string">alertmanager</span></span><br><span class="line">        <span class="attr">hostname:</span> <span class="string">alertmanager</span></span><br><span class="line">        <span class="attr">restart:</span> <span class="string">unless-stopped</span></span><br><span class="line">        <span class="attr">volumes:</span></span><br><span class="line">            <span class="bullet">-</span> <span class="string">/opt/prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml</span></span><br><span class="line">        <span class="attr">ports:</span></span><br><span class="line">            <span class="bullet">-</span> <span class="string">&quot;9993:9093&quot;</span></span><br><span class="line">        <span class="attr">environment:</span></span><br><span class="line">            <span class="bullet">-</span> <span class="string">TZ=Asia/Shanghai</span> <span class="comment"># 时区配置亚洲上海</span></span><br></pre></td></tr></table></figure>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2022/11/23/Prometheus%E4%BD%BF%E7%94%A8Docker-Compose%E5%AE%89%E8%A3%85/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2022/11/16/Nginx%E5%88%9B%E5%BB%BA%E5%8F%91%E5%B8%83%E7%AB%99%E7%82%B9%E7%94%A8%E6%88%B7/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -215,7 +306,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-11-22 10:30:19" itemprop="dateModified" datetime="2022-11-22T10:30:19+00:00">2022-11-22</time>
+                <time title="修改时间：2022-11-23 11:03:19" itemprop="dateModified" datetime="2022-11-23T11:03:19+00:00">2022-11-23</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -303,7 +394,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-11-22 10:30:19" itemprop="dateModified" datetime="2022-11-22T10:30:19+00:00">2022-11-22</time>
+                <time title="修改时间：2022-11-23 11:03:19" itemprop="dateModified" datetime="2022-11-23T11:03:19+00:00">2022-11-23</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -399,7 +490,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-11-22 10:30:19" itemprop="dateModified" datetime="2022-11-22T10:30:19+00:00">2022-11-22</time>
+                <time title="修改时间：2022-11-23 11:03:19" itemprop="dateModified" datetime="2022-11-23T11:03:19+00:00">2022-11-23</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -495,7 +586,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-11-22 10:30:19" itemprop="dateModified" datetime="2022-11-22T10:30:19+00:00">2022-11-22</time>
+                <time title="修改时间：2022-11-23 11:03:19" itemprop="dateModified" datetime="2022-11-23T11:03:19+00:00">2022-11-23</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -594,7 +685,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-11-22 10:30:19" itemprop="dateModified" datetime="2022-11-22T10:30:19+00:00">2022-11-22</time>
+                <time title="修改时间：2022-11-23 11:03:19" itemprop="dateModified" datetime="2022-11-23T11:03:19+00:00">2022-11-23</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -703,7 +794,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-11-22 10:30:19" itemprop="dateModified" datetime="2022-11-22T10:30:19+00:00">2022-11-22</time>
+                <time title="修改时间：2022-11-23 11:03:19" itemprop="dateModified" datetime="2022-11-23T11:03:19+00:00">2022-11-23</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -801,7 +892,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-11-22 10:30:19" itemprop="dateModified" datetime="2022-11-22T10:30:19+00:00">2022-11-22</time>
+                <time title="修改时间：2022-11-23 11:03:19" itemprop="dateModified" datetime="2022-11-23T11:03:19+00:00">2022-11-23</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -898,7 +989,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-11-22 10:30:19" itemprop="dateModified" datetime="2022-11-22T10:30:19+00:00">2022-11-22</time>
+                <time title="修改时间：2022-11-23 11:03:19" itemprop="dateModified" datetime="2022-11-23T11:03:19+00:00">2022-11-23</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -987,7 +1078,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-11-22 10:30:19" itemprop="dateModified" datetime="2022-11-22T10:30:19+00:00">2022-11-22</time>
+                <time title="修改时间：2022-11-23 11:03:19" itemprop="dateModified" datetime="2022-11-23T11:03:19+00:00">2022-11-23</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1086,7 +1177,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-11-22 10:30:19" itemprop="dateModified" datetime="2022-11-22T10:30:19+00:00">2022-11-22</time>
+                <time title="修改时间：2022-11-23 11:03:19" itemprop="dateModified" datetime="2022-11-23T11:03:19+00:00">2022-11-23</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1188,7 +1279,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-11-22 10:30:19" itemprop="dateModified" datetime="2022-11-22T10:30:19+00:00">2022-11-22</time>
+                <time title="修改时间：2022-11-23 11:03:19" itemprop="dateModified" datetime="2022-11-23T11:03:19+00:00">2022-11-23</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1285,7 +1376,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-11-22 10:30:19" itemprop="dateModified" datetime="2022-11-22T10:30:19+00:00">2022-11-22</time>
+                <time title="修改时间：2022-11-23 11:03:19" itemprop="dateModified" datetime="2022-11-23T11:03:19+00:00">2022-11-23</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1380,7 +1471,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-11-22 10:30:19" itemprop="dateModified" datetime="2022-11-22T10:30:19+00:00">2022-11-22</time>
+                <time title="修改时间：2022-11-23 11:03:19" itemprop="dateModified" datetime="2022-11-23T11:03:19+00:00">2022-11-23</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1493,7 +1584,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-11-22 10:30:19" itemprop="dateModified" datetime="2022-11-22T10:30:19+00:00">2022-11-22</time>
+                <time title="修改时间：2022-11-23 11:03:19" itemprop="dateModified" datetime="2022-11-23T11:03:19+00:00">2022-11-23</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1547,106 +1638,6 @@
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2022/09/21/Hashicorp%20Vault%E4%BB%8B%E7%BB%8D%E5%92%8C%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2022/09/20/Nginx%E9%85%8D%E7%BD%AE%E8%B4%9F%E8%BD%BD%E5%AE%9E%E4%BE%8B/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="syxdevcode">
-      <meta itemprop="description" content="syxdevcode的个人博客">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="syxdevcode博客">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2022/09/20/Nginx%E9%85%8D%E7%BD%AE%E8%B4%9F%E8%BD%BD%E5%AE%9E%E4%BE%8B/" class="post-title-link" itemprop="url">Nginx配置负载实例</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2022-09-20 19:18:43" itemprop="dateCreated datePublished" datetime="2022-09-20T19:18:43+00:00">2022-09-20</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-11-22 10:30:19" itemprop="dateModified" datetime="2022-11-22T10:30:19+00:00">2022-11-22</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Nginx/" itemprop="url" rel="index"><span itemprop="name">Nginx</span></a>
-                </span>
-            </span>
-
-          <br>
-            <span class="post-meta-item" title="本文字数">
-              <span class="post-meta-item-icon">
-                <i class="far fa-file-word"></i>
-              </span>
-                <span class="post-meta-item-text">本文字数：</span>
-              <span>2.7k</span>
-            </span>
-            <span class="post-meta-item" title="阅读时长">
-              <span class="post-meta-item-icon">
-                <i class="far fa-clock"></i>
-              </span>
-                <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>2 分钟</span>
-            </span>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>例如：</p>
-<p>配置 upstream 的 location 代码：注意添加了 <code>~*</code></p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">#代理后端接口</span><br><span class="line">location ~* /api/ &#123;</span><br><span class="line">    proxy_pass   http://apicluster;   #转发请求的地址</span><br><span class="line">    rewrite      ^/api/(.*)$ /$1 break;</span><br><span class="line">    include      /etc/nginx/nginxconfig.io/proxy.conf;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>单节点 location 代码：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">#代理后端接口</span><br><span class="line">location /api/ &#123;</span><br><span class="line">    proxy_pass https://10.10.0.106:8082;   #转发请求的地址</span><br><span class="line">    rewrite ^/api/(.*)$ /$1 break;</span><br><span class="line">    include      /etc/nginx/nginxconfig.io/proxy.conf;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2022/09/20/Nginx%E9%85%8D%E7%BD%AE%E8%B4%9F%E8%BD%BD%E5%AE%9E%E4%BE%8B/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -1737,7 +1728,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">588</span>
+          <span class="site-state-item-count">589</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -1750,7 +1741,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">218</span>
+        <span class="site-state-item-count">219</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -1800,7 +1791,7 @@
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">29:08</span>
+    <span title="站点阅读时长">29:12</span>
 </div>
   <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
   </div>
