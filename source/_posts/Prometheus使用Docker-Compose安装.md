@@ -210,10 +210,10 @@ route:
   repeat_interval: 20m  # 发送重复警报的周期
   receiver: 'live-monitoring-email' # 发送警报的接收者的名称
 
-  routes:
-  - receiver: 'live-monitoring-dingtalk'
-    matchers:
-    - service = ~"minio|redis"
+  #routes:
+  #- receiver: 'live-monitoring-dingtalk'
+  #  matchers:
+  #  - service = ~"minio|redis"
 
 # 定义警报接收者信息
 receivers: 
@@ -223,11 +223,14 @@ receivers:
       to: '198@qq.com'
       html: '{{ template "node_down.html" . }}' # 设定邮箱的内容模板
       headers: { Subject: " 【监控告警】 {{ .CommonLabels.alertname }} "} # 接收邮件的标题
-
-  - name: 'live-monitoring-dingtalk'
     webhook_configs: # 发送钉钉通知
     - send_resolved: true
-      url: 'http://127.0.0.1'
+      url: 'http://10.10.0.17:30008/Alert/Alertmanager'
+
+  #- name: 'live-monitoring-dingtalk'
+  #  webhook_configs: # 发送钉钉通知
+  #  - send_resolved: true
+  #    url: 'http://127.0.0.1'
 
 
 # 抑制器配置
