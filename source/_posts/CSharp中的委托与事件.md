@@ -9,7 +9,6 @@ tags:
 categories: 
 - 委托与事件
 ---
-# CSharp中的委托与事件
 
 ## 委托
 
