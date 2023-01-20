@@ -86,6 +86,7 @@ query_range:
         enabled: true
         max_size_mb: 1500
         ttl: 168h
+  cache_results: true
 
 compactor:
   working_directory: /loki/retention
