@@ -1497,4 +1497,7 @@ docker-compose up -d
 
 # 移除
 docker-compose down -v
+
+# 更新docker-compose
+docker-compose up -d --build
 ```
