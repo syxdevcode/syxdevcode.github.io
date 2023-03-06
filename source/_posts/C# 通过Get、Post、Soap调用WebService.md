@@ -5,6 +5,7 @@ tags:
 - DotNet
 - CSharp
 - WebService
+- Soap
 categories: 
 - WebService
 ---
