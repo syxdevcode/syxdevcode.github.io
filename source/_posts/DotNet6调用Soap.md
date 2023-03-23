@@ -474,19 +474,43 @@ public class SoapHelper : ISingleton
     /// <returns></returns>
     private string ObjectToSoapXml(object o)
     {
-        XmlSerializer mySerializer = new XmlSerializer(o.GetType());
-        MemoryStream ms = new MemoryStream();
-        mySerializer.Serialize(ms, o);
-        XmlDocument doc = new XmlDocument();
-        doc.LoadXml(Encoding.UTF8.GetString(ms.ToArray()));
-        if (doc.DocumentElement != null)
+                var ms = new MemoryStream();
+        using (XmlWriter xmlWriter = XmlWriter.Create(ms, new XmlWriterSettings() { Encoding = new UTF8Encoding(false), OmitXmlDeclaration = true }))//使用UTF8Encoding
         {
-            return doc.DocumentElement.InnerXml;
-        }
-        else
-        {
+            XmlSerializer xz = new(o.GetType());
+            XmlSerializerNamespaces ns = new();
+            ns.Add(string.Empty, string.Empty);//去掉xmlns属性
+            xz.Serialize(xmlWriter, o, ns);
+            
+            var xml = Encoding.UTF8.GetString(ms.ToArray());//得到xml，不含BOM 
+
+            XmlDocument doc = new();
+            doc.LoadXml(xml);
+
+            if (doc.DocumentElement != null)
+            {
+                return doc.DocumentElement.InnerXml;
+            }
+
             return o.ToString();
         }
+
+
+        //XmlSerializer mySerializer = new XmlSerializer(o.GetType());
+        //MemoryStream ms = new MemoryStream();
+        //mySerializer.Serialize(ms, o);
+        //XmlDocument doc = new XmlDocument();
+        //var str = Encoding.UTF8.GetString(ms.ToArray());
+        //Log.Information($"将对象转换成XML节点格式:{str}");
+        //doc.LoadXml(str);
+        //if (doc.DocumentElement != null)
+        //{
+        //    return doc.DocumentElement.InnerXml;
+        //}
+        //else
+        //{
+        //    return o.ToString();
+        //}
     }
 
     /// <summary>

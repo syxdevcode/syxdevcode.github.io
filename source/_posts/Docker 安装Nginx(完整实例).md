@@ -1,5 +1,5 @@
 ---
-title: Docker安装Nginx
+title: Docker 安装Nginx(完整实例)
 date: 2022-09-02 11:34:44
 tags:
   - Docker Compose
@@ -136,8 +136,8 @@ services:
 │   └── security.conf
 ├── scgi_params
 ├── ssl
-│   ├── laas.ponytest.com.crt
-│   └── laas.ponytest.com.key
+│   ├── laas.mytest.com.crt
+│   └── laas.mytest.com.key
 ├── uwsgi_params
 └── www
 ```
@@ -334,25 +334,25 @@ location ~ /\.(?!well-known) {
 }
 ```
 
-`conf.d/laas.ponytest.com.conf` 配置：
+`conf.d/laas.mytest.com.conf` 配置：
 
 ```shell
 server {
     listen              443 ssl http2;
     listen              [::]:443 ssl http2;
-    server_name         laas.ponytest.com;
-    root                /var/www/laas.ponytest.com/public;
+    server_name         laas.mytest.com;
+    root                /var/www/laas.mytest.com/public;
 
     # SSL
-    ssl_certificate     /etc/nginx/ssl/laas.ponytest.com.crt;
-    ssl_certificate_key /etc/nginx/ssl/laas.ponytest.com.key;
+    ssl_certificate     /etc/nginx/ssl/laas.mytest.com.crt;
+    ssl_certificate_key /etc/nginx/ssl/laas.mytest.com.key;
 
     # security
     include             /etc/nginx/nginxconfig.io/security.conf;
 
     # logging
-    access_log          /var/log/nginx/laas.ponytest.com.access.log;
-    error_log           /var/log/nginx/laas.ponytest.com.error.log warn;
+    access_log          /var/log/nginx/laas.mytest.com.access.log;
+    error_log           /var/log/nginx/laas.mytest.com.error.log warn;
 
     # index.html fallback
     location / {
@@ -363,7 +363,7 @@ server {
 
     # reverse proxy
     location /api/ {
-        proxy_pass   https://laas.ponytest.com:8082;   #转发请求的地址
+        proxy_pass   https://laas.mytest.com:8082;   #转发请求的地址
         rewrite      ^/api/(.*)$ /$1 break;
         include      /etc/nginx/nginxconfig.io/proxy.conf;
     }
@@ -384,7 +384,7 @@ server {
 server {
     listen      80;
     listen      [::]:80;
-    server_name laas.ponytest.com;
-    return      301 https://laas.ponytest.com$request_uri;
+    server_name laas.mytest.com;
+    return      301 https://laas.mytest.com$request_uri;
 }
 ```
