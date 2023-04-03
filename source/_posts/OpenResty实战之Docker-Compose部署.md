@@ -13,6 +13,10 @@ categories:
   - OpenResty
 ---
 
+（未验证）草稿状态。
+
+nginx配置文件：
+
 ```yml
 version: "3.1"
 
@@ -76,6 +80,7 @@ services:
 
 ```
 
+配置文件：
 
 ```conf
 user                 nginx;
