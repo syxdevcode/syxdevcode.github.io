@@ -56,7 +56,7 @@ HLS 整体架构图总共有三个部分：Server，CDN，Client。
 HLS 通过 URI(RFC3986) 指向的一个 `Playlist` 来表示一个媒体流。
 一个 `Playlist` 可以是一个 Media `Playlist` 或者 `Master Playlist`，使用 UTF-8 编码的文本文件，包含一些 URI 跟描述性的 tags。
 一个 `Media Playlist` 包含一个 `Media Segments` 列表,当顺序播放时，能播放整个完整的流。
-要想播放这个 `Playlist`，客户端需要首先下载他，然后播放里面的每一个 Media Segment。
+要想播放这个 `Playlist`，客户端需要首先下载他，然后播放里面的每一个 `Media Segment`。
 更加复杂的情况是，`Playlist` 是一个 `Master Playlist`，包含一个 `Variant Stream` 集合，通常每个 `Variant Stream` 里面是同一个流的多个不同版本(如：分辨率，码率不同)。
 
 ### HLS Media Segments
