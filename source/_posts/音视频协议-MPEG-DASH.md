@@ -18,7 +18,7 @@ DASH是 `Dynamic Adaptive Streaming over HTTP` 的简称，是一种自适应码
 
 ABR是 `Adaptive Bit-Rate streaming` 的简称，是指为确保视频在互联网上的流畅传输，而根据带宽条件自适应地调节视频码率和质量的过程。
 
-使用ABR技术后，视频被转码为多种分辨率和码率的组合，这种组合被称为 `rendition`，这些rendition的集合形成了码率阶梯（`Bitrate Ladder`）。
+使用ABR技术后，视频被转码为多种分辨率和码率的组合，这种组合被称为 `rendition`，这些 `rendition` 的集合形成了码率阶梯（`Bitrate Ladder`）。
 
 下面就是一个码率阶梯：
 
@@ -51,7 +51,7 @@ ABR是 `Adaptive Bit-Rate streaming` 的简称，是指为确保视频在互联�
 
 ## 创建MPEG-DASH视频流
 
-如果你拥有一个单一的视频或者同一视频的几个码率-分辨率组合（`rendition`），你就可以创建与`MPEG-DASH`兼容的视频流。这个过程被称为打包，由专业的软件打包器完成。
+如果你拥有一个单一的视频或者同一视频的几个码率-分辨率组合（`rendition`），你就可以创建与 `MPEG-DASH` 兼容的视频流。这个过程被称为打包，由专业的软件打包器完成。
 
 目前市面上有多种打包器，其中最有名的包括:
 
