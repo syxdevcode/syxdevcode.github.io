@@ -1,5 +1,5 @@
 ---
-title: Nginx创建发布站点用户
+title: Linux-创建用户-发布Nginx站点
 date: 2022-11-16 15:56:43
 tags:
   - RockyLinux
