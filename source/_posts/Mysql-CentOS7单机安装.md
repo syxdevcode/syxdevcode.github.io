@@ -2,15 +2,12 @@
 title: Mysql-CentOS7单机安装
 date: 2017-02-15 15:48:14
 tags: 
-- Linux
-- MySql
-- CentOS7
-- 安装部署
+  - Linux
+  - MySql
+  - CentOS7
+  - 安装部署
 categories: MySql
 ---
-# Mysql-CentOS7单机安装
-
-文章正文
 
 在centos7单机安装mysql.
 
