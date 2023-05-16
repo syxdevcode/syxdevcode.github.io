@@ -9,7 +9,6 @@ tags:
 categories: 
 - Jenkins
 ---
-# CentOS7 & Docker & Jenkins & DotNetCore项目配置
 
 ## GitHub配置
 
@@ -37,7 +36,7 @@ categories:
 
 ## 配置Jenkins
 
-### 新建任务：
+### 新建任务
 
 ![5](/img/QQ截图20180508145651.png)
 
@@ -53,7 +52,7 @@ categories:
 
 ![8](/img/QQ截图20180508150102.png)
 
-### 构建触发器：
+### 构建触发器
 
 `H/2 * * * *`
 

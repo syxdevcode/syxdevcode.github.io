@@ -1,14 +1,15 @@
 ---
-title: 'CentOS7-PostGresqlSql9.6安装'
+title: 'CentOS7-PostgreSQL9.6安装'
 date: 2017-09-15 14:35:18
 tags:
 - Linux
 - CentOS7
-- PostGresqlSql
+- PostgreSQL
 - 安装部署
 categories:
-- PostGresqlSql
+- PostgreSQL
 ---
+
 ## 下载安装
 
 [官网文档](https://www.postgresql.org/download/linux/redhat/ "链接")
