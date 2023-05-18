@@ -144,7 +144,7 @@ repl-diskless-load disabled
 repl-disable-tcp-nodelay no
 ```
 
-`slave1.conf` 配置如下：
+`slave2.conf` 配置如下：
 
 注意 `replica-announce-port` 端口的区别。
 
