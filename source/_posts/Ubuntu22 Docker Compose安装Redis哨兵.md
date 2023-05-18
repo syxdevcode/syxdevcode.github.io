@@ -89,7 +89,7 @@ replica-announce-port 36379
 #cluster-announce-bus-port 46379
 
 replica-serve-stale-data yes
-replica-read-only yes
+replica-read-only no
 
 repl-diskless-sync no
 repl-diskless-sync-delay 5
@@ -135,7 +135,7 @@ replica-announce-port 36380
 #cluster-announce-bus-port 46379
 
 replica-serve-stale-data yes
-replica-read-only yes
+replica-read-only no
 
 repl-diskless-sync no
 repl-diskless-sync-delay 5
@@ -183,7 +183,7 @@ replica-announce-port 36381
 #cluster-announce-bus-port 46379
 
 replica-serve-stale-data yes
-replica-read-only yes
+replica-read-only no
 
 repl-diskless-sync no
 repl-diskless-sync-delay 5
