@@ -214,7 +214,7 @@ services:
       - kafka2
       - kafka3
     environment:
-      SERVER_SERVLET_CONTEXT_PATH: /kafkaui # 访问地址：host:port/kafkaui/ui
+      SERVER_SERVLET_CONTEXT_PATH: /kafka-ui # 访问地址：host:port/kafkaui/ui
       AUTH_TYPE: "LOGIN_FORM"
       SPRING_SECURITY_USER_NAME: suPerAdmin
       SPRING_SECURITY_USER_PASSWORD: suPerAdmin
@@ -228,6 +228,24 @@ services:
 ## 测试运行状态
 
 ```sh
+# 启动
+docker-compose up -d
+
+# 移除
+docker-compose down -v
+
+# 更新docker-compose
+docker-compose up -d --build
+
+# 停止
+docker-compose stop
+
+# 启动
+docker-compose start
+
+# 重启
+docker-compose restart
+
 # 查看容器运行状态
 docker ps
 
