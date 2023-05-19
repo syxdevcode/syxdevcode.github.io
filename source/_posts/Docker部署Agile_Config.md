@@ -16,10 +16,12 @@ categories:
 
 ```yml
 version: "3"
+
 services:
   agile_config_admin:
-    image: "kklldog/agile_config"
-    restart: always
+    image: "kklldog/agile_config:v-1.6.14"
+    container_name: agile-admin
+    restart: unless-stopped
     ports:
       - "15000:5000"
     networks:
@@ -31,8 +33,9 @@ services:
     env_file:
       - ./var.env
   agile_config_node1:
-    image: "kklldog/agile_config"
-    restart: always
+    image: "kklldog/agile_config:v-1.6.14"
+    container_name: agile-node1
+    restart: unless-stopped
     ports:
       - "15001:5000"
     networks:
@@ -44,8 +47,9 @@ services:
     depends_on:
       - agile_config_admin
   agile_config_node2:
-    image: "kklldog/agile_config"
-    restart: always
+    image: "kklldog/agile_config:v-1.6.14"
+    container_name: agile-node2
+    restart: unless-stopped
     ports:
       - "15002:5000"
     networks:
@@ -90,7 +94,7 @@ db__provider= Encrypt=True;TrustServerCertificate=True;Persist Security Info=Fal
 
 ```shell
 # 启动
-docker compose up -d
+docker-compose up -d
 
 # 移除
 docker-compose down -v

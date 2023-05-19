@@ -255,7 +255,7 @@ services:
   redis-master:
     image: redis:7.0.4
     container_name: redis-master
-    restart: always
+    restart: unless-stopped
     command: redis-server /usr/local/etc/redis/redis.conf
     volumes:
       - /lims/redis/conf/master.conf:/usr/local/etc/redis/redis.conf
@@ -269,7 +269,7 @@ services:
   redis-slave1:
     image: redis:7.0.4
     container_name: redis-slave1
-    restart: always
+    restart: unless-stopped
     command: redis-server /usr/local/etc/redis/redis.conf
     volumes:
       - /lims/redis/conf/slave1.conf:/usr/local/etc/redis/redis.conf
@@ -283,7 +283,7 @@ services:
   redis-slave2:
     image: redis:7.0.4
     container_name: redis-slave2
-    restart: always
+    restart: unless-stopped
     command: redis-server /usr/local/etc/redis/redis.conf
     volumes:
       - /lims/redis/conf/slave2.conf:/usr/local/etc/redis/redis.conf
@@ -297,7 +297,7 @@ services:
   redis-sentinel-1:
     image: redis:7.0.4
     container_name: redis-sentinel-1
-    restart: always
+    restart: unless-stopped
     command: redis-sentinel /usr/local/etc/redis/sentinel.conf
     volumes:
       - /lims/redis/conf/sentinel-1.conf:/usr/local/etc/redis/sentinel.conf
@@ -315,7 +315,7 @@ services:
   redis-sentinel-2:
     image: redis:7.0.4
     container_name: redis-sentinel-2
-    restart: always
+    restart: unless-stopped
     command: redis-sentinel /usr/local/etc/redis/sentinel.conf
     volumes:
       - /lims/redis/conf/sentinel-2.conf:/usr/local/etc/redis/sentinel.conf
@@ -333,7 +333,7 @@ services:
   redis-sentinel-3:
     image: redis:7.0.4
     container_name: redis-sentinel-3
-    restart: always
+    restart: unless-stopped
     command: redis-sentinel /usr/local/etc/redis/sentinel.conf
     volumes:
       - /lims/redis/conf/sentinel-3.conf:/usr/local/etc/redis/sentinel.conf
