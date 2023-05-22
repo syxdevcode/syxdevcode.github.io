@@ -9,9 +9,9 @@ categories:
   - Consul
 ---
 
-## 快速启动
+## 一，快速启动
 
-### 创建目录
+### 1，创建目录
 
 ```sh
 mkdir -p /opt/consul/consul1/config
@@ -34,7 +34,7 @@ mkdir -p /opt/consul/consul4/log
 chmod 777 /opt/consul/consul1/config /opt/consul/consul1/data /opt/consul/consul1/log /opt/consul/consul2/config /opt/consul/consul2/data /opt/consul/consul2/log /opt/consul/consul3/config /opt/consul/consul3/data /opt/consul/consul3/log /opt/consul/consul4/config /opt/consul/consul4/data /opt/consul/consul4/log
 ```
 
-### 配置yml文件
+### 2，配置yml文件
 
 ```yml
 version: '3.5'
@@ -86,7 +86,7 @@ services:
 ```
 
 <!--more-->
-### 启动
+### 3，启动
 
 ```sh
 # 启动
@@ -96,9 +96,9 @@ docker-compose -f /opt/consul/docker-compose.yml up -d
 docker-compose -f /opt/consul/docker-compose.yml down -v
 ```
 
-## ACL认证
+## 二，ACL认证
 
-### 生成通讯密钥
+### 1，生成通讯密钥
 
 ```sh
 # 运行一个consul实例
@@ -108,7 +108,7 @@ docker exec consul consul keygen
 FR4lbrVWs0qhsfDyWzDoFXJUCdFyegJlKLsslwkOw/w=
 ```
 
-### 配置
+### 2，配置
 
 创建目录：
 
@@ -133,7 +133,7 @@ mkdir -p /opt/consul/consul4/log
 chmod 777 /opt/consul/consul1/config /opt/consul/consul1/data /opt/consul/consul1/log /opt/consul/consul2/config /opt/consul/consul2/data /opt/consul/consul2/log /opt/consul/consul3/config /opt/consul/consul3/data /opt/consul/consul3/log /opt/consul/consul4/config /opt/consul/consul4/data /opt/consul/consul4/log
 ```
 
-### 节点配置文件
+### 3，节点配置文件
 
 节点1：作为Leader（管理）节点，服务节点
 
@@ -237,7 +237,7 @@ vim /opt/consul/consul4/config/config.json
 }
 ```
 
-### ACL token权限配置
+### 4，ACL token权限配置
 
 使用linux的 `uuidgen` 命令生成一个64位UUID作为 `Master Token`：
 
@@ -253,7 +253,7 @@ a4f64bd5-100c-452d-81bd-326687d5fc80
 apt-get install -y uuid-runtime
 ```
 
-### 配置文件
+### 5，配置文件
 
 ```yml
 version: '3.5'
