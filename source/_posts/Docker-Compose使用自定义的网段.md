@@ -195,6 +195,13 @@ networks:
 
 ```sh
 docker network create --driver bridge --subnet 10.10.13.0/24 --gateway 10.10.13.1 docker_compose_net
+
+# 查看网络列表
+docker network ls
+
+# 查看网络信息
+docker network inspect docker_compose_net | grep Subnet
+                    "Subnet": "10.10.13.0/24",
 ```
 
 ```yml

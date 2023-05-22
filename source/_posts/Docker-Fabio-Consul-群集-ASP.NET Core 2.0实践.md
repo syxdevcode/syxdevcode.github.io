@@ -2,15 +2,14 @@
 title: Docker & Fabio & Consul群集 & ASP.NET Core 2.0实践
 date: 2018-06-13 11:36:36
 tags:
-- Docker
-- Consul
-- DotNetCore
-- Fabio
-- 分布式
+  - Docker
+  - Consul
+  - DotNetCore
+  - Fabio
+  - 分布式
 categories: 
-- Consul
+  - Consul
 ---
-# Docker & Fabio & Consul群集 & ASP.NET Core 2.0实践
 
 ## 1，Docker运行consul环境
 
@@ -258,7 +257,7 @@ curl http://172.17.0.5:8500/v1/status/leader
 
 根据项目的介绍fabio 能提供每秒15000次请求。
 
-** 服务发现的特点**
+**服务发现的特点**
 
 服务与服务之间的调用需要在配置文件中填写好主机和端口,不易于维护且分布式环境中不易于部署与扩容。
 
@@ -266,7 +265,7 @@ curl http://172.17.0.5:8500/v1/status/leader
 
 甚至更为简单的注册完毕后通过 DNS 的方式来『寻址』。比如 Zookeepr 可以很好的完成这个工作，但是其中还有一个弊端就是服务的健康检查服务注册到注册中心之后如何保证这个服务一定可用？此时就需要自己来写逻辑当服务不可用的时候自动从注册中心下线掉。 然后Consul 可以很轻易的解决这个问题。
 
-** 工作原理**
+**工作原理**
 
 Consul 提供了一套健康检测机制简单的说针对 http 类型的服务(consul 也支持 其他类型例如tcp)在注册的时候可以顺便注册下健康检测的信息，提供一个健康检测的地址(url)以及一个频率超时时间这样的话 consul 会定期的来请求当状态码是200的时候设置次服务是健康的状态否则是故障状态。
 
@@ -295,7 +294,7 @@ A服务   <------>      consul集群  ---->  健康的 A/不健康的 A 集群
 
 Fabio Docker 镜像地址：[https://hub.docker.com/r/magiconair/fabio/](https://hub.docker.com/r/magiconair/fabio/)
 
-** 目录结构**
+**目录结构**
 
 ```bash
 fabio

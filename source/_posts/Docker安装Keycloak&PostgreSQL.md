@@ -45,6 +45,10 @@ docker build . -t mykeycloak:1.0.0
 如果没有外部网络，需要运行以下命令创建：
 
 ```sh
+# 查看网络列表
+docker network ls
+
+# 创建网络
 docker network create --driver bridge --subnet 10.10.13.0/24 --gateway 10.10.13.1 docker_compose_net
 ```
 

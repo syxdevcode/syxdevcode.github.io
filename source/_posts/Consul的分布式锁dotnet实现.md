@@ -2,12 +2,11 @@
 title: Consul的分布式锁DotNet实现
 date: 2018-06-13 10:23:53
 tags:
-- 分布式
-- Consul
+  - 分布式
+  - Consul
 categories: 
-- Consul
+  - Consul
 ---
-# Consul的分布式锁dotnet实现
 
 ## 分布式锁实现
 

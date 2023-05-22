@@ -243,13 +243,27 @@ sentinel parallel-syncs limsmaster 2
 
 ## docker-compose 配置
 
+### 创建外部网络
+
+如果没有外部网络，需要运行以下命令创建：
+
+```sh
+# 查看网络列表
+docker network ls
+
+# 创建网络
+docker network create --driver bridge --subnet 10.10.13.0/24 --gateway 10.10.13.1 docker_compose_net
+```
+
 新建 `docker-compose.yml` 文件。
 
 ```yml
 version: "3.1"
 
 networks:
-  net0:
+  default:
+    external:
+      name: docker_compose_net
 
 services:
   redis-master:
@@ -262,8 +276,6 @@ services:
       - /lims/redis/master/data:/data
     ports:
       - 36379:6379
-    networks:
-      net0:
     environment:
       - TZ=Asia/Shanghai # 时区配置亚洲上海
   redis-slave1:
@@ -276,8 +288,6 @@ services:
       - /lims/redis/slave1/data:/data
     ports:
       - 36380:6379
-    networks:
-      net0:
     environment:
       - TZ=Asia/Shanghai # 时区配置亚洲上海
   redis-slave2:
@@ -290,8 +300,6 @@ services:
       - /lims/redis/slave2/data:/data
     ports:
       - 36381:6379
-    networks:
-      net0:
     environment:
       - TZ=Asia/Shanghai # 时区配置亚洲上海
   redis-sentinel-1:
@@ -304,8 +312,6 @@ services:
       - /lims/redis/conf:/usr/local/etc/redis/conf/
     ports:
       - 26379:26379
-    networks:
-      net0:
     environment:
       - TZ=Asia/Shanghai # 时区配置亚洲上海
     depends_on:
@@ -322,8 +328,6 @@ services:
       - /lims/redis/conf:/usr/local/etc/redis/conf/
     ports:
       - 26380:26379
-    networks:
-      net0:
     environment:
       - TZ=Asia/Shanghai # 时区配置亚洲上海
     depends_on:
@@ -340,8 +344,6 @@ services:
       - /lims/redis/conf:/usr/local/etc/redis/conf/
     ports:
       - 26381:26379
-    networks:
-      net0:
     environment:
       - TZ=Asia/Shanghai # 时区配置亚洲上海
     depends_on:

@@ -23,7 +23,8 @@ categories:
 
 ```sh
 # 命令创建Docker网络
-docker network create zookeeper_network
+docker network create --driver bridge --subnet 10.10.14.0/24 --gateway 10.10.14.1 zookeeper_network
+
 # 查看 Docker网络
 docker network ls
 ```

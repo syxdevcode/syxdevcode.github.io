@@ -14,8 +14,25 @@ categories:
 
 ## Docer Compose 配置
 
+### 创建外部网络
+
+如果没有外部网络，需要运行以下命令创建：
+
+```sh
+# 查看网络列表
+docker network ls
+
+# 创建网络
+docker network create --driver bridge --subnet 10.10.13.0/24 --gateway 10.10.13.1 docker_compose_net
+```
+
 ```yml
 version: "3"
+
+networks:
+  default:
+    external:
+      name: docker_compose_net
 
 services:
   agile_config_admin:
@@ -24,8 +41,6 @@ services:
     restart: unless-stopped
     ports:
       - "15000:5000"
-    networks:
-      - net0
     volumes:
       - /etc/localtime:/etc/localtime
     environment:
@@ -38,8 +53,6 @@ services:
     restart: unless-stopped
     ports:
       - "15001:5000"
-    networks:
-      - net0
     volumes:
       - /etc/localtime:/etc/localtime
     env_file:
@@ -52,16 +65,12 @@ services:
     restart: unless-stopped
     ports:
       - "15002:5000"
-    networks:
-      - net0
     volumes:
       - /etc/localtime:/etc/localtime
     env_file:
       - ./var.env
     depends_on:
       - agile_config_admin
-networks:
-  net0:
 ```
 
 <!--more-->

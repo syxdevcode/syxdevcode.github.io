@@ -48,10 +48,10 @@ ufw status
 
 ```shell
 sudo ufw allow ssh
+sudo ufw deny PORT
 ```
 
 <!--more-->
-
 ## 启用/禁用防火墙
 
 ### 启用防火墙
