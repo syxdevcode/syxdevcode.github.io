@@ -304,7 +304,7 @@ docker exec consul3 consul acl token create -description "consul3 agent token" \
   -node-identity "consul3:dc1" -token "a4f64bd5-100c-452d-81bd-326687d5fc80"
 ```
 
-创建 acl文件：
+创建 acl文件，依次替换SecretID。
 
 ```sh
 vim /opt/consul/consul1/config/acl.hcl
