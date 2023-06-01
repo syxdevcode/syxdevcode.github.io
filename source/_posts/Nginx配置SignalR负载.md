@@ -69,7 +69,7 @@ const connection = new SignalR.HubConnectionBuilder()
     })
     .build();
 connection.keepAliveIntervalInMilliseconds = 15 * 1000; // 心跳检测15s
-connection.serverTimeoutInMilliseconds = 2 * 60 * 1000; // 超时时间3m
+connection.serverTimeoutInMilliseconds = 2 * 60 * 1000; // 超时时间2m
 ```
 
 ```cs
