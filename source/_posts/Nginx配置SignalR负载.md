@@ -51,6 +51,7 @@ map $http_connection $connection_upgrade {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 ```
+<!--more-->
 
 ```ts
 import * as SignalR from '@microsoft/signalr';
