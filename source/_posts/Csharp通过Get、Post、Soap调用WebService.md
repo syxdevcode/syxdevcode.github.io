@@ -1,5 +1,5 @@
 ---
-title: C#通过Get、Post、Soap调用WebService
+title: Csharp通过Get、Post、Soap调用WebService
 date: 2023-01-17 09:39:48
 tags:
 - DotNet
