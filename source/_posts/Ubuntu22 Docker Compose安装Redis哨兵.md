@@ -270,9 +270,9 @@ services:
     image: redis:7.0.4
     container_name: redis-master
     restart: unless-stopped
-    command: redis-server /usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/master.conf
     volumes:
-      - /lims/redis/conf/master.conf:/usr/local/etc/redis/redis.conf
+      - /lims/redis/conf:/usr/local/etc/redis
       - /lims/redis/master/data:/data
     ports:
       - 36379:6379
@@ -282,9 +282,9 @@ services:
     image: redis:7.0.4
     container_name: redis-slave1
     restart: unless-stopped
-    command: redis-server /usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/slave1.conf
     volumes:
-      - /lims/redis/conf/slave1.conf:/usr/local/etc/redis/redis.conf
+      - /lims/redis/conf:/usr/local/etc/redis
       - /lims/redis/slave1/data:/data
     ports:
       - 36380:6379
@@ -294,9 +294,9 @@ services:
     image: redis:7.0.4
     container_name: redis-slave2
     restart: unless-stopped
-    command: redis-server /usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/slave2.conf
     volumes:
-      - /lims/redis/conf/slave2.conf:/usr/local/etc/redis/redis.conf
+      - /lims/redis/conf:/usr/local/etc/redis
       - /lims/redis/slave2/data:/data
     ports:
       - 36381:6379
@@ -306,10 +306,9 @@ services:
     image: redis:7.0.4
     container_name: redis-sentinel-1
     restart: unless-stopped
-    command: redis-sentinel /usr/local/etc/redis/sentinel.conf
+    command: redis-sentinel /usr/local/etc/redis/sentinel-1.conf
     volumes:
-      - /lims/redis/conf/sentinel-1.conf:/usr/local/etc/redis/sentinel.conf
-      - /lims/redis/conf:/usr/local/etc/redis/conf/
+      - /lims/redis/conf:/usr/local/etc/redis
     ports:
       - 26379:26379
     environment:
@@ -322,10 +321,9 @@ services:
     image: redis:7.0.4
     container_name: redis-sentinel-2
     restart: unless-stopped
-    command: redis-sentinel /usr/local/etc/redis/sentinel.conf
+    command: redis-sentinel /usr/local/etc/redis/sentinel-2.conf
     volumes:
-      - /lims/redis/conf/sentinel-2.conf:/usr/local/etc/redis/sentinel.conf
-      - /lims/redis/conf:/usr/local/etc/redis/conf/
+      - /lims/redis/conf:/usr/local/etc/redis
     ports:
       - 26380:26379
     environment:
@@ -338,10 +336,9 @@ services:
     image: redis:7.0.4
     container_name: redis-sentinel-3
     restart: unless-stopped
-    command: redis-sentinel /usr/local/etc/redis/sentinel.conf
+    command: redis-sentinel /usr/local/etc/redis/sentinel-3.conf
     volumes:
-      - /lims/redis/conf/sentinel-3.conf:/usr/local/etc/redis/sentinel.conf
-      - /lims/redis/conf:/usr/local/etc/redis/conf/
+      - /lims/redis/conf:/usr/local/etc/redis
     ports:
       - 26381:26379
     environment:
