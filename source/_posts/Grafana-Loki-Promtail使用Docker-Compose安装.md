@@ -69,6 +69,7 @@ limits_config:
   reject_old_samples: true   # 是否拒绝旧样本
   reject_old_samples_max_age: 4440h   # 4440h小时之前的样本被拒绝
   max_query_length: 4440h  # 块存储查询的长度限制。禁用=0h，默认default = 721h
+  max_entries_limit_per_query: 10000 # 查询返回的最大日志条目数 默认5000
 
 storage_config:
   boltdb_shipper:
@@ -78,6 +79,10 @@ storage_config:
     shared_store: filesystem
   filesystem:
     directory: /loki/chunks
+
+query_scheduler:
+  grpc_client_config: 
+    max_recv_msg_size: 1048576000
 
 query_range:
   results_cache:
