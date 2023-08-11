@@ -27,6 +27,8 @@ mkdir -p /opt/grafana/log
 
 ### loki配置文件
 
+Grafana Loki V2.7.X
+
 路径：`/opt/grafana/loki/config/local-config.yaml` :
 
 参考：[Configuring Grafana Loki](https://grafana.com/docs/loki/latest/configuration/)
