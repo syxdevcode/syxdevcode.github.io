@@ -52,6 +52,14 @@ WebDeploy默认监听8172端口，可以按照以下操作自定义端口号：
 
 ![Snipaste_2023-08-19_14-17-44.png](/img1/Snipaste_2023-08-19_14-17-44.png)
 
+### 启用部署
+
+选择站点，右键=> 部署=> 启用web deploy发布
+
+![Snipaste_2023-08-21_08-38-02.png](/img1/Snipaste_2023-08-21_08-38-02.png)
+
+![Snipaste_2023-08-21_08-47-34.png](/img1/Snipaste_2023-08-21_08-47-34.png)
+
 ## 发布
 
 ### PowerShell命令
@@ -82,12 +90,12 @@ WebDeploy默认监听8172端口，可以按照以下操作自定义端口号：
 注意：需要删除掉空格，注释。
 
 ```ps1
-$website="二方审核api-新版" # 站点名称
-$sourceFolder='D:\Git\publish\Pony-ErFangAudit' # 发布的源文件路径
+$website="mywebsite" # 站点名称
+$sourceFolder='D:\Git\publish\mywebsite' # 发布的源文件路径
 $url="10.10.0.37"
 $port="8500"
 $username="webDeploy" #需要在IIS管理用户中进行创建
-$password="W#Edc/@WsxPony"
+$password="test123123"
 $webDeployFolder='C:\Program Files\IIS\Microsoft Web Deploy V3'
 $msdeploy=Join-Path -Path $webDeployFolder -ChildPath "msdeploy.exe"
 $scriptFolder=Join-Path -Path $webDeployFolder -ChildPath "Scripts"
@@ -100,7 +108,7 @@ TurnOn-Backups -On $true   # 启用备份
 # TurnOn-Backups -On $false  # 关闭备份
 # Changes default global backup behavior to enabled
 Configure-Backups -Enabled $true # 启用全局备份
-# Changes default backup behavior for site "二方审核api-新版" to enabled
+# Changes default backup behavior for site "mywebsite" to enabled
 Configure-Backups -SiteName "$website" -Enabled $true
 # Changes the path of where backups are stored to a sibling directory named "siteName_snapshots".  
 # For more information about path variables, see the "backupPath" attribute in the section 
@@ -134,10 +142,10 @@ Configure-Backups -AddExcludedProviders @("dbmysql","dbfullsql")
 **Power Shell 完整命令：**
 
 ```ps1
-cd "D:\Git\workspace\二方审核\Admin.NET"
+cd "D:\Git\workspace\mywebsite\Admin.NET"
 dotnet publish -p:PublishDir=D:\Git\publish\Pony-ErFangAudit --arch x64
-$website="二方审核api-新版" # 站点名称
-$sourceFolder='D:\Git\publish\Pony-ErFangAudit' # 发布的源文件路径
+$website="mywebsite" # 站点名称
+$sourceFolder='D:\Git\publish\mywebsite' # 发布的源文件路径
 $url="10.10.0.37"
 $port="8500"
 $username="webDeploy" #需要在IIS管理用户中进行创建
@@ -153,7 +161,7 @@ TurnOn-Backups -On $true   # 启用备份
 # TurnOn-Backups -On $false  # 关闭备份
 # Changes default global backup behavior to enabled
 Configure-Backups -Enabled $true
-# Changes default backup behavior for site "二方审核api-新版" to enabled
+# Changes default backup behavior for site "mywebsite" to enabled
 Configure-Backups -SiteName "$website" -Enabled $true
 # Changes the path of where backups are stored to a sibling directory named "siteName_snapshots".  
 # For more information about path variables, see the "backupPath" attribute in the section 
