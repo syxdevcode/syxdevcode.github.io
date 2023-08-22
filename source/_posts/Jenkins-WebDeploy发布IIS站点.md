@@ -4,6 +4,7 @@ date: 2023-08-19 13:57:28
 tags:
   - IIS
   - Jenkins
+  - DotNetCore
   - Windows Server
 categories:
   - IIS
@@ -87,7 +88,9 @@ WebDeploy默认监听8172端口，可以按照以下操作自定义端口号：
 ```
 
 可以在Windows Server服务器上使用以下代码测试，之后再配置到Jenkins中：
-注意：需要删除掉空格，注释。
+注意：
+1，需要删除掉空格，注释，不能使用中文作为文件夹（项目）名称。
+2，IIS站点名称，路径名称不能有中文，否则会出现乱码，报错的问题。
 
 ```ps1
 $website="mywebsite" # 站点名称
@@ -133,13 +136,13 @@ Configure-Backups -AddExcludedProviders @("dbmysql","dbfullsql")
 # & $msdeploy -verb:sync -allowUntrusted -source:contentPath=$sourceFolder -dest:contentPath="$website/",computerName="https://${url}:${port}/msdeploy.axd?site=$website",username="$username",password="$password",AuthType="Basic" -skip:objectName=dirPath,absolutePath='Configuration' -skip:objectName=dirPath,absolutePath='logs'
 
 # 同步整个文件夹至根目录，但不要删除目标的其它文件:
-& $msdeploy -verb:sync -allowUntrusted -source:contentPath=$sourceFolder -dest:contentPath="$website/",computerName="https://${url}:${port}/msdeploy.axd?site=$website",username="$username",password="$password",AuthType="Basic" -enableRule:DoNotDeleteRule
+& $msdeploy -verb:sync -allowUntrusted -source:contentPath=$sourceFolder -dest:contentPath="$website/",computerName="https://${url}:${port}/msdeploy.axd?site=$website",username="$username",password="$password",AuthType="Basic" -enableRule:DoNotDeleteRule -skip:objectName=dirPath,absolutePath='wwwroot' 
 
 # 启动应用程序池 StartAppPool:
 & $msdeploy -verb:sync -allowUntrusted -source:recycleApp -dest:recycleApp="$website",recycleMode="StartAppPool",computerName="https://${url}:${port}/msdeploy.axd?site=$website",username="$username",password="$password",AuthType="Basic"
 ```
 
-**Power Shell 完整命令：**
+**Power Shell 完整脚本：**
 
 ```ps1
 cd "D:\Git\workspace\mywebsite\Admin.NET"
@@ -176,7 +179,7 @@ Configure-Backups -AddExcludedProviders @("dbmysql","dbfullsql")
 # StopAppPool:
 & $msdeploy -verb:sync -allowUntrusted -source:recycleApp -dest:recycleApp="$website",recycleMode="StopAppPool",computerName="https://${url}:${port}/msdeploy.axd?site=$website",username="$username",password="$password",AuthType="Basic"
 # sync
-& $msdeploy -verb:sync -allowUntrusted -source:contentPath=$sourceFolder -dest:contentPath="$website/",computerName="https://${url}:${port}/msdeploy.axd?site=$website",username="$username",password="$password",AuthType="Basic" -skip:objectName=dirPath,absolutePath='Configuration' -skip:objectName=dirPath,absolutePath='logs'
+& $msdeploy -verb:sync -allowUntrusted -source:contentPath=$sourceFolder -dest:contentPath="$website/",computerName="https://${url}:${port}/msdeploy.axd?site=$website",username="$username",password="$password",AuthType="Basic" -skip:objectName=dirPath,absolutePath='Configuration' -skip:objectName=dirPath,absolutePath='logs' -skip:objectName=dirPath,absolutePath='wwwroot' 
 # StartAppPool:
 & $msdeploy -verb:sync -allowUntrusted -source:recycleApp -dest:recycleApp="$website",recycleMode="StartAppPool",computerName="https://${url}:${port}/msdeploy.axd?site=$website",username="$username",password="$password",AuthType="Basic"
 ```

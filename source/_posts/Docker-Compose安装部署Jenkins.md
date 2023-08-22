@@ -47,8 +47,10 @@ services:
       #- /usr/local/bin/docker-compose:/usr/local/bin/docker-compose    
     environment:
       TZ : Asia/Shanghai # 时区配置亚洲上海
-      JAVA_OPTS : "-server -Xms1024m -Xmx1024m -XX:PermSize=256m -XX:MaxPermSize=512m" # 处理内存占用过高问题
+      JAVA_OPTS : "-server -Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 -Xms1024m -Xmx1024m -XX:PermSize=256m -XX:MaxPermSize=512m" # 处理内存占用过高问题
 ```
+
+`-Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8` ：处理中文乱码问题
 
 如果您在其他机器上设置了一个或多个基于JNLP的Jenkins代理程序，而这些代理程序又与 jenkinsci/blueocean 容器交互（充当“主”Jenkins服务器，或者简称为“Jenkins主”）， 则这是必需的。默认情况下，基于JNLP的Jenkins代理通过TCP端口50000与Jenkins主站进行通信。 您可以通过“ 配置全局安全性” 页面更改Jenkins主服务器上的端口号。如果您要将您的Jenkins主机的JNLP代理端口的TCP端口 值更改为51000（例如），那么您需要重新运行Jenkins（通过此 docker run …​命令）并指定此“发布”选项 -p 52000:51000，其中最后一个值与Jenkins master上的这个更改值相匹配，第一个值是Jenkins主机的主机上的端口号， 通过它，基于JNLP的Jenkins代理与Jenkins主机进行通信 - 例如52000。
 
@@ -87,6 +89,10 @@ docker logs jenkins
 
 保存之后，会跳转到显示连接到主节点的命令行页面。
 
+注意：加上 "-Dfile.encoding=UTF-8" "-Dsun.jnu.encoding=UTF-8" 处理中文乱码问题，例如：
+
+`java "-Dfile.encoding=UTF-8" "-Dsun.jnu.encoding=UTF-8" -jar agent.jar -jnlpUrl ......`。
+
 ![Snipaste_2023-08-19_16-38-20.png](/img1/Snipaste_2023-08-19_16-38-20.png)
 
 * 3，在从节点新建bat批处理程序，把相关操作系统的命令复制进去即可。
@@ -108,6 +114,14 @@ Update Site 设置成  https://mirrors.tuna.tsinghua.edu.cn/jenkins/updates/upda
 进入 系统管理=>插件管理，安装插件即可。
 
 ![Snipaste_2023-08-19_16-43-10.png](/img1/Snipaste_2023-08-19_16-43-10.png)
+
+安装常用的插件：Git,GitBlit,Nodejs,PowerShell。
+
+nodejs版本管理：
+
+设置nodejs镜像地址：`https://npm.taobao.org/mirrors/node/`。
+
+![https://npm.taobao.org/mirrors/node/](/img1/https://npm.taobao.org/mirrors/node/)
 
 ## 中文乱码
 
