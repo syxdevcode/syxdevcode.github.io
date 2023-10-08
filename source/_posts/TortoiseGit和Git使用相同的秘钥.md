@@ -34,11 +34,25 @@ TortoiseGit--> Settings，将Network（网络）中的SSH client（SSH客户端�
 
 ![C:\Program Files\Git\usr\bin](/img1/Snipaste_2023-10-08_15-49-06.png)
 
+## 配置多个ssh
+
+找到 `C:\Program Files\Git\etc\ssh`目录，找到 `ssh_config`，在文件最后一行添加:
+
+```cfg
+Host github.com
+    User syxdevcode  
+    HostName github.com
+    PreferredAuthentications publickey
+    IdentityFile ~/.ssh/github_rsa
+    ServerAliveInterval 300
+    ServerAliveCountMax 10
+```
+
 ## 错误排查
 
 no matching host key type found. Their offer: ssh-rsa,ssh-dss
 
-找到 `C:\Program Files\Git\etc\ssh`目录，找到 ssh_config，在文件最后一行添加
+找到 `C:\Program Files\Git\etc\ssh`目录，找到 `ssh_config`，在文件最后一行添加
 
 ```t
 Host *
