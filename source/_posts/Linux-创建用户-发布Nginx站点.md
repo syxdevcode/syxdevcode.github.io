@@ -27,5 +27,5 @@ chmod -R 775 /opt/nginx/www
 ls -la /opt/nginx/www
 
 # 到 sudoers 文件中增加新的用户，否则无法使用 sudo 命令
-vim /etc/sudoers ====> 增加一行与 ROOT 相同的配置，然后输入 wq! 强制强制退出
+vim /etc/sudoers ====> 增加一行与 ROOT 相同的配置，然后输入 wq! 强制退出
 ```
