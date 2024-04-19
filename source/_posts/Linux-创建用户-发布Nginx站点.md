@@ -21,7 +21,7 @@ passwd lims
 chown -R lims:lims /opt/nginx/www
 
 # 给文件夹赋权
-chmod -R 775 /opt/nginx/www
+chmod -R 777 /opt/nginx/www
 
 # 查看目录的所属者和操作权限
 ls -la /opt/nginx/www
