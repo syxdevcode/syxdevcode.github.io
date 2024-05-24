@@ -6,6 +6,7 @@ tags:
   - Docker
   - Ubuntu
   - Linux
+  - Redis
 categories:
   - Redis
 ---
