@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.2">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"syxdevcode.github.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="AppDomain介绍为了保证代码的键壮性CLR希望不同服务功能的代码之间相互隔离，这种隔离可以通过创建多个进程来实现，但操作系统中创建进程是即耗时又耗费资源的一件事，所以在CLR中引入了AppDomain的概念，AppDomain 主要是用来实现同一进程中的各 AppDomain 之间的隔离。 AppDomain 是.Net 平台里一个很重要的特性，在.Net以前，每个程序是 封装 在不同的进程">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CSharp-应用程序域(AppDomain)">
+<meta property="og:url" content="https://syxdevcode.github.com/2019/01/24/CSharp-%E5%BA%94%E7%94%A8%E7%A8%8B%E5%BA%8F%E5%9F%9F-AppDomain/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="AppDomain介绍为了保证代码的键壮性CLR希望不同服务功能的代码之间相互隔离，这种隔离可以通过创建多个进程来实现，但操作系统中创建进程是即耗时又耗费资源的一件事，所以在CLR中引入了AppDomain的概念，AppDomain 主要是用来实现同一进程中的各 AppDomain 之间的隔离。 AppDomain 是.Net 平台里一个很重要的特性，在.Net以前，每个程序是 封装 在不同的进程">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-01-24T06:28:36.000Z">
+<meta property="article:modified_time" content="2022-06-27T10:25:23.215Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="CSharp">
+<meta property="article:tag" content="程序集">
+<meta property="article:tag" content="应用程序域">
+<meta property="article:tag" content="AppDomain">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://syxdevcode.github.com/2019/01/24/CSharp-%E5%BA%94%E7%94%A8%E7%A8%8B%E5%BA%8F%E5%9F%9F-AppDomain/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>CSharp-应用程序域(AppDomain) | syxdevcode博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">syxdevcode博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/syxdevcode" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/01/24/CSharp-%E5%BA%94%E7%94%A8%E7%A8%8B%E5%BA%8F%E5%9F%9F-AppDomain/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          CSharp-应用程序域(AppDomain)
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-01-24 14:28:36" itemprop="dateCreated datePublished" datetime="2019-01-24T14:28:36+08:00">2019-01-24</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-06-27 18:25:23" itemprop="dateModified" datetime="2022-06-27T18:25:23+08:00">2022-06-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/AppDomain/" itemprop="url" rel="index"><span itemprop="name">AppDomain</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>10k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>9 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="AppDomain介绍"><a href="#AppDomain介绍" class="headerlink" title="AppDomain介绍"></a>AppDomain介绍</h2><p>为了保证代码的键壮性CLR希望不同服务功能的代码之间相互隔离，这种隔离可以通过创建多个进程来实现，但操作系统中创建进程是即耗时又耗费资源的一件事，所以在CLR中引入了<code>AppDomain</code>的概念，<code>AppDomain</code> 主要是用来实现同一进程中的各 <code>AppDomain</code> 之间的隔离。</p>
+<p><code>AppDomain</code> 是.Net 平台里一个很重要的特性，在.Net以前，每个程序是 <code>封装</code> 在不同的进程中的，这样导致的结果就造就占用资源大，可复用性低等缺点。而 <code>AppDomain</code> 在同一个进程内划分出多个 <code>域</code>，一个进程可以运行多个应用，提高了资源的复用性，数据通信等。</p>
+<p>CLR在启动的时候会创建<code>系统域(System Domain)</code>，<code>共享域(Shared Domain)</code>和<code>默认域(Default Domain)</code>，系统域与共享域对于用户是不可见的，默认域也可以说是当前域，它承载了当前应用程序的各类信息(堆栈)，所以，我们的一切操作都是在这个默认域上进行。<code>插件式</code> 开发很大程度上就是依靠 <code>AppDomain</code> 来进行。</p>
+<p>应用程序域具有以下特点：</p>
+<ul>
+<li>必须先将程序集加载到应用程序域中，然后才能执行该程序集。</li>
+<li>一个应用程序域中的错误不会影响在另一个应用程序域中运行的其他代码。</li>
+<li>能够在不停止整个进程的情况下停止单个应用程序并卸载代码。不能卸载单独的程序集或类型，只能卸载整个应用程序域。<span id="more"></span></li>
+</ul>
+<p><strong>备注：</strong></p>
+<p>在 .NET Core 上， <code>AppDomain</code> 实现受设计限制，不提供隔离、卸载或安全边界。 对于 <code>.NET Core</code>，只有一个 <code>AppDomain</code> 。 通过提供隔离和卸载 <code>AssemblyLoadContext</code> 。 安全边界应由进程边界和适当的远程处理技术提供。</p>
+<p><code>AppDomain</code> 特征描述：</p>
+<ul>
+<li><code>AppDomain</code> 概念并不存在于操作系统，而只存在于.net中并且<code>AppDomain</code>不可脱离进程单独存在，它是属于某一CLR或寄宿着CLR的进程的。</li>
+<li>一个进程中可以有多个<code>AppDomain</code>,并且每个之间相互隔离（只保证安全代码的隔离，不安全代码并不能保证）,此可以理解为<code>AppDomain</code>是.net程序中的”进程”，在一个<code>AppDomain</code>中创建的对象只属于本<code>AppDomain</code>，多个<code>AppDomain</code>之间的对象不能相互访问，除非遵循CLR的一些规则。</li>
+<li>.net程序启动时在进程中创建一个默认的 <code>AppDomain</code>，入口代码将运行于此<code>AppDomain</code>，默认应用程序域只有在进程终止时才会被销毁，如果主动的调用<code>Unload</code>去卸载默认应用程序域，会抛出一个<code>CannotUnloadAppDomainException</code>。</li>
+<li>每个<code>AppDomain</code>都单独的加载程序集，这意味着在A应用程序域中加载了的程序集，并不一定在B应用程序域中也被加载了。每个<code>AppDomain</code>有单独的<code>Loader堆</code>，互相不影响，每个<code>Loader堆</code>都记录了自<code>AppDomain</code> 建立以后所访问过的类型，<code>Loader堆</code>中的每个类型对象都有一个方法表，这些方法表指向已经被JIT编译过的本地代码（前提是这些方法是已经被至少执行过一次的）。因为<code>AppDomain</code>是相互隔离的所以相同的一个类型中的方法，在A应用程序域中是被JIT编译过的，但不一定在B应用程序域中也是被JIT编辑过的，方法是否被JIT编辑过取决于些方法是否在本<code>AppDomain</code>被调用过。</li>
+<li>当<code>AppDomain</code>被卸载时，此<code>AppDomain</code>中的程序集会被卸载，因为每个<code>APPDomain</code>加载的程序集都是独立的，所以一个应用程序域被卸载并不会影响其它<code>AppDomain</code>中加载的程序集,另外本<code>AppDomain</code>的<code>loader堆</code>也会被回收，每个程序域的<code>loader堆</code>是独立的，所以也不会影响到其它程序域的<code>Loader堆</code>，因为<code>loader堆</code>是独立的（静态字段是存在于类型对象上的），所以一个类型中的静态字段在不同应用程序域中也是不同的存在，所以静态字段也是不被影响的，唯一受影响的是线程，因为线程可以跨越应用程序域访问不同的应用程序域上的代码。</li>
+<li>有一种程序集可以被多个<code>AppDomain</code>使用，这种程序集叫做 <code>AppDomain中立</code> 的程序集，比如<code>MSCorLib.dll</code>，该程序集包含了<code>System.Object,System.Int32</code>以及其它的与.net framework 密不可分的类型，这个程序集在CLR初始化时会自动加载，JIT会为这些程序集创建一个特殊的<code>Loader堆</code>，并且程序集中的方法被编译成的本地代码可被所有<code>AppDomain共享</code>，这种程序集不可被卸载只有当进程结束时这种程序集才会被卸载。</li>
+</ul>
+<h2 id="AppDomain间对象访问"><a href="#AppDomain间对象访问" class="headerlink" title="AppDomain间对象访问"></a>AppDomain间对象访问</h2><p>AppDomain之间的对象传送有两种方式，以下分别介绍：</p>
+<ul>
+<li><p>按引用封送方式</p>
+</li>
+<li><p>按值封送方式</p>
+</li>
+</ul>
+<h3 id="按引用封送方式"><a href="#按引用封送方式" class="headerlink" title="按引用封送方式"></a>按引用封送方式</h3><p>如果一种类型继承自<code>MarshalByRefObject</code>就标志着此类型所实例化出来的对象可以按引用封送传递到另一应用程序域中，所谓引用封送就是将对象传递到另一<code>AppDomain</code>后对对象所做的修改照实的反应到原对象身上，而不是创建副本对副本进行修改。这里面有个意外就是静态字段，静态字段的数据总是保存在当前应用程序域的<code>Loader堆</code>中，对静态字段的访问没有办法创建代理，所以就意味着按引用封送的类型的静态字段并没有引用原对象的静态字段，对目标类型的静态字段所做的修改也不会反映到原对象中。</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Person</span> : <span class="title">MarshalByRefObject</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">SomeMethod</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;current domain is:&quot;</span> + AppDomain.CurrentDomain.FriendlyName);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">string</span> Name</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span>;</span><br><span class="line">        <span class="keyword">set</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">int</span> Age</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span>;</span><br><span class="line">        <span class="keyword">set</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> <span class="built_in">string</span> <span class="title">ToString</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.Name + <span class="string">&quot;:&quot;</span> + <span class="keyword">this</span>.Age.ToString();</span><br><span class="line">    &#125;</span><br><span class="line">&#125; </span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        AppDomain exampleAppDomain = AppDomain.CreateDomain(<span class="string">&quot;new appdomain&quot;</span>);</span><br><span class="line">        Person xylee = (Person)exampleAppDomain.CreateInstanceAndUnwrap(<span class="string">&quot;ConsoleApp2&quot;</span>, <span class="string">&quot;ConsoleApp2.Person&quot;</span>);</span><br><span class="line"></span><br><span class="line">        Console.WriteLine(<span class="string">&quot;Type:&#123;0&#125;&quot;</span>, xylee.GetType().ToString());</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;Is proxy:&#123;0&#125;&quot;</span>, System.Runtime.Remoting.RemotingServices.IsTransparentProxy(xylee));</span><br><span class="line">        xylee.SomeMethod();</span><br><span class="line">        AppDomain.Unload(exampleAppDomain);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span></span><br><span class="line">        &#123;</span><br><span class="line">            xylee.SomeMethod();</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;call is successed&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">catch</span> (AppDomainUnloadedException)</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;throw AppDomainUnloadException&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">        Console.ReadKey();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>输出的信息为：</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Type:ConsoleApp2.Person</span><br><span class="line">Is proxy:True</span><br><span class="line">current domain <span class="keyword">is</span>:<span class="keyword">new</span> appdomain</span><br><span class="line"><span class="keyword">throw</span> AppDomainUnloadException</span><br></pre></td></tr></table></figure>
+
+<p>解析：</p>
+<p>首先代码新建了个应用程序域，并给他赋予了一个友好名称 <code>new appdomain</code>,此时新创建的<code>AppDomain</code>的<code>Loader堆</code>是空的，此时线程还处于默认的<code>AppDomain</code>中，接着调用<code>AppDomain</code>的实例方法<code>CreateInstanceAndUnwarp</code>在创建的<code>AppDomain</code>中加载程序集并实例了一个<code>AOPTest.Person</code>类型的对象，执行<code>CreateInstanceAndUnwarp</code>时线程会跨越应用程序域来到<code>new appdomain</code>域中，创建好对象后把对象传递到默认<code>AppDomain</code>中，这里因为一个应用程序域的对象不能被另一个应用程序域的变量(根)所引用，因为应用程序域的主要作用就是隔离不同的应用程序域，当<code>CreateInstanceAndUnwarp</code>要将一个<code>AppDomain</code>中的对象传递到另一个<code>AppDomain</code>时发现对象的类型是继承自<code>MarshalByRefObject</code>类型时就会知道此对象要按引用封送，CLR会在目标<code>AppDomain</code>中创建代理类型并实例化，代理类型所公开的成员看起来跟源<code>AppDomain</code>中要传递的对象的类型看起来是一样的，但其成员的实现只是调用源<code>AppDomain</code>中相应的实现，在示例中我们用<code>xylee.GetType()</code>得到的信息跟原类型看起来是一样的就是这个道理，我们可以用<code>System.Runtime.Remoting.RemotingServices.IsTransparentProxy(xylee)</code>来判断一个对象是否是代理类型所创建的对象。</p>
+<p>接下来示例中卸载了新建的<code>AppDomain</code>，新建的<code>AppDomain</code>中的程序集和<code>Loader堆</code>都会被销毁，这时由于代理对象所引用的原<code>AppDomain</code>已经不存在了，那么再调用代理对象中的任何成员都会抛出一个错误，即下一句的：<code>AppDomainUnloadedException</code>。</p>
+<p>由于按引用封送对象，需要在目标应用程序域创建代理，对对象的所有成员的访问都通过代理转换的缘故，所以执行效率就不会太高，实际上继承自<code>MarshalByRefObject</code>的类型不但跨应用程序域访问效率不高，即使在本应用程序域实例化的对象对字段的访问效率也比较低</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Demo1</span> : <span class="title">Object</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> Int32 Age;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Demo2</span> : <span class="title">MarshalByRefObject</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> Int32 Age;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">const</span> Int32 count = <span class="number">10000000</span>;</span><br><span class="line">        Demo1 d1 = <span class="keyword">new</span> Demo1();</span><br><span class="line">        Demo2 d2 = <span class="keyword">new</span> Demo2();</span><br><span class="line">        Stopwatch watch = <span class="keyword">new</span> Stopwatch();</span><br><span class="line">        watch.Start();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; count; i++)</span><br><span class="line">        &#123;</span><br><span class="line">            d1.Age += <span class="number">1</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        Console.WriteLine(watch.ElapsedMilliseconds);</span><br><span class="line"></span><br><span class="line">        watch.Restart();</span><br><span class="line">        <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; count; i++)</span><br><span class="line">        &#123;</span><br><span class="line">            d2.Age += <span class="number">1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        Console.WriteLine(watch.ElapsedMilliseconds);</span><br><span class="line">        watch.Stop();</span><br><span class="line">        Console.ReadKey();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>结果：</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">18</span></span><br><span class="line"><span class="number">86</span></span><br></pre></td></tr></table></figure>
+
+<p>在本例中由于源应用程序域所创建的对象并没有其应用程序域的根引用它，那它是否会被垃圾回收机制回收了呢？答案是如果一个对象被跨应用程序域按引用封送到另一个应用程序域后，那么它在源应用程序域在没有根引用的情况下会保留5分钟内不会被垃圾回收，在此时间内如果此对象被其它应用程序域的代理访问那么CLR会自动续约2分钟，当然两分钟这个时间是可以改的，你只需要重写继承自<code>MarshalByRefObject</code>类的虚函数<code>public virtual object InitializeLifetimeService()</code>;即可定制这个时间。</p>
+<h3 id="按值封送方式"><a href="#按值封送方式" class="headerlink" title="按值封送方式"></a>按值封送方式</h3><p>把一个类标识上可以序列化，即为类型添加<code>SerializableAttribute</code>即标志着类型实便化出来的对象可以按值封送传递到另一应用程序域中，其内部原理就是在原<code>AppDomain</code>中把类序列化成字节流，传递到另一<code>AppDomain</code>中，在目标<code>AppDomain</code>中再实例化出一个原对象的副本然后用传递过来的字节流对副本进行填充，这样目标对象看起来跟原对象是一样的，但其实只是原对象的一个副本，对副本所做的任何修改并不反应到原对象上。</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line">[<span class="meta">Serializable</span>]</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Person</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">SomeMethod</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;current domain is:&quot;</span> + AppDomain.CurrentDomain.FriendlyName);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">string</span> Name</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span>;</span><br><span class="line">        <span class="keyword">set</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">int</span> Age</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span>;</span><br><span class="line">        <span class="keyword">set</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> <span class="built_in">string</span> <span class="title">ToString</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.Name + <span class="string">&quot;:&quot;</span> + <span class="keyword">this</span>.Age.ToString();</span><br><span class="line">    &#125;</span><br><span class="line">&#125; </span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        AppDomain exampleAppDomain = AppDomain.CreateDomain(<span class="string">&quot;new appdomain&quot;</span>);</span><br><span class="line">        Person xylee = (Person)exampleAppDomain.CreateInstanceAndUnwrap(<span class="string">&quot;ConsoleApp2&quot;</span>, <span class="string">&quot;ConsoleApp2.Person&quot;</span>);</span><br><span class="line"></span><br><span class="line">        Console.WriteLine(<span class="string">&quot;Type:&#123;0&#125;&quot;</span>, xylee.GetType().ToString());</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;Is proxy:&#123;0&#125;&quot;</span>, System.Runtime.Remoting.RemotingServices.IsTransparentProxy(xylee));</span><br><span class="line">        xylee.SomeMethod();</span><br><span class="line">        AppDomain.Unload(exampleAppDomain);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span></span><br><span class="line">        &#123;</span><br><span class="line">            xylee.SomeMethod();</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;call is successed&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">catch</span> (AppDomainUnloadedException)</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;throw AppDomainUnloadException&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">        Console.ReadKey(); </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>输出：</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Type:ConsoleApp2.Person</span><br><span class="line">Is proxy:False</span><br><span class="line">current domain <span class="keyword">is</span>:ConsoleApp2.exe</span><br><span class="line">current domain <span class="keyword">is</span>:ConsoleApp2.exe</span><br><span class="line">call <span class="keyword">is</span> successed</span><br></pre></td></tr></table></figure>
+
+<p>解析：</p>
+<p>当调用<code>CreateInstanceAndUnwarp</code>后目标应用程序域加载了程序集并创建了对象之后，如果发现类型没有继承自<code>MarshalByRefObjec</code>t,而是标识了可序列化后，将会按值封送传递对象，首先将要封送的对象序列化为字节流，传递回目标应用程序域，然后在目标应用程序域中加载定义此对象类型所在的程序集，并实例化一个类型的实例，再用传递回来的字节流反序列化填充此实例。此时的实例是一个新的对象，跟源程序的对象并没有关系，调用其成员也会在目标应用程序域内的对象上完成，并不会跨域，源应用程序域被卸载也不会影响目标应用程序域里的此对象，所以上例中的<code>AppDomainUnloadException</code>异常并不会触发。</p>
+<p><strong>关于System.Runtime.Remoting.ObjectHandle</strong></p>
+<p>在上面两个例子中跨<code>AppDomain</code>访问对象的方法<code>CreateInstanceAndUnwrap</code>都自动的将传递过来的对象具体化了，方法名中的<code>Unwrap</code>也表达了这一点，在对象具体化时会在具体化所在的<code>AppDomain</code>中加载要具体化对象类型所在的程序集，然后如果对象是按引用封送的那会在当前<code>AppDomain</code>中创建代理类型各实例化，如果对象是按值封送的，那对象的副本会反序列化。</p>
+<p>你也可以调用创建实例的非自动具体化版本的方法，即<code>CreateInstance</code>，这个方法返回的是<code>System.Runtime.Remoting.ObjectHandle</code>,这个类型继承自<code>MarshalByRefObject</code>,所以可以穿越<code>AppDomain</code>边界，并且可以使对象不具体化，只有当需要的时候才具体化，调用<code>ObjectHandle</code>的<code>Unwarp</code>实例方法即可。</p>
+<p><strong>如果对象即不继承自MarshalByRefObject又没有标识上SerializableAttribute，那对象在跨越应用程序域时会发生什么？</strong></p>
+<p>答案是通过<code>CreateInstanceAndUnwarp</code>是目标应用程序域的对象会创建但调用并不会成功，会抛出<code>SerializationException</code>，原因就是<code>CreateInstanceAndUnwarp</code>会自动具体化，当具体化时CLR发现类型即没有继承自<code>MarshalByRefObject</code>又没标识上可序列化。如果只需要在目标应用程序域里执行一些操作而又不想传递对象建议使用<code>CreateInstance</code>方法，当然如果你用这个方法返回的<code>ObjectHandle</code>实例试图<code>Unwarp</code>时也会报错。</p>
+<h2 id="AppDomain的销毁"><a href="#AppDomain的销毁" class="headerlink" title="AppDomain的销毁"></a>AppDomain的销毁</h2><p>卸载<code>AppDomain</code>使用<code>AppDomain</code>的静态方法<code>AppDomain.Unload</code>就可以了，传入要卸载的应用程序域对象。</p>
+<p>销毁<code>AppDomain</code>时CLR会有以下几个动作。</p>
+<ul>
+<li>1，挂起所有托管代码中的线程。</li>
+<li>2，查找所有线程的线程栈，看有那些线程正在执行要卸载应用程序域中，或栈处于要卸载应用程序域中，并给这些线程抛出一个<code>ThreadAbortException</code>,并恢复这个线程的执行，将这个异常展开，在展开过程中遇到的所有<code>Finally</code>块，执行资源清理，如果没有代码捕获这个<code>ThreadAbortException</code>，CLR会吞噬这个异常，线程会终止，但进程可继续运行，这一点非常特别，因为对于其他所有未处理的异常CLR都会结束进程。</li>
+<li>3，当所有线程都离开要卸载应用程序域后，CLR遍历所有域的堆，将所有对所有引用卸载应用程序域里对象的代理对象设置一个标识(flag),这样当这些代理对象再访问已卸载程序域里的对象时会抛出<code>AppDomainUnloadedException</code>。</li>
+<li>4，垃圾回收器会回收所有要卸载应用程序域里的对象，期间对象的<code>Finalize</code>会被调用以保证资源清理干源。</li>
+<li>5，CLR恢复所有线程的执行，<code>AppDomain.Unload</code>的设用返回并继续执行接下来的代码，<code>AppDomain.Unload</code>的调用是同步的，当然调用也是有限时的，如果对<code>AppDomain.Unload</code>的调用在10秒内没有返回，CLR会抛出一个<code>CannotUnloadAppDomainException</code>的异常，并且应用程序域有可能被卸载也有可能未被卸载。</li>
+</ul>
+<p>如果调用<code>AppDomain.Unload</code>的线程正好在被卸载的<code>AppDomain</code>中，那么CLR会新建一个线程序继续卸载，原线程会抛出一个<code>ThreadAbortException</code>并展开(unwind),新建的线程等待<code>AppDomain</code>的卸载，卸载成功后自动退出，如果卸载失败那么新线程处理<code>CannotUnloadAppDomainException</code>，因为我们并没有为新线程写这方面的代码，所以新线程无法捕获这个异常。</p>
+<p>对象创建后两个线程先后在新建的应用程序域里运行，<code>_unload</code>线程卸载当前应用程序域，此时<code>_test</code>线程还在<code>Thread.Sleep</code>中，收到<code>ThreadAbortException</code>后到达<code>catch</code>块打钱出信息。</p>
+<p>如果一个线程当前正在<code>finally</code>块中，<code>catch</code>块中，类构造器，临界执行区域或非托管代码中，CLR不会立即终止该线程，只有在代码跳出这些块时CLR才会向此线程抛出<code>ThreadAbortException</code>. </p>
+<h2 id="AppDomain的异常通知"><a href="#AppDomain的异常通知" class="headerlink" title="AppDomain的异常通知"></a>AppDomain的异常通知</h2><p><strong>AppDomain.CurrentDomain.UnhandledException</strong></p>
+<p>捕获应用程序域中未处理的异常，只是收到异常的通知并不能处理异常也不能吞噬掉异常最终异常还是会抛出，你可以在些事件处理函数中写日志或打印详细信息</p>
+<p><strong>AppDomain.CurrentDomain.FirstChanceException</strong></p>
+<p>异常首次抛出时的通知，只是接收到异常通知并不能吞噬掉异常，当异常首次抛出时，CLR会调用在此登记过的回调方法然后CLR会在当前<code>AppDomain</code>栈上查找能处理掉这次异常的catch块如果catch可以处理掉这个异常那么继续执行，如果当前<code>AppDomain</code>中没有一个catch块可以处理那么CLR会沿着栈向上查找来到调用<code>AppDomain</code>,这时调用<code>AppDomain</code>会接到一个新的异常(序列化原来的异常并在本<code>AppDomain</code>中反序化)，CLR此时会调用订阅了当前<code>AppDomain FirstChanceException</code> 的回调方法，然后异常查找过程依旧，直至栈顶如果没有catch块可以处理此异常那CLR将终止进程。</p>
+<p>需要注意的是以上两种异常回调均可以在另一个应用程序域中被订阅，<code>UnhandleException</code>指的是CLR通过搜索线程栈里的catch块一直搜索到栈顶还未搜索到的一种事件，如果此时线程栈在另一个<code>AppDomain</code>中则算为另一个<code>AppDomain</code>的<code>UnhandleException</code>,也就是说线程栈的栈顶在哪个<code>AppDomain</code>中，就算做哪个<code>AppDomain</code>的<code>UnhandleExcetpion</code>。</p>
+<p>任何一个线程中的异常不管激发那个<code>AppDomain</code>中的<code>UnhandleException</code>之后都将结束线程，当然也有例外，其它章节我们会介绍。</p>
+<h2 id="AppDomain与线程的迷惑与理解"><a href="#AppDomain与线程的迷惑与理解" class="headerlink" title="AppDomain与线程的迷惑与理解"></a>AppDomain与线程的迷惑与理解</h2><p><code>AppDomain</code>是个静态的概念，线程是个动态的概念，一个线程可能运行于一个<code>AppDomain</code>中也可跨越多个<code>AppDomain</code>运行，CLR中的线程(<code>System.Threading.Thread</code>)其实是个<code>Soft Thread</code>，操作系统中的线程是<code>Hard Thread</code>并且操作系统只可识别<code>Hard Thread</code>,<code>Soft Thread</code>是CLR对<code>Hard Thread</code>的封装（在MSDN中的描述<code>Hard Thread</code>与<code>Soft Thread</code>没有一对一的对应关系，但就目前CLR的实现来说<code>Hard Thread</code>和<code>Soft Thread</code>是一对一的关系），<code>Soft Thread</code>只属于某个<code>AppDomain</code>,穿越<code>AppDomain</code>的是<code>Hard Thread</code>,当<code>Hard Thread</code>访问一个<code>AppDomain</code>时其会为之产生一个<code>Soft Thread</code>，<code>Hard Thread</code>中有个叫TLS的结构，这个区域被CLR用来存储<code>Hard Thread</code>当前执行代码的<code>AppDomain</code>引用以及<code>Soft Thread</code>的引用，当<code>Hard Thread</code>穿越到另一个<code>AppDomain</code>时，TLS中的这些引用也会随之改变。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.appdomain?view=net-5.0">AppDomain 类</a></p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.runtime.loader.assemblyloadcontext?view=net-5.0">AssemblyLoadContext 类</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/asminfo/p/3999412.html">C#基础–应用程序域(Appdomain)</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/mq0036/p/14646523.html">在C#中使用AppDomain实现【插件式】开发</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/CSharp/" rel="tag"><i class="fa fa-tag"></i> CSharp</a>
+              <a href="/tags/%E7%A8%8B%E5%BA%8F%E9%9B%86/" rel="tag"><i class="fa fa-tag"></i> 程序集</a>
+              <a href="/tags/%E5%BA%94%E7%94%A8%E7%A8%8B%E5%BA%8F%E5%9F%9F/" rel="tag"><i class="fa fa-tag"></i> 应用程序域</a>
+              <a href="/tags/AppDomain/" rel="tag"><i class="fa fa-tag"></i> AppDomain</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/01/24/CSharp-%E7%A8%8B%E5%BA%8F%E9%9B%86%E7%AE%80%E4%BB%8B/" rel="prev" title="CSharp-程序集简介">
+      <i class="fa fa-chevron-left"></i> CSharp-程序集简介
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/01/24/CSharp-%E4%BD%BF%E7%94%A8%E7%A8%8B%E5%BA%8F%E9%9B%86%E7%BC%96%E7%A8%8B/" rel="next" title="CSharp-使用程序集编程">
+      CSharp-使用程序集编程 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#AppDomain%E4%BB%8B%E7%BB%8D"><span class="nav-number">1.</span> <span class="nav-text">AppDomain介绍</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#AppDomain%E9%97%B4%E5%AF%B9%E8%B1%A1%E8%AE%BF%E9%97%AE"><span class="nav-number">2.</span> <span class="nav-text">AppDomain间对象访问</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8C%89%E5%BC%95%E7%94%A8%E5%B0%81%E9%80%81%E6%96%B9%E5%BC%8F"><span class="nav-number">2.1.</span> <span class="nav-text">按引用封送方式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8C%89%E5%80%BC%E5%B0%81%E9%80%81%E6%96%B9%E5%BC%8F"><span class="nav-number">2.2.</span> <span class="nav-text">按值封送方式</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#AppDomain%E7%9A%84%E9%94%80%E6%AF%81"><span class="nav-number">3.</span> <span class="nav-text">AppDomain的销毁</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#AppDomain%E7%9A%84%E5%BC%82%E5%B8%B8%E9%80%9A%E7%9F%A5"><span class="nav-number">4.</span> <span class="nav-text">AppDomain的异常通知</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#AppDomain%E4%B8%8E%E7%BA%BF%E7%A8%8B%E7%9A%84%E8%BF%B7%E6%83%91%E4%B8%8E%E7%90%86%E8%A7%A3"><span class="nav-number">5.</span> <span class="nav-text">AppDomain与线程的迷惑与理解</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="syxdevcode"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description">syxdevcode的个人博客</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">616</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">157</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">2.1m</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">31:27</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

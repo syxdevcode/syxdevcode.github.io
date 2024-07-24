@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.2">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"syxdevcode.github.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="邻接表模型每个节点都有一个指向其父节点的指针。顶层节点没有父节点。 比如区域表（国、省、市、区）： 12345CREATE TABLE Area ([id] [int]  NOT NULL,[name] [nvarchar]  (50) NULL,[parent_id] [int]  NULL,[type] [int]  NULL );  parent_id 是父ID，省的父ID是国，市的父ID">
+<meta property="og:type" content="article">
+<meta property="og:title" content="数据库表设计-邻接表,左右值,物化路径,闭包表">
+<meta property="og:url" content="https://syxdevcode.github.com/2022/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93%E8%A1%A8%E8%AE%BE%E8%AE%A1-%E9%82%BB%E6%8E%A5%E8%A1%A8-%E5%B7%A6%E5%8F%B3%E5%80%BC-%E7%89%A9%E5%8C%96%E8%B7%AF%E5%BE%84-%E9%97%AD%E5%8C%85%E8%A1%A8/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="邻接表模型每个节点都有一个指向其父节点的指针。顶层节点没有父节点。 比如区域表（国、省、市、区）： 12345CREATE TABLE Area ([id] [int]  NOT NULL,[name] [nvarchar]  (50) NULL,[parent_id] [int]  NULL,[type] [int]  NULL );  parent_id 是父ID，省的父ID是国，市的父ID">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://syxdevcode.github.com/img/20170606203931626.jpeg">
+<meta property="og:image" content="https://syxdevcode.github.com/img/Snipaste_2022-06-06_17-21-29.png">
+<meta property="og:image" content="https://syxdevcode.github.com/img/Snipaste_2022-06-06_17-27-14.png">
+<meta property="og:image" content="https://syxdevcode.github.com/img/Snipaste_2022-06-06_17-36-00.png">
+<meta property="og:image" content="https://syxdevcode.github.com/img/Snipaste_2022-06-06_17-37-10.png">
+<meta property="og:image" content="https://syxdevcode.github.com/img/Snipaste_2022-06-06_17-49-39.png">
+<meta property="article:published_time" content="2022-06-06T08:55:30.000Z">
+<meta property="article:modified_time" content="2022-06-27T10:25:23.318Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="数据库">
+<meta property="article:tag" content="数据结构">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://syxdevcode.github.com/img/20170606203931626.jpeg">
+
+<link rel="canonical" href="https://syxdevcode.github.com/2022/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93%E8%A1%A8%E8%AE%BE%E8%AE%A1-%E9%82%BB%E6%8E%A5%E8%A1%A8-%E5%B7%A6%E5%8F%B3%E5%80%BC-%E7%89%A9%E5%8C%96%E8%B7%AF%E5%BE%84-%E9%97%AD%E5%8C%85%E8%A1%A8/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>数据库表设计-邻接表,左右值,物化路径,闭包表 | syxdevcode博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">syxdevcode博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/syxdevcode" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2022/06/06/%E6%95%B0%E6%8D%AE%E5%BA%93%E8%A1%A8%E8%AE%BE%E8%AE%A1-%E9%82%BB%E6%8E%A5%E8%A1%A8-%E5%B7%A6%E5%8F%B3%E5%80%BC-%E7%89%A9%E5%8C%96%E8%B7%AF%E5%BE%84-%E9%97%AD%E5%8C%85%E8%A1%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          数据库表设计-邻接表,左右值,物化路径,闭包表
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-06-06 16:55:30" itemprop="dateCreated datePublished" datetime="2022-06-06T16:55:30+08:00">2022-06-06</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-06-27 18:25:23" itemprop="dateModified" datetime="2022-06-27T18:25:23+08:00">2022-06-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" itemprop="url" rel="index"><span itemprop="name">数据结构</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>5.9k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>5 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="邻接表模型"><a href="#邻接表模型" class="headerlink" title="邻接表模型"></a>邻接表模型</h2><p>每个节点都有一个指向其父节点的指针。顶层节点没有父节点。</p>
+<p>比如区域表（国、省、市、区）：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> Area (</span><br><span class="line">[id] [<span class="type">int</span>]  <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">[name] [nvarchar]  (<span class="number">50</span>) <span class="keyword">NULL</span>,</span><br><span class="line">[parent_id] [<span class="type">int</span>]  <span class="keyword">NULL</span>,</span><br><span class="line">[type] [<span class="type">int</span>]  <span class="keyword">NULL</span> );</span><br></pre></td></tr></table></figure>
+
+<p>parent_id 是父ID，省的父ID是国，市的父ID 为省，以此类推。</p>
+<span id="more"></span>
+
+<h2 id="左右值模型-嵌套集"><a href="#左右值模型-嵌套集" class="headerlink" title="左右值模型(嵌套集)"></a>左右值模型(嵌套集)</h2><p>嵌套集解决方案是存储子孙节点的相关信息，而不是节点的直接祖先。我们使用两个数字来编码每个节点，从而表示这一信息，可以将这两个数字称为nsleft 和 nsright。<br>每个节点通过如下的方式确定nsleft 和nsright 的值：nsleft的数值小于该节点所有后代ID，同时nsright 的值大于该节点的所有后代的ID。这些数字和comment_id 的值并没有任何关联。</p>
+<p>确定这三个值（nsleft，comment_id，nsright）的简单方法是对树进行一次深度优先遍历，在逐层深入的过程中依次递增地分配nsleft的值，并在返回时依次递增地分配nsright的值。得到数据如下:</p>
+<p><img src="/img/20170606203931626.jpeg" alt="20170606203931626.jpeg"></p>
+<p><img src="/img/Snipaste_2022-06-06_17-21-29.png" alt="Snipaste_2022-06-06_17-21-29.png"></p>
+<p>一旦你为每个节点分配了这些数字，就可以使用它们来找到指定节点的祖先和后代。比如搜索评论#4及其所有后代，可以通过搜索哪些节点的ID在评论 #4 的nsleft 和 nsright 范围之间，例：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> c2.<span class="operator">*</span> <span class="keyword">FROM</span> comments <span class="keyword">AS</span> c1 <span class="keyword">JOIN</span> comments <span class="keyword">AS</span> c2 <span class="keyword">ON</span> c2.nsleft </span><br><span class="line"><span class="keyword">BETWEEN</span> c1.nsleft <span class="keyword">AND</span> c1.nsright <span class="keyword">WHERE</span> c1.comment_id <span class="operator">=</span> <span class="number">4</span>;</span><br></pre></td></tr></table></figure>
+
+<p>比如搜索评论#6及其所有祖先，可以通过搜索#6的ID在哪些节点的nsleft 和 nsright 范围之间，例：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> c2.<span class="operator">*</span> <span class="keyword">FROM</span> comments <span class="keyword">AS</span> c1 <span class="keyword">JOIN</span> comments <span class="keyword">AS</span> c2 <span class="keyword">ON</span> c1.nsleft </span><br><span class="line"><span class="keyword">BETWEEN</span> c2.nsleft <span class="keyword">AND</span> c2.nsright <span class="keyword">WHERE</span> c1.comment_id <span class="operator">=</span> <span class="number">6</span>;</span><br></pre></td></tr></table></figure>
+
+<p>使用嵌套集设计的主要优势是，当你想要删除一个非叶子节点时，它的后代会自动替代被删除的节点，成为其直接祖先节点的直接后代。就是说已经自动减少了一层。</p>
+<p>然而，某些在邻接表的设计中表现得很简单的查询，比如获取一个节点的直接父亲或者直接后代，在嵌套集设计中会变得比较复杂。在嵌套集中，如果需要查询一个节点的直接父亲，我们会这么做，比如要找到评论#6 的直接父亲：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> parent.<span class="operator">*</span> <span class="keyword">FROM</span> comments <span class="keyword">AS</span> c <span class="keyword">JOIN</span> comments <span class="keyword">AS</span> parent <span class="keyword">ON</span> c.nsleft <span class="keyword">BETWEEN</span> parent.nsleft <span class="keyword">AND</span> parent.nsright</span><br><span class="line"><span class="keyword">LEFT</span> <span class="keyword">OUTER</span> <span class="keyword">JOIN</span> comments <span class="keyword">AS</span> in_between <span class="keyword">ON</span> c.nsleft <span class="keyword">BETWEEN</span> in_between.nsleft <span class="keyword">AND</span> in_between.nsright</span><br><span class="line"><span class="keyword">AND</span> in_between.nsleft <span class="keyword">BETWEEN</span> parent.nsleft <span class="keyword">AND</span> parent.nsright <span class="keyword">WHERE</span> c.comment_id <span class="operator">=</span> <span class="number">6</span></span><br><span class="line"><span class="keyword">AND</span> in_between.comment_id <span class="keyword">IS</span> <span class="keyword">NULL</span>;</span><br></pre></td></tr></table></figure>
+
+<p>对树进行操作，比如插入和移动节点，使用嵌套集会比其它设计复杂很多。当插入一个新节点时，你需要重新计算新插入节点的相邻兄弟节点、祖先节点和它祖先节点的兄弟，来确保他们的左右值都比这个新节点的左值大。同时，如果这个新节点时一个非叶子节点，你还要检查它的子孙节点。</p>
+<p>如果简单快速查询是整个程序中最重要的部分，嵌套集是最好的选择，比操作单独的节点要方便快捷很多。然而，嵌套集的插入和移动节点是比较复杂的，因为需要重新分配左右值，如果你的应用程序需要频繁的插入、删除节点，那么嵌套集可能并不合适。</p>
+<h2 id="物化路径模型-路径枚举"><a href="#物化路径模型-路径枚举" class="headerlink" title="物化路径模型(路径枚举)"></a>物化路径模型(路径枚举)</h2><p>在comments 表中，我们使用类型varchar 的path 字段来替代原来的parent_id 字段。这个path 字段所存储的内容为当前节点的最顶层祖先到它的自己的序列，就像UNIX的路径一样，你甚至可以使用 ‘/‘ 作为路径的分隔符。</p>
+<p><img src="/img/Snipaste_2022-06-06_17-27-14.png" alt="Snipaste_2022-06-06_17-27-14.png"></p>
+<p>你可以通过比较每个节点的路径来查询一个节点祖先。比如：要找到评论#7， 路径是 1/4/5/7一 的祖先，可以这么做：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> comments <span class="keyword">AS</span> c <span class="keyword">WHERE</span> <span class="string">&#x27;1/4/5/7&#x27;</span> <span class="keyword">LIKE</span> CONCAT(c.path,<span class="string">&#x27;%&#x27;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>这句话查询语句会匹配到路径为 1/4/5/%，1/4/% 以及 1/% 的节点，而这些节点就是评论#7的祖先。</p>
+<p>同时还可以通过将LIKE 关键字两边的参数互换，来查询一个给定节点的所有后代。比如查询评论#4，路径path为 ‘1/4’ 的所有后代，可以使用如下语句：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span> <span class="keyword">FROM</span> comemnts <span class="keyword">AS</span> c <span class="keyword">WHERE</span> c.path <span class="keyword">LIKE</span> <span class="string">&#x27;1/4&#x27;</span> <span class="operator">||</span> <span class="string">&#x27;%&#x27;</span> ;</span><br></pre></td></tr></table></figure>
+
+<p>这句查询语句所有能找到的后台路径分别是：1/4/5、1/4/5/6、1/4/5/7。</p>
+<p>一旦你可以很简单地获取一棵子树或者从子孙节点到祖先节点的路径，你就可以很简单地实现更多的查询，如查询一颗子树所有节点上值的总和。<br>插入一个节点也可以像使用邻接表一样地简单。你所需要做的只是复制一份要插入节点的父亲节点路径，并将这个新节点的ID追加到路径末尾即可。</p>
+<p>路径枚举也存在一些缺点，比如数据库不能确保路径的格式总是正确或者路径中的节点确实存在。依赖于应用程序的逻辑代码来维护路径的字符串，并且验证字符串的正确性开销很大。无论将varchar 的长度设定为多大，依旧存在长度的限制，因而并不能够支持树结构无限扩展。</p>
+<h2 id="闭包表模型"><a href="#闭包表模型" class="headerlink" title="闭包表模型"></a>闭包表模型</h2><p>闭包表是解决分级存储的一个简单而优雅的解决方案，它记录了树中所有节点间的关系，而不仅仅只有那些直接的父子节点。</p>
+<p>在设计评论系统时，我们额外创建了一个叫 tree_paths 表，它包含两列，每一列都指向 comments 中的外键。</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> `comments` (</span><br><span class="line">  `comment_id` <span class="type">bigint</span>(<span class="number">20</span>) unsigned <span class="keyword">NOT</span> <span class="keyword">NULL</span> AUTO_INCREMENT,</span><br><span class="line">  `bug_id` <span class="type">bigint</span>(<span class="number">20</span>) unsigned <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  `author` <span class="type">varchar</span>(<span class="number">60</span>) <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  `comment_date` datetime <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  `comment` text <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  <span class="keyword">PRIMARY</span> KEY (`comment_id`),</span><br><span class="line">  KEY `bug_id` (`bug_id`)</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> `treepaths` (</span><br><span class="line">  `ancestor` <span class="type">bigint</span>(<span class="number">20</span>) unsigned <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  `descendant` <span class="type">bigint</span>(<span class="number">20</span>) unsigned <span class="keyword">NOT</span> <span class="keyword">NULL</span>,</span><br><span class="line">  <span class="keyword">PRIMARY</span> KEY (`ancestor`,`descendant`),</span><br><span class="line">  KEY `descendant` (`descendant`)</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `comments` <span class="keyword">VALUES</span> (<span class="number">1</span>, <span class="number">1</span>, <span class="string">&#x27;Fran&#x27;</span>, <span class="string">&#x27;2021-06-16 19:27:22&#x27;</span>, <span class="string">&#x27;这个Bug的成因是什么&#x27;</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `comments` <span class="keyword">VALUES</span> (<span class="number">2</span>, <span class="number">1</span>, <span class="string">&#x27;Ollie&#x27;</span>, <span class="string">&#x27;2021-06-16 19:29:26&#x27;</span>, <span class="string">&#x27;我觉得是一个空指针&#x27;</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `comments` <span class="keyword">VALUES</span> (<span class="number">3</span>, <span class="number">1</span>, <span class="string">&#x27;Fran&#x27;</span>, <span class="string">&#x27;2021-06-16 19:30:00&#x27;</span>, <span class="string">&#x27;不，我查过了&#x27;</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `comments` <span class="keyword">VALUES</span> (<span class="number">4</span>, <span class="number">1</span>, <span class="string">&#x27;Kukla&#x27;</span>, <span class="string">&#x27;2021-06-16 19:30:34&#x27;</span>, <span class="string">&#x27;我们需要查无效输入&#x27;</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `comments` <span class="keyword">VALUES</span> (<span class="number">5</span>, <span class="number">1</span>, <span class="string">&#x27;Ollie&#x27;</span>, <span class="string">&#x27;2021-06-16 19:31:01&#x27;</span>, <span class="string">&#x27;是的，那是个问题&#x27;</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `comments` <span class="keyword">VALUES</span> (<span class="number">6</span>, <span class="number">1</span>, <span class="string">&#x27;Fran&#x27;</span>, <span class="string">&#x27;2021-06-16 19:31:19&#x27;</span>, <span class="string">&#x27;好，查一下吧&#x27;</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `comments` <span class="keyword">VALUES</span> (<span class="number">7</span>, <span class="number">1</span>, <span class="string">&#x27;Kukla&#x27;</span>, <span class="string">&#x27;2021-06-16 19:31:41&#x27;</span>, <span class="string">&#x27;解决了&#x27;</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `treepaths` <span class="keyword">VALUES</span> (<span class="number">1</span>, <span class="number">1</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `treepaths` <span class="keyword">VALUES</span> (<span class="number">1</span>, <span class="number">2</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `treepaths` <span class="keyword">VALUES</span> (<span class="number">1</span>, <span class="number">3</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `treepaths` <span class="keyword">VALUES</span> (<span class="number">1</span>, <span class="number">4</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `treepaths` <span class="keyword">VALUES</span> (<span class="number">1</span>, <span class="number">5</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `treepaths` <span class="keyword">VALUES</span> (<span class="number">1</span>, <span class="number">6</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `treepaths` <span class="keyword">VALUES</span> (<span class="number">1</span>, <span class="number">7</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `treepaths` <span class="keyword">VALUES</span> (<span class="number">2</span>, <span class="number">2</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `treepaths` <span class="keyword">VALUES</span> (<span class="number">2</span>, <span class="number">3</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `treepaths` <span class="keyword">VALUES</span> (<span class="number">3</span>, <span class="number">3</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `treepaths` <span class="keyword">VALUES</span> (<span class="number">4</span>, <span class="number">4</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `treepaths` <span class="keyword">VALUES</span> (<span class="number">4</span>, <span class="number">5</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `treepaths` <span class="keyword">VALUES</span> (<span class="number">4</span>, <span class="number">6</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `treepaths` <span class="keyword">VALUES</span> (<span class="number">4</span>, <span class="number">7</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `treepaths` <span class="keyword">VALUES</span> (<span class="number">5</span>, <span class="number">5</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `treepaths` <span class="keyword">VALUES</span> (<span class="number">6</span>, <span class="number">6</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `treepaths` <span class="keyword">VALUES</span> (<span class="number">6</span>, <span class="number">7</span>);</span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> `treepaths` <span class="keyword">VALUES</span> (<span class="number">7</span>, <span class="number">7</span>);</span><br></pre></td></tr></table></figure>
+
+<p>我们不再使用comments 表存储树的结构，而是将树中任何具有（祖先 一 后代）关系的节点对都存储在treepaths 表里，即使这两个节点之间不是直接的父子关系；同时，我们还增加一行指向节点自己。</p>
+<p><img src="/img/Snipaste_2022-06-06_17-36-00.png" alt="Snipaste_2022-06-06_17-36-00.png"></p>
+<p>这里以 comment_id 为1 作为例子，当 comment_id 为1 treepaths 需要存储的结构则是表格标红的内容</p>
+<p><img src="/img/Snipaste_2022-06-06_17-37-10.png" alt="Snipaste_2022-06-06_17-37-10.png"></p>
+<p>通过 treepaths 表来获取祖先和后代比使用嵌套集更加地直接。例如要获取评论#4的后代，只需要在 treepaths 表中搜索祖先是评论#4的行就可以了：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span></span><br><span class="line">	c.<span class="operator">*</span>,</span><br><span class="line">	t.<span class="operator">*</span> </span><br><span class="line"><span class="keyword">FROM</span></span><br><span class="line">	comments <span class="keyword">AS</span> c</span><br><span class="line">	<span class="keyword">JOIN</span> TreePaths <span class="keyword">AS</span> t <span class="keyword">ON</span> c.comment_id <span class="operator">=</span> t.descendant </span><br><span class="line"><span class="keyword">WHERE</span></span><br><span class="line">	t.ancestor <span class="operator">=</span> <span class="number">4</span>;</span><br></pre></td></tr></table></figure>
+
+<p>要获取评论#6的所有祖先，只需要在 treepaths 表中搜索后代为评论#6的行就可以了：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span></span><br><span class="line">	c.<span class="operator">*</span> </span><br><span class="line"><span class="keyword">FROM</span></span><br><span class="line">	comments <span class="keyword">AS</span> c</span><br><span class="line">	<span class="keyword">JOIN</span> treepaths <span class="keyword">AS</span> t <span class="keyword">ON</span> c.comment_id <span class="operator">=</span> t.ancestor </span><br><span class="line"><span class="keyword">WHERE</span></span><br><span class="line">	t.descendant <span class="operator">=</span> <span class="number">6</span>;</span><br></pre></td></tr></table></figure>
+
+<p>要插入一个新的叶子节点，比如评论#5的一个子节点，应首先插入一条自己到自己的关系，然后搜索 treepaths 表中后代是评论#5的节点，增加该节点和新插入节点的“祖先—后代”关系（包括评论#5的自我引用）：</p>
+<p>{int} 为新增的 comment_id</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> comments (author,comment_date,bug_id, comment) <span class="keyword">VALUES</span> (<span class="string">&#x27;Ollie&#x27;</span>,<span class="string">&#x27;2021-01-11&#x27;</span>, <span class="number">1</span>,<span class="string">&#x27;Good job!&#x27;</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">INSERT</span> <span class="keyword">INTO</span> treepaths ( ancestor, descendant ) <span class="keyword">SELECT</span></span><br><span class="line">t.ancestor,</span><br><span class="line">&#123;<span class="type">int</span>&#125; </span><br><span class="line"><span class="keyword">FROM</span></span><br><span class="line">	TreePaths <span class="keyword">AS</span> t </span><br><span class="line"><span class="keyword">WHERE</span></span><br><span class="line">	t.descendant <span class="operator">=</span> <span class="number">5</span> <span class="keyword">UNION</span> <span class="keyword">ALL</span></span><br><span class="line"><span class="keyword">SELECT</span></span><br><span class="line">	&#123;<span class="type">int</span>&#125;,</span><br><span class="line">	&#123;<span class="type">int</span>&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>要删除一个叶子节点，比如评论#7，应删除所有 treepaths 表中后代为评论#7的行：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">DELETE</span> <span class="keyword">FROM</span> treepaths <span class="keyword">WHERE</span> descendant <span class="operator">=</span> <span class="number">7</span>;</span><br></pre></td></tr></table></figure>
+
+<p>要删除一棵完整的子树，比如评论#4和它所有的后代，可删除所有在 treepaths 表中后代为#4的行，以及那些以评论#4的后代为后代的行：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">DELETE</span> </span><br><span class="line"><span class="keyword">FROM</span></span><br><span class="line">	treepaths </span><br><span class="line"><span class="keyword">WHERE</span></span><br><span class="line">	descendant <span class="keyword">IN</span> ( <span class="keyword">SELECT</span> descendant <span class="keyword">FROM</span> ( <span class="keyword">SELECT</span> descendant <span class="keyword">FROM</span> treepaths <span class="keyword">WHERE</span> ancestor <span class="operator">=</span> <span class="number">4</span> ) <span class="keyword">AS</span> b );</span><br></pre></td></tr></table></figure>
+
+<p>闭包表的设计比嵌套集更加地直接，两者都能快捷地查询给定节点的祖先和后代，但是闭包表能更加简单地维护分层信息。这两个设计都比路径枚举更方便地查询给定节点的直接后代和父代。<br>然而，你可以优化闭包表来使它更方便地查询直接父亲节点或子节点：在 treepaths 表中增加一个 path_length 字段。一个节点的自我引用的 path_length 为0，到它直接子节点的 path_length 为1，再下一层为2，以此类推。查询评论#4的子节点就变得很直接：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="operator">*</span></span><br><span class="line"><span class="keyword">FROM</span> treepaths</span><br><span class="line"><span class="keyword">WHERE</span> ancestor <span class="operator">=</span> <span class="number">4</span> <span class="keyword">AND</span> path_length <span class="operator">=</span> <span class="number">1</span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>总结：</strong></p>
+<p><img src="/img/Snipaste_2022-06-06_17-49-39.png" alt="Snipaste_2022-06-06_17-49-39.png"></p>
+<p><strong>路径枚举</strong> 能够很直观地展示出祖先到后代之间的路径，但同时由于它不能确保引用完整性，使得这个设计非常地脆弱。枚举路径也使得数据的存储变得比较冗余。<br><strong>嵌套集</strong>是一个聪明的解决方案——但可能过于聪明了，它不能确保引用完整性。最好在一个查询性能要求很高而对其他需求要求一般的场合来使用它<br><strong>闭包表</strong>是最通用的设计，它要求一张额外的表来存储关系，使用空间换时间的方案减少操作过程中由冗余的计算所造成的消耗。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/boboxing/p/7055251.html">数据库表设计（邻接表、路径枚举、嵌套集、闭包表）</a></p>
+<p><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/350369570">层次数据结构的数据表设计</a></p>
+<p><a target="_blank" rel="noopener" href="https://juejin.cn/post/6976453383347503141">评论表设计 - 路径枚举、嵌套集、闭包表</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/" rel="tag"><i class="fa fa-tag"></i> 数据库</a>
+              <a href="/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/" rel="tag"><i class="fa fa-tag"></i> 数据结构</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/05/10/WPAD-Web%E4%BB%A3%E7%90%86%E8%87%AA%E5%8A%A8%E5%8F%91%E7%8E%B0%E5%8D%8F%E8%AE%AE/" rel="prev" title="WPAD(Web代理自动发现协议)">
+      <i class="fa fa-chevron-left"></i> WPAD(Web代理自动发现协议)
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2022/07/10/C%E5%92%8CCPP%E8%BF%90%E7%AE%97%E7%AC%A6/" rel="next" title="C和CPP运算符">
+      C和CPP运算符 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%82%BB%E6%8E%A5%E8%A1%A8%E6%A8%A1%E5%9E%8B"><span class="nav-number">1.</span> <span class="nav-text">邻接表模型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B7%A6%E5%8F%B3%E5%80%BC%E6%A8%A1%E5%9E%8B-%E5%B5%8C%E5%A5%97%E9%9B%86"><span class="nav-number">2.</span> <span class="nav-text">左右值模型(嵌套集)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%89%A9%E5%8C%96%E8%B7%AF%E5%BE%84%E6%A8%A1%E5%9E%8B-%E8%B7%AF%E5%BE%84%E6%9E%9A%E4%B8%BE"><span class="nav-number">3.</span> <span class="nav-text">物化路径模型(路径枚举)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%97%AD%E5%8C%85%E8%A1%A8%E6%A8%A1%E5%9E%8B"><span class="nav-number">4.</span> <span class="nav-text">闭包表模型</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="syxdevcode"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description">syxdevcode的个人博客</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">616</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">157</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">2.1m</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">31:27</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

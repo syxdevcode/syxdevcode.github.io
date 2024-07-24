@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.2">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"syxdevcode.github.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="分布式之数据库和缓存双写一致性方案本文参考【原创】分布式之数据库和缓存双写一致性方案解析,做的进一步整理笔记。 三种更新策略： 1.先更新数据库，再更新缓存 2.先删除缓存，再更新数据库 3.先更新数据库，再删除缓存 (1)先更新数据库，再更新缓存这套方案，大家是普遍反对的。为什么呢？有如下两点原因。 ** 原因一（线程安全角度）** 同时有请求A和请求B进行更新操作，那么会出现 （1）线程A更新">
+<meta property="og:type" content="article">
+<meta property="og:title" content="分布式之数据库和缓存双写一致性方案">
+<meta property="og:url" content="https://syxdevcode.github.com/2018/06/08/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B9%8B%E6%95%B0%E6%8D%AE%E5%BA%93%E5%92%8C%E7%BC%93%E5%AD%98%E5%8F%8C%E5%86%99%E4%B8%80%E8%87%B4%E6%80%A7%E6%96%B9%E6%A1%88/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="分布式之数据库和缓存双写一致性方案本文参考【原创】分布式之数据库和缓存双写一致性方案解析,做的进一步整理笔记。 三种更新策略： 1.先更新数据库，再更新缓存 2.先删除缓存，再更新数据库 3.先更新数据库，再删除缓存 (1)先更新数据库，再更新缓存这套方案，大家是普遍反对的。为什么呢？有如下两点原因。 ** 原因一（线程安全角度）** 同时有请求A和请求B进行更新操作，那么会出现 （1）线程A更新">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://syxdevcode.github.com/img/o_update1.png">
+<meta property="og:image" content="https://syxdevcode.github.com/img/o_update2.png">
+<meta property="article:published_time" content="2018-06-08T09:14:48.000Z">
+<meta property="article:modified_time" content="2022-06-27T10:25:23.311Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="Redis">
+<meta property="article:tag" content="分布式">
+<meta property="article:tag" content="缓存">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://syxdevcode.github.com/img/o_update1.png">
+
+<link rel="canonical" href="https://syxdevcode.github.com/2018/06/08/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B9%8B%E6%95%B0%E6%8D%AE%E5%BA%93%E5%92%8C%E7%BC%93%E5%AD%98%E5%8F%8C%E5%86%99%E4%B8%80%E8%87%B4%E6%80%A7%E6%96%B9%E6%A1%88/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>分布式之数据库和缓存双写一致性方案 | syxdevcode博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">syxdevcode博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/syxdevcode" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/06/08/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B9%8B%E6%95%B0%E6%8D%AE%E5%BA%93%E5%92%8C%E7%BC%93%E5%AD%98%E5%8F%8C%E5%86%99%E4%B8%80%E8%87%B4%E6%80%A7%E6%96%B9%E6%A1%88/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          分布式之数据库和缓存双写一致性方案
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-06-08 17:14:48" itemprop="dateCreated datePublished" datetime="2018-06-08T17:14:48+08:00">2018-06-08</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-06-27 18:25:23" itemprop="dateModified" datetime="2022-06-27T18:25:23+08:00">2022-06-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BC%93%E5%AD%98/" itemprop="url" rel="index"><span itemprop="name">缓存</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>2.8k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>3 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="分布式之数据库和缓存双写一致性方案"><a href="#分布式之数据库和缓存双写一致性方案" class="headerlink" title="分布式之数据库和缓存双写一致性方案"></a>分布式之数据库和缓存双写一致性方案</h1><p>本文参考<a target="_blank" rel="noopener" href="https://www.cnblogs.com/rjzheng/p/9041659.html">【原创】分布式之数据库和缓存双写一致性方案解析</a>,做的进一步整理笔记。</p>
+<p>三种更新策略：</p>
+<p>1.先更新数据库，再更新缓存</p>
+<p>2.先删除缓存，再更新数据库</p>
+<p>3.先更新数据库，再删除缓存</p>
+<h2 id="1-先更新数据库，再更新缓存"><a href="#1-先更新数据库，再更新缓存" class="headerlink" title="(1)先更新数据库，再更新缓存"></a>(1)先更新数据库，再更新缓存</h2><p>这套方案，大家是普遍反对的。为什么呢？有如下两点原因。</p>
+<p>** 原因一（线程安全角度）**</p>
+<p>同时有请求A和请求B进行更新操作，那么会出现</p>
+<p>（1）线程A更新了数据库</p>
+<p>（2）线程B更新了数据库</p>
+<p>（3）线程B更新了缓存</p>
+<p>（4）线程A更新了缓存</p>
+<p>这就出现请求A更新缓存应该比请求B更新缓存早才对，但是因为网络等原因，B却比A更早更新了缓存。这就导致了脏数据，因此不考虑。</p>
+<p>** 原因二（业务场景角度）**</p>
+<p>有如下两点：</p>
+<p>（1）如果你是一个写数据库场景比较多，而读数据场景比较少的业务需求，采用这种方案就会导致，数据压根还没读到，缓存就被频繁的更新，浪费性能。</p>
+<p>（2）如果你写入数据库的值，并不是直接写入缓存的，而是要经过一系列复杂的计算再写入缓存。那么，每次写入数据库后，都再次计算写入缓存的值，无疑是浪费性能的。显然，删除缓存更为适合。</p>
+<p>接下来讨论的就是争议最大的，先删缓存，再更新数据库。还是先更新数据库，再删缓存的问题。</p>
+<h2 id="2-先删缓存，再更新数据库"><a href="#2-先删缓存，再更新数据库" class="headerlink" title="(2)先删缓存，再更新数据库"></a>(2)先删缓存，再更新数据库</h2><p>该方案会导致不一致的原因是。同时有一个请求A进行更新操作，另一个请求B进行查询操作。那么会出现如下情形:</p>
+<p>（1）请求A进行写操作，删除缓存</p>
+<p>（2）请求B查询发现缓存不存在</p>
+<p>（3）请求B去数据库查询得到旧值</p>
+<p>（4）请求B将旧值写入缓存</p>
+<p>（5）请求A将新值写入数据库</p>
+<p>上述情况就会导致不一致的情形出现。而且，如果不采用给缓存设置过期时间策略，该数据永远都是脏数据。<br>那么，如何解决呢？采用延时双删策略</p>
+<p>伪代码如下</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">public void write(string key,object data)</span><br><span class="line">&#123;</span><br><span class="line">    redis.delKey(key);</span><br><span class="line">    db.updateData(data);</span><br><span class="line">    Thread.sleep(1000);</span><br><span class="line">    redis.delKey(key);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>转化为中文描述就是</p>
+<p>（1）先淘汰缓存</p>
+<p>（2）再写数据库（这两步和原来一样）</p>
+<p>（3）休眠1秒，再次淘汰缓存</p>
+<p>这么做，可以将1秒内所造成的缓存脏数据，再次删除。</p>
+<p>** 那么，这个1秒怎么确定的，具体该休眠多久呢？**</p>
+<p>针对上面的情形，读者应该自行评估自己的项目的读数据业务逻辑的耗时。然后写数据的休眠时间则在读数据业务逻辑的耗时基础上，加几百ms即可。这么做的目的，就是确保读请求结束，写请求可以删除读请求造成的缓存脏数据。</p>
+<p>** 如果你用了mysql的读写分离架构怎么办？**</p>
+<p>ok，在这种情况下，造成数据不一致的原因如下，还是两个请求，一个请求A进行更新操作，另一个请求B进行查询操作。</p>
+<p>（1）请求A进行写操作，删除缓存</p>
+<p>（2）请求A将数据写入数据库了</p>
+<p>（3）请求B查询缓存发现，缓存没有值</p>
+<p>（4）请求B去从库查询，这时，还没有完成主从同步，因此查询到的是旧值</p>
+<p>（5）请求B将旧值写入缓存</p>
+<p>（6）数据库完成主从同步，从库变为新值</p>
+<p>上述情形，就是数据不一致的原因。还是使用双删延时策略。只是，睡眠时间修改为在主从同步的延时时间基础上，加几百ms。</p>
+<p>** 采用这种同步淘汰策略，吞吐量降低怎么办？**</p>
+<p>ok，那就将第二次删除作为异步的。自己起一个线程，异步删除。这样，写的请求就不用沉睡一段时间后了，再返回。这么做，加大吞吐量。</p>
+<p>** 第二次删除,如果删除失败怎么办？**</p>
+<p>这是个非常好的问题，因为第二次删除失败，就会出现如下情形。还是有两个请求，一个请求A进行更新操作，另一个请求B进行查询操作，为了方便，假设是单库：</p>
+<p>（1）请求A进行写操作，删除缓存</p>
+<p>（2）请求B查询发现缓存不存在</p>
+<p>（3）请求B去数据库查询得到旧值</p>
+<p>（4）请求B将旧值写入缓存</p>
+<p>（5）请求A将新值写入数据库</p>
+<p>（6）请求A试图去删除请求B写入对缓存值，结果失败了。</p>
+<p>ok,这也就是说。如果第二次删除缓存失败，会再次出现缓存和数据库不一致的问题。</p>
+<p>如何解决呢？<br>具体解决方案，且看对第(3)种更新策略的解析。</p>
+<h2 id="3-先更新数据库，再删缓存"><a href="#3-先更新数据库，再删缓存" class="headerlink" title="(3)先更新数据库，再删缓存"></a>(3)先更新数据库，再删缓存</h2><p>** Cache Aside Pattern **</p>
+<p>这是最常用最常用的pattern了。其具体逻辑如下：</p>
+<p>** 失效**：应用程序先从cache取数据，没有得到，则从数据库中取数据，成功后，放到缓存中。</p>
+<p>** 命中**：应用程序从cache中取数据，取到后返回。</p>
+<p>** 更新**：先把数据存到数据库中，成功后，再让缓存失效。</p>
+<p>注意，我们的更新是先更新数据库，成功后，让缓存失效。</p>
+<p>** 这种情况不存在并发问题么？**</p>
+<p>不是的。假设这会有两个请求，一个请求A做查询操作，一个请求B做更新操作，那么会有如下情形产生</p>
+<p>（1）缓存刚好失效</p>
+<p>（2）请求A查询数据库，得一个旧值</p>
+<p>（3）请求B将新值写入数据库</p>
+<p>（4）请求B删除缓存</p>
+<p>（5）请求A将查到的旧值写入缓存</p>
+<p>ok，如果发生上述情况，确实是会发生脏数据。</p>
+<p>** 然而，发生这种情况的概率又有多少呢？**</p>
+<p>发生上述情况有一个先天性条件，就是步骤（3）的写数据库操作比步骤（2）的读数据库操作耗时更短，才有可能使得步骤（4）先于步骤（5）。可是，大家想想，数据库的读操作的速度远快于写操作的（不然做读写分离干嘛，做读写分离的意义就是因为读操作比较快，耗资源少），因此步骤（3）耗时比步骤（2）更短，这一情形很难出现。</p>
+<p>** 如何解决上述并发问题？**</p>
+<p>首先，给缓存设有效时间是一种方案。其次，采用策略（2）里给出的异步延时删除策略，保证读请求完成以后，再进行删除操作。</p>
+<p>** 还有其他造成不一致的原因么？**</p>
+<p>有的，这也是缓存更新策略（2）和缓存更新策略（3）都存在的一个问题，如果删缓存失败了怎么办，那不是会有不一致的情况出现么。比如一个写数据请求，然后写入数据库了，删缓存失败了，这会就出现不一致的情况了。这也是缓存更新策略（2）里留下的最后一个疑问。</p>
+<p>** 如何解决？**</p>
+<p>提供一个保障的重试机制即可，这里给出两套方案。</p>
+<p>** 方案一：**</p>
+<p>流程如下所示</p>
+<p><img src="/img/o_update1.png" alt="o_update1.png"></p>
+<p>（1）更新数据库数据；</p>
+<p>（2）缓存因为种种问题删除失败</p>
+<p>（3）将需要删除的key发送至消息队列</p>
+<p>（4）自己消费消息，获得需要删除的key</p>
+<p>（5）继续重试删除操作，直到成功</p>
+<p>** 方案二：**</p>
+<p>流程如下所示：</p>
+<p><img src="/img/o_update2.png" alt="o_update2.png"></p>
+<p>（1）更新数据库数据</p>
+<p>（2）数据库会将操作信息写入binlog日志当中</p>
+<p>（3）订阅程序提取出所需要的数据以及key</p>
+<p>（4）另起一段非业务代码，获得该信息</p>
+<p>（5）尝试删除缓存操作，发现删除失败</p>
+<p>（6）将这些信息发送至消息队列</p>
+<p>（7）重新从消息队列中获得该数据，重试操作。</p>
+<p>备注说明：上述的订阅binlog程序在mysql中有现成的中间件叫canal，可以完成订阅binlog日志的功能。另外，重试机制，可以采用的是消息队列的方式。如果对一致性要求不是很高，直接在程序中另起一个线程，每隔一段时间去重试即可。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/rjzheng/p/9041659.html">【原创】分布式之数据库和缓存双写一致性方案解析</a></p>
+<p><a target="_blank" rel="noopener" href="https://coolshell.cn/articles/17416.html">缓存更新的套路</a></p>
+<p><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s?__biz=MjM5ODYxMDA5OQ==&mid=404308725&idx=1&sn=1a25ce76dd1956014ceb8a011855268e&scene=21#wechat_redirect">主从DB与cache一致性</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/Redis/" rel="tag"><i class="fa fa-tag"></i> Redis</a>
+              <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" rel="tag"><i class="fa fa-tag"></i> 分布式</a>
+              <a href="/tags/%E7%BC%93%E5%AD%98/" rel="tag"><i class="fa fa-tag"></i> 缓存</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/06/08/Redis%E8%AF%A6%E8%A7%A3/" rel="prev" title="Redis详解">
+      <i class="fa fa-chevron-left"></i> Redis详解
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2018/06/11/Redis%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B/" rel="next" title="Redis内存模型">
+      Redis内存模型 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%88%86%E5%B8%83%E5%BC%8F%E4%B9%8B%E6%95%B0%E6%8D%AE%E5%BA%93%E5%92%8C%E7%BC%93%E5%AD%98%E5%8F%8C%E5%86%99%E4%B8%80%E8%87%B4%E6%80%A7%E6%96%B9%E6%A1%88"><span class="nav-number">1.</span> <span class="nav-text">分布式之数据库和缓存双写一致性方案</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E5%85%88%E6%9B%B4%E6%96%B0%E6%95%B0%E6%8D%AE%E5%BA%93%EF%BC%8C%E5%86%8D%E6%9B%B4%E6%96%B0%E7%BC%93%E5%AD%98"><span class="nav-number">1.1.</span> <span class="nav-text">(1)先更新数据库，再更新缓存</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%85%88%E5%88%A0%E7%BC%93%E5%AD%98%EF%BC%8C%E5%86%8D%E6%9B%B4%E6%96%B0%E6%95%B0%E6%8D%AE%E5%BA%93"><span class="nav-number">1.2.</span> <span class="nav-text">(2)先删缓存，再更新数据库</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%85%88%E6%9B%B4%E6%96%B0%E6%95%B0%E6%8D%AE%E5%BA%93%EF%BC%8C%E5%86%8D%E5%88%A0%E7%BC%93%E5%AD%98"><span class="nav-number">1.3.</span> <span class="nav-text">(3)先更新数据库，再删缓存</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="syxdevcode"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description">syxdevcode的个人博客</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">616</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">157</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">2.1m</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">31:27</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

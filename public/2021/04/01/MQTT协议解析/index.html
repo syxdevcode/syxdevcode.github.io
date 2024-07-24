@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.2">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"syxdevcode.github.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="简介&amp;emsp;&amp;emsp;MQTT（Message Queuing Telemetry Transport，消息队列遥测传输协议），是一种基于发布&#x2F;订阅（publish&#x2F;subscribe）模式的 “轻量级”通讯协议，由IBM在1999年发布,它工作在TCP&#x2F;IP协议族上，是为硬件性能低下的远程设备以及网络状况糟糕的情况下而设计的发布&#x2F;订阅型消息协议。 &amp;emsp;&amp;emsp;MQTT最大优点在">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MQTT协议解析">
+<meta property="og:url" content="https://syxdevcode.github.com/2021/04/01/MQTT%E5%8D%8F%E8%AE%AE%E8%A7%A3%E6%9E%90/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="简介&amp;emsp;&amp;emsp;MQTT（Message Queuing Telemetry Transport，消息队列遥测传输协议），是一种基于发布&#x2F;订阅（publish&#x2F;subscribe）模式的 “轻量级”通讯协议，由IBM在1999年发布,它工作在TCP&#x2F;IP协议族上，是为硬件性能低下的远程设备以及网络状况糟糕的情况下而设计的发布&#x2F;订阅型消息协议。 &amp;emsp;&amp;emsp;MQTT最大优点在">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://syxdevcode.github.com/img/mqtt-fidge-2.svg">
+<meta property="og:image" content="https://syxdevcode.github.com/img/20210320224829539.png">
+<meta property="og:image" content="https://syxdevcode.github.com/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20210401134259.png">
+<meta property="og:image" content="https://syxdevcode.github.com/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20210401134438.png">
+<meta property="article:published_time" content="2021-04-01T05:35:51.000Z">
+<meta property="article:modified_time" content="2022-06-27T10:25:23.264Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="Linux">
+<meta property="article:tag" content="CentOS7">
+<meta property="article:tag" content="TCP协议">
+<meta property="article:tag" content="IP网络">
+<meta property="article:tag" content="计算机基础">
+<meta property="article:tag" content="网络基础">
+<meta property="article:tag" content="Linux网络">
+<meta property="article:tag" content="网络协议">
+<meta property="article:tag" content="IOT">
+<meta property="article:tag" content="物联网">
+<meta property="article:tag" content="嵌入式">
+<meta property="article:tag" content="MQTT">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://syxdevcode.github.com/img/mqtt-fidge-2.svg">
+
+<link rel="canonical" href="https://syxdevcode.github.com/2021/04/01/MQTT%E5%8D%8F%E8%AE%AE%E8%A7%A3%E6%9E%90/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>MQTT协议解析 | syxdevcode博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">syxdevcode博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/syxdevcode" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2021/04/01/MQTT%E5%8D%8F%E8%AE%AE%E8%A7%A3%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          MQTT协议解析
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2021-04-01 13:35:51" itemprop="dateCreated datePublished" datetime="2021-04-01T13:35:51+08:00">2021-04-01</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-06-27 18:25:23" itemprop="dateModified" datetime="2022-06-27T18:25:23+08:00">2022-06-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/MQTT/" itemprop="url" rel="index"><span itemprop="name">MQTT</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>6.1k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>6 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>&emsp;&emsp;MQTT（Message Queuing Telemetry Transport，消息队列遥测传输协议），是一种基于发布/订阅（publish/subscribe）模式的 “轻量级”通讯协议，由IBM在1999年发布,它工作在TCP/IP协议族上，是为硬件性能低下的远程设备以及网络状况糟糕的情况下而设计的发布/订阅型消息协议。</p>
+<p>&emsp;&emsp;MQTT最大优点在于，可以以极少的代码和有限的带宽，为连接远程设备提供实时可靠的消息服务。作为一种低开销、低带宽占用的即时通讯协议，使其在物联网、小型设备、移动应用等方面有较广泛的应用。 </p>
+<p>&emsp;&emsp;目前应用比较广泛的是MQTT3.1.1，这个版本包括各种数据传输所需的功能和特征，而且对应生态非常成熟，因此以MQTT 3.1.1为例介绍一下MQTT的协议格式。</p>
+<span id="more"></span>
+<p><img src="/img/mqtt-fidge-2.svg" alt="mqtt-fidge-2.svg"></p>
+<h2 id="MQTT协议原理"><a href="#MQTT协议原理" class="headerlink" title="MQTT协议原理"></a>MQTT协议原理</h2><h3 id="MQTT协议实现方式"><a href="#MQTT协议实现方式" class="headerlink" title="MQTT协议实现方式"></a>MQTT协议实现方式</h3><p>&emsp;&emsp;实现MQTT协议需要客户端和服务器端通讯完成，在通讯过程中，MQTT协议中有三种身份：发布者（Publish）、代理（Broker,服务器）、订阅者（Subscribe）。其中，消息的发布者和订阅者都是客户端，消息代理是服务器，消息发布者可以同时是订阅者。</p>
+<p>MQTT传输的消息分为：主题（Topic）和负载（payload）两部分：</p>
+<ul>
+<li>（1）Topic，可以理解为消息的类型，订阅者订阅（Subscribe）后，就会收到该主题的消息内容（payload）；</li>
+<li>（2）payload，可以理解为消息的内容，是指订阅者具体要使用的内容。</li>
+</ul>
+<h3 id="网络传输与应用消息"><a href="#网络传输与应用消息" class="headerlink" title="网络传输与应用消息"></a>网络传输与应用消息</h3><p>MQTT会构建底层网络传输：它将建立客户端到服务器的连接，提供两者之间的一个有序的、无损的、基于字节流的双向传输。</p>
+<p>当应用数据通过 MQTT 网络发送时，MQTT 会把与之相关的服务质量（QoS）和主题名（Topic）相关连。</p>
+<p>MQTT 连接始终位于一个客户端和 Broker 之间。客户从不直接连接，要启动连接，客户端会向 Broker 发送连接消息。Broker 以 CONNACK 消息和状态代码进行响应。连接建立后，Broker 将其保持打开状态，直到客户发送断开命令或连接中断。MQTT Clients 与 Broker 之间保持TCP长连接。</p>
+<p><strong>通过NAT进行MQT连接</strong></p>
+<p>在许多常用案例中，MQTT 客户端位于使用网络地址翻译 （NAT） 从专用网络地址（如 192.168.x、10.0.x.x）翻译到面向公共地址的路由器后面。MQTT 客户端通过向 Broker 发送 CONNECT 消息来启动连接。由于 Broker 有一个公共地址，并保持连接开放，在初始连接后，允许双向发送和接收消息。</p>
+<h3 id="MQTT客户端"><a href="#MQTT客户端" class="headerlink" title="MQTT客户端"></a>MQTT客户端</h3><p>一个使用MQTT协议的应用程序或者设备，它总是建立到服务器的网络连接。客户端可以：</p>
+<ul>
+<li>（1）发布其他客户端可能会订阅的信息；</li>
+<li>（2）订阅其它客户端发布的消息；</li>
+<li>（3）退订或删除应用程序的消息；</li>
+<li>（4）断开与服务器连接。</li>
+</ul>
+<h3 id="MQTT服务器"><a href="#MQTT服务器" class="headerlink" title="MQTT服务器"></a>MQTT服务器</h3><p>MQTT服务器以称为”消息代理”（Broker），可以是一个应用程序或一台设备。它是位于消息发布者和订阅者之间，它可以：</p>
+<p>（1）接受来自客户的网络连接；<br>（2）接受客户发布的应用信息；<br>（3）处理来自客户端的订阅和退订请求；<br>（4）向订阅的客户转发应用程序消息。</p>
+<h3 id="MQTT安全认证"><a href="#MQTT安全认证" class="headerlink" title="MQTT安全认证"></a>MQTT安全认证</h3><p>MQTT是基于TCP的，默认情况通讯并不加密。</p>
+<p>三种方法：</p>
+<ul>
+<li>网络层：通过拉专线或者使用VPN来连接设备与MQTT代理。</li>
+<li>传输层：传输层使用TLS加密，可以防止中间人攻击（Man-In-The-Middle Attack）。客户端证书不但可以作为设备的身份凭证，还可以用来验证设备。</li>
+<li>应用层：MQTT还提供客户标识（Client Identifier），用户名密码以及X509证书，在应用层验证设备。</li>
+</ul>
+<h3 id="MQTT协议中的订阅、主题、会话"><a href="#MQTT协议中的订阅、主题、会话" class="headerlink" title="MQTT协议中的订阅、主题、会话"></a>MQTT协议中的订阅、主题、会话</h3><h4 id="一、订阅（Subscription）"><a href="#一、订阅（Subscription）" class="headerlink" title="一、订阅（Subscription）"></a>一、订阅（Subscription）</h4><p>订阅包含主题筛选器（Topic Filter）和最大服务质量（QoS）。订阅会与一个会话（Session）关联。一个会话可以包含多个订阅。每一个会话中的每个订阅都有一个不同的主题筛选器。</p>
+<h4 id="二、会话（Session）"><a href="#二、会话（Session）" class="headerlink" title="二、会话（Session）"></a>二、会话（Session）</h4><p>每个客户端与服务器建立连接后就是一个会话，客户端和服务器之间有状态交互。会话存在于一个网络之间，也可能在客户端和服务器之间跨越多个连续的网络连接。</p>
+<h4 id="三、主题名（Topic-Name）"><a href="#三、主题名（Topic-Name）" class="headerlink" title="三、主题名（Topic Name）"></a>三、主题名（Topic Name）</h4><p>连接到一个应用程序消息的标签，该标签与服务器的订阅相匹配。服务器会将消息发送给订阅所匹配标签的每个客户端。</p>
+<h4 id="四、主题筛选器（Topic-Filter）"><a href="#四、主题筛选器（Topic-Filter）" class="headerlink" title="四、主题筛选器（Topic Filter）"></a>四、主题筛选器（Topic Filter）</h4><p>一个对主题名通配符筛选器，在订阅表达式中使用，表示订阅所匹配到的多个主题。</p>
+<h4 id="五、负载（Payload）"><a href="#五、负载（Payload）" class="headerlink" title="五、负载（Payload）"></a>五、负载（Payload）</h4><p>消息订阅者所具体接收的内容。</p>
+<h3 id="MQTT协议中的方法"><a href="#MQTT协议中的方法" class="headerlink" title="MQTT协议中的方法"></a>MQTT协议中的方法</h3><p>MQTT协议中定义了一些方法（也被称为动作），来于表示对确定资源所进行操作。这个资源可以代表预先存在的数据或动态生成数据，这取决于服务器的实现。</p>
+<p>通常来说，资源指服务器上的文件或输出。主要方法有：</p>
+<ul>
+<li>（1）Connect。等待与服务器建立连接。</li>
+<li>（2）Disconnect。等待MQTT客户端完成所做的工作，并与服务器断开TCP/IP会话。</li>
+<li>（3）Subscribe。等待完成订阅。</li>
+<li>（4）UnSubscribe。等待服务器取消客户端的一个或多个topics订阅。</li>
+<li>（5）Publish。MQTT客户端发送消息请求，发送完成后返回应用程序线程。</li>
+</ul>
+<h2 id="MQTT协议数据包结构"><a href="#MQTT协议数据包结构" class="headerlink" title="MQTT协议数据包结构"></a>MQTT协议数据包结构</h2><p>在MQTT协议中，一个MQTT数据包由：固定头（Fixed header）、可变头（Variable header）、消息体（payload）三部分构成。</p>
+<p>MQTT数据包结构如下：</p>
+<ul>
+<li>（1）固定头（Fixed header）。存在于所有MQTT数据包中，表示数据包类型及数据包的分组类标识。</li>
+<li>（2）可变头（Variable header）。存在于部分MQTT数据包中，数据包类型决定了可变头是否存在及其具体内容。</li>
+<li>（3）消息体（Payload）。存在于部分MQTT数据包中，表示客户端收到的具体内容。</li>
+</ul>
+<h3 id="MQTT固定头"><a href="#MQTT固定头" class="headerlink" title="MQTT固定头"></a>MQTT固定头</h3><p>所有的MQTT报文都包含固定报头：可变报头与有效载荷是部分MQTT报文包含。 </p>
+<p>固定报头占据两字节的空间：</p>
+<p><img src="/img/20210320224829539.png" alt="20210320224829539.png"></p>
+<h4 id="报文类型"><a href="#报文类型" class="headerlink" title="报文类型"></a>报文类型</h4><p>固定报头的第一个字节分为控制报文的类型（4bit），以及控制报文类型的标志位，控制类型共有14种，其中0与15被系统保留出来：</p>
+<table>
+<thead>
+<tr>
+<th align="left">类型</th>
+<th align="center">值</th>
+<th align="center">报文流动方向</th>
+<th align="left">说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Reserved</td>
+<td align="center">0</td>
+<td align="center">禁止</td>
+<td align="left">系统保留</td>
+</tr>
+<tr>
+<td align="left">CONNECT</td>
+<td align="center">1</td>
+<td align="center">客户端到服务端</td>
+<td align="left">客户端请求连接服务端</td>
+</tr>
+<tr>
+<td align="left">CONNACK</td>
+<td align="center">2</td>
+<td align="center">服务端到客户端</td>
+<td align="left">连接报文确认</td>
+</tr>
+<tr>
+<td align="left">PUBLISH</td>
+<td align="center">3</td>
+<td align="center">两个方向都允许</td>
+<td align="left">发布消息</td>
+</tr>
+<tr>
+<td align="left">PUBACK</td>
+<td align="center">4</td>
+<td align="center">两个方向都允许</td>
+<td align="left">消息发布收到确认（QoS 1）</td>
+</tr>
+<tr>
+<td align="left">PUBREC</td>
+<td align="center">5</td>
+<td align="center">两个方向都允许</td>
+<td align="left">发布收到（QoS2 第一阶段）</td>
+</tr>
+<tr>
+<td align="left">PUBREL</td>
+<td align="center">6</td>
+<td align="center">两个方向都允许</td>
+<td align="left">发布释放（QoS2第二阶段)）</td>
+</tr>
+<tr>
+<td align="left">PUBCOMP</td>
+<td align="center">7</td>
+<td align="center">两个方向都允许</td>
+<td align="left">消息发布完成（QoS2第三阶段）</td>
+</tr>
+<tr>
+<td align="left">SUBSCRIBE</td>
+<td align="center">8</td>
+<td align="center">客户端到服务端</td>
+<td align="left">客户端订阅请求</td>
+</tr>
+<tr>
+<td align="left">SUBACK</td>
+<td align="center">9</td>
+<td align="center">服务端到客户端</td>
+<td align="left">订阅请求报文确认</td>
+</tr>
+<tr>
+<td align="left">UNSUBSCRIBE</td>
+<td align="center">10</td>
+<td align="center">客户端到服务端</td>
+<td align="left">客户端取消订阅请求</td>
+</tr>
+<tr>
+<td align="left">UNSUBACK</td>
+<td align="center">11</td>
+<td align="center">服务端到客户端</td>
+<td align="left">取消订阅报文确认</td>
+</tr>
+<tr>
+<td align="left">PINGREQ</td>
+<td align="center">12</td>
+<td align="center">客户端到服务端</td>
+<td align="left">心跳请求</td>
+</tr>
+<tr>
+<td align="left">PINGRESP</td>
+<td align="center">13</td>
+<td align="center">服务端到客户端</td>
+<td align="left">心跳响应</td>
+</tr>
+<tr>
+<td align="left">DISCONNECT</td>
+<td align="center">14</td>
+<td align="center">客户端到服务端</td>
+<td align="left">客户端断开连接</td>
+</tr>
+<tr>
+<td align="left">Reserved</td>
+<td align="center">15</td>
+<td align="center">禁止</td>
+<td align="left">系统保留</td>
+</tr>
+</tbody></table>
+<h4 id="报文类型的标志位"><a href="#报文类型的标志位" class="headerlink" title="报文类型的标志位"></a>报文类型的标志位</h4><p>固定报头( <code>Byte 1</code> )的 <code>bit0-bit3</code> 为标志位，依照报文类型有不同的含义。</p>
+<p>在不使用标识位的消息类型中，标识位被作为保留位。如果收到无效的标志时，接收端必须关闭网络连接：</p>
+<p>（1）DUP：发布消息的副本。用来在保证消息的可靠传输，如果设置为1，则在下面的变长中增加 <code>MessageId</code>，并且需要回复确认，以保证消息传输完成，但不能用于检测消息重复发送。</p>
+<p>（2）QoS：发布消息的服务质量(可靠性控制QoS)，即：保证消息传递的次数</p>
+<p>00：&lt;=1，至多一次，只发一次，不确保到达。<br>01：&gt;=1，至少一次，确保消息到达但可能有重复<br>10：=1，只有一次，确保消息到达且无重复<br>11：预留，客户端或服务器认为这是一条非法的消息，会关闭当前连接。</p>
+<p>（3）RETAIN： 发布保留标识，表示服务器要保留这次推送的信息，如果有新的订阅者出现，就把这消息推送给它，如果设有那么推送至当前订阅者后释放。</p>
+<p>&emsp;&emsp;目前Bit[3-0]只在 <code>PUBLISH</code> 协议中使用有效，并且表中指明了是 <code>MQTT 3.1.1</code> 版本，其他报文的标志位均为系统保留。对于其它 MQTT 协议版本，内容可能不同。</p>
+<p>&emsp;&emsp;所有固定头标记为”保留”的协议类型，<code>Bit[3-0]</code> 必须保持与表中保持一致，如 <code>SUBSCRIBE</code> 协议，其 <code>Bit 1</code> 必须为 1。如果接收方接收到非法的消息，会强行关闭当前连接。</p>
+<p>&emsp;&emsp;<code>PUBLISH</code> 报文的第一字节 <code>bit3</code> 是控制报文的重复分发标志（DUP），<code>bit1-bit2</code>是服务质量等级，<code>bit0</code> 是 <code>PUBLISH</code> 报文的保留标志，用于标识 <code>PUBLISH</code> 是否保留。</p>
+<p>&emsp;&emsp;当客户端发送一个<code>PUBLISH</code> 消息到服务器，如果保留标识位置1，那么服务器应该保留这条消息，当一个新的订阅者订阅这个主题的时候，最后保留的主题消息应被发送到新订阅的用户。如果 DUP 字段( <code>bit 3</code> )设置为1，表明这是一条重复消息，否则是第一次发布消息。为了保证消息的可靠性传递，当 <code>QoS</code> 设置为1时，客户端或服务器发布消息时，需要得到对方的确认(<code>PUBACK</code>)，如果一段时间后没收到<code>PUBACK</code>，那么会再次发送当前消息，并将DUP字段标记为1。</p>
+<table>
+<thead>
+<tr>
+<th align="left">报文类型</th>
+<th align="center">固定头标记</th>
+<th align="center">Bit3</th>
+<th align="left">Bit2</th>
+<th align="left">Bit1</th>
+<th align="left">Bit0</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">CONNECT</td>
+<td align="center">保留</td>
+<td align="center">0</td>
+<td align="left">0</td>
+<td align="left">0</td>
+<td align="left">0</td>
+</tr>
+<tr>
+<td align="left">CONNACK</td>
+<td align="center">保留</td>
+<td align="center">0</td>
+<td align="left">0</td>
+<td align="left">0</td>
+<td align="left">0</td>
+</tr>
+<tr>
+<td align="left">PUBLISH</td>
+<td align="center">Used in MQTT 3.1.1</td>
+<td align="center">DUP</td>
+<td align="left">QoS</td>
+<td align="left">QoS</td>
+<td align="left">RETAIN</td>
+</tr>
+<tr>
+<td align="left">PUBACK</td>
+<td align="center">保留</td>
+<td align="center">0</td>
+<td align="left">0</td>
+<td align="left">0</td>
+<td align="left">0</td>
+</tr>
+<tr>
+<td align="left">PUBREC</td>
+<td align="center">保留</td>
+<td align="center">0</td>
+<td align="left">0</td>
+<td align="left">0</td>
+<td align="left">0</td>
+</tr>
+<tr>
+<td align="left">PUBREL</td>
+<td align="center">保留</td>
+<td align="center">0</td>
+<td align="left">0</td>
+<td align="left">1</td>
+<td align="left">0</td>
+</tr>
+<tr>
+<td align="left">PUBCOMP</td>
+<td align="center">保留</td>
+<td align="center">0</td>
+<td align="left">0</td>
+<td align="left">0</td>
+<td align="left">0</td>
+</tr>
+<tr>
+<td align="left">SUBSCRIBE</td>
+<td align="center">保留</td>
+<td align="center">0</td>
+<td align="left">0</td>
+<td align="left">1</td>
+<td align="left">0</td>
+</tr>
+<tr>
+<td align="left">SUBACK</td>
+<td align="center">保留</td>
+<td align="center">0</td>
+<td align="left">0</td>
+<td align="left">0</td>
+<td align="left">0</td>
+</tr>
+<tr>
+<td align="left">UNSUBACRIBE</td>
+<td align="center">保留</td>
+<td align="center">0</td>
+<td align="left">0</td>
+<td align="left">1</td>
+<td align="left">0</td>
+</tr>
+<tr>
+<td align="left">UNSUBACK</td>
+<td align="center">保留</td>
+<td align="center">0</td>
+<td align="left">0</td>
+<td align="left">0</td>
+<td align="left">0</td>
+</tr>
+<tr>
+<td align="left">PINGREQ</td>
+<td align="center">保留</td>
+<td align="center">0</td>
+<td align="left">0</td>
+<td align="left">0</td>
+<td align="left">0</td>
+</tr>
+<tr>
+<td align="left">PINGRESP</td>
+<td align="center">保留</td>
+<td align="center">0</td>
+<td align="left">0</td>
+<td align="left">0</td>
+<td align="left">0</td>
+</tr>
+<tr>
+<td align="left">DISCONNECT</td>
+<td align="center">保留</td>
+<td align="center">0</td>
+<td align="left">0</td>
+<td align="left">0</td>
+<td align="left">0</td>
+</tr>
+</tbody></table>
+<h3 id="剩余长度（Remaining-Length）"><a href="#剩余长度（Remaining-Length）" class="headerlink" title="剩余长度（Remaining Length）"></a>剩余长度（Remaining Length）</h3><p><code>剩余长度（Remaining Length）</code>= <code>Variable Header</code> + <code>Payload的长度(如果存在)</code>。</p>
+<p>剩余长度不包括用于编码剩余长度字段本身的字节数。</p>
+<p>剩余长度从 <code>Byte 2</code> 开始，最长可达 <code>4Byte</code>。所以剩余长度范围是 <code>Byte[2-5]</code>。</p>
+<p>&emsp;&emsp;确定其长度到底是<code>1Byte</code> 还是 <code>4Byte</code> ，这取决于字节的最高位 <code>Bit 7</code>(默认都是高字节在前)，如果这个值是1，那么就继续计算字节长度，如果是0，那么就不再计算字节长度。</p>
+<p>&emsp;&emsp;剩余长度字段使用一个变长度编码方案，对小于 <code>128（2^7）</code> 的值它使用单字节编码，而对于更大的数值则按下面的方式处理：每个字节的低7位用于编码数据长度，最高位（bit7）用于标识剩余长度字段是否有更多的字节，且按照大端模式进行编码，因此每个字节可以编码128个数值和一个延续位，剩余长度字段最大可拥有4个字节，最大可以表示 <code>128*128*128*128Byte/1024/1024=256MB</code>。</p>
+<p>注：</p>
+<ul>
+<li>大端模式，是指数据的高字节保存在内存的低地址中，而数据的低字节保存在内存的高地址中，这样的存储模式有点儿类似于把数据当作字符串顺序处理：地址由小向大增加，而数据从高位往低位放。</li>
+<li>小端模式，是指数据的高字节保存在内存的高地址中，而数据的低字节保存在内存的低地址中，这种存储模式将地址的高低和数据位权有效地结合起来，高地址部分权值高，低地址部分权值低。</li>
+</ul>
+<p>字节对应取值：</p>
+<ul>
+<li>当剩余长度使用1个字节存储时，其取值范围为 <code>0(0x00)~127(0x7f)</code>。</li>
+<li>2个字节，其取值范围为 <code>128(0x80,0x01)~16383(0Xff,0x7f)</code>。</li>
+<li>3个字节，其取值范围为 <code>16384(0x80,0x80,0x01)~2097151(0xFF,0xFF,0x7F)</code>。</li>
+<li>4个字节，取值范围为 <code>2097152(0x80,0x80,0x80,0x01)~268435455(0xFF,0xFF,0xFF,0x7F)</code>。</li>
+</ul>
+<p>总结：<code>MQTT</code> 报文理论上可以发送最大 <code>256M</code> 的报文，但这种情况非常少。 </p>
+<p><strong>例子</strong></p>
+<p>1，消息假设长度是 <code>[0X60]</code>，其二进制是 <code>01100000</code> ，字节最高位 <code>Bit7</code> (从左边起第0位)是0，所以不需要继续往后计算。那么消息长度就是0X60，十进制数是96。</p>
+<p>2，如果消息长度是[0XC1, 0XC2, 0X33]，那么他们的二进制分别如下，</p>
+<figure class="highlight h"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">0xC1</span>=<span class="number">1100</span> <span class="number">0001</span></span><br><span class="line"><span class="number">0xC2</span>=<span class="number">1100</span> <span class="number">0010</span></span><br><span class="line"><span class="number">0x33</span>=<span class="number">0011</span> <span class="number">0011</span></span><br></pre></td></tr></table></figure>
+
+<p>第一字节最高位是1，那么需要继续向后计算，去掉标记位(0xC1%128)，得到100 0001=41<br>第二字节最高位是1，那么需要继续向后计算，去掉标记位(0xC2%128)，得到100 0010=42<br>第三字节最高位是0，不需要向后计算，其结果就是0x33=51</p>
+<p>因为低位在前，高位在后，那么长度计算为 <code>Length=41 + 42*128 + 51*128*128 = 841001B = 821KB</code></p>
+<p>&emsp;&emsp;需要注意的是，消息长度=可变头部长度+消息内容长度。不包括首字节和消息长度本身，如果消息长度为5(占用1字节长度)，那么说明这条消息后边还有5字节，整条消息长度为7(首字节+1位长度字节+5)。</p>
+<p>&emsp;&emsp;另外如果消息长度为4字节，最后一位不能超过 <code>0X7F=127</code>，因为如果超出这个值，其最高位 <code>Bit7</code> 是1，还需要往后计算，这与消息最大长度为4字节矛盾。所以如果出现 <code>[0XFF, 0XFF, 0XFF, 0XFF]</code> 这样的消息长度，那么接收方认为这是一条非法的消息。</p>
+<h3 id="MQTT可变头（Variable-header）"><a href="#MQTT可变头（Variable-header）" class="headerlink" title="MQTT可变头（Variable header）"></a>MQTT可变头（Variable header）</h3><p>&emsp;&emsp;MQTT数据包中包含一个可变头，它驻位于固定的头和负载之间。可变头的内容因数据包类型而不同，较常的应用是作为包的标识。</p>
+<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20210401134259.png" alt="微信截图_20210401134259.png"></p>
+<p>&emsp;&emsp;只有某些报文才拥有可变报头，它在固定报头和有效负载之间，可变报头的内容会根据报文类型的不同而有所不同，但可变报头的报文标识符（Packet Identifier）字段存在于在多个类型的报文里，而有一些报文又没有报文标识符字段，具体见表格，报文标识符结构具体见图：</p>
+<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20210401134438.png" alt="微信截图_20210401134438.png"></p>
+<h3 id="Payload消息体"><a href="#Payload消息体" class="headerlink" title="Payload消息体"></a>Payload消息体</h3><p>Payload消息体位MQTT数据包的第三部分，包含 <code>CONNECT</code>、<code>SUBSCRIBE</code>、<code>SUBACK</code>、<code>UNSUBSCRIBE</code>、<code>PUBLISH</code>（类型可选）五种类型的消息，除了上面列出的报文类型，其它的报文类型都没有 <code>Payload</code>。</p>
+<ul>
+<li>（1）CONNECT，消息体内容主要是：客户端的 ClientID、订阅的Topic、Message以及用户名和密码。</li>
+<li>（2）SUBSCRIBE，消息体内容是一系列的要订阅的主题以及QoS。</li>
+<li>（3）SUBACK，消息体内容是服务器对于SUBSCRIBE所申请的主题及QoS进行确认和回复。</li>
+<li>（4）UNSUBSCRIBE，消息体内容是要订阅的主题。</li>
+</ul>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_28877125/article/details/78325003">MQTT–入门</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/beauty0beast/article/details/106304197">MQTT数据包格式</a></p>
+<p><a target="_blank" rel="noopener" href="http://blog.mcxiaoke.com/mqtt/protocol/MQTT-3.1.1-CN.html">MQTT 协议 3.1.1 中文版</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/Linux/" rel="tag"><i class="fa fa-tag"></i> Linux</a>
+              <a href="/tags/CentOS7/" rel="tag"><i class="fa fa-tag"></i> CentOS7</a>
+              <a href="/tags/TCP%E5%8D%8F%E8%AE%AE/" rel="tag"><i class="fa fa-tag"></i> TCP协议</a>
+              <a href="/tags/IP%E7%BD%91%E7%BB%9C/" rel="tag"><i class="fa fa-tag"></i> IP网络</a>
+              <a href="/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9F%BA%E7%A1%80/" rel="tag"><i class="fa fa-tag"></i> 计算机基础</a>
+              <a href="/tags/%E7%BD%91%E7%BB%9C%E5%9F%BA%E7%A1%80/" rel="tag"><i class="fa fa-tag"></i> 网络基础</a>
+              <a href="/tags/Linux%E7%BD%91%E7%BB%9C/" rel="tag"><i class="fa fa-tag"></i> Linux网络</a>
+              <a href="/tags/%E7%BD%91%E7%BB%9C%E5%8D%8F%E8%AE%AE/" rel="tag"><i class="fa fa-tag"></i> 网络协议</a>
+              <a href="/tags/IOT/" rel="tag"><i class="fa fa-tag"></i> IOT</a>
+              <a href="/tags/%E7%89%A9%E8%81%94%E7%BD%91/" rel="tag"><i class="fa fa-tag"></i> 物联网</a>
+              <a href="/tags/%E5%B5%8C%E5%85%A5%E5%BC%8F/" rel="tag"><i class="fa fa-tag"></i> 嵌入式</a>
+              <a href="/tags/MQTT/" rel="tag"><i class="fa fa-tag"></i> MQTT</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2021/03/31/Linux-find%E5%91%BD%E4%BB%A4/" rel="prev" title="Linux find命令">
+      <i class="fa fa-chevron-left"></i> Linux find命令
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2021/04/01/Linux-%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9A%84%E6%80%A7%E8%83%BD%E5%8F%82%E6%95%B0%E6%8C%87%E6%A0%87%E6%80%BB%E7%BB%93/" rel="next" title="Linux 服务器的性能参数指标总结">
+      Linux 服务器的性能参数指标总结 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MQTT%E5%8D%8F%E8%AE%AE%E5%8E%9F%E7%90%86"><span class="nav-number">2.</span> <span class="nav-text">MQTT协议原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#MQTT%E5%8D%8F%E8%AE%AE%E5%AE%9E%E7%8E%B0%E6%96%B9%E5%BC%8F"><span class="nav-number">2.1.</span> <span class="nav-text">MQTT协议实现方式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BD%91%E7%BB%9C%E4%BC%A0%E8%BE%93%E4%B8%8E%E5%BA%94%E7%94%A8%E6%B6%88%E6%81%AF"><span class="nav-number">2.2.</span> <span class="nav-text">网络传输与应用消息</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#MQTT%E5%AE%A2%E6%88%B7%E7%AB%AF"><span class="nav-number">2.3.</span> <span class="nav-text">MQTT客户端</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#MQTT%E6%9C%8D%E5%8A%A1%E5%99%A8"><span class="nav-number">2.4.</span> <span class="nav-text">MQTT服务器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#MQTT%E5%AE%89%E5%85%A8%E8%AE%A4%E8%AF%81"><span class="nav-number">2.5.</span> <span class="nav-text">MQTT安全认证</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#MQTT%E5%8D%8F%E8%AE%AE%E4%B8%AD%E7%9A%84%E8%AE%A2%E9%98%85%E3%80%81%E4%B8%BB%E9%A2%98%E3%80%81%E4%BC%9A%E8%AF%9D"><span class="nav-number">2.6.</span> <span class="nav-text">MQTT协议中的订阅、主题、会话</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E8%AE%A2%E9%98%85%EF%BC%88Subscription%EF%BC%89"><span class="nav-number">2.6.1.</span> <span class="nav-text">一、订阅（Subscription）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BA%8C%E3%80%81%E4%BC%9A%E8%AF%9D%EF%BC%88Session%EF%BC%89"><span class="nav-number">2.6.2.</span> <span class="nav-text">二、会话（Session）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E4%B8%BB%E9%A2%98%E5%90%8D%EF%BC%88Topic-Name%EF%BC%89"><span class="nav-number">2.6.3.</span> <span class="nav-text">三、主题名（Topic Name）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E4%B8%BB%E9%A2%98%E7%AD%9B%E9%80%89%E5%99%A8%EF%BC%88Topic-Filter%EF%BC%89"><span class="nav-number">2.6.4.</span> <span class="nav-text">四、主题筛选器（Topic Filter）</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BA%94%E3%80%81%E8%B4%9F%E8%BD%BD%EF%BC%88Payload%EF%BC%89"><span class="nav-number">2.6.5.</span> <span class="nav-text">五、负载（Payload）</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#MQTT%E5%8D%8F%E8%AE%AE%E4%B8%AD%E7%9A%84%E6%96%B9%E6%B3%95"><span class="nav-number">2.7.</span> <span class="nav-text">MQTT协议中的方法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MQTT%E5%8D%8F%E8%AE%AE%E6%95%B0%E6%8D%AE%E5%8C%85%E7%BB%93%E6%9E%84"><span class="nav-number">3.</span> <span class="nav-text">MQTT协议数据包结构</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#MQTT%E5%9B%BA%E5%AE%9A%E5%A4%B4"><span class="nav-number">3.1.</span> <span class="nav-text">MQTT固定头</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%8A%A5%E6%96%87%E7%B1%BB%E5%9E%8B"><span class="nav-number">3.1.1.</span> <span class="nav-text">报文类型</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%8A%A5%E6%96%87%E7%B1%BB%E5%9E%8B%E7%9A%84%E6%A0%87%E5%BF%97%E4%BD%8D"><span class="nav-number">3.1.2.</span> <span class="nav-text">报文类型的标志位</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%89%A9%E4%BD%99%E9%95%BF%E5%BA%A6%EF%BC%88Remaining-Length%EF%BC%89"><span class="nav-number">3.2.</span> <span class="nav-text">剩余长度（Remaining Length）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#MQTT%E5%8F%AF%E5%8F%98%E5%A4%B4%EF%BC%88Variable-header%EF%BC%89"><span class="nav-number">3.3.</span> <span class="nav-text">MQTT可变头（Variable header）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Payload%E6%B6%88%E6%81%AF%E4%BD%93"><span class="nav-number">3.4.</span> <span class="nav-text">Payload消息体</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="syxdevcode"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description">syxdevcode的个人博客</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">616</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">157</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">2.1m</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">31:27</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

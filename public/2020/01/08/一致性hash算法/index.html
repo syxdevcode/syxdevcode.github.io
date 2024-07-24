@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.2">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"syxdevcode.github.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="一致性 hash 算法 (consistent hashing) 转载自： 一致性hash算法 - consistent hashing consistent hashing 算法早在 1997 年就在论文 Consistent hashing and random trees 中被提出，目前在 cache 系统中应用越来越广泛； 基本场景比如你有 N 个 cache 服务器（后面简称 cache">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一致性hash算法">
+<meta property="og:url" content="https://syxdevcode.github.com/2020/01/08/%E4%B8%80%E8%87%B4%E6%80%A7hash%E7%AE%97%E6%B3%95/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="一致性 hash 算法 (consistent hashing) 转载自： 一致性hash算法 - consistent hashing consistent hashing 算法早在 1997 年就在论文 Consistent hashing and random trees 中被提出，目前在 cache 系统中应用越来越广泛； 基本场景比如你有 N 个 cache 服务器（后面简称 cache">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://syxdevcode.github.com/img/circle.jfif">
+<meta property="og:image" content="https://syxdevcode.github.com/img/object.jfif">
+<meta property="og:image" content="https://syxdevcode.github.com/img/cache.jfif">
+<meta property="og:image" content="https://syxdevcode.github.com/img/remove.jfif">
+<meta property="og:image" content="https://syxdevcode.github.com/img/add.jfif">
+<meta property="og:image" content="https://syxdevcode.github.com/img/virtual.jfif">
+<meta property="og:image" content="https://syxdevcode.github.com/img/map.jfif">
+<meta property="article:published_time" content="2020-01-08T07:15:26.000Z">
+<meta property="article:modified_time" content="2022-06-27T10:25:23.308Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="算法">
+<meta property="article:tag" content="Hash算法">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://syxdevcode.github.com/img/circle.jfif">
+
+<link rel="canonical" href="https://syxdevcode.github.com/2020/01/08/%E4%B8%80%E8%87%B4%E6%80%A7hash%E7%AE%97%E6%B3%95/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>一致性hash算法 | syxdevcode博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">syxdevcode博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/syxdevcode" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/01/08/%E4%B8%80%E8%87%B4%E6%80%A7hash%E7%AE%97%E6%B3%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          一致性hash算法
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-01-08 15:15:26" itemprop="dateCreated datePublished" datetime="2020-01-08T15:15:26+08:00">2020-01-08</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-06-27 18:25:23" itemprop="dateModified" datetime="2022-06-27T18:25:23+08:00">2022-06-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%AE%97%E6%B3%95/" itemprop="url" rel="index"><span itemprop="name">算法</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>3.3k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>3 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>一致性 hash 算法 (consistent hashing)</p>
+<p>转载自：</p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/sparkliang/article/details/5279393">一致性hash算法 - consistent hashing</a></p>
+<p>consistent hashing 算法早在 1997 年就在论文 <a target="_blank" rel="noopener" href="https://dl.acm.org/doi/10.1145/258533.258660">Consistent hashing and random trees</a> 中被提出，目前在 cache 系统中应用越来越广泛；</p>
+<h2 id="基本场景"><a href="#基本场景" class="headerlink" title="基本场景"></a>基本场景</h2><p>比如你有 N 个 cache 服务器（后面简称 cache ），那么如何将一个对象 object 映射到 N 个 cache 上呢，你很可能会采用类似下面的通用方法计算 object 的 hash 值，然后均匀的映射到到 N 个 cache ；</p>
+<p>hash(object)%N</p>
+<p>一切都运行正常，再考虑如下的两种情况；</p>
+<p>1 一个 cache 服务器 m down 掉了（在实际应用中必须要考虑这种情况），这样所有映射到 cache m 的对象都会失效，怎么办，需要把 cache m 从 cache 中移除，这时候 cache 是 N-1 台，映射公式变成了 hash(object)%(N-1) ；</p>
+<p>2 由于访问加重，需要添加 cache ，这时候 cache 是 N+1 台，映射公式变成了 hash(object)%(N+1) ；</p>
+<p>1 和 2 意味着什么？这意味着突然之间几乎所有的 cache 都失效了。对于服务器而言，这是一场灾难，洪水般的访问都会直接冲向后台服务器；</p>
+<p>再来考虑第三个问题，由于硬件能力越来越强，你可能想让后面添加的节点多做点活，显然上面的 hash 算法也做不到。</p>
+<p>  有什么方法可以改变这个状况呢，这就是 consistent hashing…</p>
+<h2 id="hash-算法和单调性"><a href="#hash-算法和单调性" class="headerlink" title="hash 算法和单调性"></a>hash 算法和单调性</h2><p>　　 Hash 算法的一个衡量指标是单调性（ Monotonicity ），定义如下：</p>
+<p>　　单调性是指如果已经有一些内容通过哈希分派到了相应的缓冲中，又有新的缓冲加入到系统中。哈希的结果应能够保证原有已分配的内容可以被映射到新的缓冲中去，而不会被映射到旧的缓冲集合中的其他缓冲区。</p>
+<p>容易看到，上面的简单 hash 算法 hash(object)%N 难以满足单调性要求。</p>
+<h2 id="consistent-hashing-算法的原理"><a href="#consistent-hashing-算法的原理" class="headerlink" title="consistent hashing 算法的原理"></a>consistent hashing 算法的原理</h2><p>consistent hashing 是一种 hash 算法，简单的说，在移除 / 添加一个 cache 时，它能够尽可能小的改变已存在 key 映射关系，尽可能的满足单调性的要求。</p>
+<p>下面就来按照 5 个步骤简单讲讲 consistent hashing 算法的基本原理。</p>
+<h3 id="环形hash-空间"><a href="#环形hash-空间" class="headerlink" title="环形hash 空间"></a>环形hash 空间</h3><p>考虑通常的 hash 算法都是将 value 映射到一个 32 为的 key 值，也即是 0~2^32-1 次方的数值空间；我们可以将这个空间想象成一个首（ 0 ）尾（ 2^32-1 ）相接的圆环，如下面图 1 所示的那样。</p>
+<p><img src="/img/circle.jfif" alt="circle.jfif"><br>图1 环形 hash 空间</p>
+<h3 id="把对象映射到hash-空间"><a href="#把对象映射到hash-空间" class="headerlink" title="把对象映射到hash 空间"></a>把对象映射到hash 空间</h3><p>接下来考虑 4 个对象 object1~object4 ，通过 hash 函数计算出的 hash 值 key 在环上的分布如图 2 所示。</p>
+<p>hash(object1) = key1;</p>
+<p>… …</p>
+<p>hash(object4) = key4;</p>
+<p><img src="/img/object.jfif" alt="object.jfif"><br>图2  4个对象的 key 值分布</p>
+<h3 id="把cache-映射到hash-空间"><a href="#把cache-映射到hash-空间" class="headerlink" title="把cache 映射到hash 空间"></a>把cache 映射到hash 空间</h3><p>Consistent hashing 的基本思想就是将对象和 cache 都映射到同一个 hash 数值空间中，并且使用相同的 hash 算法。</p>
+<p>假设当前有 A,B 和 C 共 3 台 cache ，那么其映射结果将如图 3 所示，他们在 hash 空间中，以对应的 hash 值排列。</p>
+<p>hash(cache A) = key A;</p>
+<p>… …</p>
+<p>hash(cache C) = key C; </p>
+<p><img src="/img/cache.jfif" alt="cache.jfif"><br>图3 cache 和对象的 key 值分布</p>
+<p>说到这里，顺便提一下 cache 的 hash 计算，一般的方法可以使用 cache 机器的 IP 地址或者机器名作为 hash 输入。</p>
+<h3 id="把对象映射到cache"><a href="#把对象映射到cache" class="headerlink" title="把对象映射到cache"></a>把对象映射到cache</h3><p>现在 cache 和对象都已经通过同一个 hash 算法映射到 hash 数值空间中了，接下来要考虑的就是如何将对象映射到 cache 上面了。</p>
+<p><font color=#0099ff size=4 face="黑体">在这个环形空间中，如果沿着顺时针方向从对象的 key 值出发，直到遇见一个 cache ，那么就将该对象存储在这个 cache 上，因为对象和 cache 的 hash 值是固定的，因此这个 cache 必然是唯一和确定的。这样不就找到了对象和 cache 的映射方法了吗？！</font></p>
+<p>依然继续上面的例子（参见图 3 ），那么根据上面的方法，对象 object1 将被存储到 cache A 上； object2 和 object3 对应到 cache C ； object4 对应到 cache B ；</p>
+<h2 id="考察cache-的变动"><a href="#考察cache-的变动" class="headerlink" title="考察cache 的变动"></a>考察cache 的变动</h2><p>前面讲过，通过 hash 然后求余的方法带来的最大问题就在于不能满足单调性，当 cache 有所变动时， cache 会失效，进而对后台服务器造成巨大的冲击，现在就来分析分析 consistent hashing 算法。</p>
+<h3 id="移除-cache"><a href="#移除-cache" class="headerlink" title="移除 cache"></a>移除 cache</h3><p>考虑假设 cache B 挂掉了，根据上面讲到的映射方法，这时受影响的将仅是那些沿 cache B 逆时针遍历直到下一个 cache （ cache C ）之间的对象，也即是本来映射到 cache B 上的那些对象。</p>
+<p>因此这里仅需要变动对象 object4 ，将其重新映射到 cache C 上即可；参见图 4 。</p>
+<p><img src="/img/remove.jfif" alt="remove.jfif"><br>图4 Cache B 被移除后的 cache 映射</p>
+<h3 id="添加-cache"><a href="#添加-cache" class="headerlink" title="添加 cache"></a>添加 cache</h3><p>再考虑添加一台新的 cache D 的情况，假设在这个环形 hash 空间中， cache D 被映射在对象 object2 和 object3 之间。这时受影响的将仅是那些沿 cache D 逆时针遍历直到下一个 cache （ cache B ）之间的对象（它们是也本来映射到 cache C 上对象的一部分），将这些对象重新映射到 cache D 上即可。</p>
+<p>因此这里仅需要变动对象 object2 ，将其重新映射到 cache D 上；参见图 5 。</p>
+<p><img src="/img/add.jfif" alt="add.jfif"><br>图5 添加 cache D 后的映射关系</p>
+<h2 id="虚拟节点"><a href="#虚拟节点" class="headerlink" title="虚拟节点"></a>虚拟节点</h2><p>考量 Hash 算法的另一个指标是平衡性 (Balance) ，定义如下：</p>
+<p>平衡性</p>
+<p>平衡性是指哈希的结果能够尽可能分布到所有的缓冲中去，这样可以使得所有的缓冲空间都得到利用。</p>
+<p>hash 算法并不是保证绝对的平衡，如果 cache 较少的话，对象并不能被均匀的映射到 cache 上，比如在上面的例子中，仅部署 cache A 和 cache C 的情况下，在 4 个对象中， cache A 仅存储了 object1 ，而 cache C 则存储了 object2 、 object3 和 object4 ；分布是很不均衡的。</p>
+<p>为了解决这种情况， consistent hashing 引入了“虚拟节点”的概念，它可以如下定义：</p>
+<p>“虚拟节点”（ virtual node ）是实际节点在 hash 空间的复制品（ replica ），一实际个节点对应了若干个“虚拟节点”，这个对应个数也成为“复制个数”，“虚拟节点”在 hash 空间中以 hash 值排列。</p>
+<p>仍以仅部署 cache A 和 cache C 的情况为例，在图 4 中我们已经看到， cache 分布并不均匀。现在我们引入虚拟节点，并设置“复制个数”为 2 ，这就意味着一共会存在 4 个“虚拟节点”， cache A1, cache A2 代表了 cache A ； cache C1, cache C2 代表了 cache C ；假设一种比较理想的情况，参见图 6 。</p>
+<p><img src="/img/virtual.jfif" alt="virtual.jfif"><br>图 6 引入“虚拟节点”后的映射关系</p>
+<p>此时，对象到“虚拟节点”的映射关系为：</p>
+<p>objec1-&gt;cache A2 ； objec2-&gt;cache A1 ； objec3-&gt;cache C1 ； objec4-&gt;cache C2 ；</p>
+<p>因此对象 object1 和 object2 都被映射到了 cache A 上，而 object3 和 object4 映射到了 cache C 上；平衡性有了很大提高。</p>
+<p>引入“虚拟节点”后，映射关系就从 { 对象 -&gt; 节点 } 转换到了 { 对象 -&gt; 虚拟节点 } 。查询物体所在 cache 时的映射关系如图 7 所示。</p>
+<p><img src="/img/map.jfif" alt="map.jfif"><br>图7 查询对象所在 cache</p>
+<p>“虚拟节点”的 hash 计算可以采用对应节点的 IP 地址加数字后缀的方式。例如假设 cache A 的 IP 地址为 202.168.14.241 。</p>
+<p>引入“虚拟节点”前，计算 cache A 的 hash 值：</p>
+<p>Hash(“202.168.14.241”);</p>
+<p>引入“虚拟节点”后，计算“虚拟节”点 cache A1 和 cache A2 的 hash 值：</p>
+<p>Hash(“202.168.14.241#1”);  // cache A1</p>
+<p>Hash(“202.168.14.241#2”);  // cache A2</p>
+<h2 id="C-代码实现"><a href="#C-代码实现" class="headerlink" title="C#代码实现"></a>C#代码实现</h2><p><a target="_blank" rel="noopener" href="https://github.com/wsq003/consistent-hash">https://github.com/wsq003/consistent-hash</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/%E7%AE%97%E6%B3%95/" rel="tag"><i class="fa fa-tag"></i> 算法</a>
+              <a href="/tags/Hash%E7%AE%97%E6%B3%95/" rel="tag"><i class="fa fa-tag"></i> Hash算法</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/01/08/NET%E4%B8%AD%E9%97%B4%E8%AF%AD%E8%A8%80%EF%BC%88IL%EF%BC%89/" rel="prev" title=".NET中间语言（IL）">
+      <i class="fa fa-chevron-left"></i> .NET中间语言（IL）
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/01/08/hash%E7%AE%97%E6%B3%95%E7%AC%94%E8%AE%B0/" rel="next" title="hash算法笔记">
+      hash算法笔记 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9F%BA%E6%9C%AC%E5%9C%BA%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">基本场景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#hash-%E7%AE%97%E6%B3%95%E5%92%8C%E5%8D%95%E8%B0%83%E6%80%A7"><span class="nav-number">2.</span> <span class="nav-text">hash 算法和单调性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#consistent-hashing-%E7%AE%97%E6%B3%95%E7%9A%84%E5%8E%9F%E7%90%86"><span class="nav-number">3.</span> <span class="nav-text">consistent hashing 算法的原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%8E%AF%E5%BD%A2hash-%E7%A9%BA%E9%97%B4"><span class="nav-number">3.1.</span> <span class="nav-text">环形hash 空间</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8A%8A%E5%AF%B9%E8%B1%A1%E6%98%A0%E5%B0%84%E5%88%B0hash-%E7%A9%BA%E9%97%B4"><span class="nav-number">3.2.</span> <span class="nav-text">把对象映射到hash 空间</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8A%8Acache-%E6%98%A0%E5%B0%84%E5%88%B0hash-%E7%A9%BA%E9%97%B4"><span class="nav-number">3.3.</span> <span class="nav-text">把cache 映射到hash 空间</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8A%8A%E5%AF%B9%E8%B1%A1%E6%98%A0%E5%B0%84%E5%88%B0cache"><span class="nav-number">3.4.</span> <span class="nav-text">把对象映射到cache</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%80%83%E5%AF%9Fcache-%E7%9A%84%E5%8F%98%E5%8A%A8"><span class="nav-number">4.</span> <span class="nav-text">考察cache 的变动</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%A7%BB%E9%99%A4-cache"><span class="nav-number">4.1.</span> <span class="nav-text">移除 cache</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B7%BB%E5%8A%A0-cache"><span class="nav-number">4.2.</span> <span class="nav-text">添加 cache</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%99%9A%E6%8B%9F%E8%8A%82%E7%82%B9"><span class="nav-number">5.</span> <span class="nav-text">虚拟节点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#C-%E4%BB%A3%E7%A0%81%E5%AE%9E%E7%8E%B0"><span class="nav-number">6.</span> <span class="nav-text">C#代码实现</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="syxdevcode"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description">syxdevcode的个人博客</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">616</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">157</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">2.1m</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">31:27</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

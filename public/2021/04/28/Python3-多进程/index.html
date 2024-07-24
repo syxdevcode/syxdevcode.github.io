@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.2">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"syxdevcode.github.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="Process 类multiprocessing 模块通过创建一个 Process 对象然后调用它的 start() 方法来生成进程，Process 与 threading.Thread API 相同。 进程对象，表示在单独进程中运行的活动。 12multiprocessing.Process(group&#x3D;None, target&#x3D;None, name&#x3D;None, args&#x3D;(), kwargs&#x3D;">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Python3-多进程">
+<meta property="og:url" content="https://syxdevcode.github.com/2021/04/28/Python3-%E5%A4%9A%E8%BF%9B%E7%A8%8B/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="Process 类multiprocessing 模块通过创建一个 Process 对象然后调用它的 start() 方法来生成进程，Process 与 threading.Thread API 相同。 进程对象，表示在单独进程中运行的活动。 12multiprocessing.Process(group&#x3D;None, target&#x3D;None, name&#x3D;None, args&#x3D;(), kwargs&#x3D;">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-04-28T07:49:35.000Z">
+<meta property="article:modified_time" content="2022-06-27T10:25:23.279Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="Python3">
+<meta property="article:tag" content="Python">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://syxdevcode.github.com/2021/04/28/Python3-%E5%A4%9A%E8%BF%9B%E7%A8%8B/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Python3-多进程 | syxdevcode博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">syxdevcode博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/syxdevcode" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2021/04/28/Python3-%E5%A4%9A%E8%BF%9B%E7%A8%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Python3-多进程
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2021-04-28 15:49:35" itemprop="dateCreated datePublished" datetime="2021-04-28T15:49:35+08:00">2021-04-28</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-06-27 18:25:23" itemprop="dateModified" datetime="2022-06-27T18:25:23+08:00">2022-06-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Python3/" itemprop="url" rel="index"><span itemprop="name">Python3</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>5.3k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>5 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="Process-类"><a href="#Process-类" class="headerlink" title="Process 类"></a>Process 类</h2><p><code>multiprocessing</code> 模块通过创建一个 Process 对象然后调用它的 start() 方法来生成进程，Process 与 threading.Thread API 相同。</p>
+<p>进程对象，表示在单独进程中运行的活动。</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">multiprocessing.Process(group=<span class="literal">None</span>, target=<span class="literal">None</span>, name=<span class="literal">None</span>, </span><br><span class="line">args=(), kwargs=&#123;&#125;, *, daemon=<span class="literal">None</span>)</span><br></pre></td></tr></table></figure>
+
+<p>参数：</p>
+<ul>
+<li><p><strong>group</strong>：仅用于兼容 threading.Thread，应该始终是 None。</p>
+</li>
+<li><p><strong>target</strong>：由 run() 方法调用的可调用对象。</p>
+</li>
+<li><p><strong>name</strong>：进程名。</p>
+</li>
+<li><p><strong>args</strong>：目标调用的参数元组。</p>
+</li>
+<li><p><strong>kwargs</strong>：目标调用的关键字参数字典。</p>
+</li>
+<li><p><strong>daemon</strong>：设置进程是否为守护进程，如果是默认值 None，则该标志将从创建的进程继承。</p>
+<span id="more"></span>
+<p>multiprocessing.Process 对象具有如下方法和属性。</p>
+</li>
+<li><p>**run()**：进程具体执行的方法。</p>
+</li>
+<li><p>**start()**：启动进程。</p>
+</li>
+<li><p>**join([timeout])**：如果可选参数 timeout 是默认值 None，则将阻塞至调用 join() 方法的进程终止；如果 timeout 是一个正数，则最多会阻塞 timeout 秒。</p>
+</li>
+<li><p><strong>name</strong>：进程的名称。</p>
+</li>
+<li><p>**is_alive()**：返回进程是否还活着。</p>
+</li>
+<li><p><strong>daemon</strong>：进程的守护标志，是一个布尔值。</p>
+</li>
+<li><p><strong>pid</strong>：返回进程 ID。</p>
+</li>
+<li><p><strong>exitcode</strong>：子进程的退出代码。</p>
+</li>
+<li><p><strong>authkey</strong>：进程的身份验证密钥。</p>
+</li>
+<li><p><strong>sentinel</strong>：系统对象的数字句柄，当进程结束时将变为 ready。</p>
+</li>
+<li><p>**terminate()**：终止进程。</p>
+</li>
+<li><p>**kill()**：与 terminate() 相同，但在 Unix 上使用 SIGKILL 信号。</p>
+</li>
+<li><p>**close()**：关闭 Process 对象，释放与之关联的所有资源。</p>
+</li>
+</ul>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> multiprocessing <span class="keyword">import</span> Process</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">target</span>():</span><br><span class="line">    time.sleep(<span class="number">2</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;子进程ID：&#x27;</span>, os.getpid())</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;主进程ID：&#x27;</span>, os.getpid())</span><br><span class="line">    ps = []</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">10</span>):</span><br><span class="line">        p = Process(target=target)</span><br><span class="line">        p.start()</span><br><span class="line">        ps.append(p)</span><br><span class="line">    <span class="keyword">for</span> p <span class="keyword">in</span> ps:</span><br><span class="line">        p.join()</span><br></pre></td></tr></table></figure>
+
+<p>进程池对象。</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">multiprocessing.pool.Pool([processes[, initializer[, initargs[, maxtasksperchild[, context]]]]])</span><br></pre></td></tr></table></figure>
+
+<p>参数：</p>
+<ul>
+<li><strong>processes</strong>：工作进程数目，如果 processes 为 None，则使用 os.cpu_count() 返回的值。</li>
+<li><strong>initializer</strong>：如果 initializer 不为 None，则每个工作进程将会在启动时调用 initializer(*initargs)。</li>
+<li><strong>maxtasksperchild</strong>：一个工作进程在它退出或被一个新的工作进程代替之前能完成的任务数量，为了释放未使用的资源。</li>
+<li><strong>context</strong>：用于指定启动的工作进程的上下文。</li>
+</ul>
+<p>有如下两种方式向进程池提交任务：</p>
+<ul>
+<li>**apply(func[, args[, kwds]])**：阻塞方式。</li>
+<li>**apply_async(func[, args[, kwds[, callback[, error_callback]]]])**：非阻塞方式。</li>
+</ul>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> multiprocessing</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">target</span>(<span class="params">p</span>):</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;t&#x27;</span>)</span><br><span class="line">    time.sleep(<span class="number">2</span>)</span><br><span class="line">    <span class="built_in">print</span>(p)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    pool = multiprocessing.Pool(processes=<span class="number">5</span>)</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">3</span>):</span><br><span class="line">        p = <span class="string">&#x27;p%d&#x27;</span> % (i)</span><br><span class="line">        <span class="comment"># 阻塞式</span></span><br><span class="line">        pool.apply(target, (p, ))</span><br><span class="line">        <span class="comment"># 非阻塞式</span></span><br><span class="line">        <span class="comment"># pool.apply_async(target, (p, ))</span></span><br><span class="line">    pool.close()</span><br><span class="line">    pool.join()</span><br></pre></td></tr></table></figure>
+
+<h2 id="进程间交换数据"><a href="#进程间交换数据" class="headerlink" title="进程间交换数据"></a>进程间交换数据</h2><h3 id="管道"><a href="#管道" class="headerlink" title="管道"></a>管道</h3><p><code>multiprocessing.Pipe([duplex])</code> 返回一对 Connection 对象 (conn1, conn2) ， 分别表示管道的两端；如果 duplex 被置为 True (默认值)，那么该管道是双向的，否则管道是单向的。</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> multiprocessing <span class="keyword">import</span> Pipe, Process</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">setData</span>(<span class="params">conn, data</span>):</span><br><span class="line">    conn.send(data)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">printData</span>(<span class="params">conn</span>):</span><br><span class="line">    <span class="built_in">print</span>(conn.recv())</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    data = <span class="string">&#x27;python&#x27;</span></span><br><span class="line">    <span class="comment"># 创建管道返回管道的两端</span></span><br><span class="line">    conn1, conn2 = Pipe()</span><br><span class="line">    p1 = Process(target=setData, args=(conn1, data,))</span><br><span class="line">    p2 = Process(target=printData, args=(conn2,))</span><br><span class="line">    p1.start()</span><br><span class="line">    p2.start()</span><br><span class="line">    p1.join()</span><br><span class="line">    p2.join()</span><br></pre></td></tr></table></figure>
+
+<h3 id="队列"><a href="#队列" class="headerlink" title="队列"></a>队列</h3><p><code>multiprocessing.Queue([maxsize])</code> 返回一个共享队列实例。具有如下方法：</p>
+<ul>
+<li>**qsize()**：返回队列的大致长度。</li>
+<li>**empty()**：如果队列是空的，返回 True，反之返回 False。</li>
+<li>**full()**：如果队列是满的，返回 True，反之返回 False。</li>
+<li>**put(obj[, block[, timeout]])**：将 obj 放入队列。</li>
+<li>**put_nowait(obj)**：相当于 put(obj, False)。</li>
+<li>**get([block[, timeout]])**：从队列中取出并返回对象。</li>
+<li>**get_nowait()**：相当于 get(False)。</li>
+<li>**close()**：指示当前进程将不会再往队列中放入对象。</li>
+<li>**join_thread()**：等待后台线程。</li>
+<li>**cancel_join_thread()**：防止进程退出时自动等待后台线程退出。</li>
+</ul>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> multiprocessing <span class="keyword">import</span> Queue, Process</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">setData</span>(<span class="params">q, data</span>):</span><br><span class="line">    q.put(data)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">printData</span>(<span class="params">q</span>):</span><br><span class="line">    <span class="built_in">print</span>(q.get())</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&quot;__main__&quot;</span>:</span><br><span class="line">    data = <span class="string">&#x27;python&#x27;</span></span><br><span class="line">    q = Queue()</span><br><span class="line">    p1 = Process(target=setData, args=(q, data,))</span><br><span class="line">    p2 = Process(target=printData, args=(q,))</span><br><span class="line">    p1.start()</span><br><span class="line">    p2.start()</span><br><span class="line">    p1.join()</span><br><span class="line">    p2.join()</span><br></pre></td></tr></table></figure>
+
+<h2 id="进程间同步"><a href="#进程间同步" class="headerlink" title="进程间同步"></a>进程间同步</h2><p>多进程之间不共享数据，但共享同一套文件系统，像访问同一个文件、同一终端打印，如果不进行同步操作，就会出现错乱的现象。</p>
+<p>所有在 threading 存在的同步方式，multiprocessing 中都有类似的等价物，如：锁、信号量等。</p>
+<p>不加锁</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> multiprocessing <span class="keyword">import</span> Process</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">target</span>():</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;p%s is start&#x27;</span> % os.getpid())</span><br><span class="line">    time.sleep(<span class="number">2</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;p%s is end&#x27;</span> % os.getpid())</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">3</span>):</span><br><span class="line">        p = Process(target=target)</span><br><span class="line">        p.start()</span><br></pre></td></tr></table></figure>
+
+<p>加锁：</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> multiprocessing <span class="keyword">import</span> Process, Lock</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">target</span>(<span class="params">lock</span>):</span><br><span class="line">    lock.acquire()</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;p%s is start&#x27;</span> % os.getpid())</span><br><span class="line">    time.sleep(<span class="number">2</span>)</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;p%s is end&#x27;</span> % os.getpid())</span><br><span class="line">    lock.release()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    lock = Lock()</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">3</span>):</span><br><span class="line">        p = Process(target=target, args=(lock,))</span><br><span class="line">        p.start()</span><br></pre></td></tr></table></figure>
+
+<h2 id="进程间共享状态"><a href="#进程间共享状态" class="headerlink" title="进程间共享状态"></a>进程间共享状态</h2><h3 id="共享内存"><a href="#共享内存" class="headerlink" title="共享内存"></a>共享内存</h3><p><code>multiprocessing.Value(typecode_or_type, *args, lock=True)</code> 返回一个从共享内存上创建的对象。参数：</p>
+<ul>
+<li><code>typecode_or_type</code>：返回的对象类型。</li>
+<li><code>*args</code>：传给类的构造函数。</li>
+<li><code>lock</code>：如果 lock 值是 True（默认值），将会新建一个递归锁用于同步此值的访问操作；如果 lock 值是 Lock、RLock 对象，那么这个传入的锁将会用于同步这个值的访问操作；如果 lock 是 False，那么对这个对象的访问将没有锁保护，也就是说这个变量不是进程安全的。</li>
+</ul>
+<p><code>multiprocessing.Array(typecode_or_type, size_or_initializer, *, lock=True)</code> 从共享内存中申请并返回一个数组对象。</p>
+<ul>
+<li><code>typecode_or_type</code>：返回的数组中的元素类型。</li>
+<li><code>size_or_initializer</code>：如果参数值是一个整数，则会当做数组的长度；否则参数会被当成一个序列用于初始化数组中的每一个元素，并且会根据元素个数自动判断数组的长度。</li>
+<li><code>lock</code>：如果 lock 值是 True（默认值），将会新建一个递归锁用于同步此值的访问操作；如果 lock 值是 Lock、RLock 对象，那么这个传入的锁将会用于同步这个值的访问操作；如果 lock 是 False，那么对这个对象的访问将没有锁保护，也就是说这个变量不是进程安全的。</li>
+</ul>
+<p>使用 Value 或 Array 将数据存储在共享内存映射中。</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> multiprocessing <span class="keyword">import</span> Process, Value, Array</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">setData</span>(<span class="params">n, a</span>):</span><br><span class="line">    n.value = <span class="number">1024</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="built_in">len</span>(a)):</span><br><span class="line">        a[i] = -a[i]</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">printData</span>(<span class="params">n, a</span>):</span><br><span class="line">    <span class="built_in">print</span>(num.value)</span><br><span class="line">    <span class="built_in">print</span>(arr[:])</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    num = Value(<span class="string">&#x27;d&#x27;</span>, <span class="number">0.0</span>)</span><br><span class="line">    arr = Array(<span class="string">&#x27;i&#x27;</span>, <span class="built_in">range</span>(<span class="number">5</span>))</span><br><span class="line">    <span class="built_in">print</span>(num.value)</span><br><span class="line">    <span class="built_in">print</span>(arr[:])</span><br><span class="line">    <span class="built_in">print</span>(<span class="string">&#x27;-----------------------&#x27;</span>)</span><br><span class="line">    p = Process(target=setData, args=(num, arr))</span><br><span class="line">    p.start()</span><br><span class="line">    p.join()</span><br><span class="line">    <span class="built_in">print</span>(num.value)</span><br><span class="line">    <span class="built_in">print</span>(arr[:])</span><br></pre></td></tr></table></figure>
+
+<h3 id="服务进程"><a href="#服务进程" class="headerlink" title="服务进程"></a>服务进程</h3><p>参考：<a target="_blank" rel="noopener" href="https://docs.python.org/zh-cn/3/library/multiprocessing.html#multiprocessing.sharedctypes.multiprocessing.Manager">multiprocessing.Manager()</a></p>
+<p>由 Manager() 返回的管理器对象控制一个服务进程，该进程保存 Python 对象并允许其他进程使用代理操作它们。</p>
+<p>Manager() 返回的管理器支持类型包括：list、dict、Namespace、Lock、RLock、Semaphore、BoundedSemaphore、Condition、Event、Barrier、Queue、Value 和 Array。</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> multiprocessing <span class="keyword">import</span> Process, Manager</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">setData</span>(<span class="params">d, l</span>):</span><br><span class="line">    d[<span class="number">1</span>] = <span class="string">&#x27;1&#x27;</span></span><br><span class="line">    d[<span class="number">0.5</span>] = <span class="literal">None</span></span><br><span class="line">    l.reverse()</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    <span class="keyword">with</span> Manager() <span class="keyword">as</span> manager:</span><br><span class="line">        d = manager.<span class="built_in">dict</span>()</span><br><span class="line">        l = manager.<span class="built_in">list</span>(<span class="built_in">range</span>(<span class="number">5</span>))</span><br><span class="line">        <span class="built_in">print</span>(d)</span><br><span class="line">        <span class="built_in">print</span>(l)</span><br><span class="line">        <span class="built_in">print</span>(<span class="string">&#x27;-----------------------&#x27;</span>)</span><br><span class="line">        p = Process(target=setData, args=(d, l))</span><br><span class="line">        p.start()</span><br><span class="line">        p.join()</span><br><span class="line">        <span class="built_in">print</span>(d)</span><br><span class="line">        <span class="built_in">print</span>(l)</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://ityard.blog.csdn.net/article/details/104219452">Python 进阶（二）：多进程</a></p>
+<p><a target="_blank" rel="noopener" href="https://docs.python.org/zh-cn/3/library/multiprocessing.html#the-process-class">multiprocessing — 基于进程的并行</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/Python3/" rel="tag"><i class="fa fa-tag"></i> Python3</a>
+              <a href="/tags/Python/" rel="tag"><i class="fa fa-tag"></i> Python</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2021/04/26/Python3-%E5%A4%9A%E7%BA%BF%E7%A8%8B/" rel="prev" title="Python3-多线程">
+      <i class="fa fa-chevron-left"></i> Python3-多线程
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2021/04/28/Python3-MySQL%E6%93%8D%E4%BD%9C/" rel="next" title="Python3-MySQL操作">
+      Python3-MySQL操作 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Process-%E7%B1%BB"><span class="nav-number">1.</span> <span class="nav-text">Process 类</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E7%A8%8B%E9%97%B4%E4%BA%A4%E6%8D%A2%E6%95%B0%E6%8D%AE"><span class="nav-number">2.</span> <span class="nav-text">进程间交换数据</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AE%A1%E9%81%93"><span class="nav-number">2.1.</span> <span class="nav-text">管道</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%98%9F%E5%88%97"><span class="nav-number">2.2.</span> <span class="nav-text">队列</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E7%A8%8B%E9%97%B4%E5%90%8C%E6%AD%A5"><span class="nav-number">3.</span> <span class="nav-text">进程间同步</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%9B%E7%A8%8B%E9%97%B4%E5%85%B1%E4%BA%AB%E7%8A%B6%E6%80%81"><span class="nav-number">4.</span> <span class="nav-text">进程间共享状态</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B1%E4%BA%AB%E5%86%85%E5%AD%98"><span class="nav-number">4.1.</span> <span class="nav-text">共享内存</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9C%8D%E5%8A%A1%E8%BF%9B%E7%A8%8B"><span class="nav-number">4.2.</span> <span class="nav-text">服务进程</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="syxdevcode"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description">syxdevcode的个人博客</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">616</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">157</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">2.1m</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">31:27</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

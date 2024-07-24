@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.2">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"syxdevcode.github.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="协变和逆变都是术语，协变指能够使用比原始指定的派生类型的派生程度更大（更具体的）的类型，逆变指能够使用比原始指定的派生类型的派生程度更小（不太具体的）的类型。 规律总结： “子类”向“父类”转换，即协变；（可以使用的范围变大）“父类”向“子类”转换，即逆变；（可以使用的范围变小） 变体协变和逆变统称为“变体”（Variant）。 未标记为协变或逆变的泛型类型参数称为“固定参数” 。 规则： 通常，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="DotNet泛型中的协变和逆变">
+<meta property="og:url" content="https://syxdevcode.github.com/2018/12/27/DotNet%E6%B3%9B%E5%9E%8B%E4%B8%AD%E7%9A%84%E5%8D%8F%E5%8F%98%E5%92%8C%E9%80%86%E5%8F%98/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="协变和逆变都是术语，协变指能够使用比原始指定的派生类型的派生程度更大（更具体的）的类型，逆变指能够使用比原始指定的派生类型的派生程度更小（不太具体的）的类型。 规律总结： “子类”向“父类”转换，即协变；（可以使用的范围变大）“父类”向“子类”转换，即逆变；（可以使用的范围变小） 变体协变和逆变统称为“变体”（Variant）。 未标记为协变或逆变的泛型类型参数称为“固定参数” 。 规则： 通常，">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2018-12-27T03:31:55.000Z">
+<meta property="article:modified_time" content="2022-06-27T10:25:23.242Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="DotNet">
+<meta property="article:tag" content="CSharp">
+<meta property="article:tag" content="CSharp基础">
+<meta property="article:tag" content="集合与泛型">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://syxdevcode.github.com/2018/12/27/DotNet%E6%B3%9B%E5%9E%8B%E4%B8%AD%E7%9A%84%E5%8D%8F%E5%8F%98%E5%92%8C%E9%80%86%E5%8F%98/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>DotNet泛型中的协变和逆变 | syxdevcode博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">syxdevcode博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/syxdevcode" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/12/27/DotNet%E6%B3%9B%E5%9E%8B%E4%B8%AD%E7%9A%84%E5%8D%8F%E5%8F%98%E5%92%8C%E9%80%86%E5%8F%98/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          DotNet泛型中的协变和逆变
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-12-27 11:31:55" itemprop="dateCreated datePublished" datetime="2018-12-27T11:31:55+08:00">2018-12-27</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-06-27 18:25:23" itemprop="dateModified" datetime="2022-06-27T18:25:23+08:00">2022-06-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E9%9B%86%E5%90%88%E4%B8%8E%E6%B3%9B%E5%9E%8B/" itemprop="url" rel="index"><span itemprop="name">集合与泛型</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>6.7k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>6 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>协变和逆变都是术语，协变指能够使用比原始指定的派生类型的派生程度更大（更具体的）的类型，逆变指能够使用比原始指定的派生类型的派生程度更小（不太具体的）的类型。</p>
+<p>规律总结：</p>
+<p><font color=#ff0000 size=4 face="黑体">“子类”向“父类”转换，即协变；（可以使用的范围变大）<br>“父类”向“子类”转换，即逆变；（可以使用的范围变小）</font></p>
+<h2 id="变体"><a href="#变体" class="headerlink" title="变体"></a>变体</h2><p><font color=#0099ff size=4 face="黑体">协变和逆变统称为“变体”（Variant）。 未标记为协变或逆变的泛型类型参数称为“固定参数” 。</font></p>
+<p>规则：</p>
+<p><font color=#ff0000 size=4 face="黑体">通常，协变类型参数可用作委托的返回类型，而逆变类型参数可用作参数类型。<br>对于接口，协变类型参数可用作接口的方法的返回类型，而逆变类型参数可用作接口的方法的参数类型。</font></p>
+<p>有关公共语言运行时中变体的事项的简短摘要：</p>
+<ul>
+<li>在 .NET Framework 4中，<code>Variant</code> 类型参数仅限于泛型接口和泛型委托类型。</li>
+<li>泛型接口或泛型委托类型可以同时具有协变和逆变类型参数。</li>
+<li>变体仅适用于引用类型；如果为 <code>Variant</code> 类型参数指定值类型，则该类型参数对于生成的构造类型是不变的。</li>
+<li>变体不适用于委托组合。 也就是说，在给定类型 <code>Action&lt;Derived&gt;</code> 和 <code>Action&lt;Base&gt;</code> 的两个委托的情况下，无法将第二个委托与第一个委托结合起来，尽管结果将是类型安全的。 变体允许将第二个委托分配给类型 Action<Derived>的变量，但只能在这两个委托的类型完全匹配的情况下对它们进行组合。</li>
+</ul>
+<p><strong>Covariance:协变</strong><br>使你能够使用比原始指定的类型派生程度更大的类型。</p>
+<p><strong>Contravariance：逆变</strong><br>使你能够使用比原始指定的类型更泛型（派生程度更小）的类型。</p>
+<p><strong>Invariance：不变</strong><br>这意味着，你只能使用原始指定的类型；固定泛型类型参数既不是协变类型，也不是逆变类型。</p>
+<h2 id="关键字"><a href="#关键字" class="headerlink" title="关键字"></a>关键字</h2><p><strong>协变类型参数用<code>out</code>关键字</strong></p>
+<p>可以将协变类型参数用作属于接口的方法的返回值，或用作委托的返回类型。 但不能将协变类型参数用作接口方法的泛型类型约束。如果接口的方法具有泛型委托类型的参数，则接口类型的协变类型参数可用于指定委托类型的逆变类型参数。</p>
+<p><strong>逆变类型参数用 <code>in</code> 关键字</strong></p>
+<p>可以将逆变类型参数用作属于接口的方法的参数类型，或用作委托的参数类型。 也可以将逆变类型参数用作接口方法的泛型类型约束。</p>
+<p><font color=#ff0000 size=4 face="黑体">注意，只有接口类型和委托类型才能具有 变体（Variant） 类型参数。 接口或委托类型可以同时具有协变和逆变类型参数。</font></p>
+<p>C# 不允许违反协变和逆变类型参数的使用规则，也不允许将协变和逆变批注添加到接口和委托类型之外的类型参数中。 MSIL 汇编程序 不执行此类检查，但如果你尝试加载违反规则的类型，则会引发 TypeLoadException 。</p>
+<h2 id="协变out（泛型修饰符）"><a href="#协变out（泛型修饰符）" class="headerlink" title="协变out（泛型修饰符）"></a>协变out（泛型修饰符）</h2><p>利用协变类型参数，你可以执行非常类似于普通的多态性的分配</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">IEnumerable&lt;Derived&gt; d = <span class="keyword">new</span> List&lt;Derived&gt;();</span><br><span class="line">IEnumerable&lt;Base&gt; b = d;</span><br></pre></td></tr></table></figure>
+
+<p><strong>1,协变泛型接口:</strong></p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Covariant interface.</span></span><br><span class="line"><span class="keyword">interface</span> <span class="title">ICovariant</span>&lt;<span class="keyword">out</span> <span class="title">R</span>&gt; &#123; &#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Extending covariant interface.</span></span><br><span class="line"><span class="keyword">interface</span> <span class="title">IExtCovariant</span>&lt;<span class="keyword">out</span> <span class="title">R</span>&gt; : <span class="title">ICovariant</span>&lt;<span class="title">R</span>&gt; &#123; &#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Implementing covariant interface.</span></span><br><span class="line"><span class="keyword">class</span> <span class="title">Sample</span>&lt;<span class="title">R</span>&gt; : <span class="title">ICovariant</span>&lt;<span class="title">R</span>&gt; &#123; &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Test</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        ICovariant&lt;Object&gt; iobj = <span class="keyword">new</span> Sample&lt;Object&gt;();</span><br><span class="line">        ICovariant&lt;String&gt; istr = <span class="keyword">new</span> Sample&lt;String&gt;();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// You can assign istr to iobj because</span></span><br><span class="line">        <span class="comment">// the ICovariant interface is covariant.</span></span><br><span class="line">        iobj = istr;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>2，协变泛型委托:</strong></p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Covariant delegate.</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="built_in">delegate</span> R <span class="title">DCovariant</span>&lt;<span class="keyword">out</span> <span class="title">R</span>&gt;()</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Methods that match the delegate signature.</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Control <span class="title">SampleControl</span>()</span></span><br><span class="line">&#123; <span class="keyword">return</span> <span class="keyword">new</span> Control(); &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> Button <span class="title">SampleButton</span>()</span></span><br><span class="line">&#123; <span class="keyword">return</span> <span class="keyword">new</span> Button(); &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">Test</span>()</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// Instantiate the delegates with the methods.</span></span><br><span class="line">    DCovariant&lt;Control&gt; dControl = SampleControl;</span><br><span class="line">    DCovariant&lt;Button&gt; dButton = SampleButton;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// You can assign dButton to dControl</span></span><br><span class="line">    <span class="comment">// because the DCovariant delegate is covariant.</span></span><br><span class="line">    dControl = dButton;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Invoke the delegate.</span></span><br><span class="line">    dControl();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="逆变in（泛型修饰符）"><a href="#逆变in（泛型修饰符）" class="headerlink" title="逆变in（泛型修饰符）"></a>逆变in（泛型修饰符）</h2><p>由于 lambda 表达式与其自身所分配到的委托相匹配，因此它会定义一个方法，此方法采用一个类型 Base 的参数且没有返回值。 可以将结果委托分配给类型类型 <code>Action&lt;Derived&gt;</code> 的变量，因为 T 委托的类型参数 <code>Action&lt;T&gt;</code> 是逆变类型参数。 由于 T 指定了一个参数类型，因此该代码是类型安全代码。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Action&lt;Base&gt; b = (target) =&gt; &#123; Console.WriteLine(target.GetType().Name); &#125;;</span><br><span class="line">Action&lt;Derived&gt; d = b;</span><br><span class="line">d(<span class="keyword">new</span> Derived());</span><br></pre></td></tr></table></figure>
+
+<p><strong>1,逆变泛型接口:</strong></p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Contravariant interface.</span></span><br><span class="line"><span class="keyword">interface</span> <span class="title">IContravariant</span>&lt;<span class="keyword">in</span> <span class="title">A</span>&gt; &#123; &#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Extending contravariant interface.</span></span><br><span class="line"><span class="keyword">interface</span> <span class="title">IExtContravariant</span>&lt;<span class="keyword">in</span> <span class="title">A</span>&gt; : <span class="title">IContravariant</span>&lt;<span class="title">A</span>&gt; &#123; &#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Implementing contravariant interface.</span></span><br><span class="line"><span class="keyword">class</span> <span class="title">Sample</span>&lt;<span class="title">A</span>&gt; : <span class="title">IContravariant</span>&lt;<span class="title">A</span>&gt; &#123; &#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Test</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        IContravariant&lt;Object&gt; iobj = <span class="keyword">new</span> Sample&lt;Object&gt;();</span><br><span class="line">        IContravariant&lt;String&gt; istr = <span class="keyword">new</span> Sample&lt;String&gt;();</span><br><span class="line"></span><br><span class="line">        <span class="comment">// You can assign iobj to istr because</span></span><br><span class="line">        <span class="comment">// the IContravariant interface is contravariant.</span></span><br><span class="line">        istr = iobj;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>2,逆变泛型委托:</strong></p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Contravariant delegate.</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="built_in">delegate</span> <span class="keyword">void</span> <span class="title">DContravariant</span>&lt;<span class="keyword">in</span> <span class="title">A</span>&gt;(<span class="params">A argument</span>)</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Methods that match the delegate signature.</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">SampleControl</span>(<span class="params">Control control</span>)</span></span><br><span class="line">&#123; &#125;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">SampleButton</span>(<span class="params">Button button</span>)</span></span><br><span class="line">&#123; &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">Test</span>()</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// Instantiating the delegates with the methods.</span></span><br><span class="line">    DContravariant&lt;Control&gt; dControl = SampleControl;</span><br><span class="line">    DContravariant&lt;Button&gt; dButton = SampleButton;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// You can assign dControl to dButton</span></span><br><span class="line">    <span class="comment">// because the DContravariant delegate is contravariant.</span></span><br><span class="line">    dButton = dControl;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Invoke the delegate.</span></span><br><span class="line">    dButton(<span class="keyword">new</span> Button());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="泛型接口中的变体"><a href="#泛型接口中的变体" class="headerlink" title="泛型接口中的变体"></a>泛型接口中的变体</h2><h3 id="具有协变类型参数的泛型接口"><a href="#具有协变类型参数的泛型接口" class="headerlink" title="具有协变类型参数的泛型接口"></a>具有协变类型参数的泛型接口</h3><p>从 .NET Framework 4开始，某些泛型接口具有协变类型参数；例如： <code>IEnumerable&lt;T&gt;</code>、 <code>IEnumerator&lt;T&gt;</code>、 <code>IQueryable&lt;T&gt;</code> 和 <code>IGrouping&lt;TKey,TElement&gt;</code>。 由于这些接口的所有类型参数都是协变类型参数，因此这些类型参数只用于成员的返回类型。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Collections.Generic;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title">Base</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">PrintBases</span>(<span class="params">IEnumerable&lt;Base&gt; bases</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">foreach</span>(Base b <span class="keyword">in</span> bases)</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(b);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title">Derived</span> : <span class="title">Base</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        List&lt;Derived&gt; dlist = <span class="keyword">new</span> List&lt;Derived&gt;();</span><br><span class="line"></span><br><span class="line">        Derived.PrintBases(dlist);</span><br><span class="line">        IEnumerable&lt;Base&gt; bIEnum = dlist;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="具有逆变泛型类型参数的泛型接口"><a href="#具有逆变泛型类型参数的泛型接口" class="headerlink" title="具有逆变泛型类型参数的泛型接口"></a>具有逆变泛型类型参数的泛型接口</h3><p>从 .NET Framework 4开始，某些泛型接口具有逆变类型参数；例如： <code>IComparer&lt;T&gt;</code>、 <code>IComparable&lt;T&gt;</code>和 <code>IEqualityComparer&lt;T&gt;</code>。 由于这些接口只具有逆变类型参数，因此这些类型参数只用作接口成员中的参数类型。</p>
+<p><code>IComparer&lt;T&gt;.Compare</code> 方法的实现基于 Area 属性的值，所以 <code>ShapeAreaComparer</code> 可用于按区域对 Shape 对象排序。<br>该示例创建 <code>SortedSet&lt;T&gt;</code> 对象的 <code>Circle</code> ，使用采用 <code>IComparer&lt;Circle&gt;</code> 的构造函数。 但是，该对象不传递 <code>IComparer&lt;Circle&gt;</code>，而是传递一个用于实现 <code>ShapeAreaComparer</code> 的 <code>IComparer&lt;Shape&gt;</code> 对象。 当代码需要派生程度较大的类型的比较器 <code>(Shape)</code> 时，该示例可以传递派生程度较小的类型的比较器 <code>(Circle)</code>，因为 <code>IComparer&lt;T&gt;</code> 泛型接口的类型参数是逆变参数。</p>
+<p>向 <code>Circle</code> 中添加新 <code>SortedSet&lt;Circle&gt;</code>对象时，每次将新元素与现有元素进行比较时，都会调用 <code>IComparer&lt;Shape&gt;.Compare</code> 对象的<code>IComparer(Of Shape).Compare</code> 方法。 方法 (Shape) 的参数类型比被传递的类型 (Circle) 的派生程度小，所以调用是类型安全的。 逆变使 <code>ShapeAreaComparer</code> 可以对派生自 Shape的任意单个类型的集合以及混合类型的集合排序。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Collections.Generic;</span><br><span class="line"></span><br><span class="line"><span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title">Shape</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">virtual</span> <span class="built_in">double</span> Area &#123; <span class="keyword">get</span> &#123; <span class="keyword">return</span> <span class="number">0</span>; &#125;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title">Circle</span> : <span class="title">Shape</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="built_in">double</span> r;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Circle</span>(<span class="params"><span class="built_in">double</span> radius</span>)</span> &#123; r = radius; &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">double</span> Radius &#123; <span class="keyword">get</span> &#123; <span class="keyword">return</span> r; &#125;&#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">override</span> <span class="built_in">double</span> Area &#123; <span class="keyword">get</span> &#123; <span class="keyword">return</span> Math.PI * r * r; &#125;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title">ShapeAreaComparer</span> : <span class="title">System.Collections.Generic.IComparer</span>&lt;<span class="title">Shape</span>&gt;</span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">int</span> IComparer&lt;Shape&gt;.Compare(Shape a, Shape b)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (a == <span class="literal">null</span>) <span class="keyword">return</span> b == <span class="literal">null</span> ? <span class="number">0</span> : <span class="number">-1</span>;</span><br><span class="line">        <span class="keyword">return</span> b == <span class="literal">null</span> ? <span class="number">1</span> : a.Area.CompareTo(b.Area);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// You can pass ShapeAreaComparer, which implements IComparer&lt;Shape&gt;,</span></span><br><span class="line">        <span class="comment">// even though the constructor for SortedSet&lt;Circle&gt; expects </span></span><br><span class="line">        <span class="comment">// IComparer&lt;Circle&gt;, because type parameter T of IComparer&lt;T&gt; is</span></span><br><span class="line">        <span class="comment">// contravariant.</span></span><br><span class="line">        SortedSet&lt;Circle&gt; circlesByArea = </span><br><span class="line">            <span class="keyword">new</span> SortedSet&lt;Circle&gt;(<span class="keyword">new</span> ShapeAreaComparer()) </span><br><span class="line">                &#123; <span class="keyword">new</span> Circle(<span class="number">7.2</span>), <span class="keyword">new</span> Circle(<span class="number">100</span>), <span class="literal">null</span>, <span class="keyword">new</span> Circle(<span class="number">.01</span>) &#125;;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">foreach</span> (Circle c <span class="keyword">in</span> circlesByArea)</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(c == <span class="literal">null</span> ? <span class="string">&quot;null&quot;</span> : <span class="string">&quot;Circle with area &quot;</span> + c.Area);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* This code example produces the following output:</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">null</span></span><br><span class="line"><span class="comment">Circle with area 0.000314159265358979</span></span><br><span class="line"><span class="comment">Circle with area 162.860163162095</span></span><br><span class="line"><span class="comment">Circle with area 31415.9265358979</span></span><br><span class="line"><span class="comment"> */</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="泛型委托中的变体"><a href="#泛型委托中的变体" class="headerlink" title="泛型委托中的变体"></a>泛型委托中的变体</h2><p>在 .NET Framework 4中， <code>Func</code> 泛型委托（如 <code>Func&lt;T,TResult&gt;</code>）具有协变返回类型和逆变参数类型。 <code>Action</code> 泛型委托（如 <code>Action&lt;T1,T2&gt;</code>）具有逆变参数类型。 这意味着，可以将委托指派给具有派生程度较高的参数类型和（对于 <code>Func</code> 泛型委托）派生程度较低的返回类型的变量。</p>
+<p>备注：</p>
+<p><code>Func</code> 泛型委托的最后一个泛型类型参数指定委托签名中返回值的类型。 该参数是协变的（<code>out</code> 关键字），而其他泛型类型参数是逆变的（<code>in</code> 关键字）。</p>
+<h2 id="Variant-泛型接口和委托类型的列表"><a href="#Variant-泛型接口和委托类型的列表" class="headerlink" title="Variant 泛型接口和委托类型的列表"></a>Variant 泛型接口和委托类型的列表</h2><p>参考：<a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/standard/generics/covariance-and-contravariance#list-of-variant-generic-interface-and-delegate-types">Variant 泛型接口和委托类型的列表</a></p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/standard/generics/covariance-and-contravariance">泛型中的协变和逆变</a></p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/csharp/language-reference/keywords/out-generic-modifier">out（泛型修饰符）</a></p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/csharp/language-reference/keywords/in-generic-modifier">in（泛型修饰符）</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/DotNet/" rel="tag"><i class="fa fa-tag"></i> DotNet</a>
+              <a href="/tags/CSharp/" rel="tag"><i class="fa fa-tag"></i> CSharp</a>
+              <a href="/tags/CSharp%E5%9F%BA%E7%A1%80/" rel="tag"><i class="fa fa-tag"></i> CSharp基础</a>
+              <a href="/tags/%E9%9B%86%E5%90%88%E4%B8%8E%E6%B3%9B%E5%9E%8B/" rel="tag"><i class="fa fa-tag"></i> 集合与泛型</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/12/27/CSharp%E9%9B%86%E5%90%88-HashSet%E4%B8%8EList%E5%8C%BA%E5%88%AB/" rel="prev" title="CSharp集合-HashSet与List区别">
+      <i class="fa fa-chevron-left"></i> CSharp集合-HashSet与List区别
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2018/12/28/CSharp%E5%9F%BA%E7%A1%80-LINQ/" rel="next" title="CSharp基础-LINQ">
+      CSharp基础-LINQ <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%98%E4%BD%93"><span class="nav-number">1.</span> <span class="nav-text">变体</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B3%E9%94%AE%E5%AD%97"><span class="nav-number">2.</span> <span class="nav-text">关键字</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%8F%E5%8F%98out%EF%BC%88%E6%B3%9B%E5%9E%8B%E4%BF%AE%E9%A5%B0%E7%AC%A6%EF%BC%89"><span class="nav-number">3.</span> <span class="nav-text">协变out（泛型修饰符）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%80%86%E5%8F%98in%EF%BC%88%E6%B3%9B%E5%9E%8B%E4%BF%AE%E9%A5%B0%E7%AC%A6%EF%BC%89"><span class="nav-number">4.</span> <span class="nav-text">逆变in（泛型修饰符）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B3%9B%E5%9E%8B%E6%8E%A5%E5%8F%A3%E4%B8%AD%E7%9A%84%E5%8F%98%E4%BD%93"><span class="nav-number">5.</span> <span class="nav-text">泛型接口中的变体</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B7%E6%9C%89%E5%8D%8F%E5%8F%98%E7%B1%BB%E5%9E%8B%E5%8F%82%E6%95%B0%E7%9A%84%E6%B3%9B%E5%9E%8B%E6%8E%A5%E5%8F%A3"><span class="nav-number">5.1.</span> <span class="nav-text">具有协变类型参数的泛型接口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B7%E6%9C%89%E9%80%86%E5%8F%98%E6%B3%9B%E5%9E%8B%E7%B1%BB%E5%9E%8B%E5%8F%82%E6%95%B0%E7%9A%84%E6%B3%9B%E5%9E%8B%E6%8E%A5%E5%8F%A3"><span class="nav-number">5.2.</span> <span class="nav-text">具有逆变泛型类型参数的泛型接口</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B3%9B%E5%9E%8B%E5%A7%94%E6%89%98%E4%B8%AD%E7%9A%84%E5%8F%98%E4%BD%93"><span class="nav-number">6.</span> <span class="nav-text">泛型委托中的变体</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Variant-%E6%B3%9B%E5%9E%8B%E6%8E%A5%E5%8F%A3%E5%92%8C%E5%A7%94%E6%89%98%E7%B1%BB%E5%9E%8B%E7%9A%84%E5%88%97%E8%A1%A8"><span class="nav-number">7.</span> <span class="nav-text">Variant 泛型接口和委托类型的列表</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="syxdevcode"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description">syxdevcode的个人博客</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">616</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">157</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">2.1m</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">31:27</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

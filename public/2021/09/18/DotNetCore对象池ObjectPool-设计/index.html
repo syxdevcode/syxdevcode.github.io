@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.2">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"syxdevcode.github.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="转载： 对象池在 .NET (Core)中的应用[2]: 设计篇 对象池模型由三个核心对象构成，它们分别是表示  对象池的 ObjectPool&lt;T&gt; 对象； 对象值提供者的ObjectPoolProvider对象； 控制池化对象创建与释放行为的 IPooledObjectPolicy&lt;T&gt; 对象。  IPooledObjectPolicy&lt;T&gt;&amp;emsp;&amp;e">
+<meta property="og:type" content="article">
+<meta property="og:title" content="DotNetCore对象池ObjectPool-设计">
+<meta property="og:url" content="https://syxdevcode.github.com/2021/09/18/DotNetCore%E5%AF%B9%E8%B1%A1%E6%B1%A0ObjectPool-%E8%AE%BE%E8%AE%A1/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="转载： 对象池在 .NET (Core)中的应用[2]: 设计篇 对象池模型由三个核心对象构成，它们分别是表示  对象池的 ObjectPool&lt;T&gt; 对象； 对象值提供者的ObjectPoolProvider对象； 控制池化对象创建与释放行为的 IPooledObjectPolicy&lt;T&gt; 对象。  IPooledObjectPolicy&lt;T&gt;&amp;emsp;&amp;e">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://syxdevcode.github.com/img/19327-20210825083118230-2060370000.png">
+<meta property="og:image" content="https://syxdevcode.github.com/img/19327-20210825083119059-1150432674.png">
+<meta property="article:published_time" content="2021-09-18T06:02:59.000Z">
+<meta property="article:modified_time" content="2022-06-27T10:25:23.240Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="CSharp">
+<meta property="article:tag" content="DotNetCore">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://syxdevcode.github.com/img/19327-20210825083118230-2060370000.png">
+
+<link rel="canonical" href="https://syxdevcode.github.com/2021/09/18/DotNetCore%E5%AF%B9%E8%B1%A1%E6%B1%A0ObjectPool-%E8%AE%BE%E8%AE%A1/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>DotNetCore对象池ObjectPool-设计 | syxdevcode博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">syxdevcode博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/syxdevcode" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2021/09/18/DotNetCore%E5%AF%B9%E8%B1%A1%E6%B1%A0ObjectPool-%E8%AE%BE%E8%AE%A1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          DotNetCore对象池ObjectPool-设计
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2021-09-18 14:02:59" itemprop="dateCreated datePublished" datetime="2021-09-18T14:02:59+08:00">2021-09-18</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-06-27 18:25:23" itemprop="dateModified" datetime="2022-06-27T18:25:23+08:00">2022-06-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/CSharp/" itemprop="url" rel="index"><span itemprop="name">CSharp</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>9.3k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>8 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>转载：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/artech/p/object-pool-02.html">对象池在 .NET (Core)中的应用[2]: 设计篇</a></p>
+<p>对象池模型由三个核心对象构成，它们分别是表示</p>
+<ul>
+<li>对象池的 <code>ObjectPool&lt;T&gt;</code> 对象；</li>
+<li>对象值提供者的<code>ObjectPoolProvider</code>对象；</li>
+<li>控制池化对象创建与释放行为的 <code>IPooledObjectPolicy&lt;T&gt;</code> 对象。</li>
+</ul>
+<h2 id="IPooledObjectPolicy-lt-T-gt"><a href="#IPooledObjectPolicy-lt-T-gt" class="headerlink" title="IPooledObjectPolicy&lt;T&gt;"></a><code>IPooledObjectPolicy&lt;T&gt;</code></h2><p>&emsp;&emsp;池化对象策略的 <code>IPooledObjectPolicy&lt;T&gt;</code> 对象不仅仅帮助我们创建对象，还可以帮助我们执行一些对象回归对象池之前所需的回收操作，对象最终能否回到对象池中也受它的控制。</p>
+<span id="more"></span>
+<p>如下面的代码片段所示，<code>IPooledObjectPolicy&lt;T&gt;</code> 接口定义了两个方法，<code>Create</code> 方法用来创建池化对象，对象回归前需要执行的操作体现在 <code>Return</code> 方法上，该方法的返回值决定了指定的对象是否应该回归对象池。抽象类 <code>PooledObjectPolicy&lt;T&gt;</code>实现了该接口，我们一般将它作为自定义策略类型的基类。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title">IPooledObjectPolicy</span>&lt;<span class="title">T</span>&gt;</span><br><span class="line">&#123;</span><br><span class="line">    <span class="function">T <span class="title">Create</span>()</span>;</span><br><span class="line">    <span class="function"><span class="built_in">bool</span> <span class="title">Return</span>(<span class="params">T obj</span>)</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title">PooledObjectPolicy</span>&lt;<span class="title">T</span>&gt; : <span class="title">IPooledObjectPolicy</span>&lt;<span class="title">T</span>&gt;</span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="title">PooledObjectPolicy</span>()</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> T <span class="title">Create</span>()</span>;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="built_in">bool</span> <span class="title">Return</span>(<span class="params">T obj</span>)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp; 我们默认使用的是如下这个 <code>DefaultPooledObjectPolicy&lt;T&gt;</code> 类型，由于它直接通过反射来创建池化对象，所以要求泛型参数T必须有一个公共的默认无参构造函数。它的Return方法直接返回True，意味着提供的对象可以被无限制地复用。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">DefaultPooledObjectPolicy</span>&lt;<span class="title">T</span>&gt; : <span class="title">PooledObjectPolicy</span>&lt;<span class="title">T</span>&gt; <span class="keyword">where</span> <span class="title">T</span>: <span class="keyword">class</span>, <span class="title">new</span>()</span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> T <span class="title">Create</span>()</span> =&gt; Activator.CreateInstance&lt;T&gt;();</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> <span class="built_in">bool</span> <span class="title">Return</span>(<span class="params">T obj</span>)</span> =&gt; <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="ObjectPool-lt-T-gt"><a href="#ObjectPool-lt-T-gt" class="headerlink" title="ObjectPool&lt;T&gt;"></a><code>ObjectPool&lt;T&gt;</code></h2><p>&emsp;&emsp;对象池通过 <code>ObjectPool&lt;T&gt;</code> 对象表示。如下面的代码片段所示，<code>ObjectPool&lt;T&gt;</code> 是一个抽象类，池化对象通过Get方法提供给我们，我们在使用完之后调用 <code>Return</code> 方法将其释放到对象池中以供后续复用。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title">ObjectPool</span>&lt;<span class="title">T</span>&gt; <span class="keyword">where</span> <span class="title">T</span>: <span class="keyword">class</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="title">ObjectPool</span>()</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> T <span class="title">Get</span>()</span>;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">void</span> <span class="title">Return</span>(<span class="params">T obj</span>)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="DefaultObjectPool-lt-T-gt"><a href="#DefaultObjectPool-lt-T-gt" class="headerlink" title="DefaultObjectPool&lt;T&gt;"></a><code>DefaultObjectPool&lt;T&gt;</code></h3><p>&emsp;&emsp;默认使用的对象池体现为一个 <code>DefaultObjectPool&lt;T&gt;</code> 对象，由于针对对象池的绝大部分实现就体现这个类型中。对象池具有固定的大小，并且默认的大小为处理器个数的2倍。我们假设对象池的大小为N，那么 <code>DefaultObjectPool&lt;T&gt;</code> 对象会如下图所示的方式使用一个单一对象和一个长度为<code>N-1</code>的数组来存放由它提供的 <code>N</code> 个对象。</p>
+<p><img src="/img/19327-20210825083118230-2060370000.png" alt="19327-20210825083118230-2060370000.png"></p>
+<p>&emsp;&emsp;如下面的代码片段所示，<code>DefaultObjectPool&lt;T&gt;</code> 使用字段<code>_firstItem</code>用来存放第一个池化对象，余下的则存放在<code>_items</code>字段表示的数组中。值得注意的是，这个数组的元素类型并非池化对象的类型 <code>T</code>，而是一个封装了池化对象的结构体<code>ObjectWrapper</code>。如果该数组元素类型改为引用类型T，那么当我们对某个元素进行复制的时候，运行时会进行类型校验（要求指定对象类型派生于T），无形之中带来了一定的性能损失（值类型数组就不需求进行派生类型的校验）。对象池中存在一些性能优化的细节，这就是其中之一。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">DefaultObjectPool</span>&lt;<span class="title">T</span>&gt; : <span class="title">ObjectPool</span>&lt;<span class="title">T</span>&gt; <span class="keyword">where</span> <span class="title">T</span> : <span class="keyword">class</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">protected</span> T _firstItem;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">protected</span> <span class="keyword">readonly</span> ObjectWrapper[]  _items;</span><br><span class="line">    …</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">protected</span> <span class="keyword">struct</span> ObjectWrapper</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">public</span> T Element;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;<code>DefaultObjectPool&lt;T&gt;</code>类型定义了如下两个构造函数。在创建一个<code>DefaultObjectPool&lt;T&gt;</code>对象的时候会提供一个<code>IPooledObjectPolicy&lt;T&gt;</code>对象并指定对象池的大小。对象池的大小默认设置为处理器数量的2倍体现在第一个构造函数重载中。如果指定的是一个<code>DefaultPooledObjectPolicy&lt;T&gt;</code>对象，表示默认池化对象策略的<code>_isDefaultPolicy</code>字段被设置成True。因为<code>DefaultPooledObjectPolicy&lt;T&gt;</code>对象的Return方法总是返回True，并且没有任何具体的操作，所以在将对象释放回对象池的时候就不需要调用 <code>Return</code> 方法了，这是第二个性能优化的细节。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">DefaultObjectPool</span>&lt;<span class="title">T</span>&gt; : <span class="title">ObjectPool</span>&lt;<span class="title">T</span>&gt; <span class="keyword">where</span> <span class="title">T</span> : <span class="keyword">class</span></span><br><span class="line">&#123;    </span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">protected</span> T  _firstItem;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">protected</span> <span class="keyword">readonly</span> ObjectWrapper[] _items;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">protected</span> <span class="keyword">readonly</span> IPooledObjectPolicy&lt;T&gt; _policy;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">protected</span> <span class="keyword">readonly</span> <span class="built_in">bool</span>  _isDefaultPolicy;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">protected</span> <span class="keyword">readonly</span> PooledObjectPolicy&lt;T&gt;  _fastPolicy;</span><br><span class="line">    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">DefaultObjectPool</span>(<span class="params">IPooledObjectPolicy&lt;T&gt; policy</span>) : <span class="title">this</span>(<span class="params">policy, Environment.ProcessorCount * <span class="number">2</span></span>)</span></span><br><span class="line">    &#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">DefaultObjectPool</span>(<span class="params">IPooledObjectPolicy&lt;T&gt; policy, <span class="built_in">int</span> maximumRetained</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        _policy  = policy ;</span><br><span class="line">        _fastPolicy = policy <span class="keyword">as</span> PooledObjectPolicy&lt;T&gt;;</span><br><span class="line">        _isDefaultPolicy = IsDefaultPolicy();</span><br><span class="line">        _items  = <span class="keyword">new</span> ObjectWrapper[maximumRetained - <span class="number">1</span>];</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="built_in">bool</span> <span class="title">IsDefaultPolicy</span>()</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">var</span> type = policy.GetType();</span><br><span class="line">            <span class="keyword">return</span> type.IsGenericType &amp;&amp; type.GetGenericTypeDefinition() == <span class="keyword">typeof</span>(DefaultPooledObjectPolicy&lt;&gt;);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    [<span class="meta">MethodImpl(MethodImplOptions.NoInlining)</span>]</span><br><span class="line">    <span class="function"><span class="keyword">private</span> T <span class="title">Create</span>()</span> =&gt; _fastPolicy?.Create() ?? _policy.Create();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;从第二个构造函数的定义可以看出，指定的<code>IPooledObjectPolicy&lt;T&gt;</code>对象除了会赋值给<code>_policy</code>字段之外，如果提供的是一个<code>PooledObjectPolicy&lt;T&gt;</code>对象，该对象还会同时赋值给另一个名为<code>_fastPolicy</code>的字段。在进行池化对象的提取和释放时，<code>_fastPolicy</code>字段表示的池化对象策略会优先选用，这个逻辑体现在<code>Create</code>方法上。因为调用类型的方法比调用接口方法具有更好的性能（所以该字段才会命名为<code>_fastPolicy</code>），这是第三个性能优化的细节。这个细节还告诉我们在自定义池化对象策略的时候，最好将<code>PooledObjectPolicy&lt;T&gt;</code>作为基类，而不是直接实现<code>IPooledObjectPolicy&lt;T&gt;</code>接口。</p>
+<p>&emsp;&emsp;如下所示的是重写的<code>Get</code>和<code>Return</code>方法的定义。用于提供池化对象的<code>Get</code>方法很简单，它会采用原子操作使用<code>Null</code>将<code>_firstItem</code>字段表示的对象 <code>替换</code> 下来，如果该字段不为 <code>Null</code>，那么将其作为返回的对象，反之它会遍历数组的每个 <code>ObjectWrapper</code> 对象，并使用 <code>Null</code> 将其封装的对象 <code>替换</code> 下来，第一个成功替换下来的对象将作为返回值。如果所有 <code>ObjectWrapper</code> 对象封装的对象都为Null，意味着所有对象都被 <code>借出</code> 或者尚未创建，此时返回创建的新对象了。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">DefaultObjectPool</span>&lt;<span class="title">T</span>&gt; : <span class="title">ObjectPool</span>&lt;<span class="title">T</span>&gt; <span class="keyword">where</span> <span class="title">T</span> : <span class="keyword">class</span></span><br><span class="line">&#123;    </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> T <span class="title">Get</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">var</span> item = _firstItem;</span><br><span class="line">        <span class="keyword">if</span> (item == <span class="literal">null</span> || Interlocked.CompareExchange(<span class="keyword">ref</span> _firstItem, <span class="literal">null</span>, item) != item)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">var</span> items = _items;</span><br><span class="line">            <span class="keyword">for</span> (<span class="keyword">var</span> i = <span class="number">0</span>; i &lt; items.Length; i++)</span><br><span class="line">            &#123;</span><br><span class="line">                item = items[i].Element;</span><br><span class="line">                <span class="keyword">if</span> (item != <span class="literal">null</span> &amp;&amp; Interlocked.CompareExchange(<span class="keyword">ref</span> items[i].Element, <span class="literal">null</span>, item) == item)</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="keyword">return</span> item;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            item = Create();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> item;</span><br><span class="line">    &#125;    </span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> <span class="keyword">void</span> <span class="title">Return</span>(<span class="params">T obj</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (_isDefaultPolicy || (_fastPolicy?.Return(obj) ?? _policy.Return(obj)))</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (_firstItem != <span class="literal">null</span> || Interlocked.CompareExchange(<span class="keyword">ref</span> _firstItem, obj, <span class="literal">null</span>) != <span class="literal">null</span>)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">var</span> items = _items;</span><br><span class="line">                <span class="keyword">for</span> (<span class="keyword">var</span> i = <span class="number">0</span>; i &lt; items.Length &amp;&amp; Interlocked.CompareExchange(<span class="keyword">ref</span> items[i].Element, obj, <span class="literal">null</span>) != <span class="literal">null</span>; ++i)</span><br><span class="line">                &#123;&#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    …</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;将对象释放会对象池的 <code>Return</code> 方法，需要判断指定的对象能否释放会对象池中，如果使用的是默认的池化对象策略，答案是肯定的，否则只能通过调用<code>IPooledObjectPolicy&lt;T&gt;</code>对象的<code>Return</code>方法来判断。从代码片段可以看出，这里依然会优先选择<code>_fastPolicy</code>字段表示的 <code>PooledObjectPolicy&lt;T&gt;</code> 对象以获得更好的性能。</p>
+<p>&emsp;&emsp;在确定指定的对象可以释放回对象之后，如果<code>_firstItem</code>字段为<code>Null</code>，<code>Return</code>方法会采用原子操作使用指定的对象将其 <code>替换</code> 下来。如果该字段不为 <code>Null</code> 或者原子替换失败，该方法会便利数组的每个<code>ObjectWrapper</code> 对象，并采用原子操作将它们封装的空引用替换成指定的对象。整个方法会在某个原子替换操作成功或者整个便利过程结束之后返回。</p>
+<p>&emsp;&emsp;<code>DefaultObjectPool&lt;T&gt;</code> 之所有使用一个数组附加一个单一对象来存储池化对象，是因为针对单一字段的读写比针对数组元素的读写具有更好的性能。从上面给出的代码可以看出，不论是Get还是Return方法，优先选择的都是<code>_firstItem</code>字段。如果池化对象的使用率不高，基本上使用的都会是该字段存储的对象，那么此时的性能是最高的。</p>
+<h3 id="DisposableObjectPool-lt-T-gt"><a href="#DisposableObjectPool-lt-T-gt" class="headerlink" title="DisposableObjectPool&lt;T&gt;"></a><code>DisposableObjectPool&lt;T&gt;</code></h3><p>&emsp;&emsp;当池化对象类型实现了<code>IDisposable</code>接口的情况下，如果某个对象在回归对象池的时候，对象池已满，该对象将被丢弃。与此同时，被丢弃对象的<code>Dispose</code>方法将立即被调用。但是这种现象并没有在<code>DefaultObjectPool&lt;T&gt;</code>类 型的代码中体现出来，这是为什么呢？实际上 <code>DefaultObjectPool&lt;T&gt;</code> 还有如下这个名为 <code>DisposableObjectPool&lt;T&gt;</code> 的派生类。</p>
+<p>&emsp;&emsp;如代码片段可以看出，表示池化对象类型的泛型参数T要求实现<code>IDisposable</code>接口。如果池化对象类型实现了<code>IDisposable</code>接口，通过默认<code>ObjectPoolProvider</code>对象创建的对象池就是一个<code>DisposableObjectPool&lt;T&gt;</code> 对象。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">internal</span> <span class="keyword">sealed</span> <span class="keyword">class</span> <span class="title">DisposableObjectPool</span>&lt;<span class="title">T</span>&gt; : <span class="title">DefaultObjectPool</span>&lt;<span class="title">T</span>&gt;, <span class="title">IDisposable</span> <span class="keyword">where</span> <span class="title">T</span> : <span class="keyword">class</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">volatile</span> <span class="built_in">bool</span> _isDisposed;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">DisposableObjectPool</span>(<span class="params">IPooledObjectPolicy&lt;T&gt; policy</span>) : <span class="title">base</span>(<span class="params">policy</span>)</span></span><br><span class="line">    &#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">DisposableObjectPool</span>(<span class="params">IPooledObjectPolicy&lt;T&gt; policy, <span class="built_in">int</span> maximumRetained</span>) : <span class="title">base</span>(<span class="params">policy, maximumRetained</span>)</span></span><br><span class="line">    &#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> T <span class="title">Get</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (_isDisposed)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> ObjectDisposedException(GetType().Name);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">base</span>.Get();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> <span class="keyword">void</span> <span class="title">Return</span>(<span class="params">T obj</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (_isDisposed || !ReturnCore(obj))</span><br><span class="line">        &#123;</span><br><span class="line">            DisposeItem(obj);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="built_in">bool</span> <span class="title">ReturnCore</span>(<span class="params">T obj</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">bool</span> returnedToPool = <span class="literal">false</span>;</span><br><span class="line">        <span class="keyword">if</span> (_isDefaultPolicy || (_fastPolicy?.Return(obj) ?? _policy.Return(obj)))</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (_firstItem == <span class="literal">null</span> &amp;&amp; Interlocked.CompareExchange(<span class="keyword">ref</span> _firstItem, obj, <span class="literal">null</span>) == <span class="literal">null</span>)</span><br><span class="line">            &#123;</span><br><span class="line">                returnedToPool = <span class="literal">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">else</span></span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">var</span> items = _items;</span><br><span class="line">                <span class="keyword">for</span> (<span class="keyword">var</span> i = <span class="number">0</span>; i &lt; items.Length &amp;&amp; !(returnedTooPool = Interlocked.CompareExchange(<span class="keyword">ref</span> items[i].Element, obj, <span class="literal">null</span>) == <span class="literal">null</span>); i++)</span><br><span class="line">                &#123;&#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> returnedTooPool;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">Dispose</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        _isDisposed = <span class="literal">true</span>;</span><br><span class="line">        DisposeItem(_firstItem);</span><br><span class="line">        _firstItem = <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">        ObjectWrapper[] items = _items;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">var</span> i = <span class="number">0</span>; i &lt; items.Length; i++)</span><br><span class="line">        &#123;</span><br><span class="line">            DisposeItem(items[i].Element);</span><br><span class="line">            items[i].Element = <span class="literal">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">DisposeItem</span>(<span class="params">T item</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (item <span class="keyword">is</span> IDisposable disposable)</span><br><span class="line">        &#123;</span><br><span class="line">            disposable.Dispose();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;从上面代码片段可以看出，<code>DisposableObjectPool&lt;T&gt;</code>自身类型也实现了<code>IDisposable</code>接口，它会在<code>Dispose</code>方法中调用目前对象池中的每个对象的<code>Dispose</code>方法。用于提供池化对象的<code>Get</code>方法除了会验证自身的<code>Disposed</code>状态之外，并没有特别之处。当对象未能成功回归对象池，通过调用该对象的<code>Dispose</code>方法将其释放的操作体现在重写的<code>Return</code>方法中。</p>
+<h2 id="ObjectPoolProvider"><a href="#ObjectPoolProvider" class="headerlink" title="ObjectPoolProvider"></a>ObjectPoolProvider</h2><p>&emsp;&emsp;表示对象池的 <code>ObjectPool&lt;T&gt;</code> 对象是通过 <code>ObjectPoolProvider</code> 提供的。</p>
+<p>&emsp;&emsp;如下面的代码片段所示，抽象类 <code>ObjectPoolProvider</code> 定义了两个重载的<code>Create&lt;T&gt;</code>方法，抽象方法需要指定具体的池化对象策略。另一个重载由于采用默认的池化对象策略，所以要求对象类型具有一个默认无参构造函数。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title">ObjectPoolProvider</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">ObjectPool</span>&lt;<span class="title">T</span>&gt; <span class="title">Create</span>&lt;<span class="title">T</span>&gt;() <span class="keyword">where</span> T : <span class="keyword">class</span>, <span class="keyword">new</span>()</span> =&gt; Create&lt;T&gt;(<span class="keyword">new</span> DefaultPooledObjectPolicy&lt;T&gt;());</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="title">ObjectPool</span>&lt;<span class="title">T</span>&gt; <span class="title">Create</span>&lt;<span class="title">T</span>&gt;(<span class="params">IPooledObjectPolicy&lt;T&gt; policy</span>) <span class="keyword">where</span> T : <span class="keyword">class</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;在前面的示例演示中，我们使用的是如下这个<code>DefaultObjectPoolProvider</code>类型。如代码片段所示，<code>DefaultObjectPoolProvider</code>派生于抽象类<code>ObjectPoolProvider</code>，在重写的<code>Create&lt;T&gt;</code>方法中，它会根据泛型参数T是否实现<code>IDisposable</code>接口分别创建<code>DisposableObjectPool&lt;T&gt;</code>和<code>DefaultObjectPool&lt;T&gt;</code>对象。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">DefaultObjectPoolProvider</span> : <span class="title">ObjectPoolProvider</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">int</span> MaximumRetained &#123; <span class="keyword">get</span>; <span class="keyword">set</span>; &#125; = Environment.ProcessorCount * <span class="number">2</span>;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> <span class="title">ObjectPool</span>&lt;<span class="title">T</span>&gt; <span class="title">Create</span>&lt;<span class="title">T</span>&gt;(<span class="params">IPooledObjectPolicy&lt;T&gt; policy</span>)</span> =&gt; <span class="keyword">typeof</span>(IDisposable).IsAssignableFrom(<span class="keyword">typeof</span>(T))</span><br><span class="line">        ? <span class="keyword">new</span> DisposableObjectPool&lt;T&gt;(policy, MaximumRetained) : <span class="keyword">new</span> DefaultObjectPool&lt;T&gt;(policy, MaximumRetained);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;<code>DefaultObjectPoolProvider</code>类型定义了一个标识对象池大小的<code>MaximumRetained</code>属性，采用处理器数量的两倍作为默认容量也体现在这里。这个属性并非只读，所以我们可以利用它根据具体需求调整提供对象池的大小。在ASP.NET应用中，我们基本上都会采用依赖注入的方式利用注入的<code>ObjectPoolProvider</code>对象来创建针对具体类型的对象池。</p>
+<p>我们在《编程篇》还演示了另一种创建对象池的方式，那就是直接调用 <code>ObjectPool</code> 类型的静态<code>Create&lt;T&gt;</code>方法，该方法的实现体现在如下所示的代码片段中。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title">ObjectPool</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="title">ObjectPool</span>&lt;<span class="title">T</span>&gt; <span class="title">Create</span>&lt;<span class="title">T</span>&gt;(<span class="params">IPooledObjectPolicy&lt;T&gt; policy</span>) <span class="keyword">where</span> T: <span class="keyword">class</span>, <span class="keyword">new</span>()</span></span><br><span class="line">        =&gt; <span class="keyword">new</span> DefaultObjectPoolProvider().Create&lt;T&gt;(policy ?? <span class="keyword">new</span> DefaultPooledObjectPolicy&lt;T&gt;());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>总得来说，整个对象池的设计模型是一个简单、高效并且具有可扩展性的对象池框架，该模型涉及的几个核心接口和类型体现在如下图所示的UML中。</p>
+<p><img src="/img/19327-20210825083119059-1150432674.png" alt="19327-20210825083119059-1150432674.png"></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/CSharp/" rel="tag"><i class="fa fa-tag"></i> CSharp</a>
+              <a href="/tags/DotNetCore/" rel="tag"><i class="fa fa-tag"></i> DotNetCore</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2021/09/17/DotNetCore%E5%AF%B9%E8%B1%A1%E6%B1%A0ObjectPool-%E7%BC%96%E7%A8%8B/" rel="prev" title="DotNetCore对象池ObjectPool-编程">
+      <i class="fa fa-chevron-left"></i> DotNetCore对象池ObjectPool-编程
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2021/09/18/DotNetCore%E5%AF%B9%E8%B1%A1%E6%B1%A0ObjectPool-%E6%89%A9%E5%B1%95/" rel="next" title="DotNetCore对象池ObjectPool-扩展">
+      DotNetCore对象池ObjectPool-扩展 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#IPooledObjectPolicy-lt-T-gt"><span class="nav-number">1.</span> <span class="nav-text">IPooledObjectPolicy&lt;T&gt;</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ObjectPool-lt-T-gt"><span class="nav-number">2.</span> <span class="nav-text">ObjectPool&lt;T&gt;</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#DefaultObjectPool-lt-T-gt"><span class="nav-number">2.1.</span> <span class="nav-text">DefaultObjectPool&lt;T&gt;</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#DisposableObjectPool-lt-T-gt"><span class="nav-number">2.2.</span> <span class="nav-text">DisposableObjectPool&lt;T&gt;</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ObjectPoolProvider"><span class="nav-number">3.</span> <span class="nav-text">ObjectPoolProvider</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="syxdevcode"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description">syxdevcode的个人博客</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">616</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">157</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">2.1m</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">31:27</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>

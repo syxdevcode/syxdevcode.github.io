@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.2">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"syxdevcode.github.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":true,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="转载：TPL DataFlow初探（二） TPL DataFlow初探（二）简单的介绍了TDF提供的一些Block，通过对这些Block配置和组合，可以满足很多的数据处理的场景。这一篇将继续介绍与这些Block配置的相关类，和挖掘一些高级功能。 在一些Block的构造函数中，我们常常可以看见需要你输入 DataflowBlockOptions 类型或者它的两个派生类型ExecutionDatafl">
+<meta property="og:type" content="article">
+<meta property="og:title" content="TPL DataFlow笔记（2）">
+<meta property="og:url" content="https://syxdevcode.github.com/2020/01/10/TPL%20DataFlow%E7%AC%94%E8%AE%B0%EF%BC%882%EF%BC%89/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="转载：TPL DataFlow初探（二） TPL DataFlow初探（二）简单的介绍了TDF提供的一些Block，通过对这些Block配置和组合，可以满足很多的数据处理的场景。这一篇将继续介绍与这些Block配置的相关类，和挖掘一些高级功能。 在一些Block的构造函数中，我们常常可以看见需要你输入 DataflowBlockOptions 类型或者它的两个派生类型ExecutionDatafl">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://syxdevcode.github.com/img/01161456-7b8227892cb14d20b5347fa310224619.jpg">
+<meta property="og:image" content="https://syxdevcode.github.com/img/01161504-e9c265982cb54d0eb844ee1a1be1e92d.jpg">
+<meta property="article:published_time" content="2020-01-10T08:50:01.000Z">
+<meta property="article:modified_time" content="2022-06-27T10:25:23.294Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="DotNet">
+<meta property="article:tag" content="CSharp">
+<meta property="article:tag" content="Task">
+<meta property="article:tag" content=".net异步与并行">
+<meta property="article:tag" content="TPL DataFlow">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://syxdevcode.github.com/img/01161456-7b8227892cb14d20b5347fa310224619.jpg">
+
+<link rel="canonical" href="https://syxdevcode.github.com/2020/01/10/TPL%20DataFlow%E7%AC%94%E8%AE%B0%EF%BC%882%EF%BC%89/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>TPL DataFlow笔记（2） | syxdevcode博客</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">syxdevcode博客</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/syxdevcode" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/01/10/TPL%20DataFlow%E7%AC%94%E8%AE%B0%EF%BC%882%EF%BC%89/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          TPL DataFlow笔记（2）
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-01-10 16:50:01" itemprop="dateCreated datePublished" datetime="2020-01-10T16:50:01+08:00">2020-01-10</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-06-27 18:25:23" itemprop="dateModified" datetime="2022-06-27T18:25:23+08:00">2022-06-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/TPL-DataFlow/" itemprop="url" rel="index"><span itemprop="name">TPL DataFlow</span></a>
+                </span>
+            </span>
+
+          <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>5.7k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>5 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>转载：<a target="_blank" rel="noopener" href="https://www.cnblogs.com/haoxinyue/archive/2013/03/01/2938953.html">TPL DataFlow初探（二）</a></p>
+<p><a target="_blank" rel="noopener" href="https://syxdevcode.github.io/2020/01/10/TPL%20DataFlow%E7%AC%94%E8%AE%B0%EF%BC%881%EF%BC%89/">TPL DataFlow初探（二）</a>简单的介绍了TDF提供的一些Block，通过对这些Block配置和组合，可以满足很多的数据处理的场景。这一篇将继续介绍与这些Block配置的相关类，和挖掘一些高级功能。</p>
+<p>在一些Block的构造函数中，我们常常可以看见需要你输入 <code>DataflowBlockOptions</code> 类型或者它的两个派生类型<code>ExecutionDataflowBlockOptions</code> 和 <code>GroupingDataflowBlockOptions</code>。</p>
+<h2 id="DataflowBlockOptions"><a href="#DataflowBlockOptions" class="headerlink" title="DataflowBlockOptions"></a>DataflowBlockOptions</h2><p><code>DataflowBlockOptions</code> 有五个属性：<code>BoundedCapacity</code>，<code>CancellationToken</code>，<code>MaxMessagesPerTask</code>，<code>NameFormat</code> 和 <code>TaskScheduler</code>。</p>
+<h3 id="用BoundedCapacity来限定容量"><a href="#用BoundedCapacity来限定容量" class="headerlink" title="用BoundedCapacity来限定容量"></a>用BoundedCapacity来限定容量</h3><p>这个属性用来限制一个Block中最多可以缓存数据项的数量，大多数Block都支持这个属性，这个值默认是<code>DataflowBlockOptions.Unbounded = -1</code>，也就是说没有限制。开发人员可以制定这个属性设置数量的上限。那后面的新数据将会延迟。比如说用一个 <code>BufferBlock</code> 连接一个 <code>ActionBlock</code>，如果在 <code>ActionBlock</code> 上面设置了上限，<code>ActionBlock</code> 处理的操作速度比较慢，留在 <code>ActionBlock</code> 中的数据到达了上限，那么余下的数据将留在<code>BufferBlock</code>中，直到 <code>ActionBlock</code> 中的数据量低于上限。这种情况常常会发生在生产者生产的速度大于消费者速度的时候，导致的问题是内存越来越大，数据操作越来越延迟。我们可以通过一个 <code>BufferBlock</code> 连接多个<code>ActionBlock</code> 来解决这样的问题，也就是负载均衡。一个 <code>ActionBlock</code> 满了，就会放到另外一个 <code>ActionBlock</code> 中去了。</p>
+<h3 id="用CancellationToken来取消操作"><a href="#用CancellationToken来取消操作" class="headerlink" title="用CancellationToken来取消操作"></a>用CancellationToken来取消操作</h3><p>TPL中常用的类型。在Block的构造函数中放入 <code>CancellationToken</code>，Block将在它的整个生命周期中全程监控这个对象，只要在这个Block结束运行（调用Complete方法）前，用 <code>CancellationToken</code> 发送取消请求，该Block将会停止运行，如果Block中还有没有处理的数据，那么将不会再被处理。</p>
+<h3 id="用MaxMessagesPerTask控制公平性"><a href="#用MaxMessagesPerTask控制公平性" class="headerlink" title="用MaxMessagesPerTask控制公平性"></a>用MaxMessagesPerTask控制公平性</h3><p>每一个Block内部都是异步处理，都是使用TPL的 <code>Task</code>。TDF的设计是在保证性能的情况下，尽量使用最少的任务对象来完成数据的操作，这样效率会高一些，一个任务执行完成一个数据以后，任务对象并不会销毁，而是会保留着去处理下一个数据，直到没有数据处理的时候，Block才会回收掉这个任务对象。但是如果数据来自于多个Source，公平性就很难保证。从其他Source来的数据必须要等到早前的那些Source的数据都处理完了才能被处理。这时我们就可以通过<code>MaxMessagesPerTask</code> 来控制。这个属性的默认值还是 <code>DataflowBlockOptions.Unbounded=-1</code>，表示没有上限。假如这个数值被设置为1的话，那么单个任务只会处理一个数据。这样就会带来极致的公平性，但是将带来更多的任务对象消耗。</p>
+<h3 id="用NameFormat来定义Block名称"><a href="#用NameFormat来定义Block名称" class="headerlink" title="用NameFormat来定义Block名称"></a>用NameFormat来定义Block名称</h3><p>MSDN上说属性 <code>NameFormat</code> 用来获取或设置查询块的名称时要使用的格式字符串。</p>
+<p>Block的名字 <code>Name=string.format(NameFormat, block.GetType ().Name, block.Completion.Id)</code>。所以当我们输入”{0}”的时候，名字就是 <code>block.GetType ().Name</code>，如果我们数据的是”{1}”，那么名字就是<code>block.Completion.Id</code>。如果是“{2}”，那么就会抛出异常。</p>
+<h3 id="用TaskScheduler来调度Block行为"><a href="#用TaskScheduler来调度Block行为" class="headerlink" title="用TaskScheduler来调度Block行为"></a>用TaskScheduler来调度Block行为</h3><p><code>TaskScheduler</code> 是非常重要的属性。同样这个类型来源于TPL。每个Block里面都使用 <code>TaskScheduler</code> 来调度行为，无论是源Block和目标Block之间的数据传递，还是用户自定义的执行数据方法委托，都是使用的 <code>TaskScheduler</code>。如果没有特别设置的话，将使用 <code>TaskScheduler.Default（System.Threading.Tasks.ThreadPoolTaskScheduler）</code>来调度。我们可以使用其他的一些继承于 <code>TaskScheduler</code> 的类型来设置这个调度器，一旦设置了以后，Block中的所有行为都会使用这个调度器来执行。<code>.Net Framework 4</code> 中内建了两个 <code>Scheduler</code> ，一个是默认的 <code>ThreadPoolTaskScheduler</code> ，另一个是用于UI线程切换的 <code>SynchronizationContextTaskScheduler</code> 。如果你使用的Block设计到UI的话，那可以使用后者，这样在UI线程切换上面将更加方便。</p>
+<p>.Net Framework 4.5 中，还有一个类型被加入到 <code>System.Threading.Tasks</code> 名称空间下：<code>ConcurrentExclusiveSchedulerPair</code> 。这个类是两个 <code>TaskScheduler</code> 的组合。它提供两个 <code>TaskScheduler</code>： <code>ConcurrentScheduler</code> 和 <code>ExclusiveScheduler</code>；我们可以把这两个 <code>TaskScheduler</code> 构造进要使用的Block中。他们保证了在没有排他任务的时候（使用 <code>ExclusiveScheduler</code> 的任务），其他任务（使用<code>ConcurrentScheduler</code>）可以同步进行，当有排他任务在运行的时候，其他任务都不能运行。其实它里面就是一个读写锁。这在多个Block操作共享资源的问题上是一个很方便的解决方案。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> ActionBlock&lt;<span class="built_in">int</span>&gt; readerAB1;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> ActionBlock&lt;<span class="built_in">int</span>&gt; readerAB2;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> ActionBlock&lt;<span class="built_in">int</span>&gt; readerAB3;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> ActionBlock&lt;<span class="built_in">int</span>&gt; writerAB1;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> BroadcastBlock&lt;<span class="built_in">int</span>&gt; bb = <span class="keyword">new</span> BroadcastBlock&lt;<span class="built_in">int</span>&gt;((i) =&gt; &#123; <span class="keyword">return</span> i; &#125;);</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">Test</span>()</span></span><br><span class="line">&#123;</span><br><span class="line">    ConcurrentExclusiveSchedulerPair pair = <span class="keyword">new</span> ConcurrentExclusiveSchedulerPair();</span><br><span class="line"></span><br><span class="line">    readerAB1 = <span class="keyword">new</span> ActionBlock&lt;<span class="built_in">int</span>&gt;((i) =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;ReaderAB1 begin handling.&quot;</span> + <span class="string">&quot; Execute Time:&quot;</span> + DateTime.Now);</span><br><span class="line">        Thread.Sleep(<span class="number">500</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    , <span class="keyword">new</span> ExecutionDataflowBlockOptions() &#123; TaskScheduler = pair.ConcurrentScheduler &#125;);</span><br><span class="line"></span><br><span class="line">    readerAB2 = <span class="keyword">new</span> ActionBlock&lt;<span class="built_in">int</span>&gt;((i) =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;ReaderAB2 begin handling.&quot;</span> + <span class="string">&quot; Execute Time:&quot;</span> + DateTime.Now);</span><br><span class="line">        Thread.Sleep(<span class="number">500</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    , <span class="keyword">new</span> ExecutionDataflowBlockOptions() &#123; TaskScheduler = pair.ConcurrentScheduler &#125;);</span><br><span class="line"></span><br><span class="line">    readerAB3 = <span class="keyword">new</span> ActionBlock&lt;<span class="built_in">int</span>&gt;((i) =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;ReaderAB3 begin handling.&quot;</span> + <span class="string">&quot; Execute Time:&quot;</span> + DateTime.Now);</span><br><span class="line">        Thread.Sleep(<span class="number">500</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    , <span class="keyword">new</span> ExecutionDataflowBlockOptions() &#123; TaskScheduler = pair.ConcurrentScheduler &#125;);</span><br><span class="line"></span><br><span class="line">    writerAB1 = <span class="keyword">new</span> ActionBlock&lt;<span class="built_in">int</span>&gt;((i) =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        Console.ForegroundColor = ConsoleColor.Red;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;WriterAB1 begin handling.&quot;</span> + <span class="string">&quot; Execute Time:&quot;</span> + DateTime.Now);</span><br><span class="line">        Console.ResetColor();</span><br><span class="line">        Thread.Sleep(<span class="number">3000</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    , <span class="keyword">new</span> ExecutionDataflowBlockOptions() &#123; TaskScheduler = pair.ExclusiveScheduler &#125;);</span><br><span class="line"></span><br><span class="line">    bb.LinkTo(readerAB1);</span><br><span class="line">    bb.LinkTo(readerAB2);</span><br><span class="line">    bb.LinkTo(readerAB3);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    Task.Run(() =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">while</span> (<span class="literal">true</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            bb.Post(<span class="number">1</span>);</span><br><span class="line">            Thread.Sleep(<span class="number">1000</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    Task.Run(() =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">while</span> (<span class="literal">true</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            Thread.Sleep(<span class="number">6000</span>);</span><br><span class="line">            writerAB1.Post(<span class="number">1</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/img/01161456-7b8227892cb14d20b5347fa310224619.jpg" alt="01161456-7b8227892cb14d20b5347fa310224619.jpg"></p>
+<h3 id="用MaxDegreeOfParallelism来并行处理"><a href="#用MaxDegreeOfParallelism来并行处理" class="headerlink" title="用MaxDegreeOfParallelism来并行处理"></a>用MaxDegreeOfParallelism来并行处理</h3><p>通常，Block中处理数据都是单线程的，一次只能处理一个数据，比如说 <code>ActionBlock</code> 中自定义的代理。使用 <code>MaxDegreeOfParallelism</code> 可以让你并行处理这些数据。属性的定义是最大的并行处理个数。如果定义成-1的话，那就是没有限制。用户需要在实际情况中选择这个值的大小，并不是越大越好。如果是平行处理的话，还应该考虑是否有共享资源。</p>
+<h2 id="TDF中的负载均衡"><a href="#TDF中的负载均衡" class="headerlink" title="TDF中的负载均衡"></a>TDF中的负载均衡</h2><p>我们可以使用Block很方便的构成一个生产者消费者的模式来处理数据。当生产者产生数据的速度快于消费者的时候，消费者Block的Buffer中的数据会越来越多，消耗大量的内存，数据处理也会延时。这时，我们可以用一个生产者Block连接多个消费者Block来解决这个问题。由于多个消费者Block一定是并行处理，所以对共享资源的处理一定要做同步处理。</p>
+<h3 id="使用BoundedCapacity属性来实现"><a href="#使用BoundedCapacity属性来实现" class="headerlink" title="使用BoundedCapacity属性来实现"></a>使用BoundedCapacity属性来实现</h3><p>当连接多个 <code>ActionBlock</code> 的时候，可以通过设置 <code>ActionBlock</code> 的 <code>BoundedCapacity</code> 属性。当第一个满了，就会放到第二个，第二个满了就会放到第三个。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> BufferBlock&lt;<span class="built_in">int</span>&gt; bb = <span class="keyword">new</span> BufferBlock&lt;<span class="built_in">int</span>&gt;();</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> ActionBlock&lt;<span class="built_in">int</span>&gt; ab1 = <span class="keyword">new</span> ActionBlock&lt;<span class="built_in">int</span>&gt;((i) =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        Thread.Sleep(<span class="number">1000</span>);</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;ab1 handle data&quot;</span> + i + <span class="string">&quot; Execute Time:&quot;</span> + DateTime.Now);</span><br><span class="line">    &#125;</span><br><span class="line">    , <span class="keyword">new</span> ExecutionDataflowBlockOptions() &#123; BoundedCapacity = <span class="number">2</span> &#125;);</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> ActionBlock&lt;<span class="built_in">int</span>&gt; ab2 = <span class="keyword">new</span> ActionBlock&lt;<span class="built_in">int</span>&gt;((i) =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        Thread.Sleep(<span class="number">1000</span>);</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;ab2 handle data&quot;</span> + i + <span class="string">&quot; Execute Time:&quot;</span> + DateTime.Now);</span><br><span class="line">    &#125;</span><br><span class="line">    , <span class="keyword">new</span> ExecutionDataflowBlockOptions() &#123; BoundedCapacity = <span class="number">2</span> &#125;);</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> ActionBlock&lt;<span class="built_in">int</span>&gt; ab3 = <span class="keyword">new</span> ActionBlock&lt;<span class="built_in">int</span>&gt;((i) =&gt;</span><br><span class="line">    &#123;</span><br><span class="line">        Thread.Sleep(<span class="number">1000</span>);</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;ab3 handle data:&quot;</span> + i + <span class="string">&quot; Execute Time:&quot;</span> + DateTime.Now);</span><br><span class="line">    &#125;</span><br><span class="line">    , <span class="keyword">new</span> ExecutionDataflowBlockOptions() &#123; BoundedCapacity = <span class="number">2</span> &#125;);</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">Test</span>()</span></span><br><span class="line">&#123;</span><br><span class="line">    bb.LinkTo(ab1);</span><br><span class="line">    bb.LinkTo(ab2);</span><br><span class="line">    bb.LinkTo(ab3);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; <span class="number">9</span>; i++)</span><br><span class="line">    &#123;</span><br><span class="line">        bb.Post(i);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/img/01161504-e9c265982cb54d0eb844ee1a1be1e92d.jpg" alt="01161504-e9c265982cb54d0eb844ee1a1be1e92d.jpg"></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          
+          <div class="post-tags">
+              <a href="/tags/DotNet/" rel="tag"><i class="fa fa-tag"></i> DotNet</a>
+              <a href="/tags/CSharp/" rel="tag"><i class="fa fa-tag"></i> CSharp</a>
+              <a href="/tags/Task/" rel="tag"><i class="fa fa-tag"></i> Task</a>
+              <a href="/tags/net%E5%BC%82%E6%AD%A5%E4%B8%8E%E5%B9%B6%E8%A1%8C/" rel="tag"><i class="fa fa-tag"></i> .net异步与并行</a>
+              <a href="/tags/TPL-DataFlow/" rel="tag"><i class="fa fa-tag"></i> TPL DataFlow</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/01/10/TPL%20DataFlow%E7%AC%94%E8%AE%B0%EF%BC%881%EF%BC%89/" rel="prev" title="TPL DataFlow笔记（1）">
+      <i class="fa fa-chevron-left"></i> TPL DataFlow笔记（1）
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/01/10/%E7%90%86%E8%A7%A3.Net%20Standard/" rel="next" title="理解.Net Standard">
+      理解.Net Standard <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#DataflowBlockOptions"><span class="nav-number">1.</span> <span class="nav-text">DataflowBlockOptions</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%94%A8BoundedCapacity%E6%9D%A5%E9%99%90%E5%AE%9A%E5%AE%B9%E9%87%8F"><span class="nav-number">1.1.</span> <span class="nav-text">用BoundedCapacity来限定容量</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%94%A8CancellationToken%E6%9D%A5%E5%8F%96%E6%B6%88%E6%93%8D%E4%BD%9C"><span class="nav-number">1.2.</span> <span class="nav-text">用CancellationToken来取消操作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%94%A8MaxMessagesPerTask%E6%8E%A7%E5%88%B6%E5%85%AC%E5%B9%B3%E6%80%A7"><span class="nav-number">1.3.</span> <span class="nav-text">用MaxMessagesPerTask控制公平性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%94%A8NameFormat%E6%9D%A5%E5%AE%9A%E4%B9%89Block%E5%90%8D%E7%A7%B0"><span class="nav-number">1.4.</span> <span class="nav-text">用NameFormat来定义Block名称</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%94%A8TaskScheduler%E6%9D%A5%E8%B0%83%E5%BA%A6Block%E8%A1%8C%E4%B8%BA"><span class="nav-number">1.5.</span> <span class="nav-text">用TaskScheduler来调度Block行为</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%94%A8MaxDegreeOfParallelism%E6%9D%A5%E5%B9%B6%E8%A1%8C%E5%A4%84%E7%90%86"><span class="nav-number">1.6.</span> <span class="nav-text">用MaxDegreeOfParallelism来并行处理</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#TDF%E4%B8%AD%E7%9A%84%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1"><span class="nav-number">2.</span> <span class="nav-text">TDF中的负载均衡</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8BoundedCapacity%E5%B1%9E%E6%80%A7%E6%9D%A5%E5%AE%9E%E7%8E%B0"><span class="nav-number">2.1.</span> <span class="nav-text">使用BoundedCapacity属性来实现</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="syxdevcode"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description">syxdevcode的个人博客</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">616</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">157</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">240</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+
+
+      </div>
+        <div class="back-to-top motion-element">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2024</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">2.1m</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">31:27</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://pisces.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
