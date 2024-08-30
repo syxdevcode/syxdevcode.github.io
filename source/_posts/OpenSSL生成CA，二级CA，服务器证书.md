@@ -2,12 +2,12 @@
 title: OpenSSL生成CA，二级CA，服务器证书
 date: 2022-09-23 10:30:28
 tags:
-  - Openssl
+  - OpenSSL
   - https
   - 加密
   - SSL/TLS
 categories:
-  - Openssl
+  - OpenSSL
 ---
 
 ## 查看 openssl 版本和配置文件位置

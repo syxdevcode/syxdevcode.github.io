@@ -2,12 +2,12 @@
 title: Openssl生成SSL/TLS证书
 date: 2018-07-06 08:42:38
 tags:
-- Openssl
+- OpenSSL
 - https
 - 加密
 - SSL/TLS
 categories:
-- Openssl
+- OpenSSL
 ---
 
 官网：[https://www.openssl.org/](https://www.openssl.org/)

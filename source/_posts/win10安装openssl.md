@@ -1,15 +1,14 @@
 ---
-title: win10安装openssl
+title: win10安装OpenSSL
 date: 2017-05-25 15:32:39
 tags:
 - Windows10
-- Openssl
+- OpenSSL
 - 加密
 - 安装部署
 categories:
-- Openssl
+- OpenSSL
 ---
-# win10安装openssl
 
 ## 下载安装
 

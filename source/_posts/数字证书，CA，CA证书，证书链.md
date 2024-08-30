@@ -2,7 +2,7 @@
 title: 数字证书，CA，CA证书，证书链
 date: 2018-07-06 09:02:07
 tags:
-- Openssl
+- OpenSSL
 - https
 - 加密
 - SSL/TLS
