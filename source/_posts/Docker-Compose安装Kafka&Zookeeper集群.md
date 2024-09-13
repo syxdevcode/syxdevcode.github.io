@@ -204,7 +204,7 @@ services:
     volumes:
       - "/opt/kafka/data3/:/kafka"
   kafka-ui: # Kafka 图形管理界面
-    image: provectuslabs/kafka-ui
+    image: provectuslabs/kafka-ui:v0.7.2
     restart: unless-stopped
     container_name: kafka-ui
     hostname: kafka-ui

@@ -63,6 +63,29 @@ sudo systemctl restart docker
 
 或者使用`ttps://registry.docker-cn.com`
 
+测试可用的地址：
+
+``` linux
+{
+  "registry-mirrors": [
+            "https://lhao27k5.mirror.aliyuncs.com",
+            "https://6kx4zyno.mirror.aliyuncs.com",
+            "https://1nj0zren.mirror.aliyuncs.com",
+            "https://docker.mirrors.ustc.edu.cn",
+            "http://f1361db2.m.daocloud.io",
+            "https://registry.docker-cn.com",
+            "http://hub-mirror.c.163.com",
+            "https://mirror.ccs.tencentyun.com/",
+            "https://dockerproxy.com",
+            "https://docker.nju.edu.cn",
+            "https://mirror.iscas.ac.cn",
+            "https://docker.mirrors.sjtug.sjtu.edu.cn",
+            "https://dockerhub.azk8s.cn",
+            "https://docker.m.daocloud.io"
+        ]
+}
+```
+
 ## 卸载
 
 ### 1.卸载Docker包
