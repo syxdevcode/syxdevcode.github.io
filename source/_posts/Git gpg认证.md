@@ -121,12 +121,3 @@ path = ~/.gitconfig-gitlab
     ```
     git log --show-signature
     ```
-
-
-
-
-参考：
-
-[什么是 hash？](https://www.zhihu.com/question/26762707)
-
-[Hash算法总结](https://blog.csdn.net/asdzheng/article/details/70226007)
