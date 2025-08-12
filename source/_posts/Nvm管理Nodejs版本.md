@@ -36,8 +36,8 @@ nvm下载地址：[https://github.com/coreybutler/nvm-windows/releases](https://
 输入以下命令设置`nodejs`路径(相当于`setting.txt`中的`path`:)：
 
 ```ps1
-nvm node_mirror https://npm.taobao.org/mirrors/node/
-nvm npm_mirror https://npm.taobao.org/mirrors/npm/
+nvm node_mirror https://npmmirror.com/mirrors/node/
+nvm npm_mirror https://npmmirror.com/mirrors/node/
 ```
 
 `settings.txt` 文件内容：
@@ -48,8 +48,8 @@ arch: 64
 proxy: none
 originalpath: .
 originalversion: 
-node_mirror: https://npm.taobao.org/mirrors/node/
-npm_mirror: https://npm.taobao.org/mirrors/npm/
+node_mirror: https://npmmirror.com/mirrors/node/
+npm_mirror: https://npmmirror.com/mirrors/node/
 ```
 
 ## 命令

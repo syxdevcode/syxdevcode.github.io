@@ -5,6 +5,18 @@ tags: Hexo
 categories: Hexo
 ---
 
+## 安装
+
+```
+npm install -g hexo-cli
+```
+
+主题
+
+```
+git clone https://github.com/next-theme/hexo-theme-next themes/next
+```
+
 ## hexo文档
 
 * 官网：[https://hexo.io/](https://hexo.io/ "hexo官网")
