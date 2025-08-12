@@ -66,6 +66,42 @@ git config commit.gpgsign true
 
 密钥ID为上一步生成的密钥ID的后8位
 
+在路径
+`C:\Users\Administrator` 下找到 `.gitconfig`，复制一份，重命名为 `.gitconfig-gitlab`，
+
+`.gitconfig` 内容如下：
+
+
+
+```
+[user]
+	name = xxxxxx
+	email = xxxxxx@qq.com
+	
+# The contents of this file are included only for GitLab.com URLs
+[includeIf "hasconfig:remote.*.url:https://gitlab.xxxxx.com/**"]
+
+# Edit this line to point to your alternative configuration file
+path = ~/.gitconfig-gitlab
+
+[commit]
+	gpgsign = false
+[gpg]
+	program = C:\\Program Files (x86)\\GnuPG\\bin\\gpg.exe
+
+```
+
+`.gitconfig-gitlab` 内容如下：
+
+```
+[user]
+	name = xx
+	email = xxx@xxx.com
+	signingkey = 密钥ID
+[commit]
+	gpgsign = true
+
+```
 
 ## 配置github
 
