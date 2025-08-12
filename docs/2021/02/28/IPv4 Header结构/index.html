@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 5.4.2">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"syxdevcode.github.com","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.24.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="IPv4 Header结构P 提供最简单的服务：实现从源到目的的数据转发。不会在传输数据前先与接收方建立连接，也不保证传输的可靠性，它只提供尽力而为的服务。 IP 通信时传输的是 IP 报文， IP 报文由 IP 头部和数据两部分组成。IP 头部包含控制报文转发的必要信息。通过 IP 头部的结构，可以对 IP 的功能有一个详细的了解。   版本（ Version ）字段长度为 4 比特，表示 IP">
+<meta property="og:type" content="article">
+<meta property="og:title" content="IPv4 Header结构">
+<meta property="og:url" content="https://syxdevcode.github.com/2021/02/28/IPv4%20Header%E7%BB%93%E6%9E%84/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="IPv4 Header结构P 提供最简单的服务：实现从源到目的的数据转发。不会在传输数据前先与接收方建立连接，也不保证传输的可靠性，它只提供尽力而为的服务。 IP 通信时传输的是 IP 报文， IP 报文由 IP 头部和数据两部分组成。IP 头部包含控制报文转发的必要信息。通过 IP 头部的结构，可以对 IP 的功能有一个详细的了解。   版本（ Version ）字段长度为 4 比特，表示 IP">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://syxdevcode.github.com/img/2015-04-14-3.jpg">
+<meta property="og:image" content="https://syxdevcode.github.com/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20210330111145.png">
+<meta property="og:image" content="https://syxdevcode.github.com/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20210330111238.png">
+<meta property="og:image" content="https://syxdevcode.github.com/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20210330111316.png">
+<meta property="article:published_time" content="2021-02-28T07:57:12.000Z">
+<meta property="article:modified_time" content="2025-08-12T08:31:55.001Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="TCP协议">
+<meta property="article:tag" content="IP网络">
+<meta property="article:tag" content="计算机基础">
+<meta property="article:tag" content="网络基础">
+<meta property="article:tag" content="Ethernet">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://syxdevcode.github.com/img/2015-04-14-3.jpg">
+
+
+<link rel="canonical" href="https://syxdevcode.github.com/2021/02/28/IPv4%20Header%E7%BB%93%E6%9E%84/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://syxdevcode.github.com/2021/02/28/IPv4%20Header%E7%BB%93%E6%9E%84/","path":"2021/02/28/IPv4 Header结构/","title":"IPv4 Header结构"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>IPv4 Header结构 | syxdevcode博客</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">syxdevcode博客</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#IPv4-Header%E7%BB%93%E6%9E%84"><span class="nav-number">1.</span> <span class="nav-text">IPv4 Header结构</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%89%88%E6%9C%AC%EF%BC%88-Version-%EF%BC%89"><span class="nav-number">1.1.</span> <span class="nav-text">版本（ Version ）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A4%B4%E9%83%A8%E9%95%BF%E5%BA%A6%EF%BC%88-IHL%EF%BC%9AInternet-Header-Length-%EF%BC%89"><span class="nav-number">1.2.</span> <span class="nav-text">头部长度（ IHL：Internet Header Length ）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8C%BA%E5%88%86%E6%9C%8D%E5%8A%A1%EF%BC%88-TOS%EF%BC%9AType-Of-Service-%EF%BC%89"><span class="nav-number">1.3.</span> <span class="nav-text">区分服务（ TOS：Type Of Service ）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%80%BB%E9%95%BF%E5%BA%A6%EF%BC%88-Total-Length-%EF%BC%89"><span class="nav-number">1.4.</span> <span class="nav-text">总长度（ Total Length ）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A0%87%E8%AF%86%EF%BC%88-ID%EF%BC%9AIdentification-%EF%BC%89"><span class="nav-number">1.5.</span> <span class="nav-text">标识（ ID：Identification ）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A0%87%E5%BF%97%EF%BC%88-Flags-%EF%BC%89"><span class="nav-number">1.6.</span> <span class="nav-text">标志（ Flags ）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%86%E7%89%87%E5%81%8F%E7%A7%BB%EF%BC%88-FO%EF%BC%9AFragment-Offset-%EF%BC%89"><span class="nav-number">1.7.</span> <span class="nav-text">分片偏移（ FO：Fragment Offset ）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%94%9F%E5%AD%98%E6%97%B6%E9%97%B4%EF%BC%88-TTL%EF%BC%9ATime-To-Live-%EF%BC%89"><span class="nav-number">1.8.</span> <span class="nav-text">生存时间（ TTL：Time To Live ）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8D%8F%E8%AE%AE%EF%BC%88-Protocol-%EF%BC%89"><span class="nav-number">1.9.</span> <span class="nav-text">协议（ Protocol ）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A4%B4%E9%83%A8%E6%A0%A1%E9%AA%8C%E5%92%8C%EF%BC%88-Header-Checksum-%EF%BC%89"><span class="nav-number">1.10.</span> <span class="nav-text">头部校验和（ Header Checksum ）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%BA%90%E5%9C%B0%E5%9D%80%EF%BC%88-Source-Address-%EF%BC%89"><span class="nav-number">1.11.</span> <span class="nav-text">源地址（ Source Address ）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%9B%AE%E7%9A%84%E5%9C%B0%E5%9D%80%EF%BC%88-Destination-Address-%EF%BC%89"><span class="nav-number">1.12.</span> <span class="nav-text">目的地址（ Destination Address ）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%AF%E9%80%89%E9%A1%B9%EF%BC%88-Options-%EF%BC%89"><span class="nav-number">1.13.</span> <span class="nav-text">可选项（ Options ）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A1%AB%E5%85%85%EF%BC%88-Padding-%EF%BC%89"><span class="nav-number">1.14.</span> <span class="nav-text">填充（ Padding ）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%EF%BC%88-Data-%EF%BC%89"><span class="nav-number">1.15.</span> <span class="nav-text">数据（ Data ）</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description">syxdevcode的个人博客</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">619</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">157</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">241</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2021/02/28/IPv4%20Header%E7%BB%93%E6%9E%84/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="IPv4 Header结构 | syxdevcode博客">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          IPv4 Header结构
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2021-02-28 15:57:12" itemprop="dateCreated datePublished" datetime="2021-02-28T15:57:12+08:00">2021-02-28</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2025-08-12 16:31:55" itemprop="dateModified" datetime="2025-08-12T16:31:55+08:00">2025-08-12</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Ethernet/" itemprop="url" rel="index"><span itemprop="name">Ethernet</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>1.3k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>1 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="IPv4-Header结构"><a href="#IPv4-Header结构" class="headerlink" title="IPv4 Header结构"></a>IPv4 Header结构</h2><p>P 提供最简单的服务：实现从源到目的的数据转发。不会在传输数据前先与接收方建立连接，也不保证传输的可靠性，它只提供尽力而为的服务。</p>
+<p>IP 通信时传输的是 IP 报文， IP 报文由 IP 头部和数据两部分组成。IP 头部包含控制报文转发的必要信息。通过 IP 头部的结构，可以对 IP 的功能有一个详细的了解。</p>
+<p><img src="/img/2015-04-14-3.jpg" alt="2015-04-14-3.jpg"></p>
+<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20210330111145.png" alt="微信截图_20210330111145.png"></p>
+<h3 id="版本（-Version-）"><a href="#版本（-Version-）" class="headerlink" title="版本（ Version ）"></a>版本（ Version ）</h3><p>字段长度为 4 比特，表示 IP 的版本号。IPv4 的版本号是 4 ，所以这个字段的值也是 4 。常见的版本号有 IPv4 和 IPv6 。</p>
+<h3 id="头部长度（-IHL：Internet-Header-Length-）"><a href="#头部长度（-IHL：Internet-Header-Length-）" class="headerlink" title="头部长度（ IHL：Internet Header Length ）"></a>头部长度（ IHL：Internet Header Length ）</h3><p>字段长度为 4 比特，表示 IP 头部大小，单位是 4 字节（ 32 比特）。没有可选项的 IP 包，头部长度为 5 ，即 20 字节（ 4 × 5 = 20 ）。</p>
+<h3 id="区分服务（-TOS：Type-Of-Service-）"><a href="#区分服务（-TOS：Type-Of-Service-）" class="headerlink" title="区分服务（ TOS：Type Of Service ）"></a>区分服务（ TOS：Type Of Service ）</h3><p>字段长度为 8 比特，用来说明数据是要加速传输还是精确传输，以及数据在传输过程中是否遇到了拥塞。</p>
+<h3 id="总长度（-Total-Length-）"><a href="#总长度（-Total-Length-）" class="headerlink" title="总长度（ Total Length ）"></a>总长度（ Total Length ）</h3><p>字段长度为 16 比特，表示 IP 头部和数据加起来的总字节数。IP 包的最大长度为 65535 字节。</p>
+<h3 id="标识（-ID：Identification-）"><a href="#标识（-ID：Identification-）" class="headerlink" title="标识（ ID：Identification ）"></a>标识（ ID：Identification ）</h3><p>字段长度为 16 比特，用于分片重组。同一个分片的标识值相同，不同分片的标识值不同。通常，每发送一个 IP 包，它的值也逐渐递增。另外，即使 ID 相同，如果目标地址、源地址或协议不同的话，也会被认为是不同的分片。</p>
+<h3 id="标志（-Flags-）"><a href="#标志（-Flags-）" class="headerlink" title="标志（ Flags ）"></a>标志（ Flags ）</h3><p>字段长度为 3 比特，表示分片信息。每比特的具体含义如下表。</p>
+<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20210330111238.png" alt="微信截图_20210330111238.png"></p>
+<h3 id="分片偏移（-FO：Fragment-Offset-）"><a href="#分片偏移（-FO：Fragment-Offset-）" class="headerlink" title="分片偏移（ FO：Fragment Offset ）"></a>分片偏移（ FO：Fragment Offset ）</h3><p>字段长度为 13 比特，表示分片在整个数据包中的位置。作用是告诉重组分片的设备，应该按照什么样的顺序重组数据包。</p>
+<h3 id="生存时间（-TTL：Time-To-Live-）"><a href="#生存时间（-TTL：Time-To-Live-）" class="headerlink" title="生存时间（ TTL：Time To Live ）"></a>生存时间（ TTL：Time To Live ）</h3><p>字段长度为 8 比特，表示数据包可以经过的中转路由器数量。每经过一个路由器， TTL 会减少 1 ，直到变成 0 则丢弃改包，避免数据包在网络中无限传递。</p>
+<p>注意：TTL与DNS TTL有区别。二者都是生存时间，前者指ICMP包的转发次数（跳数），后者指域名解析信息在DNS中的存在时间。</p>
+<h3 id="协议（-Protocol-）"><a href="#协议（-Protocol-）" class="headerlink" title="协议（ Protocol ）"></a>协议（ Protocol ）</h3><p>字段长度为 8 比特，表示 IP 上一层所使用的协议。常见的 IP 上层协议有 TCP 和 UDP 。</p>
+<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20210330111316.png" alt="微信截图_20210330111316.png"></p>
+<h3 id="头部校验和（-Header-Checksum-）"><a href="#头部校验和（-Header-Checksum-）" class="headerlink" title="头部校验和（ Header Checksum ）"></a>头部校验和（ Header Checksum ）</h3><p>字段长度为 16 比特，用来校验数据包的头部是否被破坏。设备会丢弃校验失败的数据包。IPv6 以取消头部校验和字段，通过上层的 TCP 或 UDP 校验协议是否正确。</p>
+<h3 id="源地址（-Source-Address-）"><a href="#源地址（-Source-Address-）" class="headerlink" title="源地址（ Source Address ）"></a>源地址（ Source Address ）</h3><p>字段长度为 32 比特（ 4 字节），表示发送端 IP 地址。</p>
+<h3 id="目的地址（-Destination-Address-）"><a href="#目的地址（-Destination-Address-）" class="headerlink" title="目的地址（ Destination Address ）"></a>目的地址（ Destination Address ）</h3><p>字段长度为 32 比特（ 4 字节），表示接收端 IP 地址。</p>
+<h3 id="可选项（-Options-）"><a href="#可选项（-Options-）" class="headerlink" title="可选项（ Options ）"></a>可选项（ Options ）</h3><p>这个字段很少使用，在 IPv6 协议中已经取消。</p>
+<h3 id="填充（-Padding-）"><a href="#填充（-Padding-）" class="headerlink" title="填充（ Padding ）"></a>填充（ Padding ）</h3><p>在有可选项的情况下， 头部长度不是 32 比特的整数倍时，通过向字段填充 0 ，调整为 32 比特的整数倍。</p>
+<h3 id="数据（-Data-）"><a href="#数据（-Data-）" class="headerlink" title="数据（ Data ）"></a>数据（ Data ）</h3><p>IP 数据字段，用于存放数据。把 IP 上一层协议的头部也作为数据进行处理。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://abcdxyzk.github.io/blog/2015/04/14/kernel-net-sock-raw/">https://abcdxyzk.github.io/blog/2015/04/14/kernel-net-sock-raw/</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/TCP%E5%8D%8F%E8%AE%AE/" rel="tag"># TCP协议</a>
+              <a href="/tags/IP%E7%BD%91%E7%BB%9C/" rel="tag"># IP网络</a>
+              <a href="/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9F%BA%E7%A1%80/" rel="tag"># 计算机基础</a>
+              <a href="/tags/%E7%BD%91%E7%BB%9C%E5%9F%BA%E7%A1%80/" rel="tag"># 网络基础</a>
+              <a href="/tags/Ethernet/" rel="tag"># Ethernet</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2021/01/29/%E4%BB%A5%E5%A4%AA%E7%BD%91%E5%B8%A7-Ethernet-Frame/" rel="prev" title="以太网帧-Ethernet Frame">
+                  <i class="fa fa-angle-left"></i> 以太网帧-Ethernet Frame
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2021/02/28/MSS-%E6%9C%80%E5%A4%A7%E6%8A%A5%E6%96%87%E6%AE%B5%E9%95%BF%E5%BA%A6/" rel="next" title="MSS-最大报文段长度">
+                  MSS-最大报文段长度 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">2.1m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">31:31</span>
+  </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

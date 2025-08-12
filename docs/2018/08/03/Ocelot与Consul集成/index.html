@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 5.4.2">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"syxdevcode.github.com","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.24.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="API网关API网关是一个服务器，是系统的唯一入口。从面向对象设计的角度看，它与外观模式类似。API网关封装了系统内部架构，为每个客户端提供一个定制的API。它可能还具有其它职责，如身份验证、监控、负载均衡、缓存、请求分片与管理、静态响应处理。API网关方式的核心要点是，所有的客户端和消费端都通过统一的网关接入微服务，在网关层处理所有的非业务功能。通常，网关也是提供REST&#x2F;HTTP的访问API。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Ocelot与Consul集成">
+<meta property="og:url" content="https://syxdevcode.github.com/2018/08/03/Ocelot%E4%B8%8EConsul%E9%9B%86%E6%88%90/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="API网关API网关是一个服务器，是系统的唯一入口。从面向对象设计的角度看，它与外观模式类似。API网关封装了系统内部架构，为每个客户端提供一个定制的API。它可能还具有其它职责，如身份验证、监控、负载均衡、缓存、请求分片与管理、静态响应处理。API网关方式的核心要点是，所有的客户端和消费端都通过统一的网关接入微服务，在网关层处理所有的非业务功能。通常，网关也是提供REST&#x2F;HTTP的访问API。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://syxdevcode.github.com/img/QQ%E6%88%AA%E5%9B%BE20180803095300.png">
+<meta property="og:image" content="https://syxdevcode.github.com/img/QQ%E6%88%AA%E5%9B%BE20180803095334.png">
+<meta property="og:image" content="https://syxdevcode.github.com/img/QQ%E6%88%AA%E5%9B%BE20180803154641.png">
+<meta property="og:image" content="https://syxdevcode.github.com/img/QQ%E6%88%AA%E5%9B%BE20180803154718.png">
+<meta property="og:image" content="https://syxdevcode.github.com/img/QQ%E6%88%AA%E5%9B%BE20180803173238.png">
+<meta property="og:image" content="https://syxdevcode.github.com/img/QQ%E6%88%AA%E5%9B%BE20180803173307.png">
+<meta property="og:image" content="https://syxdevcode.github.com/img/QQ%E6%88%AA%E5%9B%BE20180806113303.png">
+<meta property="og:image" content="https://syxdevcode.github.com/img/QQ%E6%88%AA%E5%9B%BE20180806113358.png">
+<meta property="article:published_time" content="2018-08-03T00:42:09.000Z">
+<meta property="article:modified_time" content="2025-08-12T08:31:55.751Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="DotNetCore">
+<meta property="article:tag" content="Docker">
+<meta property="article:tag" content="Consul">
+<meta property="article:tag" content="Docker Compose">
+<meta property="article:tag" content="Ocelot">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://syxdevcode.github.com/img/QQ%E6%88%AA%E5%9B%BE20180803095300.png">
+
+
+<link rel="canonical" href="https://syxdevcode.github.com/2018/08/03/Ocelot%E4%B8%8EConsul%E9%9B%86%E6%88%90/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://syxdevcode.github.com/2018/08/03/Ocelot%E4%B8%8EConsul%E9%9B%86%E6%88%90/","path":"2018/08/03/Ocelot与Consul集成/","title":"Ocelot与Consul集成"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Ocelot与Consul集成 | syxdevcode博客</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">syxdevcode博客</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#API%E7%BD%91%E5%85%B3"><span class="nav-number">1.</span> <span class="nav-text">API网关</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Ocelot%E7%AE%80%E4%BB%8B"><span class="nav-number">1.1.</span> <span class="nav-text">Ocelot简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%9B%86%E6%88%90Ocelot%E7%BD%91%E5%85%B3"><span class="nav-number">1.2.</span> <span class="nav-text">集成Ocelot网关</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%96%B0%E5%BB%BA%E9%A1%B9%E7%9B%AE"><span class="nav-number">1.2.1.</span> <span class="nav-text">新建项目</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%83%A8%E7%BD%B2%E9%A1%B9%E7%9B%AE"><span class="nav-number">1.2.2.</span> <span class="nav-text">部署项目</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%BC%80%E6%94%BE%E4%B8%BB%E6%9C%BA%E7%AB%AF%E5%8F%A3"><span class="nav-number">1.2.2.1.</span> <span class="nav-text">开放主机端口</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%87%8D%E6%96%B0%E8%BF%90%E8%A1%8CConsul%E5%AE%A2%E6%88%B7%E7%AB%AF%E5%AE%B9%E5%99%A8"><span class="nav-number">1.2.3.</span> <span class="nav-text">重新运行Consul客户端容器</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1"><span class="nav-number">1.3.</span> <span class="nav-text">负载均衡</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8A%A8%E6%80%81%E8%B7%AF%E7%94%B1%EF%BC%88Dynamic-Routing%EF%BC%89"><span class="nav-number">1.4.</span> <span class="nav-text">动态路由（Dynamic Routing）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%9B%86%E6%88%90Swagger%E7%BB%9F%E4%B8%80API%E6%96%87%E6%A1%A3%E5%85%A5%E5%8F%A3"><span class="nav-number">1.5.</span> <span class="nav-text">集成Swagger统一API文档入口</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description">syxdevcode的个人博客</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">619</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">157</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">241</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/08/03/Ocelot%E4%B8%8EConsul%E9%9B%86%E6%88%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Ocelot与Consul集成 | syxdevcode博客">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Ocelot与Consul集成
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2018-08-03 08:42:09" itemprop="dateCreated datePublished" datetime="2018-08-03T08:42:09+08:00">2018-08-03</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2025-08-12 16:31:55" itemprop="dateModified" datetime="2025-08-12T16:31:55+08:00">2025-08-12</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Ocelot/" itemprop="url" rel="index"><span itemprop="name">Ocelot</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>5k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>5 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h1 id="API网关"><a href="#API网关" class="headerlink" title="API网关"></a>API网关</h1><p>API网关是一个服务器，是系统的唯一入口。从面向对象设计的角度看，它与外观模式类似。API网关封装了系统内部架构，为每个客户端提供一个定制的API。它可能还具有其它职责，如身份验证、监控、负载均衡、缓存、请求分片与管理、静态响应处理。<br>API网关方式的核心要点是，所有的客户端和消费端都通过统一的网关接入微服务，在网关层处理所有的非业务功能。通常，网关也是提供REST/HTTP的访问API。服务端通过API-GW注册和管理服务。</p>
+<h2 id="Ocelot简介"><a href="#Ocelot简介" class="headerlink" title="Ocelot简介"></a>Ocelot简介</h2><p>Ocelot是一个使用.NET Core平台上的一个API Gateway，这个项目的目标是在.NET上面运行微服务架构。Ocelot框架内部集成了IdentityServer（身份验证）和Consul（服务注册发现），还引入了Polly（上一篇博文中提到过）来处理进行故障处理。<br>Ocelot的实现原理就是把客户端对网关的请求(Request)，按照configuration.json的映射配置，转发给对应的后端http service，然后从后端http service获取响应(Response)后，再返回给客户端。当然有了网关后，我们可以在网关这层去做统一验证，也可以在网关处统一作监控。</p>
+<h2 id="集成Ocelot网关"><a href="#集成Ocelot网关" class="headerlink" title="集成Ocelot网关"></a>集成Ocelot网关</h2><h3 id="新建项目"><a href="#新建项目" class="headerlink" title="新建项目"></a>新建项目</h3><p>新建三个项目，ProductService,ClientService,APIGateWay；</p>
+<p>APIGateWay项目新建配置文件。</p>
+<p>注意新建的json文件需要更改属性，选择【如果较新则复制】或【始终复制】</p>
+<p>参考代码：</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/syxdevcode/GateWayDemo.git">https://github.com/syxdevcode/GateWayDemo.git</a></p>
+<h3 id="部署项目"><a href="#部署项目" class="headerlink" title="部署项目"></a>部署项目</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> https://github.com/syxdevcode/GateWayDemo.git <span class="comment">## 下载项目</span></span><br><span class="line">git pull origin master <span class="comment">## 更新代码</span></span><br><span class="line">docker-compose up -d --build <span class="comment">## 执行docker-compose命令</span></span><br></pre></td></tr></table></figure>
+
+<p>项目成功启动之后，查看运行后的IP</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">docker inspect -f <span class="string">&#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27;</span> gatewaydemo_demo.productservice_1</span><br><span class="line"></span><br><span class="line">docker inspect -f <span class="string">&#x27;&#123;&#123;range .NetworkSettings.Networks&#125;&#125;&#123;&#123;.IPAddress&#125;&#125;&#123;&#123;end&#125;&#125;&#x27;</span> gatewaydemo_demo.clientservice_1</span><br></pre></td></tr></table></figure>
+
+<p>记录ClientService和ProductService容器的IP。</p>
+<h4 id="开放主机端口"><a href="#开放主机端口" class="headerlink" title="开放主机端口"></a>开放主机端口</h4><p>主要供consul可以访问到网关项目地址。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> firewall-cmd --zone=public --add-port=5000/tcp --permanent</span><br><span class="line"><span class="built_in">sudo</span> firewall-cmd --zone=public --add-port=5001/tcp --permanent</span><br><span class="line"><span class="built_in">sudo</span> firewall-cmd --zone=public --add-port=5002/tcp --permanent</span><br><span class="line"><span class="built_in">sudo</span> firewall-cmd --reload</span><br></pre></td></tr></table></figure>
+
+<h3 id="重新运行Consul客户端容器"><a href="#重新运行Consul客户端容器" class="headerlink" title="重新运行Consul客户端容器"></a>重新运行Consul客户端容器</h3><p>在consul运行目录-&gt;config目录，新建ocelot_apigateway.json文件，填入已下内容：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;services&quot;</span><span class="punctuation">:</span><span class="punctuation">[</span></span><br><span class="line">        <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;id&quot;</span><span class="punctuation">:</span> <span class="string">&quot;gatewaydemo_demo.clientservice_1&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;name&quot;</span> <span class="punctuation">:</span> <span class="string">&quot;Demo.ClientService&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;tags&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">                <span class="string">&quot;urlprefix-/clientservice&quot;</span></span><br><span class="line">            <span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;address&quot;</span><span class="punctuation">:</span> <span class="string">&quot;172.18.0.4&quot;</span><span class="punctuation">,</span> <span class="comment">// 对应clientservice容器IP</span></span><br><span class="line">            <span class="attr">&quot;port&quot;</span><span class="punctuation">:</span> <span class="number">5001</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;checks&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">                <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;name&quot;</span><span class="punctuation">:</span> <span class="string">&quot;clientservice_check&quot;</span><span class="punctuation">,</span></span><br><span class="line">                    <span class="attr">&quot;http&quot;</span><span class="punctuation">:</span> <span class="string">&quot;http://172.18.0.4:5001/api/health&quot;</span><span class="punctuation">,</span><span class="comment">// 对应clientservice项目连接</span></span><br><span class="line">                    <span class="attr">&quot;interval&quot;</span><span class="punctuation">:</span> <span class="string">&quot;10s&quot;</span><span class="punctuation">,</span></span><br><span class="line">                    <span class="attr">&quot;timeout&quot;</span><span class="punctuation">:</span> <span class="string">&quot;5s&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span></span><br><span class="line">            <span class="punctuation">]</span></span><br><span class="line">        <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">        <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;id&quot;</span><span class="punctuation">:</span> <span class="string">&quot;gatewaydemo_demo.productservice_1&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;name&quot;</span> <span class="punctuation">:</span> <span class="string">&quot;Demo.ProductService&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;tags&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">                <span class="string">&quot;urlprefix-/productservice&quot;</span></span><br><span class="line">            <span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;address&quot;</span><span class="punctuation">:</span> <span class="string">&quot;172.18.0.3&quot;</span><span class="punctuation">,</span> <span class="comment">// 对应productserver容器IP</span></span><br><span class="line">            <span class="attr">&quot;port&quot;</span><span class="punctuation">:</span> <span class="number">5002</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;checks&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">                <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;name&quot;</span><span class="punctuation">:</span> <span class="string">&quot;productservice_check&quot;</span><span class="punctuation">,</span></span><br><span class="line">                    <span class="attr">&quot;http&quot;</span><span class="punctuation">:</span> <span class="string">&quot;http://172.18.0.3:5002/api/health&quot;</span><span class="punctuation">,</span> <span class="comment">// 对应productservice项目连接</span></span><br><span class="line">                    <span class="attr">&quot;interval&quot;</span><span class="punctuation">:</span> <span class="string">&quot;10s&quot;</span><span class="punctuation">,</span></span><br><span class="line">                    <span class="attr">&quot;timeout&quot;</span><span class="punctuation">:</span> <span class="string">&quot;5s&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span></span><br><span class="line">            <span class="punctuation">]</span></span><br><span class="line">        <span class="punctuation">&#125;</span></span><br><span class="line">     <span class="punctuation">]</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>重新运行client1容器,如果容器存在，应当先删除容器</p>
+<p>需要在consul目录的上一级运行docker run命令</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> docker <span class="built_in">rm</span> -f client1</span><br><span class="line"><span class="built_in">sudo</span> docker run --name=client1 -it -d -p 8500:8500 -v <span class="variable">$PWD</span>/consul:/consul consul agent -config-dir=/consul/config -config-file=/consul/client1.json</span><br></pre></td></tr></table></figure>
+
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180803095300.png" alt="QQ截图20180803095300.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180803095334.png" alt="QQ截图20180803095334.png"></p>
+<h2 id="负载均衡"><a href="#负载均衡" class="headerlink" title="负载均衡"></a>负载均衡</h2><p>新建项目:clientservice1,并且修改如下方法，<br>clientservice项目同样需要修改：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// GET api/values/5</span></span><br><span class="line">[<span class="meta">HttpGet(<span class="string">&quot;&#123;id&#125;&quot;</span>)</span>]</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="built_in">string</span>[] <span class="title">Get</span>(<span class="params"><span class="built_in">int</span> id</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> <span class="built_in">string</span>[] &#123; <span class="string">$&quot;ClinetService: <span class="subst">&#123;DateTime.Now.ToString()&#125;</span> <span class="subst">&#123;Environment.MachineName&#125;</span> &quot;</span> +</span><br><span class="line">        <span class="string">$&quot;OS: <span class="subst">&#123;Environment.OSVersion.VersionString&#125;</span>&quot;</span> &#125;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>部署项目，并获取到容器IP；</p>
+<p>ocelot配置文件中负载均衡的设置：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">&quot;ReRoutes&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">  <span class="punctuation">&#123;</span></span><br><span class="line">    .....</span><br><span class="line">    <span class="attr">&quot;LoadBalancerOptions&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">      <span class="attr">&quot;Type&quot;</span><span class="punctuation">:</span> <span class="string">&quot;RoundRobin&quot;</span></span><br><span class="line">    <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">    .....</span><br><span class="line">  <span class="punctuation">&#125;</span><span class="punctuation">]</span></span><br></pre></td></tr></table></figure>
+
+<p>负载均衡LoadBalance可选值：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">RoundRobin - 轮询</span><br><span class="line">LeastConnection - 最小连接数，谁的任务最少谁来</span><br><span class="line">NoLoadBalance - 不要负载均衡</span><br></pre></td></tr></table></figure>
+
+<p>通过consul测试，需要新建一个consul client端：</p>
+<p>在consul文件夹下，新建config1文件夹，client2.json文件：</p>
+<p>client2.json配置如下：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">    <span class="attr">&quot;data_dir&quot;</span><span class="punctuation">:</span> <span class="string">&quot;/data&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;datacenter&quot;</span><span class="punctuation">:</span> <span class="string">&quot;consul-test&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;log_level&quot;</span><span class="punctuation">:</span> <span class="string">&quot;INFO&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;node_name&quot;</span><span class="punctuation">:</span> <span class="string">&quot;client2&quot;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;server&quot;</span><span class="punctuation">:</span> <span class="literal"><span class="keyword">false</span></span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;ui&quot;</span><span class="punctuation">:</span> <span class="literal"><span class="keyword">true</span></span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;http_config&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">        <span class="attr">&quot;response_headers&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">          <span class="attr">&quot;Access-Control-Allow-Origin&quot;</span><span class="punctuation">:</span> <span class="string">&quot;*&quot;</span></span><br><span class="line">        <span class="punctuation">&#125;</span></span><br><span class="line">    <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;addresses&quot;</span><span class="punctuation">:</span> <span class="punctuation">&#123;</span></span><br><span class="line">        <span class="attr">&quot;http&quot;</span><span class="punctuation">:</span> <span class="string">&quot;0.0.0.0&quot;</span></span><br><span class="line">    <span class="punctuation">&#125;</span><span class="punctuation">,</span></span><br><span class="line">    <span class="attr">&quot;start_join&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span><span class="string">&quot;172.17.0.2&quot;</span><span class="punctuation">,</span> <span class="string">&quot;172.17.0.3&quot;</span><span class="punctuation">,</span> <span class="string">&quot;172.17.0.4&quot;</span><span class="punctuation">]</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>在config1文件夹下，新建config.json:</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">    <span class="attr">&quot;services&quot;</span><span class="punctuation">:</span><span class="punctuation">[</span></span><br><span class="line">        <span class="punctuation">&#123;</span></span><br><span class="line">            <span class="attr">&quot;id&quot;</span><span class="punctuation">:</span> <span class="string">&quot;gatewaydemo_demo.clientservice_1&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;name&quot;</span> <span class="punctuation">:</span> <span class="string">&quot;Demo.ClientService&quot;</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;tags&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">                <span class="string">&quot;urlprefix-/clientservice&quot;</span></span><br><span class="line">            <span class="punctuation">]</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;address&quot;</span><span class="punctuation">:</span> <span class="string">&quot;172.18.0.5&quot;</span><span class="punctuation">,</span><span class="comment">// 容器IP</span></span><br><span class="line">            <span class="attr">&quot;port&quot;</span><span class="punctuation">:</span> <span class="number">5003</span><span class="punctuation">,</span></span><br><span class="line">            <span class="attr">&quot;checks&quot;</span><span class="punctuation">:</span> <span class="punctuation">[</span></span><br><span class="line">                <span class="punctuation">&#123;</span></span><br><span class="line">                    <span class="attr">&quot;name&quot;</span><span class="punctuation">:</span> <span class="string">&quot;clientservice_check&quot;</span><span class="punctuation">,</span></span><br><span class="line">                    <span class="attr">&quot;http&quot;</span><span class="punctuation">:</span> <span class="string">&quot;http://172.18.0.5:5003/api/health&quot;</span><span class="punctuation">,</span></span><br><span class="line">                    <span class="attr">&quot;interval&quot;</span><span class="punctuation">:</span> <span class="string">&quot;10s&quot;</span><span class="punctuation">,</span></span><br><span class="line">                    <span class="attr">&quot;timeout&quot;</span><span class="punctuation">:</span> <span class="string">&quot;5s&quot;</span></span><br><span class="line">                <span class="punctuation">&#125;</span></span><br><span class="line">            <span class="punctuation">]</span></span><br><span class="line">        <span class="punctuation">&#125;</span></span><br><span class="line">     <span class="punctuation">]</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>显示结果：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180803154641.png" alt="QQ截图20180803154641.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180803154718.png" alt="QQ截图20180803154718.png"></p>
+<h2 id="动态路由（Dynamic-Routing）"><a href="#动态路由（Dynamic-Routing）" class="headerlink" title="动态路由（Dynamic Routing）"></a>动态路由（Dynamic Routing）</h2><p>参考代码：</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/syxdevcode/GateWayDemo.git">https://github.com/syxdevcode/GateWayDemo.git</a></p>
+<p>效果：</p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180803173238.png" alt="QQ截图20180803173238.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180803173307.png" alt="QQ截图20180803173307.png"></p>
+<h2 id="集成Swagger统一API文档入口"><a href="#集成Swagger统一API文档入口" class="headerlink" title="集成Swagger统一API文档入口"></a>集成Swagger统一API文档入口</h2><p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180806113303.png" alt="QQ截图20180806113303.png"></p>
+<p><img src="/img/QQ%E6%88%AA%E5%9B%BE20180806113358.png" alt="QQ截图20180806113358.png"></p>
+<p>注：docker部署项目，需要在项目.csproj文件中添加如下属性：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&lt;PropertyGroup&gt;</span><br><span class="line">  &lt;GenerateDocumentationFile&gt;<span class="literal">true</span>&lt;/GenerateDocumentationFile&gt;</span><br><span class="line">  &lt;NoWarn&gt;$(NoWarn);<span class="number">1591</span>&lt;/NoWarn&gt;</span><br><span class="line">&lt;/PropertyGroup&gt;</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/edisonchou/p/api_gateway_ocelot_foundation_01.html">.NET Core微服务之基于Ocelot实现API网关服务</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/axzxs2001/p/8487521.html">Ocelot + Consul实践</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/edisonchou/p/api_gateway_ocelot_foundation_02.html">.NET Core微服务之基于Ocelot实现API网关服务（续）</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/savorboard/p/api-gateway.html">谈谈微服务中的 API 网关（API Gateway）</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/DotNetCore/" rel="tag"># DotNetCore</a>
+              <a href="/tags/Docker/" rel="tag"># Docker</a>
+              <a href="/tags/Consul/" rel="tag"># Consul</a>
+              <a href="/tags/Docker-Compose/" rel="tag"># Docker Compose</a>
+              <a href="/tags/Ocelot/" rel="tag"># Ocelot</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2018/08/02/%E7%94%A8%E6%88%B7%E5%90%8D-%E4%B8%8D%E5%9C%A8-sudoers%E6%96%87%E4%BB%B6%E4%B8%AD%EF%BC%8C%E6%AD%A4%E4%BA%8B%E5%B0%86%E8%A2%AB%E6%8A%A5%E5%91%8A/" rel="prev" title="用户名 不在 sudoers文件中，此事将被报告">
+                  <i class="fa fa-angle-left"></i> 用户名 不在 sudoers文件中，此事将被报告
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2018/08/07/SSH%E5%AF%86%E9%92%A5%E5%AF%B9%E9%AA%8C%E8%AF%81%E7%99%BB%E5%BD%95-CentOS7/" rel="next" title="SSH密钥对验证登录-CentOS7">
+                  SSH密钥对验证登录-CentOS7 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">2.1m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">31:31</span>
+  </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

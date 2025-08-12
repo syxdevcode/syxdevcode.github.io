@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 5.4.2">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"syxdevcode.github.com","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.24.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="消息队列摘要1,为什么要使用消息队列解耦、弹性伸缩、冗余存储、流量削峰、异步通信、数据同步 (1) 解耦 将消息写入消息队列，需要消息的系统自己从消息队列中订阅，原系统不需要做任何修改。 (2) 异步 将消息写入消息队列，非必要的业务逻辑以异步的方式运行，加快响应速度 (3) 削峰 并发请求到消息队列，业务系统按照实际处理能力从消息队列拉去数据。 2,使用了消息队列会有什么缺点系统可用性降低: 消">
+<meta property="og:type" content="article">
+<meta property="og:title" content="消息队列摘要">
+<meta property="og:url" content="https://syxdevcode.github.com/2018/07/04/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E6%91%98%E8%A6%81/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="消息队列摘要1,为什么要使用消息队列解耦、弹性伸缩、冗余存储、流量削峰、异步通信、数据同步 (1) 解耦 将消息写入消息队列，需要消息的系统自己从消息队列中订阅，原系统不需要做任何修改。 (2) 异步 将消息写入消息队列，非必要的业务逻辑以异步的方式运行，加快响应速度 (3) 削峰 并发请求到消息队列，业务系统按照实际处理能力从消息队列拉去数据。 2,使用了消息队列会有什么缺点系统可用性降低: 消">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://syxdevcode.github.com/img/1506330751030_7532_1506330753496.png">
+<meta property="article:published_time" content="2018-07-04T02:15:42.000Z">
+<meta property="article:modified_time" content="2025-08-12T08:31:56.860Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="消息队列">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://syxdevcode.github.com/img/1506330751030_7532_1506330753496.png">
+
+
+<link rel="canonical" href="https://syxdevcode.github.com/2018/07/04/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E6%91%98%E8%A6%81/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://syxdevcode.github.com/2018/07/04/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E6%91%98%E8%A6%81/","path":"2018/07/04/消息队列摘要/","title":"消息队列摘要"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>消息队列摘要 | syxdevcode博客</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">syxdevcode博客</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E6%91%98%E8%A6%81"><span class="nav-number">1.</span> <span class="nav-text">消息队列摘要</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E4%BD%BF%E7%94%A8%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97"><span class="nav-number">1.1.</span> <span class="nav-text">1,为什么要使用消息队列</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E4%BD%BF%E7%94%A8%E4%BA%86%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E4%BC%9A%E6%9C%89%E4%BB%80%E4%B9%88%E7%BC%BA%E7%82%B9"><span class="nav-number">1.2.</span> <span class="nav-text">2,使用了消息队列会有什么缺点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3%EF%BC%8C%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E5%A6%82%E4%BD%95%E9%80%89%E5%9E%8B"><span class="nav-number">1.3.</span> <span class="nav-text">3，消息队列如何选型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4%EF%BC%8C%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E6%98%AF%E9%AB%98%E5%8F%AF%E7%94%A8%E7%9A%84"><span class="nav-number">1.4.</span> <span class="nav-text">4，如何保证消息队列是高可用的</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5%EF%BC%8C%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E6%B6%88%E6%81%AF%E4%B8%8D%E8%A2%AB%E9%87%8D%E5%A4%8D%E6%B6%88%E8%B4%B9"><span class="nav-number">1.5.</span> <span class="nav-text">5，如何保证消息不被重复消费</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6%EF%BC%8C%E4%BF%9D%E8%AF%81%E6%B6%88%E8%B4%B9%E7%9A%84%E5%8F%AF%E9%9D%A0%E6%80%A7%E4%BC%A0%E8%BE%93"><span class="nav-number">1.6.</span> <span class="nav-text">6，保证消费的可靠性传输</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E6%B6%88%E6%81%AF%E7%9A%84%E9%A1%BA%E5%BA%8F%E6%80%A7"><span class="nav-number">1.7.</span> <span class="nav-text">如何保证消息的顺序性</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description">syxdevcode的个人博客</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">619</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">157</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">241</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2018/07/04/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E6%91%98%E8%A6%81/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="消息队列摘要 | syxdevcode博客">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          消息队列摘要
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2018-07-04 10:15:42" itemprop="dateCreated datePublished" datetime="2018-07-04T10:15:42+08:00">2018-07-04</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2025-08-12 16:31:56" itemprop="dateModified" datetime="2025-08-12T16:31:56+08:00">2025-08-12</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/" itemprop="url" rel="index"><span itemprop="name">消息队列</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>1.1k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>1 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h1 id="消息队列摘要"><a href="#消息队列摘要" class="headerlink" title="消息队列摘要"></a>消息队列摘要</h1><h2 id="1-为什么要使用消息队列"><a href="#1-为什么要使用消息队列" class="headerlink" title="1,为什么要使用消息队列"></a>1,为什么要使用消息队列</h2><p>解耦、弹性伸缩、冗余存储、流量削峰、异步通信、数据同步</p>
+<p>(1) 解耦</p>
+<p>将消息写入消息队列，需要消息的系统自己从消息队列中订阅，原系统不需要做任何修改。</p>
+<p>(2) 异步</p>
+<p>将消息写入消息队列，非必要的业务逻辑以异步的方式运行，加快响应速度</p>
+<p>(3) 削峰</p>
+<p>并发请求到消息队列，业务系统按照实际处理能力从消息队列拉去数据。</p>
+<h2 id="2-使用了消息队列会有什么缺点"><a href="#2-使用了消息队列会有什么缺点" class="headerlink" title="2,使用了消息队列会有什么缺点"></a>2,使用了消息队列会有什么缺点</h2><p><strong>系统可用性降低</strong>: 消息队列如果宕机，系统直接崩溃，因此，系统可用性降低</p>
+<p><strong>系统复杂性增加</strong>: 要多考虑的问题，比如一致性问题、如何保证消息不被重复消费，如何保证保证消息可靠传输。因此，需要考虑的东西更多，系统复杂性增大。</p>
+<h2 id="3，消息队列如何选型"><a href="#3，消息队列如何选型" class="headerlink" title="3，消息队列如何选型"></a>3，消息队列如何选型</h2><p><img src="/img/1506330751030_7532_1506330753496.png" alt="1506330751030_7532_1506330753496.png"></p>
+<p><strong>中小型软件公司</strong>：建议选RabbitMQ<br><strong>大型软件公司</strong>：根据具体使用在rocketMq和kafka之间二选一</p>
+<h2 id="4，如何保证消息队列是高可用的"><a href="#4，如何保证消息队列是高可用的" class="headerlink" title="4，如何保证消息队列是高可用的"></a>4，如何保证消息队列是高可用的</h2><p>参考具体的消息队列高可用方案</p>
+<h2 id="5，如何保证消息不被重复消费"><a href="#5，如何保证消息不被重复消费" class="headerlink" title="5，如何保证消息不被重复消费"></a>5，如何保证消息不被重复消费</h2><p>即保证消息队列的幂等性。</p>
+<p>正常情况下，消费者在消费消息时候，消费完毕后，会发送一个确认信息给消息队列，消息队列就知道该消息被消费了，就会将该消息从消息队列中删除。只是不同的消息队列发送的确认信息形式不同,例如RabbitMQ是发送一个ACK确认消息，RocketMQ是返回一个CONSUME_SUCCESS成功标志，kafka实际上有个offset的概念，简单说一下(如果还不懂，出门找一个kafka入门到精通教程),就是每一个消息都有一个offset，kafka消费过消息后，需要提交offset，让消息队列知道自己已经消费过了。那造成重复消费的原因?，就是因为网络传输等等故障，确认信息没有传送到消息队列，导致消息队列不知道自己已经消费过该消息了，再次将该消息分发给其他的消费者。</p>
+<p>解决：</p>
+<ul>
+<li>(1) 拿到这个消息做数据库的insert操作,分配这个消息一个唯一主键，如果出现重复消费，则会导致主键冲突。</li>
+<li>(2) redis的set的操作，无论set几次结果都是一样的，set操作本来就算幂等操作。</li>
+<li>(3) 消费记录，以redis为例，给消息分配一个全局id，只要消费过该消息，将&lt;id,message&gt;以K-V形式写入redis。那消费者开始消费前，先去redis中查询有没消费记录即可。</li>
+</ul>
+<h2 id="6，保证消费的可靠性传输"><a href="#6，保证消费的可靠性传输" class="headerlink" title="6，保证消费的可靠性传输"></a>6，保证消费的可靠性传输</h2><ul>
+<li>（1）生产者丢数据</li>
+<li>（2）消息队列丢数据</li>
+<li>（3）消费者丢数据</li>
+</ul>
+<h2 id="如何保证消息的顺序性"><a href="#如何保证消息的顺序性" class="headerlink" title="如何保证消息的顺序性"></a>如何保证消息的顺序性</h2><p>通过某种算法，将需要保持先后顺序的消息放到同一个消息队列中(kafka中就是partition,rabbitMq中就是queue)。然后只用一个消费者去消费该队列。</p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/rjzheng/p/8994962.html">【原创】分布式之消息队列复习精讲</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.infoq.com/cn/articles/kafka-vs-rabbitmq">消息中间件选型分析：从Kafka与RabbitMQ的对比看全局</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/my_life/articles/5128746.html">常用消息队列介绍与对比</a></p>
+<p><a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/1006035">消息队列及常见消息队列介绍</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/" rel="tag"># 消息队列</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2018/06/29/docker%E5%AE%B9%E5%99%A8%E6%97%A0%E6%B3%95%E8%AE%BF%E9%97%AE%E5%AE%BF%E4%B8%BB%E6%9C%BA-No-route-to-host/" rel="prev" title="Docker容器无法访问宿主机-No route to host">
+                  <i class="fa fa-angle-left"></i> Docker容器无法访问宿主机-No route to host
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2018/07/04/Docker%E6%90%AD%E5%BB%BARabbitMQ%E9%AB%98%E5%8F%AF%E7%94%A8%E7%BE%A4%E9%9B%86/" rel="next" title="Docker搭建RabbitMQ高可用群集">
+                  Docker搭建RabbitMQ高可用群集 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">2.1m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">31:31</span>
+  </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 5.4.2">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"syxdevcode.github.com","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.24.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="转载： 对象池在 .NET (Core)中的应用[1]: 编程篇 &amp;emsp;&amp;emsp;DotNet 提供有效的自动化垃圾回收机制，.NET让开发人员不在关心对象的生命周期，但实际上很多性能问题都来源于GC。并不说.NET的GC有什么问题，而是对象生命周期的跟踪和管理本身是需要成本的，不论交给应用还是框架来做，都会对性能造成影响。在一些对性能比较敏感的应用中，我们可以通过对象复用的方式避免垃圾对">
+<meta property="og:type" content="article">
+<meta property="og:title" content="DotNetCore对象池ObjectPool-编程">
+<meta property="og:url" content="https://syxdevcode.github.com/2021/09/17/DotNetCore%E5%AF%B9%E8%B1%A1%E6%B1%A0ObjectPool-%E7%BC%96%E7%A8%8B/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="转载： 对象池在 .NET (Core)中的应用[1]: 编程篇 &amp;emsp;&amp;emsp;DotNet 提供有效的自动化垃圾回收机制，.NET让开发人员不在关心对象的生命周期，但实际上很多性能问题都来源于GC。并不说.NET的GC有什么问题，而是对象生命周期的跟踪和管理本身是需要成本的，不论交给应用还是框架来做，都会对性能造成影响。在一些对性能比较敏感的应用中，我们可以通过对象复用的方式避免垃圾对">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://syxdevcode.github.com/img/19327-20210823194332122-359024594.png">
+<meta property="og:image" content="https://syxdevcode.github.com/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20210918133450.png">
+<meta property="og:image" content="https://syxdevcode.github.com/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20210918134802.png">
+<meta property="og:image" content="https://syxdevcode.github.com/img/19327-20210823194333545-1400852638.png">
+<meta property="og:image" content="https://syxdevcode.github.com/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20210918135923.png">
+<meta property="article:published_time" content="2021-09-17T08:03:25.000Z">
+<meta property="article:modified_time" content="2025-08-12T08:31:54.710Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="CSharp">
+<meta property="article:tag" content="DotNetCore">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://syxdevcode.github.com/img/19327-20210823194332122-359024594.png">
+
+
+<link rel="canonical" href="https://syxdevcode.github.com/2021/09/17/DotNetCore%E5%AF%B9%E8%B1%A1%E6%B1%A0ObjectPool-%E7%BC%96%E7%A8%8B/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://syxdevcode.github.com/2021/09/17/DotNetCore%E5%AF%B9%E8%B1%A1%E6%B1%A0ObjectPool-%E7%BC%96%E7%A8%8B/","path":"2021/09/17/DotNetCore对象池ObjectPool-编程/","title":"DotNetCore对象池ObjectPool-编程"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>DotNetCore对象池ObjectPool-编程 | syxdevcode博客</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">syxdevcode博客</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%80%9F%E4%B8%8E%E8%BF%98"><span class="nav-number">1.</span> <span class="nav-text">对象的借与还</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BE%9D%E8%B5%96%E6%B3%A8%E5%85%A5"><span class="nav-number">2.</span> <span class="nav-text">依赖注入</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B1%A0%E5%8C%96%E5%AF%B9%E8%B1%A1%E7%AD%96%E7%95%A5"><span class="nav-number">3.</span> <span class="nav-text">池化对象策略</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%B9%E8%B1%A1%E6%B1%A0%E7%9A%84%E5%A4%A7%E5%B0%8F"><span class="nav-number">4.</span> <span class="nav-text">对象池的大小</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%B9%E8%B1%A1%E7%9A%84%E9%87%8A%E6%94%BE"><span class="nav-number">5.</span> <span class="nav-text">对象的释放</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description">syxdevcode的个人博客</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">619</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">157</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">241</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2021/09/17/DotNetCore%E5%AF%B9%E8%B1%A1%E6%B1%A0ObjectPool-%E7%BC%96%E7%A8%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="DotNetCore对象池ObjectPool-编程 | syxdevcode博客">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          DotNetCore对象池ObjectPool-编程
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2021-09-17 16:03:25" itemprop="dateCreated datePublished" datetime="2021-09-17T16:03:25+08:00">2021-09-17</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2025-08-12 16:31:54" itemprop="dateModified" datetime="2025-08-12T16:31:54+08:00">2025-08-12</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/CSharp/" itemprop="url" rel="index"><span itemprop="name">CSharp</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>6.7k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>6 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>转载：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/artech/p/object-pool-01.html">对象池在 .NET (Core)中的应用[1]: 编程篇</a></p>
+<p>&emsp;&emsp;DotNet 提供有效的自动化垃圾回收机制，.NET让开发人员不在关心对象的生命周期，但实际上很多性能问题都来源于GC。并不说.NET的GC有什么问题，而是对象生命周期的跟踪和管理本身是需要成本的，不论交给应用还是框架来做，都会对性能造成影响。在一些对性能比较敏感的应用中，我们可以通过对象复用的方式避免垃圾对象的产生，进而避免GC因对象回收导致的性能损失。对象池是对象复用的一种常用的方式。.NET提供了一个简单高效的对象池框架，并使用在ASP.NET自身框架中。这个对象池框架由 <code>Microsoft.Extensions.ObjectPool</code> NuGet包提供。</p>
+<h2 id="对象的借与还"><a href="#对象的借与还" class="headerlink" title="对象的借与还"></a>对象的借与还</h2><p>&emsp;&emsp;对象池编程方式：需要消费某个对象的时候，我们不会直接创建它，而是选择从对象池中 <code>借出</code> 一个对象。一般来说，如果对象池为空，或者现有的对象都正在被使用，它会自动帮助我们完成对象的创建。借出的对象不再使用的时候，我们需要及时将其 <code>归还</code> 到对象池中以供后续复用。</p>
+<p>在使用.NET的对象池框架时，主要会使用 <code>ObjectPool&lt;T&gt;</code>类型，针对池化对象的借与还体现在它的<code>Get</code>和<code>Return</code>方法中。</p>
+<span id="more"></span>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title">ObjectPool</span>&lt;<span class="title">T</span>&gt; <span class="keyword">where</span> <span class="title">T</span>: <span class="keyword">class</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> T <span class="title">Get</span>()</span>;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">void</span> <span class="title">Return</span>(<span class="params">T obj</span>)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>示例：</strong></p>
+<p>添加 <code>Microsoft.Extensions.ObjectPool</code> NuGet包。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// FoobarService具有一个自增整数表示Id属性作为每个实例的唯一标识，</span></span><br><span class="line"><span class="comment">// 静态字段_latestId标识当前分发的最后一个标识</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">FoobarService</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">internal</span> <span class="keyword">static</span> <span class="built_in">int</span> _latestId;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">int</span> Id &#123; <span class="keyword">get</span>; &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">FoobarService</span>()</span> =&gt; Id = Interlocked.Increment(<span class="keyword">ref</span> _latestId);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">static</span> <span class="keyword">async</span> Task <span class="title">Main</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">var</span> objectPool = ObjectPool.Create&lt;FoobarService&gt;();</span><br><span class="line">        <span class="keyword">while</span> (<span class="literal">true</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            Console.Write(<span class="string">&quot;Used services: &quot;</span>);</span><br><span class="line">            <span class="keyword">await</span> Task.WhenAll(Enumerable.Range(<span class="number">1</span>, <span class="number">3</span>).Select(_ =&gt; ExecuteAsync()));</span><br><span class="line">            Console.Write(<span class="string">&quot;\n&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="function"><span class="keyword">async</span> Task <span class="title">ExecuteAsync</span>()</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">var</span> service = objectPool.Get();</span><br><span class="line">            <span class="keyword">try</span></span><br><span class="line">            &#123;</span><br><span class="line">                Console.Write(<span class="string">$&quot;<span class="subst">&#123;service.Id&#125;</span>; &quot;</span>);</span><br><span class="line">                <span class="keyword">await</span> Task.Delay(<span class="number">1000</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">finally</span></span><br><span class="line">            &#123;</span><br><span class="line">                objectPool.Return(service);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>实例运行之后会在控制台上输出如下所示的结果，可以看出每轮迭代使用的三个对象都是一样的。每次迭代，它们从对象池中被借出，使用完之后又回到池中供下一次迭代使用。</p>
+<p><img src="/img/19327-20210823194332122-359024594.png" alt="19327-20210823194332122-359024594.png"></p>
+<h2 id="依赖注入"><a href="#依赖注入" class="headerlink" title="依赖注入"></a>依赖注入</h2><p>&emsp;&emsp;采用依赖注入，容器提供的并不是代表对象池的 <code>ObjectPool&lt;T&gt;</code> 对象，而是一个 <code>ObjectPoolProvider</code>对象。<code>ObjectPoolProvider</code> 对象作为对象池的提供者，用来提供针对指定对象类型的 <code>ObjectPool&lt;T&gt;</code> 对象。</p>
+<p>&emsp;&emsp;.NET提供的大部分框架都提供了针对 <code>IServiceCollection</code> 接口的扩展方法来注册相应的服务，但是对象池框架并没有定义这样的扩展方法，所以我们需要采用原始的方式来完成针对 <code>ObjectPoolProvider</code> 的注册。如下面的代码片段所示，在创建出 <code>ServiceCollection</code> 对象之后，我们通过调用 <code>AddSingleton</code> 扩展方法注册了 <code>ObjectPoolProvider</code> 的默认实现类型 <code>DefaultObjectPoolProvider</code>。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">static</span> <span class="keyword">async</span> Task <span class="title">Main</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">var</span> objectPool = <span class="keyword">new</span> ServiceCollection().AddSingleton&lt;ObjectPoolProvider, DefaultObjectPoolProvider&gt;()</span><br><span class="line">            .BuildServiceProvider()</span><br><span class="line">            .GetRequiredService&lt;ObjectPoolProvider&gt;()</span><br><span class="line">            .Create&lt;FoobarService&gt;();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">while</span> (<span class="literal">true</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            Console.Write(<span class="string">&quot;Used services: &quot;</span>);</span><br><span class="line">            <span class="keyword">await</span> Task.WhenAll(Enumerable.Range(<span class="number">1</span>, <span class="number">3</span>).Select(_ =&gt; ExecuteAsync()));</span><br><span class="line">            Console.Write(<span class="string">&quot;\n&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="function"><span class="keyword">async</span> Task <span class="title">ExecuteAsync</span>()</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">var</span> service = objectPool.Get();</span><br><span class="line">            <span class="keyword">try</span></span><br><span class="line">            &#123;</span><br><span class="line">                Console.Write(<span class="string">$&quot;<span class="subst">&#123;service.Id&#125;</span>; &quot;</span>);</span><br><span class="line">                <span class="keyword">await</span> Task.Delay(<span class="number">1000</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">finally</span></span><br><span class="line">            &#123;</span><br><span class="line">                objectPool.Return(service);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="池化对象策略"><a href="#池化对象策略" class="headerlink" title="池化对象策略"></a>池化对象策略</h2><p>&emsp;&emsp;对象池在默认情况下会帮助我们完成对象的创建工作，它会在对象池无可用对象的时候会调用默认的构造函数来创建提供的对象。如果池化对象类型没有默认的构造函数呢？或者我们希望执行一些初始化操作呢？</p>
+<p>&emsp;&emsp;在另一方面，当不在使用的对象被归还到对象池之前，很有可能会执行一些释放性质的操作（比如集合对象在归还之前应该被清空）。还有一种可能是对象有可能不能再次复用（比如它内部维护了一个处于错误状态并无法恢复的网络连接），那么它就不能被释放会对象池。这些需求都可以通过 <code>IPooledObjectPolicy&lt;T&gt;</code> 接口表示的池化对象策略来解决。</p>
+<p>将上面的 <code>FoobarService</code> 更改为以下代码：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">FoobarService</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">internal</span> <span class="keyword">static</span> <span class="built_in">int</span> _latestId;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">int</span> Id &#123; <span class="keyword">get</span>; &#125;</span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">FoobarService</span>()</span> =&gt; Id = Interlocked.Increment(<span class="keyword">ref</span> _latestId);</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> FoobarService <span class="title">Create</span>()</span> =&gt; <span class="keyword">new</span> FoobarService();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>将构造函数改为私有，并定义了一个静态的工厂方法Create来创建<code>FoobarService</code>对象。<br>。当FoobarService类型失去了默认的无参构造函数之后，演示的程序将无法编译。</p>
+<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20210918133450.png" alt="微信截图_20210918133450.png"></p>
+<p>&emsp;&emsp;为了解决这个问题，我们为<code>FoobarService</code>类型定义一个代表池化对象策略的FoobarPolicy类型。如代码片段所示，<code>FoobarPolicy</code>类型实现了<code>IPooledObjectPolicy&lt;FoobarService&gt;</code>接口，实现的Create方法通过调用<code>FoobarSerivice</code>类型的静态同名方法完成针对对象的创建。另一个方法Return可以用来执行一些对象归还前的释放操作，它的返回值表示该对象还能否回到池中供后续使用。由于<code>FoobarService</code>对象可以被无限次复用，所以实现的Return方法直接返回True。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">FoobarPolicy</span> : <span class="title">IPooledObjectPolicy</span>&lt;<span class="title">FoobarService</span>&gt;</span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> FoobarService <span class="title">Create</span>()</span> =&gt; FoobarService.Create();</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="built_in">bool</span> <span class="title">Return</span>(<span class="params">FoobarService obj</span>)</span> =&gt; <span class="literal">true</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;在调用<code>ObjectPoolProvider</code>对象的<code>Create&lt;T&gt;</code>方法针对指定的类型创建对应的对象池的时候，我们将一个<code>IPooledObjectPolicy&lt;T&gt;</code>对象作为参数，创建的对象池将会根据该对象定义的策略来创建和释放对象。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">static</span> <span class="keyword">async</span> Task <span class="title">Main</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">var</span> objectPool = <span class="keyword">new</span> ServiceCollection().AddSingleton&lt;ObjectPoolProvider, DefaultObjectPoolProvider&gt;()</span><br><span class="line">            .BuildServiceProvider()</span><br><span class="line">            .GetRequiredService&lt;ObjectPoolProvider&gt;()</span><br><span class="line">            .Create(<span class="keyword">new</span> FoobarPolicy());</span><br><span class="line">         </span><br><span class="line">         <span class="comment">// 省略代码</span></span><br><span class="line">     &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="对象池的大小"><a href="#对象池的大小" class="headerlink" title="对象池的大小"></a>对象池的大小</h2><p>对象池容纳对象的数量总归是有限的，默认情况下大小为当前机器处理器数量的2倍。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">static</span> <span class="keyword">async</span> Task <span class="title">Main</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">var</span> objectPool = <span class="keyword">new</span> ServiceCollection().AddSingleton&lt;ObjectPoolProvider, DefaultObjectPoolProvider&gt;()</span><br><span class="line">            .BuildServiceProvider()</span><br><span class="line">            .GetRequiredService&lt;ObjectPoolProvider&gt;()</span><br><span class="line">            .Create(<span class="keyword">new</span> FoobarPolicy());</span><br><span class="line">        <span class="keyword">var</span> poolSize = Environment.ProcessorCount * <span class="number">2</span>;</span><br><span class="line">        <span class="keyword">while</span> (<span class="literal">true</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">while</span> (<span class="literal">true</span>)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">await</span> Task.WhenAll(Enumerable.Range(<span class="number">1</span>, poolSize).Select(_ =&gt; ExecuteAsync()));</span><br><span class="line">                Console.WriteLine(<span class="string">$&quot;Last service: <span class="subst">&#123;FoobarService._latestId&#125;</span>&quot;</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">async</span> Task <span class="title">ExecuteAsync</span>()</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">var</span> service = objectPool.Get();</span><br><span class="line">            <span class="keyword">try</span></span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">await</span> Task.Delay(<span class="number">1000</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">finally</span></span><br><span class="line">            &#123;</span><br><span class="line">                objectPool.Return(service);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>运行结果：</p>
+<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20210918134802.png" alt="微信截图_20210918134802.png"></p>
+<p>如果将对象的消费率提高，意味着池化的对象将无法满足消费需求，新的对象将持续被创建出来。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">static</span> <span class="keyword">async</span> Task <span class="title">Main</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">var</span> objectPool = <span class="keyword">new</span> ServiceCollection().AddSingleton&lt;ObjectPoolProvider, DefaultObjectPoolProvider&gt;()</span><br><span class="line">            .BuildServiceProvider()</span><br><span class="line">            .GetRequiredService&lt;ObjectPoolProvider&gt;()</span><br><span class="line">            .Create(<span class="keyword">new</span> FoobarPolicy());</span><br><span class="line">        <span class="keyword">var</span> poolSize = Environment.ProcessorCount * <span class="number">2</span>;</span><br><span class="line">        <span class="keyword">while</span> (<span class="literal">true</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">while</span> (<span class="literal">true</span>)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">await</span> Task.WhenAll(Enumerable.Range(<span class="number">1</span>, poolSize + <span class="number">1</span>)</span><br><span class="line">                    .Select(_ =&gt; ExecuteAsync()));</span><br><span class="line">                Console.WriteLine(<span class="string">$&quot;Last service: <span class="subst">&#123;FoobarService._latestId&#125;</span>&quot;</span>);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        …</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>由于每次迭代针对对象的需求量是17，但是对象池只能提供16个对象，所以每次迭代都必须额外创建一个新的对象。</p>
+<p>结果：</p>
+<p><img src="/img/19327-20210823194333545-1400852638.png" alt="19327-20210823194333545-1400852638.png"></p>
+<h2 id="对象的释放"><a href="#对象的释放" class="headerlink" title="对象的释放"></a>对象的释放</h2><p>&emsp;&emsp;由于对象池容纳的对象数量是有限的，如果现有的所有对象已经被提取出来，它会提供一个新创建的对象。从另一方面讲，我们从对象池得到的对象在不需要的时候总是会还回去，但是对象池可能容不下那么多对象，它只能将其丢弃，被丢弃的对象将最终被GC回收。如果对象类型实现了<code>IDisposable</code>接口，在它不能回到对象池的情况下，它的<code>Dispose</code>方法应该被立即执行。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">static</span> <span class="keyword">async</span> Task <span class="title">Main</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">var</span> objectPool = <span class="keyword">new</span> ServiceCollection().AddSingleton&lt;ObjectPoolProvider, DefaultObjectPoolProvider&gt;()</span><br><span class="line">            .BuildServiceProvider()</span><br><span class="line">            .GetRequiredService&lt;ObjectPoolProvider&gt;()</span><br><span class="line">            .Create(<span class="keyword">new</span> FoobarPolicy());</span><br><span class="line"></span><br><span class="line">        <span class="keyword">while</span> (<span class="literal">true</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            Console.Write(<span class="string">&quot;Disposed services:&quot;</span>);</span><br><span class="line">            <span class="keyword">await</span> Task.WhenAll(Enumerable.Range(<span class="number">1</span>, Environment.ProcessorCount * <span class="number">2</span> + <span class="number">3</span>).Select(_ =&gt; ExecuteAsync()));</span><br><span class="line">            Console.Write(<span class="string">&quot;\n&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function"><span class="keyword">async</span> Task <span class="title">ExecuteAsync</span>()</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">var</span> service = objectPool.Get();</span><br><span class="line">            <span class="keyword">try</span></span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">await</span> Task.Delay(<span class="number">1000</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">finally</span></span><br><span class="line">            &#123;</span><br><span class="line">                objectPool.Return(service);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">FoobarService</span>: <span class="title">IDisposable</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">internal</span> <span class="keyword">static</span> <span class="built_in">int</span> _latestId;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">int</span> Id &#123; <span class="keyword">get</span>; &#125;</span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">FoobarService</span>()</span> =&gt; Id = Interlocked.Increment(<span class="keyword">ref</span> _latestId);</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> FoobarService <span class="title">Create</span>()</span> =&gt; <span class="keyword">new</span> FoobarService();</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">Dispose</span>()</span> =&gt; Console.Write(<span class="string">$&quot;<span class="subst">&#123;Id&#125;</span>; &quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>每次迭代消费的19个对象，只有16个能够正常回归对象池，有三个将被丢弃并最终被GC回收。</p>
+<p>结果：</p>
+<p><img src="/img/%E5%BE%AE%E4%BF%A1%E6%88%AA%E5%9B%BE_20210918135923.png" alt="微信截图_20210918135923.png"></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/CSharp/" rel="tag"># CSharp</a>
+              <a href="/tags/DotNetCore/" rel="tag"># DotNetCore</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2021/09/13/Socket%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/" rel="prev" title="Socket网络编程">
+                  <i class="fa fa-angle-left"></i> Socket网络编程
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2021/09/18/DotNetCore%E5%AF%B9%E8%B1%A1%E6%B1%A0ObjectPool-%E8%AE%BE%E8%AE%A1/" rel="next" title="DotNetCore对象池ObjectPool-设计">
+                  DotNetCore对象池ObjectPool-设计 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">2.1m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">31:31</span>
+  </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

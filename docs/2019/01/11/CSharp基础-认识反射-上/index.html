@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 5.4.2">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"syxdevcode.github.com","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.24.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="CSharp基础-认识反射-上本章包括查看对象类型信息，反射类型和泛型反射，反射检查和实例化泛型类型。 反射概述在程序中，当我们需要动态的去加载程序集的时候(将对程序集的引用由编译时推移到运行时)，反射是一种很好的选择。可以使用反射动态地创建类型的实例，将类型绑定到现有对象，或从现有对象中获取类型，然后调用其方法或访问其字段和属性。反射为.NET类型提供了高度的动态能力，包括：元数据的动态查询、绑">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CSharp基础-认识反射-上">
+<meta property="og:url" content="https://syxdevcode.github.com/2019/01/11/CSharp%E5%9F%BA%E7%A1%80-%E8%AE%A4%E8%AF%86%E5%8F%8D%E5%B0%84-%E4%B8%8A/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="CSharp基础-认识反射-上本章包括查看对象类型信息，反射类型和泛型反射，反射检查和实例化泛型类型。 反射概述在程序中，当我们需要动态的去加载程序集的时候(将对程序集的引用由编译时推移到运行时)，反射是一种很好的选择。可以使用反射动态地创建类型的实例，将类型绑定到现有对象，或从现有对象中获取类型，然后调用其方法或访问其字段和属性。反射为.NET类型提供了高度的动态能力，包括：元数据的动态查询、绑">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-01-11T00:47:54.000Z">
+<meta property="article:modified_time" content="2025-08-12T08:31:54.186Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="DotNet">
+<meta property="article:tag" content="CSharp">
+<meta property="article:tag" content="CSharp基础">
+<meta property="article:tag" content="反射">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://syxdevcode.github.com/2019/01/11/CSharp%E5%9F%BA%E7%A1%80-%E8%AE%A4%E8%AF%86%E5%8F%8D%E5%B0%84-%E4%B8%8A/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://syxdevcode.github.com/2019/01/11/CSharp%E5%9F%BA%E7%A1%80-%E8%AE%A4%E8%AF%86%E5%8F%8D%E5%B0%84-%E4%B8%8A/","path":"2019/01/11/CSharp基础-认识反射-上/","title":"CSharp基础-认识反射-上"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>CSharp基础-认识反射-上 | syxdevcode博客</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">syxdevcode博客</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#CSharp%E5%9F%BA%E7%A1%80-%E8%AE%A4%E8%AF%86%E5%8F%8D%E5%B0%84-%E4%B8%8A"><span class="nav-number">1.</span> <span class="nav-text">CSharp基础-认识反射-上</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%8D%E5%B0%84%E6%A6%82%E8%BF%B0"><span class="nav-number">1.1.</span> <span class="nav-text">反射概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%90%E8%A1%8C%E6%97%B6%E7%B1%BB%E5%9E%8B%E6%A0%87%E8%AF%86-RTTI"><span class="nav-number">1.2.</span> <span class="nav-text">运行时类型标识(RTTI)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#is-%E8%BF%90%E7%AE%97%E7%AC%A6"><span class="nav-number">1.2.1.</span> <span class="nav-text">is 运算符</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%B1%BB%E5%9E%8B%E5%85%BC%E5%AE%B9%E6%80%A7%E6%B5%8B%E8%AF%95"><span class="nav-number">1.2.1.1.</span> <span class="nav-text">类型兼容性测试</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%88%A9%E7%94%A8-is-%E7%9A%84%E6%A8%A1%E5%BC%8F%E5%8C%B9%E9%85%8D"><span class="nav-number">1.2.1.2.</span> <span class="nav-text">利用 is 的模式匹配</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#as-%E8%BF%90%E7%AE%97%E7%AC%A6"><span class="nav-number">1.2.2.</span> <span class="nav-text">as 运算符</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#typeof%E8%BF%90%E7%AE%97%E7%AC%A6"><span class="nav-number">1.2.3.</span> <span class="nav-text">typeof运算符</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B%E7%B1%BB%E5%9E%8B%E4%BF%A1%E6%81%AF"><span class="nav-number">1.3.</span> <span class="nav-text">查看类型信息</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A8%A1%E5%9D%97%E5%92%8C%E7%A8%8B%E5%BA%8F%E9%9B%86"><span class="nav-number">1.3.1.</span> <span class="nav-text">模块和程序集</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Type-GetTypes"><span class="nav-number">1.3.2.</span> <span class="nav-text">Type.GetTypes()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Type-GetMembers"><span class="nav-number">1.3.3.</span> <span class="nav-text">Type.GetMembers()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Type-ConstructorInfo"><span class="nav-number">1.3.4.</span> <span class="nav-text">Type.ConstructorInfo()</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%8D%E5%B0%84%E7%B1%BB%E5%9E%8B%E5%92%8C%E6%B3%9B%E5%9E%8B%E7%B1%BB%E5%9E%8B"><span class="nav-number">1.4.</span> <span class="nav-text">反射类型和泛型类型</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B3%9B%E5%9E%8B%E7%B1%BB%E5%9E%8B%E5%92%8C%E6%B3%9B%E5%9E%8B%E6%96%B9%E6%B3%95"><span class="nav-number">1.4.1.</span> <span class="nav-text">泛型类型和泛型方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B3%9B%E5%9E%8B%E7%B1%BB%E5%9E%8B%E5%AE%9A%E4%B9%89%E5%92%8C%E6%B3%9B%E5%9E%8B%E6%96%B9%E6%B3%95%E5%AE%9A%E4%B9%89"><span class="nav-number">1.4.2.</span> <span class="nav-text">泛型类型定义和泛型方法定义</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%B1%BB%E5%9E%8B%E6%88%96%E6%96%B9%E6%B3%95%E6%98%AF%E5%BC%80%E6%94%BE%E5%BC%8F%E8%BF%98%E6%98%AF%E5%B0%81%E9%97%AD%E5%BC%8F"><span class="nav-number">1.4.3.</span> <span class="nav-text">类型或方法是开放式还是封闭式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%94%9F%E6%88%90%E5%B0%81%E9%97%AD%E5%BC%8F%E6%B3%9B%E5%9E%8B%E7%B1%BB%E5%9E%8B"><span class="nav-number">1.4.4.</span> <span class="nav-text">生成封闭式泛型类型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A3%80%E6%9F%A5%E7%B1%BB%E5%9E%8B%E5%AE%9E%E5%8F%82%E5%92%8C%E7%B1%BB%E5%9E%8B%E5%BD%A2%E5%8F%82"><span class="nav-number">1.4.5.</span> <span class="nav-text">检查类型实参和类型形参</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8%E5%8F%8D%E5%B0%84"><span class="nav-number">1.5.</span> <span class="nav-text">如何使用反射</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A3%80%E6%9F%A5%E6%B3%9B%E5%9E%8B%E7%B1%BB%E5%9E%8B%E5%92%8C%E7%B1%BB%E5%9E%8B%E5%8F%82%E6%95%B0"><span class="nav-number">1.5.1.</span> <span class="nav-text">检查泛型类型和类型参数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9E%84%E9%80%A0%E6%B3%9B%E5%9E%8B%E7%B1%BB%E5%9E%8B%E7%9A%84%E5%AE%9E%E4%BE%8B"><span class="nav-number">1.5.2.</span> <span class="nav-text">构造泛型类型的实例</span></a></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description">syxdevcode的个人博客</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">619</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">157</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">241</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/01/11/CSharp%E5%9F%BA%E7%A1%80-%E8%AE%A4%E8%AF%86%E5%8F%8D%E5%B0%84-%E4%B8%8A/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="CSharp基础-认识反射-上 | syxdevcode博客">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          CSharp基础-认识反射-上
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2019-01-11 08:47:54" itemprop="dateCreated datePublished" datetime="2019-01-11T08:47:54+08:00">2019-01-11</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2025-08-12 16:31:54" itemprop="dateModified" datetime="2025-08-12T16:31:54+08:00">2025-08-12</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E5%8F%8D%E5%B0%84/" itemprop="url" rel="index"><span itemprop="name">反射</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>13k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>12 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h1 id="CSharp基础-认识反射-上"><a href="#CSharp基础-认识反射-上" class="headerlink" title="CSharp基础-认识反射-上"></a>CSharp基础-认识反射-上</h1><p>本章包括查看对象类型信息，反射类型和泛型反射，反射检查和实例化泛型类型。</p>
+<h2 id="反射概述"><a href="#反射概述" class="headerlink" title="反射概述"></a>反射概述</h2><p>在程序中，当我们需要动态的去加载程序集的时候(将对程序集的引用由编译时推移到运行时)，反射是一种很好的选择。可以使用反射动态地创建类型的实例，将类型绑定到现有对象，或从现有对象中获取类型，然后调用其方法或访问其字段和属性。反射为.NET类型提供了高度的动态能力，包括：元数据的动态查询、绑定与执行、动态代码生成。常用的反射类型包含在<code>System.Reflection</code> 和 <code>System.Reflection.Emit</code> ,反射包括程序集反射、类型反射、接口反射、类型成员反射。</p>
+<p>反射在以下情况下很有用：</p>
+<ul>
+<li>需要访问程序元数据中的特性时。</li>
+<li>检查和实例化程序集中的类型。</li>
+<li>在运行时构建新类型。 使用 <code>System.Reflection.Emit</code> 中的类。</li>
+<li>执行后期绑定，访问在运行时创建的类型上的方法。 请参阅主题 Dynamically Loading and Using Types（动态加载和使用类型）。</li>
+</ul>
+<h2 id="运行时类型标识-RTTI"><a href="#运行时类型标识-RTTI" class="headerlink" title="运行时类型标识(RTTI)"></a>运行时类型标识(RTTI)</h2><p>运行时类型信息 (RTTI,Run-Time Type Information) 是一种允许在程序执行过程中确定对象类型的机制。例如使用它能够确切地知道基类引用指向了什么类型对象。运行时类型标识，能预先测试某个强制类型转换操作，能否成功，从而避免无效的强制类型转换异常。</p>
+<p>在c#中有三个支持RTTI的关键字：<code>is</code> 、 <code>as</code>  、<code>typeof</code>。</p>
+<h3 id="is-运算符"><a href="#is-运算符" class="headerlink" title="is 运算符"></a>is 运算符</h3><p>参考：<a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/csharp/language-reference/keywords/is">is（C# 参考）</a></p>
+<p>能够判断对象类型是否为特定类型，如果两种类型是相同类型，或者两者之间存在引用，装箱拆箱转换，则表明两种类型是兼容的。或（从 C# 7.0 开始）针对某个模式测试表达式。</p>
+<h4 id="类型兼容性测试"><a href="#类型兼容性测试" class="headerlink" title="类型兼容性测试"></a>类型兼容性测试</h4><p>语法：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">expr <span class="keyword">is</span> type</span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function"><span class="title">if</span> (<span class="params">obj <span class="keyword">is</span> Person</span>)</span> &#123;</span><br><span class="line">   <span class="comment">// Do something if obj is a Person.</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="built_in">double</span> number1 = <span class="number">12.63</span>;</span><br><span class="line"><span class="keyword">if</span> (Math.Ceiling(number1) <span class="keyword">is</span> <span class="built_in">double</span>)</span><br><span class="line">Console.WriteLine(<span class="string">&quot;The expression returns a double.&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>expr 是计算结果为某个类型的实例的表达式，而 type 是 expr 结果要转换到的类型的名称。<br>expr 可以是返回值的任何表达式，匿名方法和 Lambda 表达式除外。</p>
+<p>如果满足以下条件，则 <code>is</code> 语句为 true：</p>
+<ul>
+<li>expr 是与 type 具有相同类型的一个实例。</li>
+<li>expr 是派生自 type 的类型的一个实例。 换言之，expr 结果可以向上转换为 type 的一个实例。</li>
+<li>expr 具有属于 type 的一个基类的编译时类型，expr 还具有属于 type 或派生自 type 的运行时类型。 变量的编译时类型是其声明中定义的变量类型。 变量的运行时类型是分配给该变量的实例类型。</li>
+<li>expr 是实现 type 接口的类型的一个实例。</li>
+</ul>
+<h4 id="利用-is-的模式匹配"><a href="#利用-is-的模式匹配" class="headerlink" title="利用 is 的模式匹配"></a>利用 is 的模式匹配</h4><p>从 C# 7.0 开始，<code>is</code> 和 <a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/csharp/language-reference/keywords/switch">switch</a> 语句支持模式匹配。</p>
+<p>** 类型模式**</p>
+<p>用于测试表达式是否可转换为指定类型，如果可以，则将其转换为该类型的一个变量。</p>
+<p>语法：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">expr <span class="keyword">is</span> type varname</span><br></pre></td></tr></table></figure>
+
+<p>如果 expr 为 true，且 <code>is</code> 与 <code>if</code> 语句一起使用，则会分配 varname，并且其仅在 <code>if</code> 语句中具有局部范围。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (o <span class="keyword">is</span> Employee e)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">return</span> Name.CompareTo(e.Name);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>** 常量模式**</p>
+<p>使用常量模式执行模式匹配时，<code>is</code> 会测试表达式结果是否等于指定常量。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">expr <span class="keyword">is</span> constant</span><br></pre></td></tr></table></figure>
+
+<p>其中 expr 是要计算的表达式，constant 是要测试的值。 constant 可以是以下任何常数表达式：</p>
+<ul>
+<li>一个文本值。</li>
+<li>已声明 const 变量的名称。</li>
+<li>一个枚举常量。</li>
+</ul>
+<p>常数表达式的计算方式如下：</p>
+<ul>
+<li>如果 expr 和 constant 均为整型类型，则 C# 相等运算符确定表示式是否返回 true（即，是否为 <code>expr == constant</code>）。</li>
+<li>否则，由对静态 <code>Object.Equals(expr, constant)</code> 方法的调用来确定表达式的值。</li>
+</ul>
+<p><code>is</code> 语句支持 null 关键字。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">expr <span class="keyword">is</span> <span class="literal">null</span></span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function"><span class="title">if</span> (<span class="params">o <span class="keyword">is</span> <span class="literal">null</span></span>)</span></span><br><span class="line">&#123;&#125;</span><br></pre></td></tr></table></figure>
+
+<p>** var 模式**</p>
+<p>具有 var 模式的模式匹配始终成功。 语法为</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">expr <span class="keyword">is</span> <span class="keyword">var</span> varname</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">foreach</span> (<span class="keyword">var</span> item <span class="keyword">in</span> items) &#123;</span><br><span class="line">    <span class="keyword">if</span> (item <span class="keyword">is</span> <span class="keyword">var</span> obj)</span><br><span class="line">    Console.WriteLine(<span class="string">$&quot;Type: <span class="subst">&#123;obj.GetType().Name&#125;</span>, Value: <span class="subst">&#123;obj&#125;</span>&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>请注意，如果 expr 为 null，则 is 表达式仍为 true 并向 varname 分配 null。</p>
+<h3 id="as-运算符"><a href="#as-运算符" class="headerlink" title="as 运算符"></a>as 运算符</h3><p>参考：<a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/csharp/language-reference/keywords/as">as（C# 参考）</a></p>
+<p>在运行期间执行类型转换，并且能够使得类型转换失败不抛异常，而返回一个null值。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">expression <span class="keyword">as</span> type  </span><br></pre></td></tr></table></figure>
+
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Base b = d <span class="keyword">as</span> Base;</span><br><span class="line"><span class="keyword">if</span> (b != <span class="literal">null</span>)</span><br><span class="line">&#123;</span><br><span class="line">    Console.WriteLine(b.ToString());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="typeof运算符"><a href="#typeof运算符" class="headerlink" title="typeof运算符"></a>typeof运算符</h3><p>参考：<a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/csharp/language-reference/keywords/typeof">typeof（C# 参考）</a></p>
+<p>获取类型的System.Type 对象。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">System.Type type = <span class="keyword">typeof</span>(<span class="built_in">int</span>);</span><br></pre></td></tr></table></figure>
+
+<p>获取表达式的运行时类型:</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">int</span> i = <span class="number">0</span>;</span><br><span class="line">System.Type type = i.GetType();</span><br></pre></td></tr></table></figure>
+
+<p>示例显示如何确定方法的返回类型是否为泛型 <code>IEnumerable&lt;T&gt;</code>。 如果返回类型不是 <code>IEnumerable&lt;T&gt;</code> 泛型类型，则 <code>Type.GetInterface</code> 将返回 <code>null</code>。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">MethodInfo method = <span class="keyword">typeof</span>(<span class="built_in">string</span>).GetMethod(<span class="string">&quot;Copy&quot;</span>);</span><br><span class="line">Type t = method.ReturnType.GetInterface(<span class="keyword">typeof</span>(IEnumerable&lt;&gt;).Name);</span><br><span class="line"><span class="keyword">if</span> (t != <span class="literal">null</span>)</span><br><span class="line">    Console.WriteLine(t);</span><br><span class="line"><span class="keyword">else</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;The return type is not IEnumerable&lt;T&gt;.&quot;</span>);</span><br><span class="line"></span><br><span class="line">Console.ReadKey();</span><br></pre></td></tr></table></figure>
+
+<h2 id="查看类型信息"><a href="#查看类型信息" class="headerlink" title="查看类型信息"></a>查看类型信息</h2><p>参考：<a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/framework/reflection-and-codedom/viewing-type-information">查看类型信息</a></p>
+<h3 id="模块和程序集"><a href="#模块和程序集" class="headerlink" title="模块和程序集"></a>模块和程序集</h3><p>模块是程序集中代码的逻辑集合。您可以在程序集内部拥有多个模块，并且每个模块都可以使用不同的.NET语言编写（VS不支持创建多模块程序集）。</p>
+<p><font color=#ff0000 size=4 face="黑体">程序集包含模块。模块包含类。类包含函数。</font></p>
+<p><code>System.Type</code> 类是反射的中心。 当反射提出请求时，公共语言运行时为已加载的类型创建 Type。 可使用 Type 对象的方法、字段、属性和嵌套类来查找该类型的任何信息。</p>
+<p><code>Type</code> 类派生于 <code>System.Reflection.MemberInfo</code> 抽象类。</p>
+<p>获取程序集的 <code>Assembly</code> 对象和模块:</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Assembly a = <span class="keyword">typeof</span>(<span class="built_in">object</span>).Module.Assembly;</span><br></pre></td></tr></table></figure>
+
+<h3 id="Type-GetTypes"><a href="#Type-GetTypes" class="headerlink" title="Type.GetTypes()"></a>Type.GetTypes()</h3><p>从已加载的程序集获取 Type 对象:</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Loads an assembly using its file name.</span></span><br><span class="line">Assembly a = Assembly.LoadFrom(<span class="string">&quot;MyExe.exe&quot;</span>);</span><br><span class="line"><span class="comment">// Gets the type names from the assembly.</span></span><br><span class="line">Type[] types2 = a.GetTypes();</span><br><span class="line"><span class="keyword">foreach</span> (Type t <span class="keyword">in</span> types2)</span><br><span class="line">&#123;</span><br><span class="line">    Console.WriteLine(t.FullName);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用 <code>Type.Module</code> 属性获取一个封装含该类型的模块的对象。 使用 <code>Module.Assembly</code> 属性查找一个封装含该模块的程序集的对象。 可以获取直接使用 <code>Type.Assembly</code> 属性封装类型的程序集。</p>
+<h3 id="Type-GetMembers"><a href="#Type-GetMembers" class="headerlink" title="Type.GetMembers()"></a>Type.GetMembers()</h3><p>至少要有Instance（或Static）与Public（或NonPublic）标记。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Type.GetMembers() <span class="comment">// 获取所有公共成员。不包括 private 和 protected 访问权限</span></span><br><span class="line">Type.GetMembers(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly | BindingFlags.Static) <span class="comment">// 包含非公开;包含实例成员;包含公开;只包含本类声明的成员，不考虑继承的成员;包含静态成员。</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Type.GetFields() <span class="comment">// 获取字段</span></span><br><span class="line">Type.GetProperties() <span class="comment">// 获取属性</span></span><br><span class="line">Type.GetEvents() <span class="comment">// 获取事件</span></span><br><span class="line">Type.GetMethods() <span class="comment">// 获取方法</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="Type-ConstructorInfo"><a href="#Type-ConstructorInfo" class="headerlink" title="Type.ConstructorInfo()"></a>Type.ConstructorInfo()</h3><p>列出类的构造函数</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] <span class="keyword">args</span></span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    Type t = <span class="keyword">typeof</span>(System.String);</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;Listing all the public constructors of the &#123;0&#125; type&quot;</span>, t);</span><br><span class="line">    <span class="comment">// Constructors.</span></span><br><span class="line">    ConstructorInfo[] ci = t.GetConstructors(BindingFlags.Public | BindingFlags.Instance);</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;//Constructors&quot;</span>);</span><br><span class="line">    PrintMembers(ci);</span><br><span class="line"></span><br><span class="line">    Console.ReadKey();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">PrintMembers</span>(<span class="params">MemberInfo[] ms</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">foreach</span> (MemberInfo m <span class="keyword">in</span> ms)</span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;&#123;0&#125;&#123;1&#125;&quot;</span>, <span class="string">&quot;     &quot;</span>, m);</span><br><span class="line">    &#125;</span><br><span class="line">    Console.WriteLine();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="反射类型和泛型类型"><a href="#反射类型和泛型类型" class="headerlink" title="反射类型和泛型类型"></a>反射类型和泛型类型</h2><p>从反射的角度来说，泛型类型和普通类型之间的区别在于泛型类型具有与之关联的一组类型形参（若是泛型类型定义）或类型实参（若是构造类型）。</p>
+<h3 id="泛型类型和泛型方法"><a href="#泛型类型和泛型方法" class="headerlink" title="泛型类型和泛型方法"></a>泛型类型和泛型方法</h3><p>检查未知类型（由 Type的实例表示），使用 <code>IsGenericType</code> 属性来确定未知类型是否为泛型。如果类型是泛型，它会返回 true 。<br>检查未知方法（由 MethodInfo 类的实例表示）时，请使用 <code>IsGenericMethod</code> 属性来确定此方法是否为泛型。</p>
+<h3 id="泛型类型定义和泛型方法定义"><a href="#泛型类型定义和泛型方法定义" class="headerlink" title="泛型类型定义和泛型方法定义"></a>泛型类型定义和泛型方法定义</h3><p>使用 <code>IsGenericTypeDefinition</code> 属性来确定 <code>Type</code> 对象是否表示泛型类型定义，并使用 <code>IsGenericMethodDefinition</code> 方法来确定 <code>MethodInfo</code> 是否表示泛型方法定义。</p>
+<p>详细请参考：<a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.type.isgenerictypedefinition?view=netframework-4.7.2">Type.IsGenericTypeDefinition Property</a></p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/api/system.type.getgenerictypedefinition?view=netframework-4.7.2">Type.GetGenericTypeDefinition Method</a></p>
+<h3 id="类型或方法是开放式还是封闭式"><a href="#类型或方法是开放式还是封闭式" class="headerlink" title="类型或方法是开放式还是封闭式"></a>类型或方法是开放式还是封闭式</h3><ul>
+<li>开放类型：具有泛型类型参数的类型</li>
+<li>封闭类型：为所有类型参数都传递了实际的数据类型</li>
+</ul>
+<p>如果类型为开放式， <code>Type.ContainsGenericParameters</code> 属性将返回 true 。 对于方法， <code>MethodBase.ContainsGenericParameters</code> 方法执行相同的功能。</p>
+<h3 id="生成封闭式泛型类型"><a href="#生成封闭式泛型类型" class="headerlink" title="生成封闭式泛型类型"></a>生成封闭式泛型类型</h3><p><code>MakeGenericType</code> 方法来创建封闭式泛型类型;<br><code>MakeGenericMethod</code> 方法来为封闭式泛型方法创建 <code>MethodInfo</code>;</p>
+<p>开放式泛型类型或方法（非泛型类型或方法定义），不能创建它的实例，也不能提供缺少的类型形参。</p>
+<p><code>GetGenericTypeDefinition</code> 方法来获取泛型类型定义;<br><code>GetGenericMethodDefinition</code> 方法来获取泛型方法定义。</p>
+<p>例如，如果你有一个表示 <code>Type</code> 的 <code>Dictionary&lt;int, string&gt;</code> 对象且想创建类型 <code>Dictionary&lt;string, MyClass&gt;</code>，则可以使用 <code>GetGenericTypeDefinition</code> 方法来获取表示 <code>Type</code> 的 <code>Dictionary&lt;TKey, TValue&gt;</code> ，然后使用 <code>MakeGenericType</code> 方法来生成表示 <code>Type</code> 的 <code>Dictionary&lt;int, MyClass&gt;</code>。</p>
+<h3 id="检查类型实参和类型形参"><a href="#检查类型实参和类型形参" class="headerlink" title="检查类型实参和类型形参"></a>检查类型实参和类型形参</h3><p><code>Type.GetGenericArguments</code> 方法来获取 <code>Type</code> 对象的数组（表示泛型类型的类型形参或类型实参）; <code>MethodInfo.GetGenericArguments</code> 方法为泛型方法获取 <code>MethodInfo</code>（表示泛型类型的类型形参或类型实参）。如果元素是类型形参，则 <code>IsGenericParameter</code> 属性为 <code>true</code> 。</p>
+<h2 id="如何使用反射"><a href="#如何使用反射" class="headerlink" title="如何使用反射"></a>如何使用反射</h2><p>参考：<a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/framework/reflection-and-codedom/how-to-examine-and-instantiate-generic-types-with-reflection">如何：使用反射检查和实例化泛型类型</a></p>
+<p>获取泛型类型信息的方式与获取其他类型信息的方式相同：检查表示泛型类型的 Type 对象。 主要的差异在于，泛型类型具有表示其泛型类型参数的 Type 对象列表。</p>
+<h3 id="检查泛型类型和类型参数"><a href="#检查泛型类型和类型参数" class="headerlink" title="检查泛型类型和类型参数"></a>检查泛型类型和类型参数</h3><p>范例：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] <span class="keyword">args</span></span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 1,获取表示泛型类型的 Type 实例</span></span><br><span class="line">    Type t = <span class="keyword">typeof</span>(Dictionary&lt;,&gt;);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 2, 使用 IsGenericType 属性确定类型是否为泛型，</span></span><br><span class="line">    <span class="comment">// 然后使用 IsGenericTypeDefinition 属性确定类型是否为泛型类型定义。</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;   Is this a generic type? &#123;0&#125;&quot;</span>,</span><br><span class="line">        t.IsGenericType);</span><br><span class="line">    Console.WriteLine(<span class="string">&quot;   Is this a generic type definition? &#123;0&#125;&quot;</span>,</span><br><span class="line">        t.IsGenericTypeDefinition);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 3,使用 GetGenericArguments 方法获取包含泛型类型参数的数组。</span></span><br><span class="line">    Type[] typeParameters = t.GetGenericArguments();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 4,使用 IsGenericParameter 属性确定它是类型形参（例如，在泛型类型定义中），</span></span><br><span class="line">    <span class="comment">// 还是为类型形参指定的类型（例如，在构造类型中）</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;   List &#123;0&#125; type arguments:&quot;</span>,</span><br><span class="line">        typeParameters.Length);</span><br><span class="line">    <span class="keyword">foreach</span> (Type tParam <span class="keyword">in</span> typeParameters)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (tParam.IsGenericParameter)</span><br><span class="line">        &#123;</span><br><span class="line">            DisplayGenericParameter(tParam);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span></span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;      Type argument: &#123;0&#125;&quot;</span>,</span><br><span class="line">                tParam);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    Console.ReadKey();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">DisplayGenericParameter</span>(<span class="params">Type tp</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 5,表示泛型类型参数的 Type 对象的名称和参数位置。</span></span><br><span class="line">    Console.WriteLine(<span class="string">&quot;      Type parameter: &#123;0&#125; position &#123;1&#125;&quot;</span>,</span><br><span class="line">        tp.Name, tp.GenericParameterPosition);</span><br><span class="line"></span><br><span class="line">    Type classConstraint = <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 6,GetGenericParameterConstraints 方法获取单个数组中的所有约束，</span></span><br><span class="line">    <span class="comment">// 确定泛型类型参数的基类型约束和接口约束。无序</span></span><br><span class="line">    <span class="keyword">foreach</span> (Type iConstraint <span class="keyword">in</span> tp.GetGenericParameterConstraints())</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (iConstraint.IsInterface)</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;         Interface constraint: &#123;0&#125;&quot;</span>,</span><br><span class="line">                iConstraint);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (classConstraint != <span class="literal">null</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;         Base type constraint: &#123;0&#125;&quot;</span>,</span><br><span class="line">            tp.BaseType);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        Console.WriteLine(<span class="string">&quot;         Base type constraint: None&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 7, GenericParameterAttributes 属性发现类型参数的特殊约束</span></span><br><span class="line">    GenericParameterAttributes sConstraints =</span><br><span class="line">        tp.GenericParameterAttributes &amp;</span><br><span class="line">        GenericParameterAttributes.SpecialConstraintMask;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (sConstraints == GenericParameterAttributes.None)</span><br><span class="line">    &#123;</span><br><span class="line">        Console.WriteLine(<span class="string">&quot;         No special constraints.&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (GenericParameterAttributes.None != (sConstraints &amp;</span><br><span class="line">                                                GenericParameterAttributes.DefaultConstructorConstraint))</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;         Must have a parameterless constructor.&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (GenericParameterAttributes.None != (sConstraints &amp;</span><br><span class="line">                                                GenericParameterAttributes.ReferenceTypeConstraint))</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;         Must be a reference type.&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (GenericParameterAttributes.None != (sConstraints &amp;</span><br><span class="line">                                                GenericParameterAttributes.NotNullableValueTypeConstraint))</span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;         Must be a non-nullable value type.&quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="构造泛型类型的实例"><a href="#构造泛型类型的实例" class="headerlink" title="构造泛型类型的实例"></a>构造泛型类型的实例</h3><p>需要指定其泛型类型参数的实际类型，否则不能创建泛型类型的实例。使用 <code>MakeGenericType</code>方法。</p>
+<p>实例：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Collections.Generic;</span><br><span class="line"><span class="keyword">using</span> System.Reflection;</span><br><span class="line"><span class="keyword">using</span> System.Security.Permissions;</span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">ConsoleApp1</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// Define an example interface.</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">interface</span> <span class="title">ITestArgument</span> &#123; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Define an example base class.</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">class</span> <span class="title">TestBase</span> &#123; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Define a generic class with one parameter. The parameter</span></span><br><span class="line">    <span class="comment">// has three constraints: It must inherit TestBase, it must</span></span><br><span class="line">    <span class="comment">// implement ITestArgument, and it must have a parameterless</span></span><br><span class="line">    <span class="comment">// constructor.</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Test</span>&lt;<span class="title">T</span>&gt; <span class="keyword">where</span> <span class="title">T</span> : <span class="title">TestBase</span>, <span class="title">ITestArgument</span>, <span class="title">new</span>() &#123; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Define a class that meets the constraints on the type</span></span><br><span class="line">    <span class="comment">// parameter of class Test.</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">class</span> <span class="title">TestArgument</span> : <span class="title">TestBase</span>, <span class="title">ITestArgument</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="title">TestArgument</span>()</span></span><br><span class="line">        &#123;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Example</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// The following method displays information about a generic</span></span><br><span class="line">        <span class="comment">// type.</span></span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">DisplayGenericType</span>(<span class="params">Type t</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;\r\n &#123;0&#125;&quot;</span>, t);</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;   Is this a generic type? &#123;0&#125;&quot;</span>,</span><br><span class="line">                t.IsGenericType);</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;   Is this a generic type definition? &#123;0&#125;&quot;</span>,</span><br><span class="line">                t.IsGenericTypeDefinition);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// Get the generic type parameters or type arguments.</span></span><br><span class="line">            Type[] typeParameters = t.GetGenericArguments();</span><br><span class="line"></span><br><span class="line">            Console.WriteLine(<span class="string">&quot;   List &#123;0&#125; type arguments:&quot;</span>,</span><br><span class="line">                typeParameters.Length);</span><br><span class="line">            <span class="keyword">foreach</span> (Type tParam <span class="keyword">in</span> typeParameters)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">if</span> (tParam.IsGenericParameter)</span><br><span class="line">                &#123;</span><br><span class="line">                    DisplayGenericParameter(tParam);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">else</span></span><br><span class="line">                &#123;</span><br><span class="line">                    Console.WriteLine(<span class="string">&quot;      Type argument: &#123;0&#125;&quot;</span>,</span><br><span class="line">                        tParam);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// The following method displays information about a generic</span></span><br><span class="line">        <span class="comment">// type parameter. Generic type parameters are represented by</span></span><br><span class="line">        <span class="comment">// instances of System.Type, just like ordinary types.</span></span><br><span class="line">        <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">DisplayGenericParameter</span>(<span class="params">Type tp</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;      Type parameter: &#123;0&#125; position &#123;1&#125;&quot;</span>,</span><br><span class="line">                tp.Name, tp.GenericParameterPosition);</span><br><span class="line"></span><br><span class="line">            Type classConstraint = <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">foreach</span> (Type iConstraint <span class="keyword">in</span> tp.GetGenericParameterConstraints())</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">if</span> (iConstraint.IsInterface)</span><br><span class="line">                &#123;</span><br><span class="line">                    Console.WriteLine(<span class="string">&quot;         Interface constraint: &#123;0&#125;&quot;</span>,</span><br><span class="line">                        iConstraint);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (classConstraint != <span class="literal">null</span>)</span><br><span class="line">            &#123;</span><br><span class="line">                Console.WriteLine(<span class="string">&quot;         Base type constraint: &#123;0&#125;&quot;</span>,</span><br><span class="line">                    tp.BaseType);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">else</span></span><br><span class="line">                Console.WriteLine(<span class="string">&quot;         Base type constraint: None&quot;</span>);</span><br><span class="line"></span><br><span class="line">            GenericParameterAttributes sConstraints =</span><br><span class="line">                tp.GenericParameterAttributes &amp;</span><br><span class="line">                GenericParameterAttributes.SpecialConstraintMask;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (sConstraints == GenericParameterAttributes.None)</span><br><span class="line">            &#123;</span><br><span class="line">                Console.WriteLine(<span class="string">&quot;         No special constraints.&quot;</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">else</span></span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">if</span> (GenericParameterAttributes.None != (sConstraints &amp;</span><br><span class="line">                    GenericParameterAttributes.DefaultConstructorConstraint))</span><br><span class="line">                &#123;</span><br><span class="line">                    Console.WriteLine(<span class="string">&quot;         Must have a parameterless constructor.&quot;</span>);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">if</span> (GenericParameterAttributes.None != (sConstraints &amp;</span><br><span class="line">                    GenericParameterAttributes.ReferenceTypeConstraint))</span><br><span class="line">                &#123;</span><br><span class="line">                    Console.WriteLine(<span class="string">&quot;         Must be a reference type.&quot;</span>);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">if</span> (GenericParameterAttributes.None != (sConstraints &amp;</span><br><span class="line">                    GenericParameterAttributes.NotNullableValueTypeConstraint))</span><br><span class="line">                &#123;</span><br><span class="line">                    Console.WriteLine(<span class="string">&quot;         Must be a non-nullable value type.&quot;</span>);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        [<span class="meta">PermissionSet(SecurityAction.Demand, Name = <span class="string">&quot;FullTrust&quot;</span>)</span>]</span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>()</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="comment">// Two ways to get a Type object that represents the generic</span></span><br><span class="line">            <span class="comment">// type definition of the Dictionary class.</span></span><br><span class="line">            <span class="comment">//</span></span><br><span class="line">            <span class="comment">// Use the typeof operator to create the generic type</span></span><br><span class="line">            <span class="comment">// definition directly. To specify the generic type definition,</span></span><br><span class="line">            <span class="comment">// omit the type arguments but retain the comma that separates</span></span><br><span class="line">            <span class="comment">// them.</span></span><br><span class="line">            Type d1 = <span class="keyword">typeof</span>(Dictionary&lt;,&gt;);</span><br><span class="line"></span><br><span class="line">            <span class="comment">// You can also obtain the generic type definition from a</span></span><br><span class="line">            <span class="comment">// constructed class. In this case, the constructed class</span></span><br><span class="line">            <span class="comment">// is a dictionary of Example objects, with String keys.</span></span><br><span class="line">            Dictionary&lt;<span class="built_in">string</span>, Example&gt; d2 = <span class="keyword">new</span> Dictionary&lt;<span class="built_in">string</span>, Example&gt;();</span><br><span class="line">            <span class="comment">// Get a Type object that represents the constructed type,</span></span><br><span class="line">            <span class="comment">// and from that get the generic type definition. The</span></span><br><span class="line">            <span class="comment">// variables d1 and d4 contain the same type.</span></span><br><span class="line">            Type d3 = d2.GetType();</span><br><span class="line">            Type d4 = d3.GetGenericTypeDefinition();</span><br><span class="line"></span><br><span class="line">            <span class="comment">// Display information for the generic type definition, and</span></span><br><span class="line">            <span class="comment">// for the constructed type Dictionary&lt;String, Example&gt;.</span></span><br><span class="line">            DisplayGenericType(d1);</span><br><span class="line">            DisplayGenericType(d2.GetType());</span><br><span class="line"></span><br><span class="line">            <span class="comment">// Construct an array of type arguments to substitute for</span></span><br><span class="line">            <span class="comment">// the type parameters of the generic Dictionary class.</span></span><br><span class="line">            <span class="comment">// The array must contain the correct number of types, in</span></span><br><span class="line">            <span class="comment">// the same order that they appear in the type parameter</span></span><br><span class="line">            <span class="comment">// list of Dictionary. The key (first type parameter)</span></span><br><span class="line">            <span class="comment">// is of type string, and the type to be contained in the</span></span><br><span class="line">            <span class="comment">// dictionary is Example.</span></span><br><span class="line">            Type[] typeArgs = &#123; <span class="keyword">typeof</span>(<span class="built_in">string</span>), <span class="keyword">typeof</span>(Example) &#125;;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// Construct the type Dictionary&lt;String, Example&gt;.</span></span><br><span class="line">            Type constructed = d1.MakeGenericType(typeArgs);</span><br><span class="line"></span><br><span class="line">            DisplayGenericType(constructed);</span><br><span class="line"></span><br><span class="line">            <span class="built_in">object</span> o = Activator.CreateInstance(constructed);</span><br><span class="line"></span><br><span class="line">            Console.WriteLine(<span class="string">&quot;\r\nCompare types obtained by different methods:&quot;</span>);</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;   Are the constructed types equal? &#123;0&#125;&quot;</span>,</span><br><span class="line">                (d2.GetType() == constructed));</span><br><span class="line">            Console.WriteLine(<span class="string">&quot;   Are the generic definitions equal? &#123;0&#125;&quot;</span>,</span><br><span class="line">                (d1 == constructed.GetGenericTypeDefinition()));</span><br><span class="line"></span><br><span class="line">            <span class="comment">// Demonstrate the DisplayGenericType and</span></span><br><span class="line">            <span class="comment">// DisplayGenericParameter methods with the Test class</span></span><br><span class="line">            <span class="comment">// defined above. This shows base, interface, and special</span></span><br><span class="line">            <span class="comment">// constraints.</span></span><br><span class="line">            DisplayGenericType(<span class="keyword">typeof</span>(Test&lt;&gt;));</span><br><span class="line"></span><br><span class="line">            Console.ReadKey();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/csharp/programming-guide/concepts/reflection">反射 (C#)</a></p>
+<p><a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/framework/reflection-and-codedom/reflection">.NET Framework 中的反射</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/yaozhenfa/p/CSharp_Reflection_1.html">C#之玩转反射</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.codeisbug.com/Ask/11/1041">C#反射用法，入门到精通</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/DotNet/" rel="tag"># DotNet</a>
+              <a href="/tags/CSharp/" rel="tag"># CSharp</a>
+              <a href="/tags/CSharp%E5%9F%BA%E7%A1%80/" rel="tag"># CSharp基础</a>
+              <a href="/tags/%E5%8F%8D%E5%B0%84/" rel="tag"># 反射</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2019/01/10/CSharp%E5%9F%BA%E7%A1%80-SOLID%E5%8E%9F%E5%88%99/" rel="prev" title="CSharp基础-SOLID原则">
+                  <i class="fa fa-angle-left"></i> CSharp基础-SOLID原则
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2019/01/12/CSharp%E5%9F%BA%E7%A1%80-%E8%AE%A4%E8%AF%86%E5%8F%8D%E5%B0%84-%E4%B8%AD/" rel="next" title="CSharp基础-认识反射-中">
+                  CSharp基础-认识反射-中 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">2.1m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">31:31</span>
+  </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

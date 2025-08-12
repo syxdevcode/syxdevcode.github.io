@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 5.4.2">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"syxdevcode.github.com","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.24.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="修改配置文件前提：  1，两台服务器都需要添加一个用户数据同步的帐号。  2，端口，策略，数据库远程等互通。 3，主库备份后，从库需要还原备份文件。  配置以下两台服务器互为主从。 配置：vim &#x2F;usr&#x2F;local&#x2F;mysql&#x2F;my.cnf 主1服务器配置： 123456auto_increment_increment&#x3D;2         #步进值 auto_imcrement。一般有n台主My">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Mysql5.7.X 双主复制">
+<meta property="og:url" content="https://syxdevcode.github.com/2020/12/29/Mysql5-7-X-%E5%8F%8C%E4%B8%BB%E5%A4%8D%E5%88%B6/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="修改配置文件前提：  1，两台服务器都需要添加一个用户数据同步的帐号。  2，端口，策略，数据库远程等互通。 3，主库备份后，从库需要还原备份文件。  配置以下两台服务器互为主从。 配置：vim &#x2F;usr&#x2F;local&#x2F;mysql&#x2F;my.cnf 主1服务器配置： 123456auto_increment_increment&#x3D;2         #步进值 auto_imcrement。一般有n台主My">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-12-29T08:57:53.000Z">
+<meta property="article:modified_time" content="2025-08-12T08:31:55.607Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="Linux">
+<meta property="article:tag" content="CentOS7">
+<meta property="article:tag" content="安装部署">
+<meta property="article:tag" content="MySql">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://syxdevcode.github.com/2020/12/29/Mysql5-7-X-%E5%8F%8C%E4%B8%BB%E5%A4%8D%E5%88%B6/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://syxdevcode.github.com/2020/12/29/Mysql5-7-X-%E5%8F%8C%E4%B8%BB%E5%A4%8D%E5%88%B6/","path":"2020/12/29/Mysql5-7-X-双主复制/","title":"Mysql5.7.X 双主复制"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Mysql5.7.X 双主复制 | syxdevcode博客</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">syxdevcode博客</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BF%AE%E6%94%B9%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6"><span class="nav-number">1.</span> <span class="nav-text">修改配置文件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E4%B8%BB%E4%BB%8E"><span class="nav-number">2.</span> <span class="nav-text">配置主从</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description">syxdevcode的个人博客</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">619</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">157</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">241</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/12/29/Mysql5-7-X-%E5%8F%8C%E4%B8%BB%E5%A4%8D%E5%88%B6/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Mysql5.7.X 双主复制 | syxdevcode博客">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Mysql5.7.X 双主复制
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2020-12-29 16:57:53" itemprop="dateCreated datePublished" datetime="2020-12-29T16:57:53+08:00">2020-12-29</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2025-08-12 16:31:55" itemprop="dateModified" datetime="2025-08-12T16:31:55+08:00">2025-08-12</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/MySql/" itemprop="url" rel="index"><span itemprop="name">MySql</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>2.7k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>2 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="修改配置文件"><a href="#修改配置文件" class="headerlink" title="修改配置文件"></a>修改配置文件</h2><p>前提：</p>
+<ul>
+<li>1，两台服务器都需要添加一个用户数据同步的帐号。 </li>
+<li>2，端口，策略，数据库远程等互通。</li>
+<li>3，主库备份后，从库需要还原备份文件。</li>
+</ul>
+<p>配置以下两台服务器互为主从。</p>
+<p>配置：<code>vim /usr/local/mysql/my.cnf</code></p>
+<p>主1服务器配置：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">auto_increment_increment=2         <span class="comment">#步进值 auto_imcrement。一般有n台主MySQL就填n</span></span><br><span class="line">auto_increment_offset=1            <span class="comment">#起始值。一般填第n台主MySQL。此时为第一台主MySQL</span></span><br><span class="line">binlog-ignore-db=mysql                <span class="comment">#忽略mysql库【可忽略不写】</span></span><br><span class="line">binlog-ignore-db=information_schema   <span class="comment">#忽略information_schema库【可忽略不写】</span></span><br><span class="line">binlog-ignore-db=performance_schema   <span class="comment">#忽略performance_schema库【可忽略不写】</span></span><br><span class="line">log-slave-updates=on</span><br></pre></td></tr></table></figure>
+
+<p>主2服务器配置：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">auto_increment_increment=2         <span class="comment">#步进值auto_imcrement。一般有n台主MySQL就填n</span></span><br><span class="line">auto_increment_offset=2            <span class="comment">#起始值。一般填第n台主MySQL。此时为第二台主MySQL</span></span><br><span class="line">binlog-ignore-db=mysql                <span class="comment">#忽略mysql库【可忽略不写】</span></span><br><span class="line">binlog-ignore-db=information_schema   <span class="comment">#忽略information_schema库【可忽略不写】</span></span><br><span class="line">binlog-ignore-db=performance_schema   <span class="comment">#忽略performance_schema库【可忽略不写】</span></span><br><span class="line">log-slave-updates=on</span><br></pre></td></tr></table></figure>
+
+<p>主1完整配置：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line">[mysql]</span><br><span class="line">socket=/var/lib/mysql/mysql.sock</span><br><span class="line"><span class="comment"># set mysql client default chararter</span></span><br><span class="line">default-character-set=utf8</span><br><span class="line"><span class="comment">#</span></span><br><span class="line">[mysqld]</span><br><span class="line">socket=/var/lib/mysql/mysql.sock</span><br><span class="line">bind-address=0.0.0.0</span><br><span class="line"><span class="comment"># set mysql server port  </span></span><br><span class="line">port = 3306 <span class="comment">#默认是3306，防止这种情况发生，可以避免使用3306mysql默认端口</span></span><br><span class="line"><span class="comment"># set mysql install base dir</span></span><br><span class="line">basedir=/usr/local/mysql</span><br><span class="line"><span class="comment"># set the data store dir</span></span><br><span class="line">datadir=/usr/local/mysql/data</span><br><span class="line"><span class="comment"># set the number of allow max connnection</span></span><br><span class="line">max_connections=200000</span><br><span class="line"><span class="comment"># set server charactre default encoding</span></span><br><span class="line">character-set-server=utf8</span><br><span class="line"><span class="comment"># the storage engine</span></span><br><span class="line">default-storage-engine=INNODB</span><br><span class="line"><span class="comment"># lower_case_table_names=1</span></span><br><span class="line">max_allowed_packet=16M</span><br><span class="line">explicit_defaults_for_timestamp=<span class="literal">true</span></span><br><span class="line"></span><br><span class="line">sql_mode=STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION</span><br><span class="line"></span><br><span class="line"><span class="comment"># 服务器唯一ID</span></span><br><span class="line">server-id=1</span><br><span class="line"></span><br><span class="line"><span class="comment"># 要生成二进制日志文件 主服务器一定要开启</span></span><br><span class="line">log-bin=/usr/local/mysql/binlogs/bin-log</span><br><span class="line"></span><br><span class="line">binlog_format=ROW</span><br><span class="line">expire_logs_days=7</span><br><span class="line">max_binlog_size=100M</span><br><span class="line">binlog_cache_size=4M</span><br><span class="line">max_binlog_cache_size=512M</span><br><span class="line"></span><br><span class="line">auto_increment_increment=2         </span><br><span class="line">auto_increment_offset=1            </span><br><span class="line">binlog-ignore-db=mysql             </span><br><span class="line">binlog-ignore-db=information_schema</span><br><span class="line">binlog-ignore-db=performance_schema</span><br><span class="line"></span><br><span class="line">log-slave-updates=on</span><br><span class="line"></span><br><span class="line"><span class="comment">#skip-grant-tables=1</span></span><br><span class="line"></span><br><span class="line">[mysql.server]</span><br><span class="line">user=mysql</span><br><span class="line">basedir=/usr/local/mysql</span><br></pre></td></tr></table></figure>
+
+<h2 id="配置主从"><a href="#配置主从" class="headerlink" title="配置主从"></a>配置主从</h2><p>互相配置主从服务器。</p>
+<p>主1服务器：192.123.75.68；<br>主2服务器：192.123.3.87；</p>
+<p>登陆到主1服务器，执行一下命令：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看 主 复制状态</span></span><br><span class="line">show master status \G</span><br><span class="line"></span><br><span class="line">change master to master_host=<span class="string">&#x27;192.123.3.87&#x27;</span>,</span><br><span class="line">master_port=3306,</span><br><span class="line">master_user=<span class="string">&#x27;slave&#x27;</span>,</span><br><span class="line">master_password=<span class="string">&#x27;123456&#x27;</span>,</span><br><span class="line">master_log_file=<span class="string">&#x27;bin-log.000005&#x27;</span>,</span><br><span class="line">master_log_pos=74562307;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 开始复制</span></span><br><span class="line">start slave;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看 从 复制状态</span></span><br><span class="line"><span class="comment"># 输出结果中应该看到 I/O 线程和 SQL 线程都是 YES, 就表示成功。</span></span><br><span class="line">show slave status \G</span><br><span class="line"></span><br><span class="line"><span class="comment"># 主服务器复制状态</span></span><br><span class="line">show master status\G</span><br></pre></td></tr></table></figure>
+
+<p>登陆到主2服务器，执行一下命令：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 查看 主 复制状态</span></span><br><span class="line">show master status \G</span><br><span class="line"></span><br><span class="line">change master to master_host=<span class="string">&#x27;192.123.75.68&#x27;</span>,</span><br><span class="line">master_port=3306,</span><br><span class="line">master_user=<span class="string">&#x27;slave&#x27;</span>,</span><br><span class="line">master_password=<span class="string">&#x27;123456&#x27;</span>,</span><br><span class="line">master_log_file=<span class="string">&#x27;bin-log.000005&#x27;</span>,</span><br><span class="line">master_log_pos=74562307;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 开始复制</span></span><br><span class="line">start slave;</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看 从 复制状态</span></span><br><span class="line"><span class="comment"># 输出结果中应该看到 I/O 线程和 SQL 线程都是 YES, 就表示成功。</span></span><br><span class="line">show slave status \G</span><br><span class="line"></span><br><span class="line"><span class="comment"># 主服务器复制状态</span></span><br><span class="line">show master status\G</span><br></pre></td></tr></table></figure>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Linux/" rel="tag"># Linux</a>
+              <a href="/tags/CentOS7/" rel="tag"># CentOS7</a>
+              <a href="/tags/%E5%AE%89%E8%A3%85%E9%83%A8%E7%BD%B2/" rel="tag"># 安装部署</a>
+              <a href="/tags/MySql/" rel="tag"># MySql</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2020/12/23/Appium%E8%87%AA%E5%8A%A8%E5%8C%96/" rel="prev" title="Appium自动化">
+                  <i class="fa fa-angle-left"></i> Appium自动化
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2020/12/30/Linux%E6%9F%A5%E7%9C%8Bgcc%E5%92%8Cglibc%E7%89%88%E6%9C%AC/" rel="next" title="Linux查看gcc和glibc版本">
+                  Linux查看gcc和glibc版本 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">2.1m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">31:31</span>
+  </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 5.4.2">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"syxdevcode.github.com","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.24.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="IQueryable和IQueryProvider接口IQueryable&lt;T&gt; 接口是 Linq to Provider的入口。 IQueryable接口在.NET中，IQueryable&lt;T&gt; 继承于 IEnumerable&lt;T&gt; , IEnumerable 和 IQueryable 接口 123456789101112public interface IQ">
+<meta property="og:type" content="article">
+<meta property="og:title" content="DotNet基础-自定义LINQ Provider">
+<meta property="og:url" content="https://syxdevcode.github.com/2019/01/07/DotNet%E5%9F%BA%E7%A1%80-%E8%87%AA%E5%AE%9A%E4%B9%89LINQ-Provider/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="IQueryable和IQueryProvider接口IQueryable&lt;T&gt; 接口是 Linq to Provider的入口。 IQueryable接口在.NET中，IQueryable&lt;T&gt; 继承于 IEnumerable&lt;T&gt; , IEnumerable 和 IQueryable 接口 123456789101112public interface IQ">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-01-07T07:12:23.000Z">
+<meta property="article:modified_time" content="2025-08-12T08:31:54.758Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="DotNet">
+<meta property="article:tag" content="CSharp">
+<meta property="article:tag" content="CSharp基础">
+<meta property="article:tag" content="LINQ">
+<meta property="article:tag" content="Expression Tree">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://syxdevcode.github.com/2019/01/07/DotNet%E5%9F%BA%E7%A1%80-%E8%87%AA%E5%AE%9A%E4%B9%89LINQ-Provider/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://syxdevcode.github.com/2019/01/07/DotNet%E5%9F%BA%E7%A1%80-%E8%87%AA%E5%AE%9A%E4%B9%89LINQ-Provider/","path":"2019/01/07/DotNet基础-自定义LINQ-Provider/","title":"DotNet基础-自定义LINQ Provider"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>DotNet基础-自定义LINQ Provider | syxdevcode博客</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">syxdevcode博客</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#IQueryable%E5%92%8CIQueryProvider%E6%8E%A5%E5%8F%A3"><span class="nav-number">1.</span> <span class="nav-text">IQueryable和IQueryProvider接口</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#IQueryable%E6%8E%A5%E5%8F%A3"><span class="nav-number">1.1.</span> <span class="nav-text">IQueryable接口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#IEnumerable%E6%8E%A5%E5%8F%A3"><span class="nav-number">1.2.</span> <span class="nav-text">IEnumerable接口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#IQueryProvider%E6%8E%A5%E5%8F%A3"><span class="nav-number">1.3.</span> <span class="nav-text">IQueryProvider接口</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%87%AA%E5%AE%9A%E4%B9%89Provider"><span class="nav-number">2.</span> <span class="nav-text">自定义Provider</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description">syxdevcode的个人博客</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">619</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">157</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">241</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/01/07/DotNet%E5%9F%BA%E7%A1%80-%E8%87%AA%E5%AE%9A%E4%B9%89LINQ-Provider/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="DotNet基础-自定义LINQ Provider | syxdevcode博客">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          DotNet基础-自定义LINQ Provider
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2019-01-07 15:12:23" itemprop="dateCreated datePublished" datetime="2019-01-07T15:12:23+08:00">2019-01-07</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2025-08-12 16:31:54" itemprop="dateModified" datetime="2025-08-12T16:31:54+08:00">2025-08-12</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/LINQ/" itemprop="url" rel="index"><span itemprop="name">LINQ</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>4.8k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>4 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="IQueryable和IQueryProvider接口"><a href="#IQueryable和IQueryProvider接口" class="headerlink" title="IQueryable和IQueryProvider接口"></a>IQueryable和IQueryProvider接口</h2><p><code>IQueryable&lt;T&gt;</code> 接口是 <code>Linq to Provider</code>的入口。</p>
+<h3 id="IQueryable接口"><a href="#IQueryable接口" class="headerlink" title="IQueryable接口"></a>IQueryable接口</h3><p>在.NET中，<code>IQueryable&lt;T&gt;</code> 继承于 <code>IEnumerable&lt;T&gt;</code> , <code>IEnumerable</code> 和 <code>IQueryable</code> 接口</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title">IQueryable</span>&lt;<span class="keyword">out</span> <span class="title">T</span>&gt; : <span class="title">IEnumerable</span>&lt;<span class="title">T</span>&gt;, <span class="title">IEnumerable</span>, <span class="title">IQueryable</span></span><br><span class="line">&#123;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title">IQueryable</span> : <span class="title">IEnumerable</span></span><br><span class="line">&#123;</span><br><span class="line">  Expression Expression &#123; [__DynamicallyInvokable] <span class="keyword">get</span>; &#125;</span><br><span class="line"></span><br><span class="line">  Type ElementType &#123; [__DynamicallyInvokable] <span class="keyword">get</span>; &#125;</span><br><span class="line"></span><br><span class="line">  IQueryProvider Provider &#123; [__DynamicallyInvokable] <span class="keyword">get</span>; &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>ElementType ：当前Query所对应的类型</li>
+<li>Expression ：获取与 <code>IQueryable</code> 的实例关联的表达式树</li>
+<li>Provider：获取与此数据源关联的查询提供程序</li>
+</ul>
+<p>我们所有定义在查询表达式中方法调用或者Lambda表达式都将由该Expression属性表示，最终会由Provider表示的提供程序翻译为它所对应的数据源的查询语言。</p>
+<p><code>IQueryable</code> 扩展方法传入的是 <code>Expression</code> 类型</p>
+<h3 id="IEnumerable接口"><a href="#IEnumerable接口" class="headerlink" title="IEnumerable接口"></a>IEnumerable接口</h3><p><code>IEnumrable</code> 扩展方法传入的是委托。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title">IEnumerable</span>&lt;<span class="keyword">out</span> <span class="title">T</span>&gt; : <span class="title">IEnumerable</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="function">IEnumerator&lt;T&gt; <span class="title">GetEnumerator</span>()</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title">IEnumerable</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="function">IEnumerator <span class="title">GetEnumerator</span>()</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="IQueryProvider接口"><a href="#IQueryProvider接口" class="headerlink" title="IQueryProvider接口"></a>IQueryProvider接口</h3><figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title">IQueryProvider</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="function">IQueryable <span class="title">CreateQuery</span>(<span class="params">Expression expression</span>)</span>;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="title">IQueryable</span>&lt;<span class="title">TElement</span>&gt; <span class="title">CreateQuery</span>&lt;<span class="title">TElement</span>&gt;(<span class="params">Expression expression</span>)</span>;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="built_in">object</span> <span class="title">Execute</span>(<span class="params">Expression expression</span>)</span>;</span><br><span class="line"></span><br><span class="line">  <span class="function">TResult <span class="title">Execute</span>&lt;<span class="title">TResult</span>&gt;(<span class="params">Expression expression</span>)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>Provider</code> 负责执行表达式目录树并返回结果。如果是 <code>LINQ to SQL</code> 的 <code>Provider</code> ，则它会负责把表达式目录树翻译为T-SQL语句并并传递给数据库服务器，并返回最后的执行的结果；如果是一个 <code>Web Service</code> 的 <code>Provider</code>，则它会负责翻译表达式目录树并调用 <code>Web Service</code>，最终返回结果。</p>
+<h2 id="自定义Provider"><a href="#自定义Provider" class="headerlink" title="自定义Provider"></a>自定义Provider</h2><p>首先，实现一个 <code>Query&lt;T&gt;</code> 类，它实现 <code>IQueryable&lt;T&gt;</code> 接口,提供了一个 <code>IQueryProvider</code> 和 <code>Expression</code> 属性。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">Query</span>&lt;<span class="title">T</span>&gt; : <span class="title">IQueryable</span>&lt;<span class="title">T</span>&gt;, <span class="title">IQueryable</span>, <span class="title">IEnumerable</span>&lt;<span class="title">T</span>&gt;, <span class="title">IEnumerable</span>, <span class="title">IOrderedQueryable</span>&lt;<span class="title">T</span>&gt;, <span class="title">IOrderedQueryable</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">readonly</span> QueryProvider provider;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">readonly</span> Expression expression;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Query</span>(<span class="params">QueryProvider provider</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">this</span>.provider = provider ?? <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentNullException(<span class="keyword">nameof</span>(provider));</span><br><span class="line"></span><br><span class="line">        <span class="keyword">this</span>.expression = Expression.Constant(<span class="keyword">this</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">Query</span>(<span class="params">QueryProvider provider, Expression expression</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (expression == <span class="literal">null</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentNullException(<span class="keyword">nameof</span>(expression));</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (!<span class="keyword">typeof</span>(IQueryable&lt;T&gt;).IsAssignableFrom(expression.Type))</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentOutOfRangeException(<span class="keyword">nameof</span>(expression));</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">this</span>.provider = provider ?? <span class="keyword">throw</span> <span class="keyword">new</span> ArgumentNullException(<span class="keyword">nameof</span>(provider));</span><br><span class="line"></span><br><span class="line">        <span class="keyword">this</span>.expression = expression;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    Expression IQueryable.Expression =&gt; <span class="keyword">this</span>.expression;</span><br><span class="line"></span><br><span class="line">    Type IQueryable.ElementType =&gt; <span class="keyword">typeof</span>(T);</span><br><span class="line"></span><br><span class="line">    IQueryProvider IQueryable.Provider =&gt; <span class="keyword">this</span>.provider;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> IEnumerator&lt;T&gt; <span class="title">GetEnumerator</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> ((IEnumerable&lt;T&gt;)<span class="keyword">this</span>.provider.Execute(<span class="keyword">this</span>.expression)).GetEnumerator();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    IEnumerator IEnumerable.GetEnumerator()</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> ((IEnumerable)<span class="keyword">this</span>.provider.Execute(<span class="keyword">this</span>.expression)).GetEnumerator();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> <span class="built_in">string</span> <span class="title">ToString</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.provider.GetQueryText(<span class="keyword">this</span>.expression);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后，定义一个抽象类 <code>QueryProvider</code>，它将会实现 <code>IQueryProvider</code> 接口，包括 <code>CreateQuery</code> 和 <code>Execute</code>方法（都包含泛型方法）。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="keyword">class</span> <span class="title">QueryProvider</span> : <span class="title">IQueryProvider</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">protected</span> <span class="title">QueryProvider</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    IQueryable&lt;S&gt; IQueryProvider.CreateQuery&lt;S&gt;(Expression expression)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> Query&lt;S&gt;(<span class="keyword">this</span>, expression);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    IQueryable IQueryProvider.CreateQuery(Expression expression)</span><br><span class="line">    &#123;</span><br><span class="line">        Type elementType = TypeSystem.GetElementType(expression.Type);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> (IQueryable)Activator.CreateInstance(<span class="keyword">typeof</span>(Query&lt;&gt;).MakeGenericType(elementType), <span class="keyword">new</span> <span class="built_in">object</span>[] &#123; <span class="keyword">this</span>, expression &#125;);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">catch</span> (TargetInvocationException tie)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">throw</span> tie.InnerException;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    S IQueryProvider.Execute&lt;S&gt;(Expression expression)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> (S)<span class="keyword">this</span>.Execute(expression);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">object</span> IQueryProvider.Execute(Expression expression)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>.Execute(expression);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="built_in">string</span> <span class="title">GetQueryText</span>(<span class="params">Expression expression</span>)</span>;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="built_in">object</span> <span class="title">Execute</span>(<span class="params">Expression expression</span>)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>最后定义一个具体 <code>Provider</code>，继承自抽象类 <code>QueryProvider</code>；</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">CnblogsQueryProvider</span> : <span class="title">QueryProvider</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> String <span class="title">GetQueryText</span>(<span class="params">Expression expression</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        SearchCriteria criteria;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 翻译查询条件</span></span><br><span class="line">        criteria = <span class="keyword">new</span> PostExpressionVisitor().ProcessExpression(expression);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 生成URL</span></span><br><span class="line">        String url = PostHelper.BuildUrl(criteria);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> url;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> <span class="built_in">object</span> <span class="title">Execute</span>(<span class="params">Expression expression</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        String url = GetQueryText(expression);</span><br><span class="line">        IEnumerable&lt;Post&gt; results = PostHelper.PerformWebQuery(url);</span><br><span class="line">        <span class="keyword">return</span> results;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>调用：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] <span class="keyword">args</span></span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">var</span> provider = <span class="keyword">new</span> CnblogsQueryProvider();</span><br><span class="line">    <span class="keyword">var</span> queryable = <span class="keyword">new</span> Query&lt;Post&gt;(provider);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> query =</span><br><span class="line">        <span class="keyword">from</span> p <span class="keyword">in</span> queryable</span><br><span class="line">        <span class="keyword">where</span> p.Diggs &gt;= <span class="number">10</span> &amp;&amp;</span><br><span class="line">              p.Comments &gt; <span class="number">10</span> &amp;&amp;</span><br><span class="line">              p.Views &gt; <span class="number">10</span> &amp;&amp;</span><br><span class="line">              p.Comments &lt; <span class="number">20</span></span><br><span class="line">        <span class="keyword">select</span> p;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">var</span> list = query.ToList();</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    Console.ReadLine();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>源码：<a target="_blank" rel="noopener" href="https://github.com/syxdevcode/LinqToCnBlogs">https://github.com/syxdevcode/LinqToCnBlogs</a></p>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/Terrylee/archive/2008/08/25/custom-linq-provider-part-2-IQueryable-IQueryProvider.html">打造自己的LINQ Provider（中）：IQueryable和IQueryProvider</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/jesse2013/p/expressiontree-Linq-to-cnblogs.html">由浅入深表达式树（完结篇）重磅打造 Linq To 博客园</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/Terrylee/archive/2008/08/25/custom-linq-provider-part-2-IQueryable-IQueryProvider.html">打造自己的LINQ Provider（中）：IQueryable和IQueryProvider</a></p>
+<p><a target="_blank" rel="noopener" href="https://blogs.msdn.microsoft.com/mattwar/2007/07/30/linq-building-an-iqueryable-provider-part-i/">LINQ: Building an IQueryable Provider – Part I</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/DotNet/" rel="tag"># DotNet</a>
+              <a href="/tags/CSharp/" rel="tag"># CSharp</a>
+              <a href="/tags/CSharp%E5%9F%BA%E7%A1%80/" rel="tag"># CSharp基础</a>
+              <a href="/tags/LINQ/" rel="tag"># LINQ</a>
+              <a href="/tags/Expression-Tree/" rel="tag"># Expression Tree</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2019/01/04/CSharp%E5%9F%BA%E7%A1%80-%E9%81%8D%E5%8E%86-%E4%BF%AE%E6%94%B9%E8%A1%A8%E8%BE%BE%E5%BC%8F%E6%A0%91/" rel="prev" title="CSharp基础-遍历&#x2F;修改表达式树">
+                  <i class="fa fa-angle-left"></i> CSharp基础-遍历/修改表达式树
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2019/01/10/CSharp%E5%9F%BA%E7%A1%80-SOLID%E5%8E%9F%E5%88%99/" rel="next" title="CSharp基础-SOLID原则">
+                  CSharp基础-SOLID原则 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">2.1m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">31:31</span>
+  </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

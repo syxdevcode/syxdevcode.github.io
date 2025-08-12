@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 5.4.2">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"syxdevcode.github.com","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.24.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="从文件读取流和向文件写入流，需要用到 C++ 中另一个标准库 fstream。  ofstream ：该数据类型表示输出文件流，用于创建文件并向文件写入信息。 ifstream ：该数据类型表示输入文件流，用于从文件读取信息。 fstream ：该数据类型通常表示文件流，且同时具有 ofstream 和 ifstream 两种功能，这意味着它可以创建文件，向文件写入信息，从文件读取信息。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CPP-文件和流">
+<meta property="og:url" content="https://syxdevcode.github.com/2021/07/02/CPP-%E6%96%87%E4%BB%B6%E5%92%8C%E6%B5%81/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="从文件读取流和向文件写入流，需要用到 C++ 中另一个标准库 fstream。  ofstream ：该数据类型表示输出文件流，用于创建文件并向文件写入信息。 ifstream ：该数据类型表示输入文件流，用于从文件读取信息。 fstream ：该数据类型通常表示文件流，且同时具有 ofstream 和 ifstream 两种功能，这意味着它可以创建文件，向文件写入信息，从文件读取信息。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-07-02T09:00:09.000Z">
+<meta property="article:modified_time" content="2025-08-12T08:31:53.959Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="VSCode">
+<meta property="article:tag" content="MingGW64">
+<meta property="article:tag" content="CPP">
+<meta property="article:tag" content="CPP面向对象">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://syxdevcode.github.com/2021/07/02/CPP-%E6%96%87%E4%BB%B6%E5%92%8C%E6%B5%81/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://syxdevcode.github.com/2021/07/02/CPP-%E6%96%87%E4%BB%B6%E5%92%8C%E6%B5%81/","path":"2021/07/02/CPP-文件和流/","title":"CPP-文件和流"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>CPP-文件和流 | syxdevcode博客</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">syxdevcode博客</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%89%93%E5%BC%80%E6%96%87%E4%BB%B6"><span class="nav-number">1.</span> <span class="nav-text">打开文件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B3%E9%97%AD%E6%96%87%E4%BB%B6"><span class="nav-number">2.</span> <span class="nav-text">关闭文件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%86%99%E5%85%A5%E6%96%87%E4%BB%B6"><span class="nav-number">3.</span> <span class="nav-text">写入文件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AF%BB%E5%8F%96%E6%96%87%E4%BB%B6"><span class="nav-number">4.</span> <span class="nav-text">读取文件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AF%BB%E5%8F%96%E4%B8%8E%E5%86%99%E5%85%A5%E5%AE%9E%E4%BE%8B"><span class="nav-number">5.</span> <span class="nav-text">读取与写入实例</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%96%87%E4%BB%B6%E4%BD%8D%E7%BD%AE%E6%8C%87%E9%92%88"><span class="nav-number">6.</span> <span class="nav-text">文件位置指针</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description">syxdevcode的个人博客</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">619</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">157</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">241</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2021/07/02/CPP-%E6%96%87%E4%BB%B6%E5%92%8C%E6%B5%81/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="CPP-文件和流 | syxdevcode博客">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          CPP-文件和流
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2021-07-02 17:00:09" itemprop="dateCreated datePublished" datetime="2021-07-02T17:00:09+08:00">2021-07-02</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2025-08-12 16:31:53" itemprop="dateModified" datetime="2025-08-12T16:31:53+08:00">2025-08-12</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/CPP/" itemprop="url" rel="index"><span itemprop="name">CPP</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>2.5k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>2 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>从文件读取流和向文件写入流，需要用到 C++ 中另一个标准库 <code>fstream</code>。</p>
+<ul>
+<li><strong>ofstream</strong> ：该数据类型表示输出文件流，用于创建文件并向文件写入信息。</li>
+<li><strong>ifstream</strong> ：该数据类型表示输入文件流，用于从文件读取信息。</li>
+<li><strong>fstream</strong> ：该数据类型通常表示文件流，且同时具有 <code>ofstream</code> 和 <code>ifstream</code> 两种功能，这意味着它可以创建文件，向文件写入信息，从文件读取信息。</li>
+</ul>
+<span id="more"></span>
+
+<h2 id="打开文件"><a href="#打开文件" class="headerlink" title="打开文件"></a>打开文件</h2><p>open() 函数的标准语法：</p>
+<p>第一参数指定要打开的文件的名称和位置，第二个参数定义文件被打开的模式。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">open</span><span class="params">(<span class="type">const</span> <span class="type">char</span> *filename, ios::openmode mode)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>模式标志描述：</p>
+<p><code>ios::app</code> ：追加模式。所有写入都追加到文件末尾。<br><code>ios::ate</code> ：文件打开后定位到文件末尾。<br><code>ios::in</code> ：打开文件用于读取。<br><code>ios::out</code> ：打开文件用于写入。<br><code>ios::trunc</code> ：如果该文件已经存在，其内容将在打开文件之前被截断，即把文件长度设为 0。</p>
+<p>可以把以上两种或两种以上的模式结合使用。例如，如果想要以写入模式打开文件，并希望截断文件，以防文件已存在，可以使用下面的语法：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ofstream outfile;</span><br><span class="line">outfile.<span class="built_in">open</span>(<span class="string">&quot;file.dat&quot;</span>, ios::out | ios::trunc );</span><br></pre></td></tr></table></figure>
+
+<p>打开一个文件用于读写：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ifstream  afile;</span><br><span class="line">afile.<span class="built_in">open</span>(<span class="string">&quot;file.dat&quot;</span>, ios::out | ios::in );</span><br></pre></td></tr></table></figure>
+
+<h2 id="关闭文件"><a href="#关闭文件" class="headerlink" title="关闭文件"></a>关闭文件</h2><p>当 C++ 程序终止时，它会自动关闭刷新所有流，释放所有分配的内存，并关闭所有打开的文件。但程序员应该养成一个好习惯，在程序终止前关闭所有打开的文件。</p>
+<p>下面是 <code>close()</code> 函数的标准语法，<code>close()</code> 函数是 <code>fstream</code>、<code>ifstream</code> 和 <code>ofstream</code> 对象的一个成员。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">close</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure>
+
+<h2 id="写入文件"><a href="#写入文件" class="headerlink" title="写入文件"></a>写入文件</h2><p>使用流插入运算符（ <code>&lt;&lt;</code> ）向文件写入信息，就像使用该运算符输出信息到屏幕上一样。唯一不同的是，在这里使用的是 <code>ofstream</code> 或 <code>fstream</code> 对象，而不是 <code>cout</code> 对象。</p>
+<h2 id="读取文件"><a href="#读取文件" class="headerlink" title="读取文件"></a>读取文件</h2><p>在 C++ 编程中，我们使用流提取运算符（ <code>&gt;&gt;</code> ）从文件读取信息，就像使用该运算符从键盘输入信息一样。唯一不同的是，在这里使用的是 <code>ifstream</code> 或 <code>fstream</code> 对象，而不是 <code>cin</code> 对象。</p>
+<h2 id="读取与写入实例"><a href="#读取与写入实例" class="headerlink" title="读取与写入实例"></a>读取与写入实例</h2><p>以读写模式打开一个文件。在向文件 afile.dat 写入用户输入的信息之后，程序从文件读取信息，并将其输出到屏幕上：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;fstream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> std;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="type">char</span> data[<span class="number">100</span>];</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 以写模式打开文件</span></span><br><span class="line">    ofstream outfile;</span><br><span class="line">    outfile.<span class="built_in">open</span>(<span class="string">&quot;afile.dat&quot;</span>);</span><br><span class="line"></span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;Writing to the file&quot;</span> &lt;&lt; endl;</span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;Enter your name: &quot;</span>;</span><br><span class="line">    cin.<span class="built_in">getline</span>(data, <span class="number">100</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 向文件写入用户输入的数据</span></span><br><span class="line">    outfile &lt;&lt; data &lt;&lt; endl;</span><br><span class="line"></span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;Enter your age: &quot;</span>;</span><br><span class="line">    cin &gt;&gt; data;</span><br><span class="line">    cin.<span class="built_in">ignore</span>();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 再次向文件写入用户输入的数据</span></span><br><span class="line">    outfile &lt;&lt; data &lt;&lt; endl;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 关闭打开的文件</span></span><br><span class="line">    outfile.<span class="built_in">close</span>();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 以读模式打开文件</span></span><br><span class="line">    ifstream infile;</span><br><span class="line">    infile.<span class="built_in">open</span>(<span class="string">&quot;afile.dat&quot;</span>);</span><br><span class="line"></span><br><span class="line">    cout &lt;&lt; <span class="string">&quot;Reading from the file&quot;</span> &lt;&lt; endl;</span><br><span class="line">    infile &gt;&gt; data;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 在屏幕上写入数据</span></span><br><span class="line">    cout &lt;&lt; data &lt;&lt; endl;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 再次从文件读取数据，并显示它</span></span><br><span class="line">    infile &gt;&gt; data;</span><br><span class="line">    cout &lt;&lt; data &lt;&lt; endl;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 关闭打开的文件</span></span><br><span class="line">    infile.<span class="built_in">close</span>();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>结果：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Writing to the file</span><br><span class="line">Enter your name: hello</span><br><span class="line">Enter your age: <span class="number">18</span></span><br><span class="line">Reading from the file</span><br><span class="line">hello</span><br><span class="line"><span class="number">18</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="文件位置指针"><a href="#文件位置指针" class="headerlink" title="文件位置指针"></a>文件位置指针</h2><p><code>istream</code> 和 <code>ostream</code> 都提供了用于重新定位文件位置指针的成员函数。<br>这些成员函数包括关于 <code>istream</code> 的 <code>seekg（&quot;seek get&quot;）</code>和关于 <code>ostream</code> 的 <code>seekp（&quot;seek put&quot;）</code>。</p>
+<p><code>seekg</code> 和 <code>seekp</code> 的参数通常是一个长整型。第二个参数可以用于指定查找方向。查找方向可以是 <code>ios::beg</code>（默认的，从流的开头开始定位），也可以是 <code>ios::cur</code>（从流的当前位置开始定位），也可以是 <code>ios::end</code>（从流的末尾开始定位）。</p>
+<p>文件位置指针是一个整数值，指定了从文件的起始位置到指针所在位置的字节数。</p>
+<p>下面是关于定位 <code>get</code> 文件位置指针的实例：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 定位到 fileObject 的第 n 个字节（假设是 ios::beg）</span></span><br><span class="line">fileObject.<span class="built_in">seekg</span>( n );</span><br><span class="line"> </span><br><span class="line"><span class="comment">// 把文件的读指针从 fileObject 当前位置向后移 n 个字节</span></span><br><span class="line">fileObject.<span class="built_in">seekg</span>( n, ios::cur );</span><br><span class="line"> </span><br><span class="line"><span class="comment">// 把文件的读指针从 fileObject 末尾往回移 n 个字节</span></span><br><span class="line">fileObject.<span class="built_in">seekg</span>( n, ios::end );</span><br><span class="line"> </span><br><span class="line"><span class="comment">// 定位到 fileObject 的末尾</span></span><br><span class="line">fileObject.<span class="built_in">seekg</span>( <span class="number">0</span>, ios::end );</span><br></pre></td></tr></table></figure>
+
+<p><a target="_blank" rel="noopener" href="https://www.runoob.com/cplusplus/cpp-files-streams.html">C++ 文件和流</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/VSCode/" rel="tag"># VSCode</a>
+              <a href="/tags/MingGW64/" rel="tag"># MingGW64</a>
+              <a href="/tags/CPP/" rel="tag"># CPP</a>
+              <a href="/tags/CPP%E9%9D%A2%E5%90%91%E5%AF%B9%E8%B1%A1/" rel="tag"># CPP面向对象</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2021/07/02/CPP%E9%9D%A2%E5%90%91%E5%AF%B9%E8%B1%A1-%E6%8E%A5%E5%8F%A3%E4%B8%8E%E6%8A%BD%E8%B1%A1%E7%B1%BB/" rel="prev" title="CPP面向对象-接口与抽象类">
+                  <i class="fa fa-angle-left"></i> CPP面向对象-接口与抽象类
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2021/07/02/CSharp-form-data%E5%8F%91%E9%80%81%E7%B1%BB/" rel="next" title="CSharp-form-data发送类">
+                  CSharp-form-data发送类 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">2.1m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">31:31</span>
+  </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

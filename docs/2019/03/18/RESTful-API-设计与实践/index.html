@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 5.4.2">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"syxdevcode.github.com","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.24.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="RESTful API 设计与实践协议API与用户的通信协议，总是使用HTTPs协议。 域名应该尽量将API部署在专用域名之下。 1https:&#x2F;&#x2F;api.example.com  如果确定API很简单，不会有进一步扩展，可以考虑放在主域名下。 1https:&#x2F;&#x2F;example.org&#x2F;api&#x2F;  版本（Versioning）应该将API的版本号放入URL。 1https:&#x2F;&#x2F;api.exampl">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RESTful API 设计与实践">
+<meta property="og:url" content="https://syxdevcode.github.com/2019/03/18/RESTful-API-%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E8%B7%B5/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="RESTful API 设计与实践协议API与用户的通信协议，总是使用HTTPs协议。 域名应该尽量将API部署在专用域名之下。 1https:&#x2F;&#x2F;api.example.com  如果确定API很简单，不会有进一步扩展，可以考虑放在主域名下。 1https:&#x2F;&#x2F;example.org&#x2F;api&#x2F;  版本（Versioning）应该将API的版本号放入URL。 1https:&#x2F;&#x2F;api.exampl">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-03-18T05:51:49.000Z">
+<meta property="article:modified_time" content="2025-08-12T08:31:56.010Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="RESTful">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://syxdevcode.github.com/2019/03/18/RESTful-API-%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E8%B7%B5/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://syxdevcode.github.com/2019/03/18/RESTful-API-%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E8%B7%B5/","path":"2019/03/18/RESTful-API-设计与实践/","title":"RESTful API 设计与实践"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>RESTful API 设计与实践 | syxdevcode博客</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">syxdevcode博客</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#RESTful-API-%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E8%B7%B5"><span class="nav-number">1.</span> <span class="nav-text">RESTful API 设计与实践</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%8F%E8%AE%AE"><span class="nav-number">1.1.</span> <span class="nav-text">协议</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9F%9F%E5%90%8D"><span class="nav-number">1.2.</span> <span class="nav-text">域名</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%89%88%E6%9C%AC%EF%BC%88Versioning%EF%BC%89"><span class="nav-number">1.3.</span> <span class="nav-text">版本（Versioning）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%B7%AF%E5%BE%84%EF%BC%88Endpoint%EF%BC%89"><span class="nav-number">1.4.</span> <span class="nav-text">路径（Endpoint）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#HTTP%E5%8A%A8%E8%AF%8D"><span class="nav-number">1.5.</span> <span class="nav-text">HTTP动词</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#URL-%E8%AE%BE%E8%AE%A1"><span class="nav-number">1.6.</span> <span class="nav-text">URL 设计</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8A%A8%E8%AF%8D-%E5%AE%BE%E8%AF%AD"><span class="nav-number">1.6.1.</span> <span class="nav-text">动词 + 宾语</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8A%A8%E8%AF%8D%E7%9A%84%E8%A6%86%E7%9B%96"><span class="nav-number">1.6.2.</span> <span class="nav-text">动词的覆盖</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%BE%E8%AF%AD%E5%BF%85%E9%A1%BB%E6%98%AF%E5%90%8D%E8%AF%8D"><span class="nav-number">1.6.3.</span> <span class="nav-text">宾语必须是名词</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A4%8D%E6%95%B0-URL"><span class="nav-number">1.6.4.</span> <span class="nav-text">复数 URL</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%81%BF%E5%85%8D%E5%A4%9A%E7%BA%A7-URL"><span class="nav-number">1.6.5.</span> <span class="nav-text">避免多级 URL</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%87%E6%BB%A4%E4%BF%A1%E6%81%AF%EF%BC%88Filtering%EF%BC%89"><span class="nav-number">1.7.</span> <span class="nav-text">过滤信息（Filtering）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%8A%B6%E6%80%81%E7%A0%81%EF%BC%88Status-Codes%EF%BC%89"><span class="nav-number">1.8.</span> <span class="nav-text">状态码（Status Codes）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%8A%B6%E6%80%81%E7%A0%81%E5%BF%85%E9%A1%BB%E7%B2%BE%E7%A1%AE"><span class="nav-number">1.8.1.</span> <span class="nav-text">状态码必须精确</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2xx-%E7%8A%B6%E6%80%81%E7%A0%81"><span class="nav-number">1.8.2.</span> <span class="nav-text">2xx 状态码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3xx-%E7%8A%B6%E6%80%81%E7%A0%81"><span class="nav-number">1.8.3.</span> <span class="nav-text">3xx 状态码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4xx-%E7%8A%B6%E6%80%81%E7%A0%81"><span class="nav-number">1.8.4.</span> <span class="nav-text">4xx 状态码</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5xx-%E7%8A%B6%E6%80%81%E7%A0%81"><span class="nav-number">1.8.5.</span> <span class="nav-text">5xx 状态码</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%9B%9E%E5%BA%94"><span class="nav-number">1.9.</span> <span class="nav-text">服务器回应</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8D%E8%A6%81%E8%BF%94%E5%9B%9E%E7%BA%AF%E6%9C%AC%E6%96%87"><span class="nav-number">1.9.1.</span> <span class="nav-text">不要返回纯本文</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%94%99%E8%AF%AF%E5%A4%84%E7%90%86%EF%BC%88Error-handling%EF%BC%89"><span class="nav-number">1.9.2.</span> <span class="nav-text">错误处理（Error handling）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%94%E5%9B%9E%E7%BB%93%E6%9E%9C"><span class="nav-number">1.9.3.</span> <span class="nav-text">返回结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Hypermedia-API"><span class="nav-number">1.9.4.</span> <span class="nav-text">Hypermedia API</span></a></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description">syxdevcode的个人博客</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">619</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">157</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">241</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2019/03/18/RESTful-API-%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E8%B7%B5/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="RESTful API 设计与实践 | syxdevcode博客">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          RESTful API 设计与实践
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2019-03-18 13:51:49" itemprop="dateCreated datePublished" datetime="2019-03-18T13:51:49+08:00">2019-03-18</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2025-08-12 16:31:56" itemprop="dateModified" datetime="2025-08-12T16:31:56+08:00">2025-08-12</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/RESTful/" itemprop="url" rel="index"><span itemprop="name">RESTful</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>4.2k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>4 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h1 id="RESTful-API-设计与实践"><a href="#RESTful-API-设计与实践" class="headerlink" title="RESTful API 设计与实践"></a>RESTful API 设计与实践</h1><h2 id="协议"><a href="#协议" class="headerlink" title="协议"></a>协议</h2><p>API与用户的通信协议，总是使用HTTPs协议。</p>
+<h2 id="域名"><a href="#域名" class="headerlink" title="域名"></a>域名</h2><p>应该尽量将API部署在专用域名之下。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://api.example.com</span><br></pre></td></tr></table></figure>
+
+<p>如果确定API很简单，不会有进一步扩展，可以考虑放在主域名下。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://example.org/api/</span><br></pre></td></tr></table></figure>
+
+<h2 id="版本（Versioning）"><a href="#版本（Versioning）" class="headerlink" title="版本（Versioning）"></a>版本（Versioning）</h2><p>应该将API的版本号放入URL。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://api.example.com/v1/</span><br></pre></td></tr></table></figure>
+
+<p>另一种做法是，将版本号放在HTTP头信息中，但不如放入URL方便和直观。</p>
+<h2 id="路径（Endpoint）"><a href="#路径（Endpoint）" class="headerlink" title="路径（Endpoint）"></a>路径（Endpoint）</h2><p>路径又称”终点”（endpoint），表示API的具体网址。</p>
+<p>在RESTful架构中，每个网址代表一种资源（resource），所以网址中不能有动词，只能有名词，而且所用的名词往往与数据库的表格名对应。一般来说，数据库中的表都是同种记录的”集合”（collection），所以API中的名词也应该使用复数。</p>
+<p>例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">https://api.example.com/v1/zoos</span><br><span class="line">https://api.example.com/v1/animals</span><br><span class="line">https://api.example.com/v1/employees</span><br></pre></td></tr></table></figure>
+
+<h2 id="HTTP动词"><a href="#HTTP动词" class="headerlink" title="HTTP动词"></a>HTTP动词</h2><p>对于资源的具体操作类型，由HTTP动词表示。</p>
+<p>常用的HTTP动词有下面五个（括号里是对应的SQL命令）。</p>
+<p>根据 HTTP 规范，动词一律大写。</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">GET（SELECT）：读取（Read）</span><br><span class="line">POST（CREATE）：新建（Create）</span><br><span class="line">PUT（UPDATE）：更新（Update）</span><br><span class="line">PATCH（UPDATE）：更新（Update），通常是部分更新</span><br><span class="line">DELETE（DELETE）：删除（Delete）</span><br></pre></td></tr></table></figure>
+
+<p>还有两个不常用的HTTP动词。</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">HEAD：获取资源的元数据。</span><br><span class="line">OPTIONS：获取信息，关于资源的哪些属性是客户端可以改变的。</span><br></pre></td></tr></table></figure>
+
+<p>例子：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">GET /zoos：列出所有动物园</span><br><span class="line">POST /zoos：新建一个动物园</span><br><span class="line">GET /zoos/ID：获取某个指定动物园的信息</span><br><span class="line">PUT /zoos/ID：更新某个指定动物园的信息（提供该动物园的全部信息）</span><br><span class="line">PATCH /zoos/ID：更新某个指定动物园的信息（提供该动物园的部分信息）</span><br><span class="line">DELETE /zoos/ID：删除某个动物园</span><br><span class="line">GET /zoos/ID/animals：列出某个指定动物园的所有动物</span><br><span class="line">DELETE /zoos/ID/animals/ID：删除某个指定动物园的指定动物</span><br></pre></td></tr></table></figure>
+
+<h2 id="URL-设计"><a href="#URL-设计" class="headerlink" title="URL 设计"></a>URL 设计</h2><h3 id="动词-宾语"><a href="#动词-宾语" class="headerlink" title="动词 + 宾语"></a>动词 + 宾语</h3><p>RESTful 的核心思想就是，客户端发出的数据操作指令都是”动词 + 宾语”的结构。比如，<code>GET/articles</code>这个命令，<code>GET</code>是动词，<code>/articles</code>是宾语。</p>
+<h3 id="动词的覆盖"><a href="#动词的覆盖" class="headerlink" title="动词的覆盖"></a>动词的覆盖</h3><p>有些客户端只能使用<code>GET</code>和<code>POST</code>这两种方法。服务器必须接受<code>POST</code>模拟其他三个方法（<code>PUT</code>、<code>PATCH</code>、<code>DELETE</code>）。</p>
+<p>这时，客户端发出的 HTTP 请求，要加上<code>X-HTTP-Method-Override</code>属性，告诉服务器应该使用哪一个动词，覆盖<code>POST</code>方法。</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">POST /api/Person/4 HTTP/1.1  </span><br><span class="line">X-HTTP-Method-Override: PUT</span><br></pre></td></tr></table></figure>
+
+<p><code>X-HTTP-Method-Override</code>指定本次请求的方法是<code>PUT</code>，而不是<code>POST</code>。</p>
+<h3 id="宾语必须是名词"><a href="#宾语必须是名词" class="headerlink" title="宾语必须是名词"></a>宾语必须是名词</h3><p>宾语就是 API 的 URL，是 HTTP 动词作用的对象。它应该是名词，不能是动词。比如，/articles这个 URL 就是正确的。</p>
+<p><code>/getAllCars</code> 是错误的。</p>
+<h3 id="复数-URL"><a href="#复数-URL" class="headerlink" title="复数 URL"></a>复数 URL</h3><p>建议都使用复数 URL，比如<code>GET/articles/2</code>要好于<code>GET/article/2</code>。</p>
+<h3 id="避免多级-URL"><a href="#避免多级-URL" class="headerlink" title="避免多级 URL"></a>避免多级 URL</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">// URL 不利于扩展，语义也不明确</span><br><span class="line">GET /authors/12/categories/2</span><br><span class="line"></span><br><span class="line">// 更好的写法</span><br><span class="line">GET /authors/12?categories=2</span><br></pre></td></tr></table></figure>
+
+<h2 id="过滤信息（Filtering）"><a href="#过滤信息（Filtering）" class="headerlink" title="过滤信息（Filtering）"></a>过滤信息（Filtering）</h2><p>如果记录数量很多，服务器不可能都将它们返回给用户。API应该提供参数，过滤返回结果。</p>
+<p>下面是一些常见的参数：</p>
+<figure class="highlight txt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">?limit=10：指定返回记录的数量</span><br><span class="line">?offset=10：指定返回记录的开始位置。</span><br><span class="line">?page=2&amp;per_page=100：指定第几页，以及每页的记录数。</span><br><span class="line">?sortby=name&amp;order=asc：指定返回结果按照哪个属性排序，以及排序顺序。</span><br><span class="line">?animal_type_id=1：指定筛选条件</span><br></pre></td></tr></table></figure>
+
+<p>参数的设计允许存在冗余，即允许API路径和URL参数偶尔有重复。比如，<code>GET /zoo/ID/animals</code> 与 <code>GET /animals?zoo_id=ID</code> 的含义是相同的。</p>
+<h2 id="状态码（Status-Codes）"><a href="#状态码（Status-Codes）" class="headerlink" title="状态码（Status Codes）"></a>状态码（Status Codes）</h2><h3 id="状态码必须精确"><a href="#状态码必须精确" class="headerlink" title="状态码必须精确"></a>状态码必须精确</h3><p>客户端的每一次请求，服务器都必须给出回应。回应包括 HTTP 状态码和数据两部分。</p>
+<p>HTTP 状态码就是一个三位数，分成五个类别。API 不需要1xx状态码。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">1xx：相关信息</span><br><span class="line">2xx：操作成功</span><br><span class="line">3xx：重定向</span><br><span class="line">4xx：客户端错误</span><br><span class="line">5xx：服务器错误</span><br></pre></td></tr></table></figure>
+
+<p>详细请参考：<a target="_blank" rel="noopener" href="https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html">www.w3.org</a></p>
+<h3 id="2xx-状态码"><a href="#2xx-状态码" class="headerlink" title="2xx 状态码"></a>2xx 状态码</h3><p>200状态码表示操作成功，但是不同的方法可以返回更精确的状态码。</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">GET: 200 OK</span><br><span class="line">POST: 201 Created</span><br><span class="line">PUT: 200 OK</span><br><span class="line">PATCH: 200 OK</span><br><span class="line">DELETE: 204 No Content</span><br></pre></td></tr></table></figure>
+
+<p><code>POST</code>返回201状态码，表示生成了新的资源；<code>DELETE</code>返回204状态码，表示资源已经不存在。</p>
+<p><code>202 Accepted</code>状态码表示服务器已经收到请求，但还未进行处理，会在未来再处理，通常用于异步操作。</p>
+<h3 id="3xx-状态码"><a href="#3xx-状态码" class="headerlink" title="3xx 状态码"></a>3xx 状态码</h3><p>API 用不到<code>301</code>状态码（永久重定向）和<code>302</code>状态码（暂时重定向，307也是这个含义），因为它们可以由应用级别返回，浏览器会直接跳转，API 级别可以不考虑这两种情况。</p>
+<p>API 用到的<code>3xx</code>状态码，主要是<code>303 See Other</code>，表示参考另一个 URL。它与<code>302</code>和<code>307</code>的含义一样，也是”暂时重定向”，区别在于<code>302</code>和<code>307</code>用于<code>GET</code>请求，而<code>303</code>用于<code>POST</code>、<code>PUT</code>和<code>DELETE</code>请求。收到<code>303</code>以后，浏览器不会自动跳转，而会让用户自己决定下一步怎么办。下面是一个例子。</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">HTTP/1.1 303 See Other</span><br><span class="line">Location: /api/orders/12345</span><br></pre></td></tr></table></figure>
+
+<h3 id="4xx-状态码"><a href="#4xx-状态码" class="headerlink" title="4xx 状态码"></a>4xx 状态码</h3><p>4xx状态码表示客户端错误，主要有下面几种。</p>
+<p><strong>400 Bad Request</strong>：服务器不理解客户端的请求，未做任何处理。</p>
+<p><strong>401 Unauthorized</strong>：用户未提供身份验证凭据，或者没有通过身份验证。</p>
+<p><strong>403 Forbidden</strong>：用户通过了身份验证，但是不具有访问资源所需的权限。</p>
+<p><strong>404 Not Found</strong>：所请求的资源不存在，或不可用。</p>
+<p><strong>405 Method Not Allowed</strong>：用户已经通过身份验证，但是所用的 HTTP 方法不在他的权限之内。</p>
+<p><strong>410 Gone</strong>：所请求的资源已从这个地址转移，不再可用。</p>
+<p><strong>415 Unsupported Media Type</strong>：客户端要求的返回格式不支持。比如，API 只能返回 JSON 格式，但是客户端要求返回 XML 格式。</p>
+<p><strong>422 Unprocessable Entity</strong>：客户端上传的附件无法处理，导致请求失败。</p>
+<p><strong>429 Too Many Requests</strong>：客户端的请求次数超过限额。</p>
+<h3 id="5xx-状态码"><a href="#5xx-状态码" class="headerlink" title="5xx 状态码"></a>5xx 状态码</h3><p>`5xx状态码表示服务端错误。一般来说，API 不会向用户透露服务器的详细信息，所以只要两个状态码就够了。</p>
+<p><strong>500 Internal Server Error</strong>：客户端请求有效，服务器处理时发生了意外。</p>
+<p><strong>503 Service Unavailable</strong>：服务器无法处理请求，一般用于网站维护状态。</p>
+<h2 id="服务器回应"><a href="#服务器回应" class="headerlink" title="服务器回应"></a>服务器回应</h2><h3 id="不要返回纯本文"><a href="#不要返回纯本文" class="headerlink" title="不要返回纯本文"></a>不要返回纯本文</h3><p>API 返回的数据格式，不应该是纯文本，而应该是一个 JSON 对象，因为这样才能返回标准的结构化数据。所以，服务器回应的 HTTP 头的<code>Content-Type</code>属性要设为<code>application/json</code>。</p>
+<p>客户端请求时，也要明确告诉服务器，可以接受 JSON 格式，即请求的 HTTP 头的<code>ACCEPT</code>属性也要设成<code>application/json</code>。</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GET /orders/2 HTTP/1.1 </span><br><span class="line">Accept: application/json</span><br></pre></td></tr></table></figure>
+
+<h3 id="错误处理（Error-handling）"><a href="#错误处理（Error-handling）" class="headerlink" title="错误处理（Error handling）"></a>错误处理（Error handling）</h3><p>发生错误时，不要返回 200 状态码，状态码反映发生的错误，具体的错误信息放在数据体里面返回。</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">HTTP/1.1 400 Bad Request</span><br><span class="line">Content-Type: application/json</span><br><span class="line"></span><br><span class="line">&#123;</span><br><span class="line">  &quot;error&quot;: &quot;Invalid payoad.&quot;,</span><br><span class="line">  &quot;detail&quot;: &#123;</span><br><span class="line">     &quot;surname&quot;: &quot;This field is required.&quot;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="返回结果"><a href="#返回结果" class="headerlink" title="返回结果"></a>返回结果</h3><p>针对不同操作，服务器向用户返回的结果应该符合以下规范。</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">GET /collection：返回资源对象的列表（数组）</span><br><span class="line">GET /collection/resource：返回单个资源对象</span><br><span class="line">POST /collection：返回新生成的资源对象</span><br><span class="line">PUT /collection/resource：返回完整的资源对象</span><br><span class="line">PATCH /collection/resource：返回完整的资源对象</span><br><span class="line">DELETE /collection/resource：返回一个空文档</span><br></pre></td></tr></table></figure>
+
+<h3 id="Hypermedia-API"><a href="#Hypermedia-API" class="headerlink" title="Hypermedia API"></a>Hypermedia API</h3><p>RESTful API最好做到Hypermedia，即返回结果中提供链接，连向其他API方法。</p>
+<p>Hypermedia API的设计被称为HATEOAS。</p>
+<p>例子：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&#123;&quot;link&quot;: &#123;</span><br><span class="line">  &quot;rel&quot;:   &quot;collection https://www.example.com/zoos&quot;,</span><br><span class="line">  &quot;href&quot;:  &quot;https://api.example.com/zoos&quot;,</span><br><span class="line">  &quot;title&quot;: &quot;List of zoos&quot;,</span><br><span class="line">  &quot;type&quot;:  &quot;application/vnd.yourformat+json&quot;</span><br><span class="line">&#125;&#125;</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.ruanyifeng.com/blog/2018/10/restful-api-best-practices.html">RESTful API 最佳实践</a></p>
+<p><a target="_blank" rel="noopener" href="http://www.ruanyifeng.com/blog/2014/05/restful_api.html">RESTful API 设计指南</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/RESTful/" rel="tag"># RESTful</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2019/03/18/RESTful%E6%9E%B6%E6%9E%84%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" rel="prev" title="RESTful架构学习笔记">
+                  <i class="fa fa-angle-left"></i> RESTful架构学习笔记
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2019/03/19/OpenID-Connect-%E5%8D%8F%E8%AE%AE/" rel="next" title="OpenID Connect 协议">
+                  OpenID Connect 协议 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">2.1m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">31:31</span>
+  </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

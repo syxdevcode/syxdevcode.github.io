@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 5.4.2">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"syxdevcode.github.com","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.24.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="简介LVM 是逻辑盘卷管理( Logical Volume Manager)的简称，它是 Linux 环境下对磁盘分区进行管理的一种机制，LVM 是建立在硬盘和 分区之上的一个逻辑层，来提高磁盘分区管理的灵活性。 通过 LVM 系统管理员可以轻松管理磁盘分区，如:将若干个磁盘分区连接为一个整块的卷组 (volume group)，形成一个存储池。 管理员可以在卷组上随意创建逻辑卷组(logical">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux LVM(逻辑卷管理)">
+<meta property="og:url" content="https://syxdevcode.github.com/2020/08/27/Linux-LVM-%E9%80%BB%E8%BE%91%E5%8D%B7%E7%AE%A1%E7%90%86/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="简介LVM 是逻辑盘卷管理( Logical Volume Manager)的简称，它是 Linux 环境下对磁盘分区进行管理的一种机制，LVM 是建立在硬盘和 分区之上的一个逻辑层，来提高磁盘分区管理的灵活性。 通过 LVM 系统管理员可以轻松管理磁盘分区，如:将若干个磁盘分区连接为一个整块的卷组 (volume group)，形成一个存储池。 管理员可以在卷组上随意创建逻辑卷组(logical">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://syxdevcode.github.com/img/58846-20160825131201304-610664422.jpg">
+<meta property="article:published_time" content="2020-08-27T09:24:24.000Z">
+<meta property="article:modified_time" content="2025-08-12T08:31:55.149Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="Linux">
+<meta property="article:tag" content="计算机科学">
+<meta property="article:tag" content="计算机基础">
+<meta property="article:tag" content="硬盘">
+<meta property="article:tag" content="LVM">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://syxdevcode.github.com/img/58846-20160825131201304-610664422.jpg">
+
+
+<link rel="canonical" href="https://syxdevcode.github.com/2020/08/27/Linux-LVM-%E9%80%BB%E8%BE%91%E5%8D%B7%E7%AE%A1%E7%90%86/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://syxdevcode.github.com/2020/08/27/Linux-LVM-%E9%80%BB%E8%BE%91%E5%8D%B7%E7%AE%A1%E7%90%86/","path":"2020/08/27/Linux-LVM-逻辑卷管理/","title":"Linux LVM(逻辑卷管理)"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Linux LVM(逻辑卷管理) | syxdevcode博客</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">syxdevcode博客</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#LVM-%E7%9B%B8%E5%85%B3%E5%90%8D%E8%AF%8D"><span class="nav-number">2.</span> <span class="nav-text">LVM 相关名词</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA-LVM-%E8%BF%87%E7%A8%8B"><span class="nav-number">3.</span> <span class="nav-text">创建 LVM 过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA%E5%88%86%E5%8C%BA"><span class="nav-number">3.1.</span> <span class="nav-text">创建分区</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA%E7%89%A9%E7%90%86%E5%8D%B7"><span class="nav-number">3.2.</span> <span class="nav-text">创建物理卷</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA%E5%8D%B7%E7%BB%84"><span class="nav-number">3.3.</span> <span class="nav-text">创建卷组</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%BF%80%E6%B4%BB%E5%8D%B7%E7%BB%84"><span class="nav-number">3.4.</span> <span class="nav-text">激活卷组</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B7%BB%E5%8A%A0%E6%96%B0%E7%9A%84%E7%89%A9%E7%90%86%E5%8D%B7%E5%88%B0%E5%8D%B7%E7%BB%84%E4%B8%AD"><span class="nav-number">3.5.</span> <span class="nav-text">添加新的物理卷到卷组中</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%8E%E5%8D%B7%E7%BB%84%E4%B8%AD%E5%88%A0%E9%99%A4%E4%B8%80%E4%B8%AA%E7%89%A9%E7%90%86%E5%8D%B7"><span class="nav-number">3.6.</span> <span class="nav-text">从卷组中删除一个物理卷</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA%E9%80%BB%E8%BE%91%E5%8D%B7"><span class="nav-number">3.7.</span> <span class="nav-text">创建逻辑卷</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F"><span class="nav-number">3.8.</span> <span class="nav-text">创建文件系统</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%A0%E9%99%A4%E4%B8%80%E4%B8%AA%E9%80%BB%E8%BE%91%E5%8D%B7"><span class="nav-number">4.</span> <span class="nav-text">删除一个逻辑卷</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%89%A9%E5%B1%95%E9%80%BB%E8%BE%91%E5%8D%B7%E5%A4%A7%E5%B0%8F"><span class="nav-number">5.</span> <span class="nav-text">扩展逻辑卷大小</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%87%8F%E5%B0%91%E9%80%BB%E8%BE%91%E5%8D%B7%E5%A4%A7%E5%B0%8F"><span class="nav-number">6.</span> <span class="nav-text">减少逻辑卷大小</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description">syxdevcode的个人博客</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">619</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">157</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">241</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2020/08/27/Linux-LVM-%E9%80%BB%E8%BE%91%E5%8D%B7%E7%AE%A1%E7%90%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Linux LVM(逻辑卷管理) | syxdevcode博客">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Linux LVM(逻辑卷管理)
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2020-08-27 17:24:24" itemprop="dateCreated datePublished" datetime="2020-08-27T17:24:24+08:00">2020-08-27</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2025-08-12 16:31:55" itemprop="dateModified" datetime="2025-08-12T16:31:55+08:00">2025-08-12</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Linux-LVM/" itemprop="url" rel="index"><span itemprop="name">Linux LVM</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>4.7k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>4 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>LVM 是逻辑盘卷管理( <code>Logical Volume Manager</code>)的简称，它是 Linux 环境下对磁盘分区进行管理的一种机制，LVM 是建立在硬盘和 分区之上的一个逻辑层，来提高磁盘分区管理的灵活性。</p>
+<p>通过 LVM 系统管理员可以轻松管理磁盘分区，如:将若干个磁盘分区连接为一个整块的卷组 (<code>volume group</code>)，形成一个存储池。</p>
+<p>管理员可以在卷组上随意创建逻辑卷组(<code>logical volumes</code>)，并进一步在逻辑卷组上创建文件系 统。管理员通过 LVM 可以方便的调整存储卷组的大小，并且可以对磁盘存储按照组的方式进行命名、管理和分配。</p>
+<p>例如按照使用用途进行定义:<code>development</code> 和 <code>sales</code>，而不是使用物理磁盘名 <code>sda</code> 和<code>sdb</code>。而且当系统添加了新的磁盘，通过 LVM 管理员就不必将磁盘的 文件移动到新的磁盘上以充分利用新的存储空间，而是直接扩展文件系统跨越磁盘即可。</p>
+<p><img src="/img/58846-20160825131201304-610664422.jpg" alt="58846-20160825131201304-610664422.jpg"></p>
+<h2 id="LVM-相关名词"><a href="#LVM-相关名词" class="headerlink" title="LVM 相关名词"></a>LVM 相关名词</h2><ul>
+<li>PV(physical volume)：<code>物理卷</code> 在逻辑卷管理系统最底层，可为整个物理硬盘或实际物理硬盘上的分区。</li>
+<li>VG(volume group)：<code>卷组</code> 建立在物理卷上，一卷组中至少要包括一物理卷，卷组建立后可动态的添加卷到卷组中，一个逻辑卷管理系统工程中可有多个卷组。</li>
+<li>LV(logical volume)：<code>逻辑卷</code> 建立在卷组基础上，卷组中未分配空间可用于建立新的逻辑卷，逻辑卷建立后可以动态扩展和缩小空间。</li>
+<li>PE(physical extent)：<code>物理区域</code> 是物理卷中可用于分配的最小存储单元，物理区域大小在建立卷组时指定，一旦确定不能更改，同一卷组所有物理卷的物理区域大小需一致，新的 pv 加入到 vg 后，pe 的大小自动更改为 vg 中定义的 pe 大小。</li>
+<li>LE(logical extent)：<code>逻辑区域</code> 是逻辑卷中可用于分配的最小存储单元，逻辑区域的大小取决于逻辑卷所在卷组中的物理区域的大小。<br>卷组描述区域：卷组描述区域存在于每个物理卷中，用于描述物理卷本身、物理卷所属卷组、卷组中逻辑卷、逻辑卷中物理区域的分配等所有信息，它是在使用 pvcreate 建立物理卷时建立的。</li>
+</ul>
+<p><strong>关于 PV 命令:</strong></p>
+<p><code>pvcreate</code> 命令用于将物理硬盘分区初始化为物理卷，以便 LVM 使用。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">pvcreate：将物理分区制作成 物理卷 PV</span><br><span class="line">pvscan：搜索当前系统里所有的具有 PV 属性的磁盘</span><br><span class="line">pvdisplay：显示当前系统上的 PV 状态</span><br><span class="line">pvremove：将 PV 属性删除，让其不具有 PV 属性，成为一般的分区</span><br></pre></td></tr></table></figure>
+
+<p><strong>关于 VG 下命令:</strong></p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">vgcreate：建立 VG 。它的参数比较多，一会儿详细介绍</span><br><span class="line">vgscan：搜索当前系统里有多少个卷组 VG 存在</span><br><span class="line">vgdisplay：显示当前系统里指定的 VG 或所有 VG 的信息</span><br><span class="line">vgextend：在卷组 VG 中增加额外的物理卷 PV</span><br><span class="line">vgreduce：在卷组 VG 中删除 物理卷 PV</span><br><span class="line">vgchange：设置 VG 是否启动（active）</span><br><span class="line">vgremove：删除一个卷组 VG 本身</span><br></pre></td></tr></table></figure>
+
+<h2 id="创建-LVM-过程"><a href="#创建-LVM-过程" class="headerlink" title="创建 LVM 过程"></a>创建 LVM 过程</h2><p>创建 LVM 过程 ：</p>
+<p>分区成 LVM 格式(8e)—PV 创建–VG 创建—LV 创建—格式化分区—MOUNT 分区—-e2fsadm 调整 LV 大小</p>
+<p>在 LVM 发行包中有一个称为 <code>e2fsadm</code> 的工具，它同时包含了 <code>lvextend</code> 与 <code>resize2fs</code> 的功能。</p>
+<h3 id="创建分区"><a href="#创建分区" class="headerlink" title="创建分区"></a>创建分区</h3><p>使用分区工具(如: <code>fdisk</code> 等)创建 LVM 分区，方法和创建其他一般分区的方式是一样的，区别仅仅是 LVM 的分区类型为 8e。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">fdisk /dev/vdb</span><br><span class="line"></span><br><span class="line"><span class="comment"># 选项</span></span><br><span class="line"><span class="comment"># p n w</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 重启（可选）</span></span><br><span class="line">reboot</span><br></pre></td></tr></table></figure>
+
+<h3 id="创建物理卷"><a href="#创建物理卷" class="headerlink" title="创建物理卷"></a>创建物理卷</h3><p>创建物理卷的命令为 <code>pvcreate</code>，利用该命令将希望添加到卷组的所有分区或者磁盘创建为物理卷:</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 格式化</span></span><br><span class="line">mkfs.ext4 /dev/vdb</span><br><span class="line"></span><br><span class="line"><span class="comment"># 将整个磁盘创建为物理卷</span></span><br><span class="line">pvcreate /dev/vdb</span><br><span class="line"></span><br><span class="line"><span class="comment"># 或 将单个分区创建为物理卷</span></span><br><span class="line">pvcreate /dev/vda1</span><br><span class="line"></span><br><span class="line"><span class="comment"># 或  将6-9分区转成pv</span></span><br><span class="line">pvcreate /dev/vda&#123;6,7,8,9&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment"># -v显示创建的全部过程</span></span><br><span class="line">pvcreate [-v] /dev/vda2 /dev/vdb2</span><br><span class="line"></span><br><span class="line"><span class="comment"># 显示系统上的 PV 状态</span></span><br><span class="line">pvdisplay</span><br></pre></td></tr></table></figure>
+
+<h3 id="创建卷组"><a href="#创建卷组" class="headerlink" title="创建卷组"></a>创建卷组</h3><p>创建卷组的命令为 <code>vgcreate</code>，将使用 <code>pvcreate</code> 建立的物理卷创建为一个完整的卷组:</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># unicomvg：指定该卷组的逻辑名:</span></span><br><span class="line"><span class="comment"># 后面参数指定希望添加到该卷组的所有分区和磁盘</span></span><br><span class="line">vgcreate unicomvg /dev/vdb</span><br></pre></td></tr></table></figure>
+
+<p><code>vgcreate</code> 在创建卷组 <code>unicomvg</code> 以外，还设置使用大小为 4MB 的 PE(默认为 4MB)，这表示卷组上创建的所有逻辑卷都以 4MB 为增量单位来进行扩充 或缩减。</p>
+<p>由于内核原因，PE 大小决定了逻辑卷的最大大小，4MB 的 PE 决定了单个逻辑卷最大容量为 256GB，若希望使用大于 256G 的逻辑卷则创建卷组时指定更大的 PE。</p>
+<p>PE 大小范围为 8KB 到 512MB，并且必须总是 2 的倍数(使用-s 指定，具体请参考 <code>manvgcreate</code> )。(centos 6.2 系统已发现没有这种限制)</p>
+<p>例如，如果希望使用 64MB 的 PE 创建卷组，这样逻辑卷最大容量就可以为 <code>4TB</code>，命令如下:</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vgcreate -64MB lvmdisk /dev/vdb1 /dev/vdc1</span><br></pre></td></tr></table></figure>
+
+<h3 id="激活卷组"><a href="#激活卷组" class="headerlink" title="激活卷组"></a>激活卷组</h3><p>为了立即使用卷组而不是重新启动系统，可以使用 <code>vgchange</code> 来激活卷组:</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vgchange -ay unicomvg</span><br></pre></td></tr></table></figure>
+
+<h3 id="添加新的物理卷到卷组中"><a href="#添加新的物理卷到卷组中" class="headerlink" title="添加新的物理卷到卷组中"></a>添加新的物理卷到卷组中</h3><p>当系统安装了新的磁盘并创建了新的物理卷，而要将其添加到已有卷组时，就需要使用 <code>vgextend</code> 命令:</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vgextend unicomvg /dev/vdb1</span><br></pre></td></tr></table></figure>
+
+<p>这里<code>/dev/vdb1</code>是新的物理卷。</p>
+<h3 id="从卷组中删除一个物理卷"><a href="#从卷组中删除一个物理卷" class="headerlink" title="从卷组中删除一个物理卷"></a>从卷组中删除一个物理卷</h3><p>要从一个卷组中删除一个物理卷，首先要确认要删除的物理卷没有被任何逻辑卷正在使用，就要使用 <code>pvdisplay</code> 命令察看一个该物理卷信息:</p>
+<p>如果某个物理卷正在被逻辑卷所使用，就需要将该物理卷的数据备份到其他地方，然后再删除。</p>
+<p>删除物理卷的命令为 <code>vgreduce</code>:</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vgreduce unicomvg /dev/sda1</span><br></pre></td></tr></table></figure>
+
+<h3 id="创建逻辑卷"><a href="#创建逻辑卷" class="headerlink" title="创建逻辑卷"></a>创建逻辑卷</h3><p>逻辑卷（Logical Volumes）简称 LV，是在卷组中划分的一个逻辑区域，类似于非 LVM 系统中的硬盘分区。<br>创建逻辑卷的命令为 lvcreate，通过下面的命令。</p>
+<p>该命令就在卷组 <code>unicomvg</code> 上创建名字为 <code>unicomvol</code> ，大小为 15000M（15G）的逻辑卷，并且设备入口为 <code>/dev/unicomvg/unicomvol</code> ( <code>unicomvg</code> 为卷组名，<code>unicomvol</code> 为逻辑卷名)。</p>
+<p>创建逻辑卷的命令为 <code>lvcreate</code>:</p>
+<ul>
+<li>-L：指定逻辑卷的大小，单位为“kKmMgGtT”字节；</li>
+<li>-l：指定逻辑卷的大小（LE 数）。</li>
+</ul>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">lvcreate -L 15000 -n unicomvol unicomvg</span><br><span class="line"></span><br><span class="line"><span class="comment"># 或 指定100%的LE 到逻辑卷</span></span><br><span class="line">lvcreate -l 100%VG  -n unicomvol unicomvg</span><br><span class="line"></span><br><span class="line"><span class="comment"># 也可以指定大小为 15G</span></span><br><span class="line">lvcreate -L 15G -n unicomvol unicomvg</span><br></pre></td></tr></table></figure>
+
+<p>如果希望创建一个使用全部卷组的逻辑卷，则需要首先察看该卷组的 PE 数，然后在创建逻辑卷时指定:</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">vgdisplay unicomvg | grep <span class="string">&quot;TotalPE&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 显示</span></span><br><span class="line">Total PE 45230</span><br><span class="line"></span><br><span class="line">lvcreate -l 45230 unicomvg -n unicomvol</span><br></pre></td></tr></table></figure>
+
+<p>同卷组一样，逻辑卷在创建的过程中也被分成了一块一块的空间，这些空间称为 <code>LE（Logical Extents）</code>，在同一个卷组中，LE 的大小和 PE 是相同的，并且一一对应。</p>
+<h3 id="创建文件系统"><a href="#创建文件系统" class="headerlink" title="创建文件系统"></a>创建文件系统</h3><p>创建了文件系统以后，就可以加载并使用它:</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 创建目录</span></span><br><span class="line"><span class="built_in">mkdir</span> /data/wwwroot</span><br><span class="line"></span><br><span class="line"><span class="comment"># 挂载</span></span><br><span class="line">mount /dev/unicomvg/unicomvol /data/wwwroot</span><br><span class="line"></span><br><span class="line"><span class="comment"># 如果希望系统启动时自动加载文件系统，</span></span><br><span class="line"><span class="comment"># 则还需要在 /etc/fstab 中添加内容:</span></span><br><span class="line">/dev/unicomvg/unicomvol /data/wwwroot ext4  defaults 0 0</span><br><span class="line"></span><br><span class="line"><span class="comment"># 或者使用</span></span><br><span class="line"><span class="built_in">echo</span>  <span class="string">&quot;/dev/mapper/unicomvg-unicomvol /unicom ext4 defaults 0 0 &quot;</span> &gt;&gt;/etc/fstab</span><br></pre></td></tr></table></figure>
+
+<p><code>/etc/fstab</code>文件的每一行都遵循以下格式：</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;device&gt;   &lt;<span class="built_in">dir</span>&gt;    &lt;<span class="built_in">type</span>&gt;   &lt;options&gt;       &lt;dump&gt; &lt;pass&gt;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>device</strong>：指定加载的磁盘分区或移动文件系统，除了指定设备文件外，也可以使用 <code>UUID、LABEL</code>来指定分区；</li>
+<li><strong>dir</strong>：指定挂载点的路径；</li>
+<li><strong>type</strong>：指定文件系统的类型，如 <code>ext3</code>，<code>ext4</code>等；</li>
+<li><strong>options</strong>：指定挂载的选项，默认为 defaults，其他可用选项包括<code>acl</code>，<code>noauto</code>，<code>ro</code>等；</li>
+<li><strong>dump</strong>：表示该挂载后的文件系统能否被 dump 备份命令作用；0 表示不能，1 表示每天都进行 dump 备份，2 表示不定期进行 dump 操作。</li>
+<li><strong>pass</strong>：表示开机过程中是否校验扇区；0 表示不要校验，1 表示优先校验（一般为根目录），2 表示为在 1 级别校验完后再进行校验；</li>
+</ul>
+<h2 id="删除一个逻辑卷"><a href="#删除一个逻辑卷" class="headerlink" title="删除一个逻辑卷"></a>删除一个逻辑卷</h2><p>删除逻辑卷以前首先需要将其卸载，然后删除:</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 卸载</span></span><br><span class="line">umount /dev/unicomvg/unicomvol</span><br><span class="line"></span><br><span class="line"><span class="comment"># 删除</span></span><br><span class="line">lvremove /dev/unicomvg/unicomvol</span><br></pre></td></tr></table></figure>
+
+<h2 id="扩展逻辑卷大小"><a href="#扩展逻辑卷大小" class="headerlink" title="扩展逻辑卷大小"></a>扩展逻辑卷大小</h2><p>LVM 提供了方便调整逻辑卷大小的能力，扩展逻辑卷大小的命令是 <code>lvextend</code> :</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 将逻辑卷unicomvol的大小扩招为12G</span></span><br><span class="line">lvextend -L12G /dev/unicomvg/unicomvol</span><br><span class="line"></span><br><span class="line"><span class="comment"># 将逻辑卷unicomvol的大小增加1G</span></span><br><span class="line">lvextend -L +1G /dev/unicomvg/unicomvol、</span><br><span class="line"></span><br><span class="line"><span class="comment"># 将卷组 100% 分配到 逻辑卷unicomvol</span></span><br><span class="line">lvextend -l 100%VG /dev/mapper/centos-root</span><br></pre></td></tr></table></figure>
+
+<p><strong>调整文件系统大小:</strong></p>
+<p>resize2fs 命令是用来增大或者收缩未加载的 <code>ext2/ext3/ext4</code> 文件系统的大小。</p>
+<p>参数：</p>
+<ul>
+<li>-d 打开调试特性</li>
+<li>-p 打印已完成的百分比进度条</li>
+<li>-f 强制执行调整大小操作，覆盖掉安全检查操作</li>
+<li>-F 开始执行调整大小前，刷新文件系统设备的缓冲区</li>
+<li>-M: 将文件系统缩小到最小值</li>
+<li>-P: 显示文件系统的最小值</li>
+</ul>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 建议最好将文件系统卸载，调整大小，然后再加载</span></span><br><span class="line"><span class="comment"># 卸载</span></span><br><span class="line">umount /dev/unicomvg/unicomvol</span><br><span class="line"></span><br><span class="line"><span class="comment"># 调整</span></span><br><span class="line">resize2fs -p /dev/unicomvg/unicomvol</span><br><span class="line"></span><br><span class="line"><span class="comment"># 挂载</span></span><br><span class="line">mount  /dev/unicomvg/unicomvol /data/wwwroot</span><br></pre></td></tr></table></figure>
+
+<h2 id="减少逻辑卷大小"><a href="#减少逻辑卷大小" class="headerlink" title="减少逻辑卷大小"></a>减少逻辑卷大小</h2><p><code>lvreduce</code>命令用于减少 LVM 逻辑卷占用的空间大小。使用 <code>lvreduce</code> 命令收缩逻辑卷的空间大小有可能会删除逻辑卷上已有的数据，所以在操作前必须进行确认。</p>
+<ul>
+<li>-L：指定逻辑卷的大小，单位为“kKmMgGtT”字节；</li>
+<li>-l：指定逻辑卷的大小（LE 数）。</li>
+</ul>
+<p>需要首先将文件系统卸载:</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">umount /data/wwwroot</span><br><span class="line"></span><br><span class="line"><span class="comment"># 减小 2G</span></span><br><span class="line">lvreduce -L -2G /dev/unicomvg/unicomvol</span><br><span class="line"></span><br><span class="line">mount /dev/unicomvg/unicomvol /data/wwwroot</span><br></pre></td></tr></table></figure>
+
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="https://baike.so.com/doc/5462643-5700974.html">LVM</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/wangyongqiang/articles/12713877.html">Linux-centos 磁盘扩容</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/stragon/p/5806388.html">LVM 原理及 PV、VG、LV、PE、LE 关系图</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Linux/" rel="tag"># Linux</a>
+              <a href="/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%A7%91%E5%AD%A6/" rel="tag"># 计算机科学</a>
+              <a href="/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9F%BA%E7%A1%80/" rel="tag"># 计算机基础</a>
+              <a href="/tags/%E7%A1%AC%E7%9B%98/" rel="tag"># 硬盘</a>
+              <a href="/tags/LVM/" rel="tag"># LVM</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2020/08/27/Linux-df%E5%91%BD%E4%BB%A4/" rel="prev" title="Linux df命令">
+                  <i class="fa fa-angle-left"></i> Linux df命令
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2020/08/27/Linux-fdisk%E5%91%BD%E4%BB%A4/" rel="next" title="Linux fdisk命令">
+                  Linux fdisk命令 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">2.1m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">31:31</span>
+  </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>

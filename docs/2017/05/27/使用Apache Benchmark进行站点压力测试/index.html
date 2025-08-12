@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 5.4.2">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"syxdevcode.github.com","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.24.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="使用ab进行站点压力测试压力测试相关概念 吞吐率（Requests per second）   概念：服务器并发处理能力的量化描述，单位是reqs&#x2F;s，指的是某个并发用户数下单位时间内处理的请求数。某个并发用户数下单位时间内能处理的最大请求数，称之为最大吞吐率。  计算公式：总请求数 &#x2F; 处理完成这些请求数所花费的时间，即  Request per second &#x3D; Complete reques">
+<meta property="og:type" content="article">
+<meta property="og:title" content="使用Apache Benchmark进行站点压力测试">
+<meta property="og:url" content="https://syxdevcode.github.com/2017/05/27/%E4%BD%BF%E7%94%A8Apache%20Benchmark%E8%BF%9B%E8%A1%8C%E7%AB%99%E7%82%B9%E5%8E%8B%E5%8A%9B%E6%B5%8B%E8%AF%95/index.html">
+<meta property="og:site_name" content="syxdevcode博客">
+<meta property="og:description" content="使用ab进行站点压力测试压力测试相关概念 吞吐率（Requests per second）   概念：服务器并发处理能力的量化描述，单位是reqs&#x2F;s，指的是某个并发用户数下单位时间内处理的请求数。某个并发用户数下单位时间内能处理的最大请求数，称之为最大吞吐率。  计算公式：总请求数 &#x2F; 处理完成这些请求数所花费的时间，即  Request per second &#x3D; Complete reques">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://syxdevcode.github.com/img/ab%E6%B5%8B%E8%AF%95%E7%BB%93%E6%9E%9C.png">
+<meta property="article:published_time" content="2017-05-27T03:11:18.000Z">
+<meta property="article:modified_time" content="2025-08-12T08:31:56.623Z">
+<meta property="article:author" content="syxdevcode">
+<meta property="article:tag" content="Apache Benchmark">
+<meta property="article:tag" content="压力测试">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://syxdevcode.github.com/img/ab%E6%B5%8B%E8%AF%95%E7%BB%93%E6%9E%9C.png">
+
+
+<link rel="canonical" href="https://syxdevcode.github.com/2017/05/27/%E4%BD%BF%E7%94%A8Apache%20Benchmark%E8%BF%9B%E8%A1%8C%E7%AB%99%E7%82%B9%E5%8E%8B%E5%8A%9B%E6%B5%8B%E8%AF%95/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"https://syxdevcode.github.com/2017/05/27/%E4%BD%BF%E7%94%A8Apache%20Benchmark%E8%BF%9B%E8%A1%8C%E7%AB%99%E7%82%B9%E5%8E%8B%E5%8A%9B%E6%B5%8B%E8%AF%95/","path":"2017/05/27/使用Apache Benchmark进行站点压力测试/","title":"使用Apache Benchmark进行站点压力测试"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>使用Apache Benchmark进行站点压力测试 | syxdevcode博客</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">syxdevcode博客</p>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="搜索..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8ab%E8%BF%9B%E8%A1%8C%E7%AB%99%E7%82%B9%E5%8E%8B%E5%8A%9B%E6%B5%8B%E8%AF%95"><span class="nav-number">1.</span> <span class="nav-text">使用ab进行站点压力测试</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8E%8B%E5%8A%9B%E6%B5%8B%E8%AF%95%E7%9B%B8%E5%85%B3%E6%A6%82%E5%BF%B5"><span class="nav-number">1.1.</span> <span class="nav-text">压力测试相关概念</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8B%E8%BD%BD%E5%B7%A5%E5%85%B7"><span class="nav-number">1.1.1.</span> <span class="nav-text">下载工具</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%90%E8%A1%8C%E6%B5%8B%E8%AF%95"><span class="nav-number">1.1.2.</span> <span class="nav-text">运行测试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B5%8B%E8%AF%95%E7%BB%93%E6%9E%9C"><span class="nav-number">1.1.3.</span> <span class="nav-text">测试结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%8C%E6%95%B4%E6%B5%8B%E8%AF%95%E6%8A%A5%E5%91%8A"><span class="nav-number">1.1.4.</span> <span class="nav-text">完整测试报告</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%9C%8D%E5%8A%A1%E5%99%A8%E4%BF%A1%E6%81%AF"><span class="nav-number">1.1.4.1.</span> <span class="nav-text">服务器信息</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%96%87%E6%A1%A3%E4%BF%A1%E6%81%AF"><span class="nav-number">1.1.4.2.</span> <span class="nav-text">文档信息</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%87%8D%E8%A6%81%E4%BF%A1%E6%81%AF"><span class="nav-number">1.1.4.3.</span> <span class="nav-text">重要信息</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%BD%91%E7%BB%9C%E4%B8%8A%E6%B6%88%E8%80%97%E7%9A%84%E6%97%B6%E9%97%B4%E7%9A%84%E5%88%86%E8%A7%A3"><span class="nav-number">1.1.4.4.</span> <span class="nav-text">网络上消耗的时间的分解</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%BD%91%E7%BB%9C%E6%B6%88%E8%80%97%E6%97%B6%E9%97%B4"><span class="nav-number">1.1.4.5.</span> <span class="nav-text">网络消耗时间</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%99%BB%E5%BD%95%E7%9A%84%E9%97%AE%E9%A2%98"><span class="nav-number">1.1.4.6.</span> <span class="nav-text">登录的问题</span></a></li></ol></li></ol></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">syxdevcode</p>
+  <div class="site-description" itemprop="description">syxdevcode的个人博客</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">619</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">157</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">241</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/syxdevcode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;syxdevcode" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://syxdevcode.github.com/2017/05/27/%E4%BD%BF%E7%94%A8Apache%20Benchmark%E8%BF%9B%E8%A1%8C%E7%AB%99%E7%82%B9%E5%8E%8B%E5%8A%9B%E6%B5%8B%E8%AF%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="syxdevcode">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="syxdevcode博客">
+      <meta itemprop="description" content="syxdevcode的个人博客">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="使用Apache Benchmark进行站点压力测试 | syxdevcode博客">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          使用Apache Benchmark进行站点压力测试
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2017-05-27 11:11:18" itemprop="dateCreated datePublished" datetime="2017-05-27T11:11:18+08:00">2017-05-27</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2025-08-12 16:31:56" itemprop="dateModified" datetime="2025-08-12T16:31:56+08:00">2025-08-12</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Apache-Benchmark/" itemprop="url" rel="index"><span itemprop="name">Apache Benchmark</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-break"></span>
+    <span class="post-meta-item" title="本文字数">
+      <span class="post-meta-item-icon">
+        <i class="far fa-file-word"></i>
+      </span>
+      <span class="post-meta-item-text">本文字数：</span>
+      <span>2.6k</span>
+    </span>
+    <span class="post-meta-item" title="阅读时长">
+      <span class="post-meta-item-icon">
+        <i class="far fa-clock"></i>
+      </span>
+      <span class="post-meta-item-text">阅读时长 &asymp;</span>
+      <span>2 分钟</span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h1 id="使用ab进行站点压力测试"><a href="#使用ab进行站点压力测试" class="headerlink" title="使用ab进行站点压力测试"></a>使用ab进行站点压力测试</h1><h2 id="压力测试相关概念"><a href="#压力测试相关概念" class="headerlink" title="压力测试相关概念"></a>压力测试相关概念</h2><ul>
+<li><p>吞吐率（Requests per second）</p>
+<p>  概念：服务器并发处理能力的量化描述，单位是reqs/s，指的是某个并发用户数下单位时间内处理的请求数。某个并发用户数下单位时间内能处理的最大请求数，称之为最大吞吐率。<br>  计算公式：总请求数 / 处理完成这些请求数所花费的时间，即<br>  Request per second = Complete requests / Time taken for tests</p>
+</li>
+<li><p>并发连接数（The number of concurrent connections）</p>
+<p>  概念：某个时刻服务器所接受的请求数目，简单的讲，就是一个会话。</p>
+<p>  并发用户数（The number of concurrent users，Concurrency Level）</p>
+<p>  概念：要注意区分这个概念和并发连接数之间的区别，一个用户可能同时会产生多个会话，也即连接数。</p>
+</li>
+<li><p>用户平均请求等待时间（Time per request）</p>
+<p>  计算公式：处理完成所有请求数所花费的时间/ （总请求数 / 并发用户数），即<br>  Time per request = Time taken for tests /（ Complete requests / Concurrency Level）</p>
+</li>
+<li><p>服务器平均请求等待时间（Time per request: across all concurrent requests）</p>
+<p>  计算公式：处理完成所有请求数所花费的时间 / 总请求数，即<br>  Time taken for / testsComplete requests<br>  可以看到，它是吞吐率的倒数。<br>  同时，它也=用户平均请求等待时间/并发用户数，即<br>  Time per request / Concurrency Level</p>
+</li>
+</ul>
+<h3 id="下载工具"><a href="#下载工具" class="headerlink" title="下载工具"></a>下载工具</h3><p><a target="_blank" rel="noopener" href="https://www.apachelounge.com/download/" title="下载链接">官网下载网址</a> </p>
+<p>解压压缩包，进入到<code>httpd-2.4.25-win64-VC14\Apache24\bin</code>目录下，<br>打开命令行，输入命令</p>
+<h3 id="运行测试"><a href="#运行测试" class="headerlink" title="运行测试"></a>运行测试</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ab -n 100 -c 10 http://baidu.com/</span><br></pre></td></tr></table></figure>
+
+<p>其中－n表示请求数，－c表示并发数</p>
+<h3 id="测试结果"><a href="#测试结果" class="headerlink" title="测试结果"></a>测试结果</h3><p><img src="/img/ab%E6%B5%8B%E8%AF%95%E7%BB%93%E6%9E%9C.png" alt="测试结果"></p>
+<h3 id="完整测试报告"><a href="#完整测试报告" class="headerlink" title="完整测试报告"></a>完整测试报告</h3><h4 id="服务器信息"><a href="#服务器信息" class="headerlink" title="服务器信息"></a>服务器信息</h4><pre><code>显示服务器为apache,域名，端口；
+</code></pre>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Server Software:        Apache</span><br><span class="line">Server Hostname:        baidu.com</span><br><span class="line">Server Port:            80</span><br></pre></td></tr></table></figure>
+
+<h4 id="文档信息"><a href="#文档信息" class="headerlink" title="文档信息"></a>文档信息</h4><pre><code>所在位置“/”，文档的大小为338436 bytes（此为http响应的正文长度）
+</code></pre>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Document Path:          /</span><br><span class="line">Document Length:        81 bytes</span><br></pre></td></tr></table></figure>
+
+<h4 id="重要信息"><a href="#重要信息" class="headerlink" title="重要信息"></a>重要信息</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">Concurrency Level:      10</span><br><span class="line">Time taken for tests:   2.584 seconds</span><br><span class="line">Complete requests:      100</span><br><span class="line">Failed requests:        0</span><br><span class="line">Total transferred:      38100 bytes</span><br><span class="line">HTML transferred:       8100 bytes</span><br><span class="line">Requests per second:    38.70 [#/sec] (mean)</span><br><span class="line">Time per request:       258.374 [ms] (mean)</span><br><span class="line">Time per request:       25.837 [ms] (mean, across all concurrent requests)</span><br><span class="line">Transfer rate:          14.40 [Kbytes/sec] received</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">//并发请求数</span><br><span class="line">Concurrency Level: 10</span><br><span class="line"></span><br><span class="line">//整个测试持续的时间</span><br><span class="line">Time taken for tests: 2.584 seconds</span><br><span class="line"></span><br><span class="line">//完成的请求数</span><br><span class="line">Complete requests: 100</span><br><span class="line"></span><br><span class="line">//失败的请求数</span><br><span class="line">Failed requests: 0</span><br><span class="line"></span><br><span class="line">//整个场景中的网络传输量</span><br><span class="line">Total transferred: 13701482 bytes</span><br><span class="line"></span><br><span class="line">//整个场景中的HTML内容传输量</span><br><span class="line">HTML transferred: 13197000 bytes</span><br><span class="line"></span><br><span class="line">//吞吐率，大家最关心的指标之一，相当于 LR 中的每秒事务数，后面括号中的 mean 表示这是一个平均值</span><br><span class="line">Requests per second: 38.70 [#/sec] (mean)</span><br><span class="line"></span><br><span class="line">//用户平均请求等待时间，大家最关心的指标之二，相当于 LR 中的平均事务响应时间，后面括号中的 mean 表示这是一个平均值</span><br><span class="line">Time per request: 258.374 [ms] (mean)</span><br><span class="line"></span><br><span class="line">//服务器平均请求处理时间，大家最关心的指标之三</span><br><span class="line">Time per request: 25.837 [ms] (mean, across all concurrent requests)</span><br><span class="line"></span><br><span class="line">//平均每秒网络上的流量，可以帮助排除是否存在网络流量过大导致响应时间延长的问题</span><br><span class="line">Transfer rate: 14.40 [Kbytes/sec] received</span><br></pre></td></tr></table></figure>
+
+<h4 id="网络上消耗的时间的分解"><a href="#网络上消耗的时间的分解" class="headerlink" title="网络上消耗的时间的分解"></a>网络上消耗的时间的分解</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Connection Times (ms)</span><br><span class="line">              min  mean[+/-sd] median   max</span><br><span class="line">Connect:       12   25  38.9     20     408</span><br><span class="line">Processing:     8  223 120.3    196     591</span><br><span class="line">Waiting:        8  142 124.9    120     574</span><br><span class="line">Total:         29  248 125.7    217     609</span><br></pre></td></tr></table></figure>
+
+<h4 id="网络消耗时间"><a href="#网络消耗时间" class="headerlink" title="网络消耗时间"></a>网络消耗时间</h4><p>这段是每个请求处理时间的分布情况，50%的处理时间在217ms内，66%的处理时间在224ms内…，重要的是看90%的处理时间</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">Percentage of the requests served within a certain time (ms)</span><br><span class="line">  50%    217</span><br><span class="line">  66%    224</span><br><span class="line">  75%    246</span><br><span class="line">  80%    249</span><br><span class="line">  90%    595</span><br><span class="line">  95%    604</span><br><span class="line">  98%    609</span><br><span class="line">  99%    609</span><br><span class="line"> 100%    609 (longest request)</span><br></pre></td></tr></table></figure>
+
+<h4 id="登录的问题"><a href="#登录的问题" class="headerlink" title="登录的问题"></a>登录的问题</h4><pre><code>有时候进行压力测试需要用户登录，怎么办？
+请参考以下步骤：
+
+先用账户和密码登录后，用开发者工具找到标识这个会话的Cookie值（Session ID）记下来
+如果只用到一个Cookie，那么只需键入命令：
+ab －n 100 －C key＝value http://baidu.com/
+
+如果需要多个Cookie，就直接设Header：
+ab -n 100 -H “Cookie: Key1=Value1; Key2=Value2” http://baidu.com/
+
+同类型的压力测试工具还有：webbench、siege、http_load等
+</code></pre>
+<p>参考：</p>
+<p><a target="_blank" rel="noopener" href="http://www.cnblogs.com/lpfuture/p/5740831.html" title="参考1">http://www.cnblogs.com/lpfuture/p/5740831.html</a></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Apache-Benchmark/" rel="tag"># Apache Benchmark</a>
+              <a href="/tags/%E5%8E%8B%E5%8A%9B%E6%B5%8B%E8%AF%95/" rel="tag"># 压力测试</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2017/05/25/win10%E5%AE%89%E8%A3%85openssl/" rel="prev" title="win10安装OpenSSL">
+                  <i class="fa fa-angle-left"></i> win10安装OpenSSL
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2017/05/31/zookeeper%E7%9A%84%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE%EF%BC%88%E5%8D%95%E6%9C%BA%E5%92%8C%E9%9B%86%E7%BE%A4%EF%BC%89/" rel="next" title="zookeeper的安装与配置（单机和集群）">
+                  zookeeper的安装与配置（单机和集群） <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 
+    <span itemprop="copyrightYear">2025</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">syxdevcode</span>
+  </div>
+<div class="wordcount">
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-line"></i>
+    </span>
+    <span title="站点总字数">2.1m</span>
+  </span>
+  <span class="post-meta-item">
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">31:31</span>
+  </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="返回顶部">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>
