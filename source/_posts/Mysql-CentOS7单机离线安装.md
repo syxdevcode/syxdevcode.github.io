@@ -1,0 +1,423 @@
+---
+title: Mysql-CentOS7单机离线安装
+date: 2020-05-13 13:07:42
+tags:
+- Linux
+- MySql
+- CentOS7
+- 安装部署
+categories: MySql
+---
+
+## 检查
+
+### 检查mysql是否存在
+
+```sh
+rpm -qa | grep mysql
+```
+
+### 检查mysql组合用户是否存在
+
+```sh
+# 检查mysql组和用户是否存在，如无则创建
+cat /etc/group | grep mysql
+cat /etc/passwd | grep mysql
+```
+
+查看全部用户：
+
+```sh
+cat /etc/passwd|grep -v nologin|grep -v halt|grep -v shutdown|awk -F ":" '{print $1 "|" $3 "1" $4}' | more
+```
+
+若不存在，则创建mysql组和用户
+
+```sh
+# 创建mysql用户组
+groupadd mysql
+
+# 创建一个用户名为mysql的用户，并加入mysql用户组
+useradd -g mysql mysql
+
+# 制定mysql用户的password
+passwd mysql
+```
+
+注：永久性删除用户账号
+
+```sh
+userdel peter
+groupdel peter
+```
+
+参考：[centos系统添加/删除用户和用户组](https://www.cnblogs.com/nyfz/p/8557137.html)
+
+## 下载离线包
+
+官网下载地址：[https://dev.mysql.com/downloads/mysql/5.7.html#downloads](https://dev.mysql.com/downloads/mysql/5.7.html#downloads)
+
+版本选择，可以选择一下两种方式：
+
+```sh
+Red Hat Enterprise Linux
+Linux - Generic
+```
+
+## 上传离线包到服务器
+
+```sh
+tar -zxvf mysql-5.7.31-linux-glibc2.12-x86_64.tar.gz
+mv mysql-5.7.31-linux-glibc2.12-x86_64 mysql
+mv mysql /usr/local
+```
+
+## 配置
+
+```sh
+# 更改所属的组和用户
+cd /usr/local/
+chown -R mysql mysql/
+chgrp -R mysql mysql/
+cd mysql/
+mkdir data
+chown -R mysql:mysql data
+
+[centos系统添加/删除用户和用户组](https://www.cnblogs.com/nyfz/p/8557137.html)
+
+# 创建my.cnf文件
+
+# 进入/usr/local/mysql文件夹下
+cd /usr/local/mysql
+
+# 创建my.cnf文件
+touch my.cnf #或者cd ''>my.conf
+
+# 编辑my.cnf
+vim my.cnf
+```
+
+**注意：/etc/目录下可能会存在 my.cnf,需要删除**
+
+```sh
+ls /etc/ | grep my.cnf
+rm -rf /etc/my.cnf
+```
+
+my.cnf:
+
+```sh
+# 对其他远程连接的mysql客户端的配置
+[mysql]
+socket=/var/lib/mysql/mysql.sock
+# set mysql client default chararter
+default-character-set=utf8mb4
+
+# 解决 this is incompatible with sql_mode=only_full_group_by 的错误
+sql_mode=STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION
+
+# 本地mysql服务的配置
+[mysqld]
+socket=/var/lib/mysql/mysql.sock
+bind-address=0.0.0.0
+# set mysql server port  
+port = 3306 #默认是3306，防止端口冲突发生，可以避免使用 3306 mysql默认端口
+# set mysql install base dir
+basedir=/usr/local/mysql
+# set the data store dir
+datadir=/usr/local/mysql/data
+# set the number of allow max connnection
+# 设置置 MySQL 的最大连接，按你实际情况适当设置。出现 'Too many connections' 错误，是因为 max_connections 的值太低，需要设置更高的链接数，
+# max_connection 值被设高之后的缺陷是当服务器运行超过设置阈值或更高的活动事务时会变的没有响应。
+max_connections=3000
+character-set-client-handshake = FALSE
+# set server charactre default encoding
+character-set-server=utf8mb4
+collation-server = utf8mb4_unicode_ci
+# the storage engine
+default-storage-engine=INNODB
+lower_case_table_names=1
+max_allowed_packet=16M
+explicit_defaults_for_timestamp=true
+
+# 解决 this is incompatible with sql_mode=only_full_group_by 的错误
+sql_mode=STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION
+
+[mysql.server]
+user=mysql
+basedir=/usr/local/mysql
+
+# 对本地的mysql客户端的配置
+[client] 
+default-character-set = utf8mb4 
+```
+
+注：在MySQL中，`utf8` 编码只支持每个字符最多三个字节，而真正的 `UTF-8` 是每个字符最多四个字节，
+MySQL 的 `utf8mb4` 才是真正的 `UTF-8`。
+`utf8mb4` 的最低mysql版本支持版本为5.5.3+，若不是，请升级到较新版本。
+
+参考：
+
+语法
+chown [-cfhvR] [--help] [--version] user[:group] file...
+参数 :
+
+user : 新的文件拥有者的使用者 ID
+group : 新的文件拥有者的使用者组(group)
+-c : 显示更改的部分的信息
+-f : 忽略错误信息
+-h :修复符号链接
+-v : 显示详细的处理信息
+-R : 处理指定目录以及其子目录下的所有文件
+--help : 显示辅助说明
+--version : 显示版本
+
+## 安装
+
+```sh
+# 进入mysql
+cd /usr/local/mysql
+
+# 安装mysql
+bin/mysql_install_db --user=mysql --basedir=/usr/local/mysql/ --datadir=/usr/local/mysql/data/
+
+cp ./support-files/mysql.server /etc/init.d/mysqld
+
+# 设置文件及目录权限
+chmod +x /etc/init.d/mysqld
+chown 777 my.cnf
+chown -R mysql:mysql data
+mkdir /var/lib/mysql/
+chown -R mysql:mysql /var/lib/mysql/
+
+ls -l
+```
+
+## 启动mysql
+
+```sh
+# 启动
+/etc/init.d/mysqld start
+
+# 重启
+/etc/init.d/mysqld restart
+```
+
+注：错误日志在 `/usr/local/mysql/data` 下 `XXXX.err` 文件。
+
+报错：
+
+```sh
+[root@renshelaodongbangong-sj0001 mysql]# /etc/init.d/mysqld restart
+MySQL server PID file could not be found!                  [FAILED]
+Starting MySQL.Logging to '/usr/local/mysql/data/renshelaodongbangong-sj0001.err'.
+                                                           [  OK  ]
+```
+
+解决方案：
+
+```sh
+#找到是否已经有进程占用
+ps aux|grep mysql
+kill -9 100684
+
+# 确定是否还有占用
+ps aux|grep mysql
+
+# 启动
+/etc/init.d/mysqld start
+
+# 重启
+/etc/init.d/mysqld restart
+```
+
+## 开机启动
+
+```sh
+chkconfig --level 35 mysqld on
+chkconfig --list mysqld
+chmod +x /etc/rc.d/init.d/mysqld
+chkconfig --add mysqld
+chkconfig --list mysqld
+
+#检查状态
+service mysqld status
+```
+
+## 修改配置
+
+```sh
+vim /etc/profile
+
+# 修改/etc/profile，在最后添加如下内容:
+
+#set mysql environment
+export PATH=$PATH:/usr/local/mysql/bin
+
+# 使文件生效
+[root@ren mysql]# vim /etc/profile
+[root@ren mysql]# source /etc/profile
+```
+
+## 设置密码
+
+```sh
+# 获取初始密码
+cat /root/.mysql_secret
+ugcNJt;ZAx7+
+```
+
+```sh
+# 登录
+mysql -uroot -p
+Enter password: #此处填写上边获取到的初始密码
+# 修改
+set password=password('password');
+UPDATE user SET Password = password('password') WHERE User = 'mysql';
+flush privileges
+exit
+
+# 验证新密码
+mysql -uroot -p
+Enter password: #此处输入新密码
+
+show tables;
+show databases;
+```
+### 常见报错
+
+（1）如果报错：ERROR 2002 (HY000): Can't connect to local MySQL server through socket '/tmp/mysql.sock' (2)，
+
+解决方案，创建软链接：
+
+```sh
+ln -s /var/lib/mysql/mysql.sock /tmp/mysql.sock
+```
+
+也可以使用下面的方式连接：
+
+```sh
+mysql -uroot -h 127.0.0.1 -p
+```
+
+（2）ERROR 1862 (HY000): Your password has expired. To log in you must change it using a client that supports expired passwords.
+
+使用忽略授权表的方法进入mysql：
+
+```
+vim my.cnf
+[mysqld]
+skip-grant-tables=1
+```
+
+使用命令重启mysql:
+
+```sh
+service mysqld restart
+Shutting down MySQL..                                      [  OK  ]
+Starting MySQL.                                            [  OK  ]
+```
+
+```sh
+# 进入mysql
+mysql -uroot -p
+
+use mysql;
+
+ERROR 1820 (HY000): You must reset your password using ALTER USER statement before executing this statement.
+mysql> ALTER USER USER() IDENTIFIED BY 'test1';
+Query OK, 0 rows affected (0.05 sec)
+
+select * from mysql.user where user='root' \G
+update user set authentication_string=password('test') where user='root' and Host='localhost';
+
+update user set password_expired='N' where user='root';
+
+# 刷新
+flush privileges;
+
+# 退出
+quit;
+```
+
+之后把 my.cnf 的 `skip-grant-tables=1` 这行注释掉
+
+## 添加远程访问权限
+
+```sh
+mysql> use mysql;
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+mysql> update user set host='%' where user='root';
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> FLUSH PRIVILEGES;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> select host,user from user;
++-----------+---------------+
+| host      | user          |
++-----------+---------------+
+| %         | root          |
+| localhost | mysql.session |
+| localhost | mysql.sys     |
++-----------+---------------+
+3 rows in set (0.00 sec)
+```
+
+## 重启mysql生效
+
+```sh
+/etc/init.d/mysqld restart
+# 或
+service mysqld restart
+```
+
+## 配置防火墙
+
+注意：针对各种云，因为有专门策略，所以不需要操作防火墙；
+
+```sh
+firewall-cmd --zone=public --add-port=3306/tcp --permanent
+firewall-cmd --reload
+
+## 重新查询端口是否开放
+firewall-cmd --query-port=3306/tcp
+
+## 查看监听的端口
+netstat -lnpt
+
+#关闭端口
+firewall-cmd --zone=public --remove-port=3306/tcp --permanent
+
+## 查看防火墙所有开放的端口
+firewall-cmd --zone=public --list-ports
+```
+
+## 查看监听的端口
+
+```sh
+netstat -lnpt | grep 3306
+```
+
+## 执行脚本
+
+```sql
+CREATE DATABASE data1
+
+use data1
+
+进入mysql：
+
+-- 执行脚本
+source /sql/data1.sql
+```
+
+参考：
+
+[centos7下使用mysql离线安装包安装mysql5.7](https://www.cnblogs.com/yy3b2007com/p/10497787.html)
+
+[对mysql的高并发优化配置的一些思考](https://blog.51cto.com/xiaozhagn/2073900)
