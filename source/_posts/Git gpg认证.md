@@ -72,7 +72,6 @@ git config commit.gpgsign true
 `.gitconfig` 内容如下：
 
 
-
 ```
 [user]
 	name = xxxxxx
@@ -80,9 +79,11 @@ git config commit.gpgsign true
 	
 # The contents of this file are included only for GitLab.com URLs
 [includeIf "hasconfig:remote.*.url:https://gitlab.xxxxx.com/**"]
+[includeIf "hasconfig:remote.*.url:https://github.com/**"]
 
 # Edit this line to point to your alternative configuration file
 path = ~/.gitconfig-gitlab
+path = ~/.gitconfig-github
 
 [commit]
 	gpgsign = false
