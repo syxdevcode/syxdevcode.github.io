@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width">
-<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 5.4.2">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 7.3.0">
 
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
 
-<script class="next-config" data-name="main" type="application/json">{"hostname":"syxdevcode.github.com","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.24.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
+<script class="next-config" data-name="main" type="application/json">{"hostname":"syxdevcode.github.com","root":"/","images":"/images","scheme":"Pisces","darkmode":false,"version":"8.24.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js" defer></script>
 
     <meta name="description" content="本文转载深入学习Redis（1）：Redis内存模型 这篇文章主要介绍Redis的内存模型（以3.0为例），包括Redis占用内存的情况及如何查询、不同的对象类型在内存中的编码方式、内存分配器(jemalloc)、简单动态字符串(SDS)、RedisObject等；然后在此基础上介绍几个Redis内存模型的应用。 一、Redis内存统计在客户端通过redis-cli连接服务器后（后面如无特殊说明，">
 <meta property="og:type" content="article">
@@ -269,21 +269,6 @@
     </span>
 
   
-    <span class="post-meta-break"></span>
-    <span class="post-meta-item" title="本文字数">
-      <span class="post-meta-item-icon">
-        <i class="far fa-file-word"></i>
-      </span>
-      <span class="post-meta-item-text">本文字数：</span>
-      <span>15k</span>
-    </span>
-    <span class="post-meta-item" title="阅读时长">
-      <span class="post-meta-item-icon">
-        <i class="far fa-clock"></i>
-      </span>
-      <span class="post-meta-item-text">阅读时长 &asymp;</span>
-      <span>14 分钟</span>
-    </span>
 </div>
 
         </div>
@@ -306,7 +291,7 @@
 <p>（2）** used_memory_rss**：Redis进程占据操作系统的内存（单位是字节），与top及ps命令看到的值是一致的；除了分配器分配的内存之外，used_memory_rss还包括进程运行本身需要的内存、内存碎片等，但是不包括虚拟内存。</p>
 <p>因此，used_memory和used_memory_rss，前者是从Redis角度得到的量，后者是从操作系统角度得到的量。二者之所以有所不同，一方面是因为内存碎片和Redis进程运行需要占用内存，使得前者可能比后者小，另一方面虚拟内存的存在，使得前者可能比后者大。</p>
 <p>由于在实际应用中，Redis的数据量会比较大，此时进程运行占用的内存与Redis数据量和内存碎片相比，都会小得多；因此used_memory_rss和used_memory的比例，便成了衡量Redis内存碎片率的参数；这个参数就是mem_fragmentation_ratio。</p>
-<p>（3）** mem_fragmentation_ratio**：内存碎片比率，该值是used_memory_rss / used_memory的比值。</p>
+<p>（3）** mem_fragmentation_ratio**：内存碎片比率，该值是used_memory_rss &#x2F; used_memory的比值。</p>
 <p>mem_fragmentation_ratio一般大于1，且该值越大，内存碎片比例越大。mem_fragmentation_ratio&lt;1，说明Redis使用了虚拟内存，由于虚拟内存的媒介是磁盘，比内存速度要慢很多，当这种情况出现时，应该及时排查，如果内存不足应该及时处理，如增加Redis节点、增加Redis服务器的内存、优化应用等。</p>
 <p>一般来说，mem_fragmentation_ratio在1.03左右是比较健康的状态（对于jemalloc来说）；</p>
 <p>（4）** mem_allocator**：Redis使用的内存分配器，在编译时指定；可以是 libc 、jemalloc或者tcmalloc，默认是jemalloc；截图中使用的便是默认的jemalloc。</p>
@@ -364,13 +349,13 @@
 <p>就目前的实现来说，Redis服务器在初始化时，会创建10000个字符串对象，值分别是0<del>9999的整数值；当Redis需要使用值为0</del>9999的字符串对象时，可以直接使用这些共享对象。10000这个数字可以通过调整参数REDIS_SHARED_INTEGERS（4.0中是OBJ_SHARED_INTEGERS）的值进行改变。</p>
 <h4 id="（5）ptr"><a href="#（5）ptr" class="headerlink" title="（5）ptr"></a>（5）ptr</h4><p>ptr指针指向具体的数据，如前面的例子中，set hello world，ptr指向包含字符串world的SDS。</p>
 <h4 id="（6）总结"><a href="#（6）总结" class="headerlink" title="（6）总结"></a>（6）总结</h4><p>综上所述，redisObject的结构与对象类型、编码、内存回收、共享对象都有关系；一个redisObject对象的大小为16字节：</p>
-<p>4bit+4bit+24bit+4Byte+8Byte=16Byte。</p>
+<p>4bit+4bit+24bit+4Byte+8Byte&#x3D;16Byte。</p>
 <h3 id="4、SDS"><a href="#4、SDS" class="headerlink" title="4、SDS"></a>4、SDS</h3><p>Redis没有直接使用C字符串(即以空字符’\0’结尾的字符数组)作为默认的字符串表示，而是使用了SDS。SDS是简单动态字符串(Simple Dynamic String)的缩写。</p>
 <h4 id="（1）SDS结构"><a href="#（1）SDS结构" class="headerlink" title="（1）SDS结构"></a>（1）SDS结构</h4><p>sds的结构如下：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">struct sdshdr &#123;</span><br><span class="line">    int len;</span><br><span class="line">    int free;</span><br><span class="line">    char buf[];</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
 
 <p>其中，buf表示字节数组，用来存储字符串；len表示buf已使用的长度，free表示buf未使用的长度。下面是两个例子。</p>
-<p>通过SDS的结构可以看出，buf数组的长度=free+len+1（其中1表示字符串结尾的空字符）；所以，一个SDS结构占据的空间为：free所占长度+len所占长度+ buf数组的长度=4+4+free+len+1=free+len+9。</p>
+<p>通过SDS的结构可以看出，buf数组的长度&#x3D;free+len+1（其中1表示字符串结尾的空字符）；所以，一个SDS结构占据的空间为：free所占长度+len所占长度+ buf数组的长度&#x3D;4+4+free+len+1&#x3D;free+len+9。</p>
 <h4 id="2-SDS与C字符串的应用"><a href="#2-SDS与C字符串的应用" class="headerlink" title="(2)SDS与C字符串的应用"></a>(2)SDS与C字符串的应用</h4><p>Redis在存储对象时，一律使用SDS代替C字符串。例如set hello world命令，hello和world都是以SDS的形式存储的。而sadd myset member1 member2 member3命令，不论是键（”myset”），还是集合中的元素（”member1”、 ”member2”和”member3”），都是以SDS的形式存储。除了存储对象，SDS还用于存储各种缓冲区。</p>
 <p>只有在字符串不会改变的情况下，如打印日志时，才会使用C字符串。</p>
 <h2 id="四、Redis的对象类型与内部编码"><a href="#四、Redis的对象类型与内部编码" class="headerlink" title="四、Redis的对象类型与内部编码"></a>四、Redis的对象类型与内部编码</h2><p>前面已经说过，Redis支持5种对象类型，而每种结构都有至少两种编码；这样做的好处在于：一方面接口与实现分离，当需要增加或改变内部编码时，用户使用不受影响，另一方面可以根据不同的应用场景切换内部编码，提高效率。</p>
@@ -379,11 +364,11 @@
 <p>字符串长度不能超过512MB。</p>
 <h4 id="（2）内部编码"><a href="#（2）内部编码" class="headerlink" title="（2）内部编码"></a>（2）内部编码</h4><p>字符串类型的内部编码有3种，它们的应用场景如下：</p>
 <p>** int**：8个字节的长整型。字符串值是整型时，这个值使用long整型表示。</p>
-<p>** embstr**：&lt;=39字节的字符串。embstr与raw都使用redisObject和sds保存数据，区别在于，embstr的使用只分配一次内存空间（因此redisObject和sds是连续的），而raw需要分配两次内存空间（分别为redisObject和sds分配空间）。因此与raw相比，embstr的好处在于创建时少分配一次空间，删除时少释放一次空间，以及对象的所有数据连在一起，寻找方便。而embstr的坏处也很明显，如果字符串的长度增加需要重新分配内存时，整个redisObject和sds都需要重新分配空间，因此redis中的embstr实现为只读。</p>
+<p>** embstr**：&lt;&#x3D;39字节的字符串。embstr与raw都使用redisObject和sds保存数据，区别在于，embstr的使用只分配一次内存空间（因此redisObject和sds是连续的），而raw需要分配两次内存空间（分别为redisObject和sds分配空间）。因此与raw相比，embstr的好处在于创建时少分配一次空间，删除时少释放一次空间，以及对象的所有数据连在一起，寻找方便。而embstr的坏处也很明显，如果字符串的长度增加需要重新分配内存时，整个redisObject和sds都需要重新分配空间，因此redis中的embstr实现为只读。</p>
 <p>** raw**：大于39个字节的字符串</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">172.19.0.2:6380&gt; object encoding key2</span><br><span class="line">&quot;int&quot;</span><br><span class="line">172.19.0.2:6380&gt; set key2 helloworld</span><br><span class="line">OK</span><br><span class="line">172.19.0.2:6380&gt; object encoding key2</span><br><span class="line">&quot;embstr&quot;</span><br><span class="line">172.19.0.2:6380&gt; set key3 helloworldhelloworldhelloworldhelloworldhelloworld</span><br><span class="line">OK</span><br><span class="line">172.19.0.2:6380&gt; strlen key3</span><br><span class="line">(integer) 50</span><br><span class="line">172.19.0.2:6380&gt; object encoding key3</span><br><span class="line">&quot;raw&quot;</span><br><span class="line">172.19.0.2:6380&gt;</span><br></pre></td></tr></table></figure>
 
-<p>embstr和raw进行区分的长度，是39；是因为redisObject的长度是16字节，sds的长度是9+字符串长度；因此当字符串长度是39时，embstr的长度正好是16+9+39=64，jemalloc正好可以分配64字节的内存单元。</p>
+<p>embstr和raw进行区分的长度，是39；是因为redisObject的长度是16字节，sds的长度是9+字符串长度；因此当字符串长度是39时，embstr的长度正好是16+9+39&#x3D;64，jemalloc正好可以分配64字节的内存单元。</p>
 <h4 id="（3）编码转换"><a href="#（3）编码转换" class="headerlink" title="（3）编码转换"></a>（3）编码转换</h4><p>当int数据不再是整数，或大小超过了long的范围时，自动转化为raw。</p>
 <p>而对于embstr，由于其实现是只读的，因此在对embstr对象进行修改时，都会先转化为raw再进行修改，因此，只要是修改embstr对象，修改后的对象一定是raw的，无论是否达到了39个字节。</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">172.19.0.2:6380&gt; set key1 hello</span><br><span class="line">OK</span><br><span class="line">172.19.0.2:6380&gt; object encoding key1</span><br><span class="line">&quot;embstr&quot;</span><br><span class="line">172.19.0.2:6380&gt; append key1 ,world</span><br><span class="line">(integer) 11</span><br><span class="line">172.19.0.2:6380&gt; get key1</span><br><span class="line">&quot;hello,world&quot;</span><br><span class="line">172.19.0.2:6380&gt; object encoding key1</span><br><span class="line">&quot;raw&quot;</span><br></pre></td></tr></table></figure>
@@ -412,7 +397,7 @@
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">typedef struct dictEntry&#123;</span><br><span class="line">    void *key;</span><br><span class="line">    union&#123;</span><br><span class="line">        void *val;</span><br><span class="line">        uint64_tu64;</span><br><span class="line">        int64_ts64;</span><br><span class="line">    &#125;v;</span><br><span class="line">    struct dictEntry *next;</span><br><span class="line">&#125;dictEntry;</span><br></pre></td></tr></table></figure>
 
 <p>其中，各个属性的功能如下：</p>
-<p>key：键值对中的键；<br>val：键值对中的值，使用union(即共用体)实现，存储的内容既可能是一个指向值的指针，也可能是64位整型，或无符号64位整型；<br>next：指向下一个dictEntry，用于解决哈希冲突问题<br>在64位系统中，一个dictEntry对象占24字节（key/val/next各占8字节）。</p>
+<p>key：键值对中的键；<br>val：键值对中的值，使用union(即共用体)实现，存储的内容既可能是一个指向值的指针，也可能是64位整型，或无符号64位整型；<br>next：指向下一个dictEntry，用于解决哈希冲突问题<br>在64位系统中，一个dictEntry对象占24字节（key&#x2F;val&#x2F;next各占8字节）。</p>
 <p>** bucket**</p>
 <p>bucket是一个数组，数组的每个元素都是指向dictEntry结构的指针。redis中bucket数组的大小计算规则如下：大于dictEntry的、最小的2^n；例如，如果有1000个dictEntry，那么bucket大小为1024；如果有1500个dictEntry，则bucket大小为2048。</p>
 <p>** dictht**</p>
@@ -456,23 +441,23 @@
 <ol>
 <li><p>一个dictEntry，24字节，jemalloc会分配32字节的内存块</p>
 </li>
-<li><p>一个key，7字节，所以SDS(key)需要7+9=16个字节，jemalloc会分配16字节的内存块</p>
+<li><p>一个key，7字节，所以SDS(key)需要7+9&#x3D;16个字节，jemalloc会分配16字节的内存块</p>
 </li>
 <li><p>一个redisObject，16字节，jemalloc会分配16字节的内存块</p>
 </li>
-<li><p>一个value，7字节，所以SDS(value)需要7+9=16个字节，jemalloc会分配16字节的内存块</p>
+<li><p>一个value，7字节，所以SDS(value)需要7+9&#x3D;16个字节，jemalloc会分配16字节的内存块</p>
 </li>
-<li><p>综上，一个dictEntry需要32+16+16+16=80个字节。</p>
+<li><p>综上，一个dictEntry需要32+16+16+16&#x3D;80个字节。</p>
 </li>
 </ol>
 <p>bucket空间：bucket数组的大小为大于90000的最小的2^n，是131072；每个bucket元素为8字节（因为64位系统中指针大小为8字节）。</p>
-<p>因此，可以估算出这90000个键值对占据的内存大小为：90000<em>80 + 131072</em>8 = 8248576。</p>
+<p>因此，可以估算出这90000个键值对占据的内存大小为：90000<em>80 + 131072</em>8 &#x3D; 8248576。</p>
 <h3 id="2、优化内存占用"><a href="#2、优化内存占用" class="headerlink" title="2、优化内存占用"></a>2、优化内存占用</h3><p>了解redis的内存模型，对优化redis内存占用有很大帮助。下面介绍几种优化场景。</p>
 <p>（1）利用jemalloc特性进行优化</p>
-<p>上一小节所讲述的90000个键值便是一个例子。由于jemalloc分配内存时数值是不连续的，因此key/value字符串变化一个字节，可能会引起占用内存很大的变动；在设计时可以利用这一点。</p>
+<p>上一小节所讲述的90000个键值便是一个例子。由于jemalloc分配内存时数值是不连续的，因此key&#x2F;value字符串变化一个字节，可能会引起占用内存很大的变动；在设计时可以利用这一点。</p>
 <p>例如，如果key的长度如果是8个字节，则SDS为17字节，jemalloc分配32字节；此时将key长度缩减为7个字节，则SDS为16字节，jemalloc分配16字节；则每个key所占用的空间都可以缩小一半。</p>
-<p>（2）使用整型/长整型</p>
-<p>如果是整型/长整型，Redis会使用int类型（8字节）存储来代替字符串，可以节省更多空间。因此在可以使用长整型/整型代替字符串的场景下，尽量使用长整型/整型。</p>
+<p>（2）使用整型&#x2F;长整型</p>
+<p>如果是整型&#x2F;长整型，Redis会使用int类型（8字节）存储来代替字符串，可以节省更多空间。因此在可以使用长整型&#x2F;整型代替字符串的场景下，尽量使用长整型&#x2F;整型。</p>
 <p>（3）共享对象</p>
 <p>利用共享对象，可以减少对象的创建（同时减少了redisObject的创建），节省内存空间。目前redis中的共享对象只包括10000个整数（0-9999）；可以通过调整REDIS_SHARED_INTEGERS参数提高共享对象的个数；例如将REDIS_SHARED_INTEGERS调整到20000，则0-19999之间的对象都可以共享。</p>
 <p>考虑这样一种场景：论坛网站在redis中存储了每个帖子的浏览数，而这些浏览数绝大多数分布在0-20000之间，这时候通过适当增大REDIS_SHARED_INTEGERS参数，便可以利用共享对象节省内存空间。</p>
@@ -534,20 +519,6 @@
     </span>
     <span class="author" itemprop="copyrightHolder">syxdevcode</span>
   </div>
-<div class="wordcount">
-  <span class="post-meta-item">
-    <span class="post-meta-item-icon">
-      <i class="fa fa-chart-line"></i>
-    </span>
-    <span title="站点总字数">2.1m</span>
-  </span>
-  <span class="post-meta-item">
-    <span class="post-meta-item-icon">
-      <i class="fa fa-coffee"></i>
-    </span>
-    <span title="站点阅读时长">31:31</span>
-  </span>
-</div>
   <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
   </div>
 
