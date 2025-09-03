@@ -10,7 +10,7 @@ categories:
 
 GitBash 的 shell 命令行工具，可以试用grep命令过滤：
 
-注意，需要把 adb.exe 添加到环境变量中，如下：
+注意，需要把 adb.exe 添加到 `Path` 环境变量中，如下：
 
 ![Snipaste_2023-10-12_14-16-36.png](/img1/Snipaste_2023-10-12_14-16-36.png)
 
